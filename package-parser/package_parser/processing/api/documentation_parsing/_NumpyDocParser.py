@@ -4,13 +4,14 @@ from typing import Optional, Tuple
 import astroid
 import numpydoc.docscrape
 from numpydoc.docscrape import NumpyDocString
-
-from ._AbstractDocumentationParser import AbstractDocumentationParser
-from ._APIElementDocumentation import (
+from package_parser.processing.api.model import (
     ClassDocumentation,
     FunctionDocumentation,
+    ParameterAssignment,
     ParameterDocumentation,
 )
+
+from ._AbstractDocumentationParser import AbstractDocumentationParser
 from ._get_full_docstring import get_full_docstring
 
 
@@ -49,7 +50,10 @@ class NumpyDocParser(AbstractDocumentationParser):
         )
 
     def get_parameter_documentation(
-        self, function_node: astroid.FunctionDef, parameter_name: str
+        self,
+        function_node: astroid.FunctionDef,
+        parameter_name: str,
+        parameter_assigned_by: ParameterAssignment,
     ) -> ParameterDocumentation:
 
         # For constructors (__init__ functions) the parameters are described on the class
@@ -71,7 +75,9 @@ class NumpyDocParser(AbstractDocumentationParser):
         matching_parameters_numpydoc = [
             it
             for it in all_parameters_numpydoc
-            if _is_matching_parameter_numpydoc(it, parameter_name)
+            if _is_matching_parameter_numpydoc(
+                it, parameter_name, parameter_assigned_by
+            )
         ]
 
         if len(matching_parameters_numpydoc) == 0:
@@ -123,14 +129,23 @@ def _get_description(numpydoc_string: NumpyDocString) -> str:
 
 
 def _is_matching_parameter_numpydoc(
-    parameter_numpydoc: numpydoc.docscrape.Parameter, parameter_name: str
+    parameter_numpydoc: numpydoc.docscrape.Parameter,
+    parameter_name: str,
+    parameter_assigned_by: ParameterAssignment,
 ) -> bool:
     """
     Returns whether the given NumpyDoc applied to the parameter with the given name.
     """
 
+    if parameter_assigned_by == ParameterAssignment.POSITIONAL_VARARG:
+        lookup_name = f"*{parameter_name}"
+    elif parameter_assigned_by == ParameterAssignment.NAMED_VARARG:
+        lookup_name = f"**{parameter_name}"
+    else:
+        lookup_name = parameter_name
+
     return any(
-        name.strip() == parameter_name for name in parameter_numpydoc.name.split(",")
+        name.strip() == lookup_name for name in parameter_numpydoc.name.split(",")
     )
 
 
