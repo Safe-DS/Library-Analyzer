@@ -1,4 +1,5 @@
 import spacy
+import spacy.cli
 from library_analyzer.processing.api.model import (
     Parameter,
     ParameterAssignment,
@@ -18,7 +19,11 @@ from library_analyzer.processing.dependencies import (
     extract_lefts_and_rights,
 )
 
-nlp = spacy.load("en_core_web_sm")
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    spacy.cli.download("en_core_web_sm")
+    nlp = spacy.load("en_core_web_sm")
 
 
 def test_extract_lefts_and_rights():
