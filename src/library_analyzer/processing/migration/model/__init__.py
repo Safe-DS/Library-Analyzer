@@ -10,3 +10,4 @@ from ._mapping import (
     merge_mappings,
 )
 from ._strict_differ import StrictDiffer
+from ._unchanged_differ import UnchangedDiffer

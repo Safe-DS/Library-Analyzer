@@ -1,23 +1,17 @@
 from inspect import cleandoc
 
-import pytest
 from library_analyzer.processing.api.model import API, Class, ClassDocumentation
 from library_analyzer.processing.migration import APIMapping
 from library_analyzer.processing.migration.model import (
-    AbstractDiffer,
     ManyToManyMapping,
     ManyToOneMapping,
     OneToManyMapping,
     OneToOneMapping,
+    SimpleDiffer,
 )
-from .test_base_differ import differ_list
 
 
-@pytest.mark.parametrize(
-    "differ",
-    differ_list,
-)  # type: ignore
-def test_one_to_one_mapping(differ: AbstractDiffer) -> None:
+def test_one_to_one_mapping() -> None:
     apiv1 = API("test", "test", "1.0")
     apiv2 = API("test", "test", "2.0")
     class_1 = Class(
@@ -33,6 +27,12 @@ def test_one_to_one_mapping(differ: AbstractDiffer) -> None:
     )
     apiv1.add_class(class_1)
     apiv2.add_class(class_1)
+    differ = SimpleDiffer(
+        None,
+        [],
+        apiv1,
+        apiv2,
+    )
     mappings = APIMapping(apiv1, apiv2, differ).map_api()
 
     assert len(mappings) == 1
@@ -41,34 +41,38 @@ def test_one_to_one_mapping(differ: AbstractDiffer) -> None:
     assert mappings[0].get_apiv1_elements() == [class_1]
 
 
-@pytest.mark.parametrize(
-    "differ",
-    differ_list,
-)  # type: ignore
-def test_one_to_many_and_many_to_one_mappings(differ: AbstractDiffer) -> None:
+def test_one_to_many_and_many_to_one_mappings() -> None:
     apiv1, apiv2, class_1, class_2, class_3 = create_apis()
+    differ = SimpleDiffer(
+        None,
+        [],
+        apiv1,
+        apiv2,
+    )
 
     mappings = APIMapping(apiv1, apiv2, differ).map_api()
     assert len(mappings) == 1
     assert isinstance(mappings[0], OneToManyMapping)
     assert mappings[0].get_apiv1_elements()[0] == class_1
     assert len(mappings[0].get_apiv2_elements()) == 2
-    assert set(mappings[0].get_apiv2_elements()) == {class_2, class_3}
+    assert mappings[0].get_apiv2_elements() == [class_2, class_3]
 
     apiv1, apiv2 = apiv2, apiv1
+    differ = SimpleDiffer(
+        None,
+        [],
+        apiv1,
+        apiv2,
+    )
     mappings = APIMapping(apiv1, apiv2, differ).map_api()
     assert len(mappings) == 1
     assert isinstance(mappings[0], ManyToOneMapping)
     assert len(mappings[0].get_apiv1_elements()) == 2
-    assert set(mappings[0].get_apiv1_elements()) == {class_2, class_3}
+    assert sorted(mappings[0].get_apiv1_elements(), key=lambda class_: class_.id) == [class_2, class_3]  # type: ignore
     assert mappings[0].get_apiv2_elements()[0] == class_1
 
 
-@pytest.mark.parametrize(
-    "differ",
-    differ_list,
-)  # type: ignore
-def test_many_to_many_mapping(differ: AbstractDiffer) -> None:
+def test_many_to_many_mapping() -> None:
     apiv1, apiv2, class_1, class_2, class_3 = create_apis()
     class_4 = Class(
         "test/test.TestC",
@@ -82,20 +86,22 @@ def test_many_to_many_mapping(differ: AbstractDiffer) -> None:
         [],
     )
     apiv1.add_class(class_4)
+    differ = SimpleDiffer(
+        None,
+        [],
+        apiv1,
+        apiv2,
+    )
     mappings = APIMapping(apiv1, apiv2, differ).map_api()
     assert len(mappings) == 1
     assert isinstance(mappings[0], ManyToManyMapping)
     assert len(mappings[0].get_apiv1_elements()) == 2
     assert len(mappings[0].get_apiv2_elements()) == 2
-    assert set(mappings[0].get_apiv1_elements()) == {class_1, class_4}
-    assert set(mappings[0].get_apiv2_elements()) == {class_2, class_3}
+    assert sorted(mappings[0].get_apiv1_elements(), key=lambda class_: class_.id) == [class_1, class_4]  # type: ignore
+    assert mappings[0].get_apiv2_elements() == [class_2, class_3]
 
 
-@pytest.mark.parametrize(
-    "differ",
-    differ_list,
-)  # type: ignore
-def test_too_different_mapping(differ: AbstractDiffer) -> None:
+def test_too_different_mapping() -> None:
     apiv1 = API("test", "test", "1.0")
     class_1 = Class(
         "test/test/Test",
@@ -139,6 +145,12 @@ def test_too_different_mapping(differ: AbstractDiffer) -> None:
         [],
     )
     apiv2.add_class(class_2)
+    differ = SimpleDiffer(
+        None,
+        [],
+        apiv1,
+        apiv2,
+    )
     api_mapping = APIMapping(apiv1, apiv2, differ)
     mappings = api_mapping.map_api()
     assert (

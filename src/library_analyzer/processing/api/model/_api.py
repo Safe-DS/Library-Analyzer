@@ -7,7 +7,7 @@ from black import FileMode, InvalidInput, format_str
 from black.brackets import BracketMatchError
 from black.linegen import CannotSplit
 from black.trans import CannotTransform
-from library_analyzer.utils import parent_id
+from package_parser.utils import parent_id
 
 from ._documentation import ClassDocumentation, FunctionDocumentation
 from ._parameters import Parameter
@@ -39,6 +39,9 @@ class API:
         self.modules: dict[str, Module] = {}
         self.classes: dict[str, Class] = {}
         self.functions: dict[str, Function] = {}
+        self.attributes_: Optional[dict[str, Attribute]] = None
+        self.parameters_: Optional[dict[str, Parameter]] = None
+        self.results_: Optional[dict[str, Result]] = None
 
     def add_module(self, module: Module) -> None:
         self.modules[module.id] = module
@@ -74,34 +77,41 @@ class API:
         return len([it for it in self.parameters().values() if it.is_public])
 
     def parameters(self) -> dict[str, Parameter]:
-        result: dict[str, Parameter] = {}
+        if self.parameters_ is not None:
+            return self.parameters_
+        parameters_: dict[str, Parameter] = {}
 
         for function in self.functions.values():
             for parameter in function.parameters:
                 parameter_id = f"{function.id}/{parameter.name}"
-                result[parameter_id] = parameter
-
-        return result
+                parameters_[parameter_id] = parameter
+        self.parameters_ = parameters_
+        return parameters_
 
     def attributes(self) -> dict[str, Attribute]:
-        result: dict[str, Attribute] = {}
+        if self.attributes_ is not None:
+            return self.attributes_
+        attributes_: dict[str, Attribute] = {}
 
         for class_ in self.classes.values():
             for attribute in class_.instance_attributes:
                 attribute_id = f"{class_.id}/{attribute.name}"
-                result[attribute_id] = attribute
+                attributes_[attribute_id] = attribute
+        self.attributes_ = attributes_
 
-        return result
+        return attributes_
 
     def results(self) -> dict[str, Result]:
-        result_dict: dict[str, Result] = {}
+        if self.results_ is not None:
+            return self.results_
+        results_: dict[str, Result] = {}
 
         for function in self.functions.values():
             for result in function.results:
                 result_id = f"{function.id}/{result.name}"
-                result_dict[result_id] = result
-
-        return result_dict
+                results_[result_id] = result
+        self.results_ = results_
+        return results_
 
     def get_default_value(self, parameter_id: str) -> Optional[str]:
         function_id = parent_id(parameter_id)
@@ -217,7 +227,22 @@ class FromImport:
         }
 
 
+@dataclass
 class Class:
+    id: str
+    qname: str
+    decorators: list[str]
+    superclasses: list[str]
+    methods: list[str] = field(init=False)
+    is_public: bool
+    reexported_by: list[str]
+    documentation: ClassDocumentation
+    code: str
+    instance_attributes: list[Attribute]
+    formatted_code: Optional[str] = field(
+        default=None, init=False, hash=False, compare=False
+    )
+
     @staticmethod
     def from_json(json: Any) -> Class:
         result = Class(
@@ -292,13 +317,11 @@ class Class:
             ],
         }
 
-    def get_formatted_code(self) -> str:
-        if self.formatted_code is None:
-            self.formatted_code = _generate_formatted_code(self)
-        return self.formatted_code
-
-    def __repr__(self) -> str:
-        return "Class(id=" + self.id + ")"
+    def get_formatted_code(self, *, cut_documentation: bool = False) -> str:
+        formatted_code = _generate_formatted_code(self)
+        if cut_documentation:
+            formatted_code = _cut_documentation_from_code(formatted_code, self)
+        return formatted_code
 
 
 def _generate_formatted_code(api_element: Union[Class, Function]) -> str:
@@ -313,14 +336,43 @@ def _generate_formatted_code(api_element: Union[Class, Function]) -> str:
     return code
 
 
-@dataclass
+def _cut_documentation_from_code(code: str, api_element: Union[Class, Function]) -> str:
+    start_keyword = "class " if isinstance(api_element, Class) else "def "
+    lines = code.split("\n")
+    start_line = -1
+    for index, line in enumerate(lines):
+        if line.lstrip().startswith(start_keyword):
+            start_line = index + 1
+            break
+    if 0 <= start_line < len(lines):
+        line = lines[start_line].lstrip()
+        if line.startswith('"""'):
+            end_line = -1
+            lines[start_line] = line[3:]
+            if lines[start_line].rstrip().endswith('"""'):
+                end_line = start_line
+            else:
+                for index in range(start_line, len(lines)):
+                    line = lines[index]
+                    if line.lstrip().startswith('"""'):
+                        end_line = index
+                        break
+            if end_line >= 0:
+                if (end_line + 1) < len(lines) and lines[end_line + 1].lstrip() == "":
+                    end_line += 1
+                return (
+                    "\n".join(lines[:start_line])
+                    + "\n"
+                    + "\n".join(lines[end_line + 1 :])
+                )
+    return code
+
+
+@dataclass(frozen=True)
 class Attribute:
     name: str
     types: Optional[AbstractType]
     class_id: Optional[str] = None
-
-    def __hash__(self) -> int:
-        return hash((self.name, self.class_id, self.types))
 
     def to_json(self) -> dict[str, Any]:
         types_json = self.types.to_json() if self.types is not None else None
@@ -332,21 +384,8 @@ class Attribute:
             json["name"], AbstractType.from_json(json.get("types", {})), class_id
         )
 
-    def __repr__(self) -> str:
-        type_str = (
-            " , type=" + str(self.types.to_json()) if self.types is not None else "None"
-        )
-        return (
-            "Attribute(class_id="
-            + str(self.class_id)
-            + "/"
-            + self.name
-            + type_str
-            + ")"
-        )
 
-
-@dataclass
+@dataclass(frozen=True)
 class Function:
     id: str
     qname: str
@@ -357,10 +396,9 @@ class Function:
     reexported_by: list[str]
     documentation: FunctionDocumentation
     code: str
-    formatted_code: Optional[str] = field(init=False)
-
-    def __post_init__(self) -> None:
-        self.formatted_code = None
+    formatted_code: Optional[str] = field(
+        default=None, init=False, hash=False, compare=False
+    )
 
     @staticmethod
     def from_json(json: Any) -> Function:
@@ -401,32 +439,14 @@ class Function:
             "code": self.code,
         }
 
-    def get_formatted_code(self) -> str:
-        if self.formatted_code is None:
-            self.formatted_code = _generate_formatted_code(self)
-        return self.formatted_code
-
-    def __repr__(self) -> str:
-        return "Function(id=" + self.id + ")"
-
-    def __hash__(self) -> int:
-        return hash(
-            (
-                self.id,
-                self.name,
-                self.qname,
-                frozenset(self.decorators),
-                frozenset(self.parameters),
-                frozenset(self.results),
-                self.is_public,
-                frozenset(self.reexported_by),
-                self.documentation,
-                self.code,
-            )
-        )
+    def get_formatted_code(self, *, cut_documentation: bool = False) -> str:
+        formatted_code = _generate_formatted_code(self)
+        if cut_documentation:
+            formatted_code = _cut_documentation_from_code(formatted_code, self)
+        return formatted_code
 
 
-@dataclass
+@dataclass(frozen=True)
 class Result:
     name: str
     docstring: ResultDocstring
@@ -443,13 +463,8 @@ class Result:
     def to_json(self) -> Any:
         return {"name": self.name, "docstring": self.docstring.to_json()}
 
-    def __repr__(self) -> str:
-        return (
-            "Result(function_id=" + str(self.function_id) + ", name=" + self.name + ")"
-        )
 
-
-@dataclass
+@dataclass(frozen=True)
 class ResultDocstring:
     type: str
     description: str

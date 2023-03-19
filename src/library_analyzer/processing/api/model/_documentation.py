@@ -4,7 +4,7 @@ import dataclasses
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(frozen=True)
 class ClassDocumentation:
     description: str = ""
     full_docstring: str = ""
@@ -17,7 +17,7 @@ class ClassDocumentation:
         return dataclasses.asdict(self)
 
 
-@dataclass
+@dataclass(frozen=True)
 class FunctionDocumentation:
     description: str = ""
     full_docstring: str = ""
@@ -29,16 +29,8 @@ class FunctionDocumentation:
     def to_dict(self) -> dict:
         return dataclasses.asdict(self)
 
-    def __hash__(self) -> int:
-        return hash(
-            (
-                self.description,
-                self.full_docstring,
-            )
-        )
 
-
-@dataclass
+@dataclass(frozen=True)
 class ParameterDocumentation:
     type: str = ""
     default_value: str = ""
@@ -50,6 +42,3 @@ class ParameterDocumentation:
 
     def to_dict(self) -> dict:
         return dataclasses.asdict(self)
-
-    def __hash__(self) -> int:
-        return hash((self.type, self.default_value, self.description))
