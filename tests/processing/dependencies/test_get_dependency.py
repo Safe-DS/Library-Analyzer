@@ -1,4 +1,5 @@
 import spacy
+import spacy.cli
 from library_analyzer.processing.api.model import (
     Parameter,
     ParameterAssignment,
@@ -18,10 +19,14 @@ from library_analyzer.processing.dependencies import (
     extract_lefts_and_rights,
 )
 
-nlp = spacy.load("en_core_web_sm")
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    spacy.cli.download("en_core_web_sm")
+    nlp = spacy.load("en_core_web_sm")
 
 
-def test_extract_lefts_and_rights():
+def test_extract_lefts_and_rights() -> None:
     # string from https://spacy.io/usage/linguistic-features#navigating
     doc = nlp("Autonomous cars shift insurance liability toward manufacturers")
     doc_head_token = doc[2]
@@ -29,7 +34,7 @@ def test_extract_lefts_and_rights():
     assert extracted_lefts_and_rights == doc.text.split()
 
 
-def test_extract_action():
+def test_extract_action() -> None:
     action_is_ignored = nlp(
         "this parameter is ignored when fit_intercept is set to False."
     )
@@ -66,7 +71,7 @@ def test_extract_action():
     assert action == Action(action=", X is assumed to be a kernel matrix")
 
 
-def test_extract_condition():
+def test_extract_condition() -> None:
     condition_is_none = nlp(
         "If func is None , then func will be the identity function."
     )
@@ -94,7 +99,7 @@ def test_extract_condition():
     assert condition == Condition(condition="If metric is a string")
 
 
-def test_extract_dependencies_from_docstring_pattern_adverbial_clause():
+def test_extract_dependencies_from_docstring_pattern_adverbial_clause() -> None:
     param_docstring_nlp = nlp("ignored when probability is False")
     dependent_param = Parameter(
         id_="sklearn/sklearn.linear_model/LogisticRegression/random_state",
