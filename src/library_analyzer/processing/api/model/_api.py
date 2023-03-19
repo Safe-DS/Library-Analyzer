@@ -7,7 +7,7 @@ from black import FileMode, InvalidInput, format_str
 from black.brackets import BracketMatchError
 from black.linegen import CannotSplit
 from black.trans import CannotTransform
-from package_parser.utils import parent_id
+from library_analyzer.utils import parent_id
 
 from ._documentation import ClassDocumentation, FunctionDocumentation
 from ._parameters import Parameter
