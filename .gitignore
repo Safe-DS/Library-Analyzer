@@ -1,0 +1,46 @@
+# IntelliJ
+.idea/
+*.iml
+
+# VSCode Settings
+.vscode/
+
+# Compilation/build outputs
+build/
+dist/
+out/
+
+# Node
+.npm/
+node_modules/
+.node_repl_history
+npm-debug.log*
+pnpm-lock.yaml
+yarn.lock
+
+# Python binaries
+*.egg-info/
+__pycache__/
+*.pyc
+
+# Python environment
+venv/
+
+# Pytest outputs
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# mkdocs
+/site/
+/docs/reference/safeds/
+/docs/reference/SUMMARY.md
+
+# MegaLinter
+report/
+megalinter-reports/
+
+# Other
+.DS_Store/
+*.log
