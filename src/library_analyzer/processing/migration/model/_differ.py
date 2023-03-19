@@ -163,90 +163,90 @@ class SimpleDiffer(AbstractDiffer):
             ParameterAssignment.IMPLICIT: {
                 ParameterAssignment.IMPLICIT: 1.0,
                 ParameterAssignment.NAMED_VARARG: 1.0
-                                                  - distance_between_implicit_and_explicit
-                                                  - distance_between_vararg_and_normal
-                                                  - distance_between_position_and_named,
+                - distance_between_implicit_and_explicit
+                - distance_between_vararg_and_normal
+                - distance_between_position_and_named,
                 ParameterAssignment.POSITIONAL_VARARG: 1.0
-                                                       - distance_between_implicit_and_explicit
-                                                       - distance_between_vararg_and_normal,
+                - distance_between_implicit_and_explicit
+                - distance_between_vararg_and_normal,
                 ParameterAssignment.POSITION_OR_NAME: 1.0
-                                                      - distance_between_implicit_and_explicit,
+                - distance_between_implicit_and_explicit,
                 ParameterAssignment.NAME_ONLY: 1.0
-                                               - distance_between_implicit_and_explicit,
+                - distance_between_implicit_and_explicit,
                 ParameterAssignment.POSITION_ONLY: 1.0
-                                                   - distance_between_implicit_and_explicit,
+                - distance_between_implicit_and_explicit,
             },
             ParameterAssignment.NAMED_VARARG: {
                 ParameterAssignment.IMPLICIT: 1.0
-                                              - distance_between_implicit_and_explicit
-                                              - distance_between_vararg_and_normal
-                                              - distance_between_position_and_named,
+                - distance_between_implicit_and_explicit
+                - distance_between_vararg_and_normal
+                - distance_between_position_and_named,
                 ParameterAssignment.NAMED_VARARG: 1.0,
                 ParameterAssignment.POSITIONAL_VARARG: 1.0
-                                                       - distance_between_position_and_named,
+                - distance_between_position_and_named,
                 ParameterAssignment.POSITION_OR_NAME: 1.0
-                                                      - distance_between_vararg_and_normal
-                                                      - distance_between_one_to_both,
+                - distance_between_vararg_and_normal
+                - distance_between_one_to_both,
                 ParameterAssignment.NAME_ONLY: 1.0 - distance_between_vararg_and_normal,
                 ParameterAssignment.POSITION_ONLY: 1.0
-                                                   - distance_between_vararg_and_normal
-                                                   - distance_between_position_and_named,
+                - distance_between_vararg_and_normal
+                - distance_between_position_and_named,
             },
             ParameterAssignment.POSITIONAL_VARARG: {
                 ParameterAssignment.IMPLICIT: 1.0
-                                              - distance_between_implicit_and_explicit
-                                              - distance_between_vararg_and_normal,
+                - distance_between_implicit_and_explicit
+                - distance_between_vararg_and_normal,
                 ParameterAssignment.NAMED_VARARG: 1.0
-                                                  - distance_between_position_and_named,
+                - distance_between_position_and_named,
                 ParameterAssignment.POSITIONAL_VARARG: 1.0,
                 ParameterAssignment.POSITION_OR_NAME: 1.0
-                                                      - distance_between_vararg_and_normal
-                                                      - distance_between_one_to_both,
+                - distance_between_vararg_and_normal
+                - distance_between_one_to_both,
                 ParameterAssignment.NAME_ONLY: 1.0
-                                               - distance_between_vararg_and_normal
-                                               - distance_between_position_and_named,
+                - distance_between_vararg_and_normal
+                - distance_between_position_and_named,
                 ParameterAssignment.POSITION_ONLY: 1.0
-                                                   - distance_between_vararg_and_normal,
+                - distance_between_vararg_and_normal,
             },
             ParameterAssignment.POSITION_OR_NAME: {
                 ParameterAssignment.IMPLICIT: 1.0
-                                              - distance_between_implicit_and_explicit,
+                - distance_between_implicit_and_explicit,
                 ParameterAssignment.NAMED_VARARG: 1.0
-                                                  - distance_between_vararg_and_normal
-                                                  - distance_between_both_to_one,
+                - distance_between_vararg_and_normal
+                - distance_between_both_to_one,
                 ParameterAssignment.POSITIONAL_VARARG: 1.0
-                                                       - distance_between_vararg_and_normal
-                                                       - distance_between_both_to_one,
+                - distance_between_vararg_and_normal
+                - distance_between_both_to_one,
                 ParameterAssignment.POSITION_OR_NAME: 1.0,
                 ParameterAssignment.NAME_ONLY: 1.0 - distance_between_both_to_one,
                 ParameterAssignment.POSITION_ONLY: 1.0 - distance_between_both_to_one,
             },
             ParameterAssignment.NAME_ONLY: {
                 ParameterAssignment.IMPLICIT: 1.0
-                                              - distance_between_implicit_and_explicit,
+                - distance_between_implicit_and_explicit,
                 ParameterAssignment.NAMED_VARARG: 1.0
-                                                  - distance_between_vararg_and_normal,
+                - distance_between_vararg_and_normal,
                 ParameterAssignment.POSITIONAL_VARARG: 1.0
-                                                       - distance_between_vararg_and_normal
-                                                       - distance_between_position_and_named,
+                - distance_between_vararg_and_normal
+                - distance_between_position_and_named,
                 ParameterAssignment.POSITION_OR_NAME: 1.0
-                                                      - distance_between_one_to_both,
+                - distance_between_one_to_both,
                 ParameterAssignment.NAME_ONLY: 1.0,
                 ParameterAssignment.POSITION_ONLY: 1.0
-                                                   - distance_between_position_and_named,
+                - distance_between_position_and_named,
             },
             ParameterAssignment.POSITION_ONLY: {
                 ParameterAssignment.IMPLICIT: 1.0
-                                              - distance_between_implicit_and_explicit,
+                - distance_between_implicit_and_explicit,
                 ParameterAssignment.NAMED_VARARG: 1.0
-                                                  - distance_between_vararg_and_normal
-                                                  - distance_between_position_and_named,
+                - distance_between_vararg_and_normal
+                - distance_between_position_and_named,
                 ParameterAssignment.POSITIONAL_VARARG: 1.0
-                                                       - distance_between_vararg_and_normal,
+                - distance_between_vararg_and_normal,
                 ParameterAssignment.POSITION_OR_NAME: 1.0
-                                                      - distance_between_one_to_both,
+                - distance_between_one_to_both,
                 ParameterAssignment.NAME_ONLY: 1.0
-                                               - distance_between_position_and_named,
+                - distance_between_position_and_named,
                 ParameterAssignment.POSITION_ONLY: 1.0,
             },
         }
@@ -359,12 +359,12 @@ class SimpleDiffer(AbstractDiffer):
             normalize_similarity -= 1
 
         result = (
-                     code_similarity
-                     + name_similarity
-                     + parameter_similarity
-                     + id_similarity
-                     + documentation_similarity
-                 ) / normalize_similarity
+            code_similarity
+            + name_similarity
+            + parameter_similarity
+            + id_similarity
+            + documentation_similarity
+        ) / normalize_similarity
         if functionv1.id not in self.previous_function_similarity:
             self.previous_function_similarity[functionv1.id] = {}
         self.previous_function_similarity[functionv1.id][functionv2.id] = result
@@ -439,13 +439,13 @@ class SimpleDiffer(AbstractDiffer):
         id_similarity = self._compute_id_similarity(parameterv1.id, parameterv2.id)
 
         result = (
-                     parameter_name_similarity
-                     + parameter_type_similarity
-                     + parameter_assignment_similarity
-                     + parameter_default_value_similarity
-                     + parameter_documentation_similarity
-                     + id_similarity
-                 ) / normalize_similarity
+            parameter_name_similarity
+            + parameter_type_similarity
+            + parameter_assignment_similarity
+            + parameter_default_value_similarity
+            + parameter_documentation_similarity
+            + id_similarity
+        ) / normalize_similarity
         if parameterv1.id not in self.previous_parameter_similarity:
             self.previous_parameter_similarity[parameterv1.id] = {}
         self.previous_parameter_similarity[parameterv1.id][parameterv2.id] = result
@@ -528,11 +528,11 @@ class SimpleDiffer(AbstractDiffer):
                 return 1.0
             return 0.5
         valuev1_is_in_quotation_marks = (
-                                            default_valuev1.startswith("'") and default_valuev1.endswith("'")
-                                        ) or (default_valuev1.startswith('"') and default_valuev1.endswith('"'))
+            default_valuev1.startswith("'") and default_valuev1.endswith("'")
+        ) or (default_valuev1.startswith('"') and default_valuev1.endswith('"'))
         valuev2_is_in_quotation_marks = (
-                                            default_valuev2.startswith("'") and default_valuev2.endswith("'")
-                                        ) or (default_valuev2.startswith('"') and default_valuev2.endswith('"'))
+            default_valuev2.startswith("'") and default_valuev2.endswith("'")
+        ) or (default_valuev2.startswith('"') and default_valuev2.endswith('"'))
         if valuev1_is_in_quotation_marks and valuev2_is_in_quotation_marks:
             if default_valuev1[1:-1] == default_valuev2[1:-1]:
                 return 1.0

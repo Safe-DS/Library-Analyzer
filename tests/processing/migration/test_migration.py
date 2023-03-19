@@ -1,7 +1,7 @@
 import json
 import os
 from copy import deepcopy
-from typing import Union, Sequence
+from typing import Sequence, Union
 
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
@@ -93,7 +93,11 @@ from tests.processing.migration.annotations.test_value_migration import (
 )
 
 test_data: Sequence[
-    tuple[Union[Mapping, list[Mapping]], Union[list[AbstractAnnotation], AbstractAnnotation], list[AbstractAnnotation]],
+    tuple[
+        Union[Mapping, list[Mapping]],
+        Union[list[AbstractAnnotation], AbstractAnnotation],
+        list[AbstractAnnotation],
+    ],
 ] = [
     # boundary annotation
     migrate_boundary_annotation_data_one_to_one_mapping(),
@@ -361,10 +365,10 @@ def test_handle_duplicates() -> None:
     assert todoAnnotations[classv2.id] == {
         "authors": ["", "migration"],
         "comment": "Conflicting Attribute during migration: {'newTodo': '"
-                   + todo_values[0]
-                   + "'}, {'newTodo': '"
-                   + todo_values[1]
-                   + "'}",
+        + todo_values[0]
+        + "'}, {'newTodo': '"
+        + todo_values[1]
+        + "'}",
         "reviewResult": "unsure",
         "reviewers": [""],
         "target": "test/test.duplicate/TestClass",
