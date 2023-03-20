@@ -28,11 +28,13 @@ from library_analyzer.processing.migration.model import (
 
 
 # pylint: disable=duplicate-code
-def migrate_expert_annotation_data__function() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_expert_annotation_data__function() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     functionv1 = Function(
         id="test/test.expert.test1.test/test",
         qname="test.expert.test1.test.test",
@@ -77,11 +79,13 @@ def migrate_expert_annotation_data__function() -> Tuple[
 
 
 # pylint: disable=duplicate-code
-def migrate_expert_annotation_data__class() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_expert_annotation_data__class() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     classv1 = Class(
         id="test/test.expert.test2.test/ExpertTestClass",
         qname="test.expert.test2.test.ExpertTestClass",
@@ -143,11 +147,13 @@ def migrate_expert_annotation_data__class() -> Tuple[
     return mapping, annotationv1, [annotationv2, annotationv2_function]
 
 
-def migrate_expert_annotation_data__parameter() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_expert_annotation_data__parameter() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.expert/test3/testA",
         name="testA",
@@ -184,11 +190,13 @@ def migrate_expert_annotation_data__parameter() -> Tuple[
     return mapping, annotationv1, [annotationv2]
 
 
-def migrate_expert_annotation_data_duplicated() -> Tuple[
-    Mapping,
-    list[AbstractAnnotation],
-    list[AbstractAnnotation],
-]:
+def migrate_expert_annotation_data_duplicated() -> (
+    Tuple[
+        Mapping,
+        list[AbstractAnnotation],
+        list[AbstractAnnotation],
+    ]
+):
     functionv1 = Function(
         id="test/test.expert.duplicate.test/test",
         qname="test.expert.duplicate.test.test",

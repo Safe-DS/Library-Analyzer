@@ -28,11 +28,13 @@ from library_analyzer.processing.migration.model import (
 
 
 # pylint: disable=duplicate-code
-def migrate_description_annotation_data_one_to_one_mapping__function() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_description_annotation_data_one_to_one_mapping__function() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     functionv1 = Function(
         id="test/test.description.test1.test/test",
         qname="test.description.test1.test.test",
@@ -79,12 +81,13 @@ def migrate_description_annotation_data_one_to_one_mapping__function() -> Tuple[
 
 
 # pylint: disable=duplicate-code
-def migrate_description_annotation_data_one_to_many_mapping__class() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
-
+def migrate_description_annotation_data_one_to_many_mapping__class() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     classv1 = Class(
         id="test/test.description.test2.test/DescriptionTestClass",
         qname="test.description.test2.test.DescriptionTestClass",
@@ -167,11 +170,13 @@ def migrate_description_annotation_data_one_to_many_mapping__class() -> Tuple[
     return mapping, annotationv1, [annotationv2_a, annotationv2_b, annotationv2_c]
 
 
-def migrate_description_annotation_data_one_to_one_mapping__parameter() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_description_annotation_data_one_to_one_mapping__parameter() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.description.test3/test.test",
         qname="test.description.test3.test.test",
@@ -213,11 +218,13 @@ def migrate_description_annotation_data_one_to_one_mapping__parameter() -> Tuple
     return mapping, annotationv1, [annotationv2]
 
 
-def migrate_description_annotation_data_duplicated() -> Tuple[
-    Mapping,
-    list[AbstractAnnotation],
-    list[AbstractAnnotation],
-]:
+def migrate_description_annotation_data_duplicated() -> (
+    Tuple[
+        Mapping,
+        list[AbstractAnnotation],
+        list[AbstractAnnotation],
+    ]
+):
     functionv1 = Function(
         id="test/test.description.duplicate.test/test",
         qname="test.description.duplicate.test.test",
