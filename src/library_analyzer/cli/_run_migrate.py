@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from library_analyzer.processing.migration import APIMapping, Migration
 from library_analyzer.processing.migration.model import (
@@ -9,6 +9,7 @@ from library_analyzer.processing.migration.model import (
     Mapping,
     SimpleDiffer,
     StrictDiffer,
+    UnchangedDiffer,
 )
 
 from ._read_and_write_file import (
@@ -28,13 +29,17 @@ def _run_migrate_command(
     apiv2 = _read_api_file(apiv2_file_path)
     annotationsv1 = _read_annotations_file(annotations_file_path)
 
+    unchanged_differ = UnchangedDiffer(None, [], apiv1, apiv2)
+    api_mapping = APIMapping(apiv1, apiv2, unchanged_differ)
+    unchanged_mappings: list[Mapping] = api_mapping.map_api()
+    previous_mappings = unchanged_mappings
+    previous_base_differ: Optional[AbstractDiffer] = unchanged_differ
+
     differ_init_list: list[tuple[type[AbstractDiffer], dict[str, Any]]] = [
         (SimpleDiffer, {}),
-        (StrictDiffer, {}),
+        (StrictDiffer, {"unchanged_mappings": unchanged_mappings}),
         (InheritanceDiffer, {}),
     ]
-    previous_base_differ = None
-    previous_mappings: list[Mapping] = []
 
     for differ_init in differ_init_list:
         differ_class, additional_parameters = differ_init
@@ -50,9 +55,7 @@ def _run_migrate_command(
 
         previous_mappings = mappings
         previous_base_differ = (
-            differ
-            if differ.get_related_mappings() is None
-            else differ.previous_base_differ
+            differ if differ.is_base_differ() else differ.previous_base_differ
         )
 
     if previous_mappings is not None:

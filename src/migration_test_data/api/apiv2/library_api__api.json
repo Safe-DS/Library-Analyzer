@@ -2,7 +2,7 @@
     "schemaVersion": 1,
     "distribution": "",
     "package": "library_api",
-    "version": "0.7.12",
+    "version": "0.7.13",
     "modules": [
         {
             "id": "library_api/library_api",
@@ -358,11 +358,11 @@
                         "types": [
                             {
                                 "kind": "NamedType",
-                                "name": "LibraryMember"
+                                "name": "NoneType"
                             },
                             {
                                 "kind": "NamedType",
-                                "name": "NoneType"
+                                "name": "LibraryMember"
                             }
                         ]
                     }

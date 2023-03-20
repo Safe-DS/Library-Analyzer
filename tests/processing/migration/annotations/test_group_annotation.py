@@ -29,11 +29,13 @@ from library_analyzer.processing.migration.model import (
 
 
 # pylint: disable=duplicate-code
-def migrate_group_annotation_data_one_to_many_mapping() -> Tuple[
-    list[Mapping],
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_group_annotation_data_one_to_many_mapping() -> (
+    Tuple[
+        list[Mapping],
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1_a = Parameter(
         id_="test/test.group.test1.test/TestClass/test/parameter_a",
         name="parameter_a",
@@ -203,7 +205,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> Tuple[
         code="",
     )
     classv2_6 = Class(
-        id_="test/test.group.test6.test/NewClass",
+        id="test/test.group.test6.test/NewClass",
         qname="test.group.test6.test.NewClass",
         decorators=[],
         superclasses=[],
@@ -324,11 +326,13 @@ def migrate_group_annotation_data_one_to_many_mapping() -> Tuple[
     )
 
 
-def migrate_group_annotation_data_one_to_one_mapping() -> Tuple[
-    list[Mapping],
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_group_annotation_data_one_to_one_mapping() -> (
+    Tuple[
+        list[Mapping],
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     functionv1 = Function(
         id="test/test.group.test6.test/TestClass/test",
         qname="test.group.test6.test.TestClass.test",
@@ -417,11 +421,13 @@ def migrate_group_annotation_data_one_to_one_mapping() -> Tuple[
     )
 
 
-def migrate_group_annotation_data_one_to_one_mapping__one_mapping_for_parameters() -> Tuple[
-    list[Mapping],
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_group_annotation_data_one_to_one_mapping__one_mapping_for_parameters() -> (
+    Tuple[
+        list[Mapping],
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     functionv1 = Function(
         id="test/test.group.test7.test/TestClass/test",
         qname="test.group.test7.test.TestClass.test",
@@ -511,11 +517,13 @@ def migrate_group_annotation_data_one_to_one_mapping__one_mapping_for_parameters
     )
 
 
-def migrate_group_annotation_data_duplicated() -> Tuple[
-    list[Mapping],
-    list[AbstractAnnotation],
-    list[AbstractAnnotation],
-]:
+def migrate_group_annotation_data_duplicated() -> (
+    Tuple[
+        list[Mapping],
+        list[AbstractAnnotation],
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1_a = Parameter(
         id_="test/test.group.duplicate.test/TestClass/test/parameter_a",
         name="parameter_a",

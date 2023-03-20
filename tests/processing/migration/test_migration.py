@@ -1,6 +1,7 @@
 import json
 import os
 from copy import deepcopy
+from typing import Sequence, Union
 
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
@@ -91,7 +92,13 @@ from tests.processing.migration.annotations.test_value_migration import (
     migrate_required_annotation_data_one_to_one_mapping,
 )
 
-test_data = [
+test_data: Sequence[
+    tuple[
+        Union[Mapping, list[Mapping]],
+        Union[list[AbstractAnnotation], AbstractAnnotation],
+        list[AbstractAnnotation],
+    ],
+] = [
     # boundary annotation
     migrate_boundary_annotation_data_one_to_one_mapping(),
     migrate_boundary_annotation_data_one_to_one_mapping_int_to_float(),
@@ -180,7 +187,10 @@ def test_migrate_all_annotations() -> None:
     migration = Migration(annotation_store, mappings)
     migration.migrate_annotations()
 
-    for value in migration.unsure_migrated_annotation_store.to_json().values():
+    unsure_migrated_annotations = migration.unsure_migrated_annotation_store.to_json()
+    assert len(unsure_migrated_annotations["todoAnnotations"]) == 3
+    unsure_migrated_annotations["todoAnnotations"] = []
+    for value in unsure_migrated_annotations.values():
         if isinstance(value, dict):
             assert len(value) == 0
 

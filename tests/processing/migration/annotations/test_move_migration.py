@@ -25,11 +25,13 @@ from library_analyzer.processing.migration.model import (
 
 
 # pylint: disable=duplicate-code
-def migrate_move_annotation_data_one_to_one_mapping__global_function() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_move_annotation_data_one_to_one_mapping__global_function() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     functionv1 = Function(
         id="test/test.move.test1.test/test",
         qname="test.move.test1.test.test",
@@ -76,13 +78,15 @@ def migrate_move_annotation_data_one_to_one_mapping__global_function() -> Tuple[
 
 
 # pylint: disable=duplicate-code
-def migrate_move_annotation_data_one_to_one_mapping__class() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_move_annotation_data_one_to_one_mapping__class() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     classv1 = Class(
-        id_="test/test.move.test2.test/MoveTestClass",
+        id="test/test.move.test2.test/MoveTestClass",
         qname="test.move.test2.test.MoveTestClass",
         decorators=[],
         superclasses=[],
@@ -93,7 +97,7 @@ def migrate_move_annotation_data_one_to_one_mapping__class() -> Tuple[
         instance_attributes=[],
     )
     classv2 = Class(
-        id_="test/test.move.test2.test/NewMoveTestClass",
+        id="test/test.move.test2.test/NewMoveTestClass",
         qname="test.move.test2.test.NewMoveTestClass",
         decorators=[],
         superclasses=[],
@@ -125,12 +129,13 @@ def migrate_move_annotation_data_one_to_one_mapping__class() -> Tuple[
     return mapping, annotationv1, [annotationv2]
 
 
-def migrate_move_annotation_data_one_to_many_mapping() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
-
+def migrate_move_annotation_data_one_to_many_mapping() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     functionv1 = Function(
         id="test/test.move.test3.test/test",
         qname="test.move.test3.test.test",
@@ -196,11 +201,13 @@ def migrate_move_annotation_data_one_to_many_mapping() -> Tuple[
     return mapping, annotationv1, [annotationv2_a, annotationv2_b]
 
 
-def migrate_move_annotation_data_one_to_one_mapping_duplicated() -> Tuple[
-    Mapping,
-    list[AbstractAnnotation],
-    list[AbstractAnnotation],
-]:
+def migrate_move_annotation_data_one_to_one_mapping_duplicated() -> (
+    Tuple[
+        Mapping,
+        list[AbstractAnnotation],
+        list[AbstractAnnotation],
+    ]
+):
     functionv1 = Function(
         id="test/test.move.duplicate.test/test",
         qname="test.move.duplicate.test.test",

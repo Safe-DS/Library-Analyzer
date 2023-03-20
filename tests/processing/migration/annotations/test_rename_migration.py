@@ -25,11 +25,13 @@ from library_analyzer.processing.migration.model import (
 )
 
 
-def migrate_rename_annotation_data_one_to_one_mapping() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_rename_annotation_data_one_to_one_mapping() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.rename.test1.Test_",
         name="Test",
@@ -69,11 +71,13 @@ def migrate_rename_annotation_data_one_to_one_mapping() -> Tuple[
 
 
 # pylint: disable=duplicate-code
-def migrate_rename_annotation_data_one_to_many_mapping() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_rename_annotation_data_one_to_many_mapping() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.rename.test3.Test",
         name="Test",
@@ -102,7 +106,7 @@ def migrate_rename_annotation_data_one_to_many_mapping() -> Tuple[
         documentation=ParameterDocumentation("", "", ""),
     )
     classv2 = Class(
-        id_="test/test.rename.test3/NewClass",
+        id="test/test.rename.test3/NewClass",
         qname="test.rename.test3.NewClass",
         decorators=[],
         superclasses=[],
@@ -154,11 +158,13 @@ def migrate_rename_annotation_data_one_to_many_mapping() -> Tuple[
     )
 
 
-def migrate_rename_annotation_data_duplicated() -> Tuple[
-    Mapping,
-    list[AbstractAnnotation],
-    list[AbstractAnnotation],
-]:
+def migrate_rename_annotation_data_duplicated() -> (
+    Tuple[
+        Mapping,
+        list[AbstractAnnotation],
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.rename.duplicate.Test_",
         name="Test",

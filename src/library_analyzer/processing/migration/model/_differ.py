@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Optional, Sequence, Tuple, TypeVar, Union
+from typing import Callable, Optional, Sequence, TypeVar, Union
 
 from Levenshtein import distance
 from library_analyzer.processing.api.model import (
@@ -21,6 +21,7 @@ from library_analyzer.processing.api.model import (
     UnionType,
 )
 
+from ._get_not_mapped_api_elements import _get_not_mapped_api_elements
 from ._mapping import Mapping
 
 api_element = Union[Attribute, Class, Function, Parameter, Result]
@@ -111,6 +112,9 @@ class AbstractDiffer(ABC):
         :return: additional mappings that should be included in the result of the differentiation
         """
 
+    def is_base_differ(self) -> bool:
+        return False
+
 
 X = TypeVar("X")
 
@@ -121,17 +125,23 @@ class SimpleDiffer(AbstractDiffer):
     ]
     previous_parameter_similarity: dict[str, dict[str, float]] = {}
     previous_function_similarity: dict[str, dict[str, float]] = {}
+    formatted_code: dict[str, dict[str, list[str]]] = {"apiv1": {}, "apiv2": {}}
 
     def get_related_mappings(
         self,
     ) -> Optional[list[Mapping]]:
-        return None
+        """
+        Indicates whether all api elements should be compared with each other
+        or just the ones that are mapped to each other.
+        :return: a list of Mappings by type whose elements are not already mapped
+        """
+        return self.related_mappings
 
     def notify_new_mapping(self, mappings: list[Mapping]) -> None:
         return
 
     def get_additional_mappings(self) -> list[Mapping]:
-        return []
+        return self.previous_mappings
 
     def __init__(
         self,
@@ -141,6 +151,9 @@ class SimpleDiffer(AbstractDiffer):
         apiv2: API,
     ) -> None:
         super().__init__(previous_base_differ, previous_mappings, apiv1, apiv2)
+        self.related_mappings = _get_not_mapped_api_elements(
+            self.previous_mappings, self.apiv1, self.apiv2
+        )
         distance_between_implicit_and_explicit = 0.3
         distance_between_vararg_and_normal = 0.3
         distance_between_position_and_named = 0.3
@@ -247,9 +260,7 @@ class SimpleDiffer(AbstractDiffer):
         """
         normalize_similarity = 6
 
-        code_similarity = self._compute_code_similarity(
-            classv1.get_formatted_code(), classv2.get_formatted_code()
-        )
+        code_similarity = self._compute_code_similarity(classv1, classv2)
         name_similarity = self._compute_name_similarity(classv1.name, classv2.name)
 
         attributes_similarity = distance(
@@ -327,9 +338,7 @@ class SimpleDiffer(AbstractDiffer):
 
         normalize_similarity = 5
 
-        code_similarity = self._compute_code_similarity(
-            functionv1.get_formatted_code(), functionv2.get_formatted_code()
-        )
+        code_similarity = self._compute_code_similarity(functionv1, functionv2)
         name_similarity = self._compute_name_similarity(
             functionv1.name, functionv2.name
         )
@@ -361,9 +370,28 @@ class SimpleDiffer(AbstractDiffer):
         self.previous_function_similarity[functionv1.id][functionv2.id] = result
         return result
 
-    def _compute_code_similarity(self, codev1: str, codev2: str) -> float:
-        splitv1 = codev1.split("\n")
-        splitv2 = codev2.split("\n")
+    CODE_CONTAINING_API_ELEMENT = TypeVar(
+        "CODE_CONTAINING_API_ELEMENT", Class, Function
+    )
+
+    def _compute_code_similarity(
+        self,
+        elementv1: CODE_CONTAINING_API_ELEMENT,
+        elementv2: CODE_CONTAINING_API_ELEMENT,
+    ) -> float:
+        if elementv1.id in self.formatted_code["apiv1"]:
+            splitv1 = self.formatted_code["apiv1"][elementv1.id]
+        else:
+            codev1 = elementv1.get_formatted_code(cut_documentation=True)
+            splitv1 = codev1.split("\n")
+            self.formatted_code["apiv1"][elementv1.id] = splitv1
+
+        if elementv2.id in self.formatted_code["apiv2"]:
+            splitv2 = self.formatted_code["apiv2"][elementv2.id]
+        else:
+            codev2 = elementv2.get_formatted_code(cut_documentation=True)
+            splitv2 = codev2.split("\n")
+            self.formatted_code["apiv2"][elementv2.id] = splitv2
         diff_code = distance(splitv1, splitv2) / max(len(splitv1), len(splitv2), 1)
         return 1 - diff_code
 
@@ -543,51 +571,58 @@ class SimpleDiffer(AbstractDiffer):
         def cost_function(iteration: int, max_iteration: int) -> float:
             return (max_iteration - iteration + 1) / max_iteration
 
-        total_costs, max_iterations = distance_elements_with_cost_function(
+        total_costs, max_iterations = self.distance_elements_with_cost_function(
             module_pathv1, module_pathv2, cost_function
         )
         return 1 - (total_costs / (sum(range(1, max_iterations + 1)) / max_iterations))
 
+    def distance_elements_with_cost_function(
+        self,
+        listv1: list[str],
+        listv2: list[str],
+        cost_function: Callable[[int, int], float],
+    ) -> tuple[float, int]:
+        m = len(listv1)
+        n = len(listv2)
+        if m == n and listv1 == listv2:
+            return 0, m
+        if m > n:
+            listv1, listv2 = listv2, listv1
+            m, n = n, m
+        table = [[0] * (n + 1) for _ in range(m + 1)]
+        str_table = [[""] * (n + 1) for _ in range(m + 1)]
 
-def distance_elements_with_cost_function(
-    listv1: list[X],
-    listv2: list[X],
-    cost_function: Callable[[int, int], float],
-    are_similar: Callable[[X, X], bool] = lambda x, y: x == y,
-    iteration: int = 1,
-) -> Tuple[float, int]:
-    if len(listv1) == 0 and len(listv2) == 0:
-        return 0.0, iteration - 1
-    if len(listv1) == 0:
+        for i in range(m + 1):
+            table[i][0] = i
+            str_table[i][0] = "-" * i
+        for j in range(n + 1):
+            table[0][j] = j
+            str_table[0][j] = "+" * j
+
+        for i in range(1, m + 1):
+            for j in range(1, n + 1):
+                if listv1[i - 1] == listv2[j - 1]:
+                    table[i][j] = table[i - 1][j - 1]
+                    str_table[i][j] = str_table[i - 1][j - 1] + "="
+                else:
+                    table[i][j] = 1 + min(
+                        table[i - 1][j], table[i][j - 1], table[i - 1][j - 1]
+                    )
+                    list_ = [table[i - 1][j], table[i][j - 1], table[i - 1][j - 1]]
+                    min_ = [i for i, j in enumerate(list_) if j == min(list_)][0]
+                    if min_ == 0:
+                        str_table[i][j] = str_table[i - 1][j] + "+"
+                    if min_ == 1:
+                        str_table[i][j] = str_table[i][j - 1] + "-"
+                    if min_ == 2:
+                        str_table[i][j] = str_table[i - 1][j - 1] + "o"
+        edit_string = str_table[-1][-1]
         total_costs = 0.0
-        max_iterations = iteration + len(listv2)
-        for i in range(0, len(listv2)):
-            total_costs += cost_function(iteration + i, max_iterations)
-        return total_costs, max_iterations
-    if len(listv2) == 0:
-        total_costs = 0.0
-        max_iterations = iteration + len(listv1)
-        for i in range(0, len(listv1)):
-            total_costs += cost_function(iteration + i, max_iterations)
-        return total_costs, max_iterations
-    if are_similar(listv1[0], listv2[0]):
-        total_costs, max_iterations = distance_elements_with_cost_function(
-            listv1[1:], listv2[1:], cost_function, are_similar, iteration + 1
-        )
-        return total_costs, max_iterations
-    recursive_results = [
-        distance_elements_with_cost_function(
-            listv1[1:], listv2, cost_function, are_similar, iteration + 1
-        ),
-        distance_elements_with_cost_function(
-            listv1, listv2[1:], cost_function, are_similar, iteration + 1
-        ),
-        distance_elements_with_cost_function(
-            listv1[1:], listv2[1:], cost_function, are_similar, iteration + 1
-        ),
-    ]
-    total_costs, max_iterations = sorted(
-        recursive_results, key=lambda tuple_: tuple_[0]
-    )[0]
-    total_costs += cost_function(iteration, max_iterations)
-    return total_costs, max_iterations
+        max_iteration = len(edit_string)
+        for index, char_ in enumerate(list(edit_string)):
+            if char_ != "=":
+                total_costs += cost_function(index + 1, max_iteration)
+        return total_costs, max_iteration
+
+    def is_base_differ(self) -> bool:
+        return True

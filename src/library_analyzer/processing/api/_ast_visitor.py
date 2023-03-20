@@ -158,7 +158,7 @@ class _AstVisitor:
 
         # Remember class, so we can later add methods
         class_ = Class(
-            id_=self.__get_id(class_node.name),
+            id=self.__get_id(class_node.name),
             qname=qname,
             decorators=decorator_names,
             superclasses=class_node.basenames,

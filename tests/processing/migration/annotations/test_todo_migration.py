@@ -25,9 +25,9 @@ from library_analyzer.processing.migration.model import (
 )
 
 
-def migrate_todo_annotation_data_one_to_one_mapping() -> Tuple[
-    Mapping, AbstractAnnotation, list[AbstractAnnotation]
-]:
+def migrate_todo_annotation_data_one_to_one_mapping() -> (
+    Tuple[Mapping, AbstractAnnotation, list[AbstractAnnotation]]
+):
     parameterv1 = Parameter(
         id_="test/test.todo.test1.Test",
         name="Test",
@@ -66,11 +66,13 @@ def migrate_todo_annotation_data_one_to_one_mapping() -> Tuple[
     return mappings, annotationsv1, [annotationsv2]
 
 
-def migrate_todo_annotation_data_one_to_many_mapping() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_todo_annotation_data_one_to_many_mapping() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.todo.test2.Test",
         name="Test",
@@ -126,9 +128,9 @@ def migrate_todo_annotation_data_one_to_many_mapping() -> Tuple[
     return mappings, annotationsv1, [annotationsv2_a, annotationsv2_b]
 
 
-def migrate_todo_annotation_data_many_to_many_mapping() -> Tuple[
-    Mapping, AbstractAnnotation, list[AbstractAnnotation]
-]:
+def migrate_todo_annotation_data_many_to_many_mapping() -> (
+    Tuple[Mapping, AbstractAnnotation, list[AbstractAnnotation]]
+):
     parameterv1_a = Parameter(
         id_="test/test.todo.test3.TestA",
         name="TestA",
@@ -167,7 +169,7 @@ def migrate_todo_annotation_data_many_to_many_mapping() -> Tuple[
     )
     # pylint: disable=duplicate-code
     classv2 = Class(
-        id_="test/test.todo.test3.TestTodoClass",
+        id="test/test.todo.test3.TestTodoClass",
         qname="test.todo.test3.TestTodoClass",
         decorators=[],
         superclasses=[],
@@ -219,9 +221,9 @@ def migrate_todo_annotation_data_many_to_many_mapping() -> Tuple[
     )
 
 
-def migrate_todo_annotation_data_duplicated() -> Tuple[
-    Mapping, list[AbstractAnnotation], list[AbstractAnnotation]
-]:
+def migrate_todo_annotation_data_duplicated() -> (
+    Tuple[Mapping, list[AbstractAnnotation], list[AbstractAnnotation]]
+):
     parameterv1 = Parameter(
         id_="test/test.todo.duplicate.Test",
         name="Test",
