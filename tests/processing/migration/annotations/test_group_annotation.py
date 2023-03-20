@@ -203,7 +203,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> Tuple[
         code="",
     )
     classv2_6 = Class(
-        id_="test/test.group.test6.test/NewClass",
+        id="test/test.group.test6.test/NewClass",
         qname="test.group.test6.test.NewClass",
         decorators=[],
         superclasses=[],

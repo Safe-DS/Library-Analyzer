@@ -86,7 +86,7 @@ def migrate_description_annotation_data_one_to_many_mapping__class() -> Tuple[
 ]:
 
     classv1 = Class(
-        id_="test/test.description.test2.test/DescriptionTestClass",
+        id="test/test.description.test2.test/DescriptionTestClass",
         qname="test.description.test2.test.DescriptionTestClass",
         decorators=[],
         superclasses=[],
@@ -97,7 +97,7 @@ def migrate_description_annotation_data_one_to_many_mapping__class() -> Tuple[
         instance_attributes=[],
     )
     classv2_a = Class(
-        id_="test/test.description.test2.test/NewDescriptionTestClass",
+        id="test/test.description.test2.test/NewDescriptionTestClass",
         qname="test.description.test2.test.NewDescriptionTestClass",
         decorators=[],
         superclasses=[],
@@ -108,7 +108,7 @@ def migrate_description_annotation_data_one_to_many_mapping__class() -> Tuple[
         instance_attributes=[],
     )
     classv2_b = Class(
-        id_="test/test.description.test2.test/NewDescriptionTestClass2",
+        id="test/test.description.test2.test/NewDescriptionTestClass2",
         qname="test.description.test2.test.NewDescriptionTestClass2",
         decorators=[],
         superclasses=[],

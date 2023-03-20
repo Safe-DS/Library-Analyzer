@@ -239,9 +239,6 @@ class Class:
     documentation: ClassDocumentation
     code: str
     instance_attributes: list[Attribute]
-    formatted_code: Optional[str] = field(
-        default=None, init=False, hash=False, compare=False
-    )
 
     @staticmethod
     def from_json(json: Any) -> Class:
@@ -268,29 +265,8 @@ class Class:
 
         return result
 
-    def __init__(
-        self,
-        id_: str,
-        qname: str,
-        decorators: list[str],
-        superclasses: list[str],
-        is_public: bool,
-        reexported_by: list[str],
-        documentation: ClassDocumentation,
-        code: str,
-        instance_attributes: list[Attribute],
-    ) -> None:
-        self.id: str = id_
-        self.qname: str = qname
-        self.decorators: list[str] = decorators
-        self.superclasses: list[str] = superclasses
+    def __post_init__(self) -> None:
         self.methods: list[str] = []
-        self.is_public: bool = is_public
-        self.reexported_by: list[str] = reexported_by
-        self.documentation: ClassDocumentation = documentation
-        self.code: str = code
-        self.instance_attributes = instance_attributes
-        self.formatted_code: Optional[str] = None
 
     @property
     def name(self) -> str:
@@ -396,9 +372,6 @@ class Function:
     reexported_by: list[str]
     documentation: FunctionDocumentation
     code: str
-    formatted_code: Optional[str] = field(
-        default=None, init=False, hash=False, compare=False
-    )
 
     @staticmethod
     def from_json(json: Any) -> Function:

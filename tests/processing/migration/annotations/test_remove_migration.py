@@ -81,7 +81,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> Tuple[
 ]:
 
     classv1 = Class(
-        id_="test/test.remove.test2.test/RemoveTestClass",
+        id="test/test.remove.test2.test/RemoveTestClass",
         qname="test.remove.test2.test.RemoveTestClass",
         decorators=[],
         superclasses=[],
@@ -92,7 +92,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> Tuple[
         instance_attributes=[],
     )
     classv2_a = Class(
-        id_="test/test.remove.test2.test/NewRemoveTestClass",
+        id="test/test.remove.test2.test/NewRemoveTestClass",
         qname="test.remove.test2.test.NewRemoveTestClass",
         decorators=[],
         superclasses=[],
@@ -103,7 +103,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> Tuple[
         instance_attributes=[],
     )
     classv2_b = Class(
-        id_="test/test.remove.test2.test/NewRemoveTestClass2",
+        id="test/test.remove.test2.test/NewRemoveTestClass2",
         qname="test.remove.test2.test.NewRemoveTestClass2",
         decorators=[],
         superclasses=[],

@@ -82,7 +82,7 @@ def migrate_move_annotation_data_one_to_one_mapping__class() -> Tuple[
     list[AbstractAnnotation],
 ]:
     classv1 = Class(
-        id_="test/test.move.test2.test/MoveTestClass",
+        id="test/test.move.test2.test/MoveTestClass",
         qname="test.move.test2.test.MoveTestClass",
         decorators=[],
         superclasses=[],
@@ -93,7 +93,7 @@ def migrate_move_annotation_data_one_to_one_mapping__class() -> Tuple[
         instance_attributes=[],
     )
     classv2 = Class(
-        id_="test/test.move.test2.test/NewMoveTestClass",
+        id="test/test.move.test2.test/NewMoveTestClass",
         qname="test.move.test2.test.NewMoveTestClass",
         decorators=[],
         superclasses=[],

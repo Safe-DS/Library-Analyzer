@@ -83,7 +83,7 @@ def migrate_expert_annotation_data__class() -> Tuple[
     list[AbstractAnnotation],
 ]:
     classv1 = Class(
-        id_="test/test.expert.test2.test/ExpertTestClass",
+        id="test/test.expert.test2.test/ExpertTestClass",
         qname="test.expert.test2.test.ExpertTestClass",
         decorators=[],
         superclasses=[],
@@ -94,7 +94,7 @@ def migrate_expert_annotation_data__class() -> Tuple[
         instance_attributes=[],
     )
     classv2 = Class(
-        id_="test/test.expert.test2.test/NewExpertTestClass",
+        id="test/test.expert.test2.test/NewExpertTestClass",
         qname="test.expert.test2.test.NewExpertTestClass",
         decorators=[],
         superclasses=[],

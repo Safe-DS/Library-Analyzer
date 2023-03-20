@@ -167,7 +167,7 @@ def migrate_todo_annotation_data_many_to_many_mapping() -> Tuple[
     )
     # pylint: disable=duplicate-code
     classv2 = Class(
-        id_="test/test.todo.test3.TestTodoClass",
+        id="test/test.todo.test3.TestTodoClass",
         qname="test.todo.test3.TestTodoClass",
         decorators=[],
         superclasses=[],

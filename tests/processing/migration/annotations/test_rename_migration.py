@@ -102,7 +102,7 @@ def migrate_rename_annotation_data_one_to_many_mapping() -> Tuple[
         documentation=ParameterDocumentation("", "", ""),
     )
     classv2 = Class(
-        id_="test/test.rename.test3/NewClass",
+        id="test/test.rename.test3/NewClass",
         qname="test.rename.test3.NewClass",
         decorators=[],
         superclasses=[],
