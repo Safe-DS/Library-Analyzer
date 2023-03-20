@@ -1,96 +1,75 @@
 {
-  "schemaVersion": 2,
-  "boundaryAnnotations": {},
-  "calledAfterAnnotations": {},
-  "completeAnnotations": {},
-  "descriptionAnnotations": {
-    "library_api/library_api.notificate/send_message_to_person/message": {
-      "target": "library_api/library_api.notificate/send_message_to_person/message",
-      "authors": [
-        "aclrian",
-        "migration"
-      ],
-      "reviewers": [],
-      "comment": "",
-      "newDescription": "the message that should be sent to a person",
-      "reviewResult": ""
-    }
-  },
-  "enumAnnotations": {},
-  "expertAnnotations": {},
-  "groupAnnotations": {},
-  "moveAnnotations": {},
-  "pureAnnotations": {},
-  "renameAnnotations": {
-    "library_api/library_api.library/Library/__init__/staff": {
-      "target": "library_api/library_api.library/Library/__init__/staff",
-      "authors": [
-        "aclrian",
-        "migration"
-      ],
-      "reviewers": [],
-      "comment": "",
-      "newName": "personnel",
-      "reviewResult": ""
+    "schemaVersion": 2,
+    "boundaryAnnotations": {},
+    "calledAfterAnnotations": {},
+    "completeAnnotations": {},
+    "descriptionAnnotations": {
+        "library_api/library_api.notificate/send_message_to_person/message": {
+            "target": "library_api/library_api.notificate/send_message_to_person/message",
+            "authors": ["aclrian", "migration"],
+            "reviewers": [],
+            "comment": "",
+            "newDescription": "the message that should be sent to a person",
+            "reviewResult": ""
+        }
     },
-    "library_api/library_api.persons/Employee/__init__/wage": {
-      "target": "library_api/library_api.persons/Employee/__init__/wage",
-      "authors": [
-        "aclrian",
-        "migration"
-      ],
-      "reviewers": [],
-      "comment": "",
-      "newName": "salary",
-      "reviewResult": ""
-    }
-  },
-  "removeAnnotations": {},
-  "todoAnnotations": {
-    "library_api/library_api.library/Library/__init__/name": {
-      "target": "library_api/library_api.library/Library/__init__/name",
-      "authors": [
-        "aclrian",
-        "migration"
-      ],
-      "reviewers": [],
-      "comment": "",
-      "newTodo": "__init__ author name",
-      "reviewResult": ""
+    "enumAnnotations": {},
+    "expertAnnotations": {},
+    "groupAnnotations": {},
+    "moveAnnotations": {},
+    "pureAnnotations": {},
+    "renameAnnotations": {
+        "library_api/library_api.library/Library/__init__/staff": {
+            "target": "library_api/library_api.library/Library/__init__/staff",
+            "authors": ["aclrian", "migration"],
+            "reviewers": [],
+            "comment": "",
+            "newName": "personnel",
+            "reviewResult": ""
+        },
+        "library_api/library_api.persons/Employee/__init__/wage": {
+            "target": "library_api/library_api.persons/Employee/__init__/wage",
+            "authors": ["aclrian", "migration"],
+            "reviewers": [],
+            "comment": "",
+            "newName": "salary",
+            "reviewResult": ""
+        }
     },
-    "library_api/library_api.persons/Employee/__init__/address": {
-      "target": "library_api/library_api.persons/Employee/__init__/address",
-      "authors": [
-        "aclrian",
-        "migration"
-      ],
-      "reviewers": [],
-      "comment": "",
-      "newTodo": "library_api.persons.Employee.__init__.address",
-      "reviewResult": ""
+    "removeAnnotations": {},
+    "todoAnnotations": {
+        "library_api/library_api.library/Library/__init__/name": {
+            "target": "library_api/library_api.library/Library/__init__/name",
+            "authors": ["aclrian", "migration"],
+            "reviewers": [],
+            "comment": "",
+            "newTodo": "__init__ author name",
+            "reviewResult": ""
+        },
+        "library_api/library_api.persons/Employee/__init__/address": {
+            "target": "library_api/library_api.persons/Employee/__init__/address",
+            "authors": ["aclrian", "migration"],
+            "reviewers": [],
+            "comment": "",
+            "newTodo": "library_api.persons.Employee.__init__.address",
+            "reviewResult": ""
+        },
+        "library_api/library_api.persons/Employee/__init__/last_name": {
+            "target": "library_api/library_api.persons/Employee/__init__/last_name",
+            "authors": ["aclrian", "migration"],
+            "reviewers": [],
+            "comment": "",
+            "newTodo": "library_api.persons.Employee.__init__.last_name",
+            "reviewResult": ""
+        },
+        "library_api/library_api.persons/Employee/__init__/first_name": {
+            "target": "library_api/library_api.persons/Employee/__init__/first_name",
+            "authors": ["aclrian", "migration"],
+            "reviewers": [],
+            "comment": "",
+            "newTodo": "library_api.persons.Employee.__init__.first_name",
+            "reviewResult": ""
+        }
     },
-    "library_api/library_api.persons/Employee/__init__/last_name": {
-      "target": "library_api/library_api.persons/Employee/__init__/last_name",
-      "authors": [
-        "aclrian",
-        "migration"
-      ],
-      "reviewers": [],
-      "comment": "",
-      "newTodo": "library_api.persons.Employee.__init__.last_name",
-      "reviewResult": ""
-    },
-    "library_api/library_api.persons/Employee/__init__/first_name": {
-      "target": "library_api/library_api.persons/Employee/__init__/first_name",
-      "authors": [
-        "aclrian",
-        "migration"
-      ],
-      "reviewers": [],
-      "comment": "",
-      "newTodo": "library_api.persons.Employee.__init__.first_name",
-      "reviewResult": ""
-    }
-  },
-  "valueAnnotations": {}
+    "valueAnnotations": {}
 }
