@@ -25,11 +25,13 @@ from library_analyzer.processing.migration.model import (
 
 
 # pylint: disable=duplicate-code
-def migrate_remove_annotation_data_one_to_one_mapping() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_remove_annotation_data_one_to_one_mapping() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     functionv1 = Function(
         id="test/test.remove.test1.test/test",
         qname="test.remove.test1.test.test",
@@ -74,12 +76,13 @@ def migrate_remove_annotation_data_one_to_one_mapping() -> Tuple[
 
 
 # pylint: disable=duplicate-code
-def migrate_remove_annotation_data_one_to_many_mapping() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
-
+def migrate_remove_annotation_data_one_to_many_mapping() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     classv1 = Class(
         id="test/test.remove.test2.test/RemoveTestClass",
         qname="test.remove.test2.test.RemoveTestClass",
@@ -159,11 +162,13 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> Tuple[
     return mapping, annotationv1, [annotationv2_a, annotationv2_b, annotationv2_c]
 
 
-def migrate_remove_annotation_data_duplicated() -> Tuple[
-    Mapping,
-    list[AbstractAnnotation],
-    list[AbstractAnnotation],
-]:
+def migrate_remove_annotation_data_duplicated() -> (
+    Tuple[
+        Mapping,
+        list[AbstractAnnotation],
+        list[AbstractAnnotation],
+    ]
+):
     functionv1 = Function(
         id="test/test.remove.duplicate.test/test",
         qname="test.remove.duplicate.test.test",
