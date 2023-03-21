@@ -9,11 +9,14 @@ from library_analyzer.utils import ASTWalker
 
 
 class PurityResult(ABC):
+    def __init__(self):
+        self.reasons = None
+
     pass
 
 
 class DefinitelyPure(PurityResult):
-    pass
+    reasons = None
 
 
 @dataclass
@@ -37,8 +40,7 @@ class PurityInformation:
     function: astroid.FunctionDef
     id: str
     purity: PurityResult
-
-    # reason: ImpurityReason  # the reason why it is impure, if it is impure (added later)
+    reasons: list[ImpurityReason]
     # last_accessed: str  # for later use in memoization
 
     def __hash__(self):
@@ -126,7 +128,13 @@ def get_function_defs(code) -> list[astroid.FunctionDef]:
 
 def generate_purity_information(function: astroid.FunctionDef, purity: PurityResult) -> PurityInformation:
     function_id = calc_function_id(function)
-    purity_info = PurityInformation(function, function_id, purity)
+    reasons = list[ImpurityReason]()
+    if isinstance(purity, DefinitelyPure):
+        purity_info = PurityInformation(function, function_id, purity, reasons)
+        return purity_info
+    for r in purity.reasons:
+        reasons.append(r)
+    purity_info = PurityInformation(function, function_id, purity, reasons)
     return purity_info
 
 
@@ -171,7 +179,7 @@ if __name__ == '__main__':
 
     infer_purity(sourcecode)
     for f in purity_list:
-        print(f"Function {f.function.name} with ID {f.id} is {f.purity.__class__.__name__}")
+        print(f"Function {f.function.name} with ID {f.id} is {f.purity.__class__.__name__} because {f.reasons}")
 
 x = """
     def my_function(x):
