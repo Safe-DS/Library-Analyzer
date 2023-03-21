@@ -29,6 +29,7 @@ class ASTWalker:
         if node in visited_nodes:
             raise AssertionError("Node visited twice")
         visited_nodes.add(node)
+        # print(f"{node}\n")
 
         self.__enter(node)
         for child_node in node.get_children():

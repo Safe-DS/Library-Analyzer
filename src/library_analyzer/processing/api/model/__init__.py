@@ -24,3 +24,18 @@ from ._types import (
     UnionType,
     create_type,
 )
+from ._purity import (
+    Expression,
+    AttributeAccess,
+    GlobalAccess,
+    ParameterAccess,
+    FieldAccess,
+    StringLiteral,
+    ImpurityReason,
+    VariableRead,
+    VariableWrite,
+    FileRead,
+    FileWrite,
+    UnknownCallTarget,
+    Call,
+)
