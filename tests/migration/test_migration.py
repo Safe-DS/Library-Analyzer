@@ -200,20 +200,14 @@ def test_migrate_all_annotations() -> None:
 
 
 def test_migrate_command_and_both_annotation_stores() -> None:
-    apiv1_json_path = os.path.join(
-        os.getcwd(), "tests", "data", "migration", "apiv1_data.json"
-    )
-    apiv2_json_path = os.path.join(
-        os.getcwd(), "tests", "data", "migration", "apiv2_data.json"
-    )
-    annotationsv1_json_path = os.path.join(
-        os.getcwd(), "tests", "data", "migration", "annotationv1.json"
-    )
-    annotationsv2_json_path = os.path.join(
-        os.getcwd(), "tests", "data", "migration", "annotationv2.json"
-    )
+    data_path = os.path.join(os.path.dirname(__file__), "..", "data")
+
+    apiv1_json_path = os.path.join(data_path, "migration", "apiv1_data.json")
+    apiv2_json_path = os.path.join(data_path, "migration", "apiv2_data.json")
+    annotationsv1_json_path = os.path.join(data_path, "migration", "annotationv1.json")
+    annotationsv2_json_path = os.path.join(data_path, "migration", "annotationv2.json")
     unsure_annotationsv2_json_path = os.path.join(
-        os.getcwd(), "tests", "data", "migration", "unsure_annotationv2.json"
+        data_path, "migration", "unsure_annotationv2.json"
     )
     with open(apiv1_json_path, "r", encoding="utf-8") as apiv1_file, open(
         apiv2_json_path, "r", encoding="utf-8"

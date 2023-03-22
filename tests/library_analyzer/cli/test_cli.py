@@ -1,4 +1,7 @@
+import os
 import subprocess
+
+_project_root = os.path.join(os.path.dirname(__file__), "..", "..", "..")
 
 
 def test_cli_api() -> None:
@@ -16,6 +19,7 @@ def test_cli_api() -> None:
             "out",
         ],
         check=True,
+        cwd=_project_root,
     )
 
 
@@ -34,6 +38,7 @@ def test_cli_usages() -> None:
             "out",
         ],
         check=True,
+        cwd=_project_root,
     )
 
 
@@ -52,6 +57,7 @@ def test_cli_annotations() -> None:
             "out/annotations.json",
         ],
         check=True,
+        cwd=_project_root,
     )
 
 
@@ -72,6 +78,7 @@ def test_cli_all() -> None:
             "out",
         ],
         check=True,
+        cwd=_project_root,
     )
 
 
@@ -92,4 +99,5 @@ def test_cli_migration() -> None:
             "out",
         ],
         check=True,
+        cwd=_project_root,
     )
