@@ -36,15 +36,15 @@ def read_test_data(subfolder: str) -> tuple[UsageCountStore, API, dict]:
         os.getcwd(), "tests", "data", subfolder, "annotation_data.json"
     )
 
-    with open(api_json_path, "r") as api_file:
+    with open(api_json_path, "r", encoding="utf-8") as api_file:
         api_json = json.load(api_file)
         api = API.from_json(api_json)
 
-    with open(usages_json_path, "r") as usages_file:
+    with open(usages_json_path, "r", encoding="utf-8") as usages_file:
         usages_json = json.load(usages_file)
         usages = UsageCountStore.from_json(usages_json)
 
-    with open(annotations_json_path, "r") as annotations_file:
+    with open(annotations_json_path, "r", encoding="utf-8") as annotations_file:
         annotations_json = json.load(annotations_file)
 
     return usages, api, annotations_json

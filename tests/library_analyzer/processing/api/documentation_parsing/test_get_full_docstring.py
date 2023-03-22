@@ -77,5 +77,5 @@ def f():
 def test_get_full_docstring(python_code: str, expected_docstring: str) -> None:
     node = astroid.extract_node(python_code)
 
-    assert isinstance(node, astroid.ClassDef) or isinstance(node, astroid.FunctionDef)
+    assert isinstance(node, (astroid.ClassDef, astroid.FunctionDef))
     assert get_full_docstring(node) == expected_docstring

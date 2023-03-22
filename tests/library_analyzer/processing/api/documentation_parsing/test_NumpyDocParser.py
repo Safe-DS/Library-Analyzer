@@ -325,7 +325,7 @@ def test_get_parameter_documentation(
     expected_parameter_documentation: ParameterDocumentation,
 ) -> None:
     node = astroid.extract_node(python_code)
-    assert isinstance(node, astroid.ClassDef) or isinstance(node, astroid.FunctionDef)
+    assert isinstance(node, (astroid.ClassDef, astroid.FunctionDef))
 
     # Find the constructor
     if isinstance(node, astroid.ClassDef):

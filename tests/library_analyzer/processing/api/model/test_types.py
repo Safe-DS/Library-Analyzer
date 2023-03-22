@@ -261,7 +261,7 @@ def test_boundaries_from_string(string: str, expected: BoundaryType) -> None:
         (r"""{"text', 'that"}""", {"text', 'that"}),
         (r"""{"text\", \"that"}""", {'text", "that'}),
         (r'{"text", "that"}', {"text", "that"}),
-        (r"""{\"not', 'be', 'matched'}""", {", ", ", "}),
+        (r"""{\"not', 'be', 'matched'}""", {", "}),
         ("""{"gini\\", \\"entropy"}""", {'gini", "entropy'}),
         ("""{'best\\', \\'random'}""", {"best', 'random"}),
     ],
