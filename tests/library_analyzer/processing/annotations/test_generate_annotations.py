@@ -26,15 +26,11 @@ def test_generate_annotations(
 
 
 def read_test_data(subfolder: str) -> tuple[UsageCountStore, API, dict]:
-    api_json_path = os.path.join(
-        os.getcwd(), "tests", "data", subfolder, "api_data.json"
-    )
-    usages_json_path = os.path.join(
-        os.getcwd(), "tests", "data", subfolder, "usage_data.json"
-    )
-    annotations_json_path = os.path.join(
-        os.getcwd(), "tests", "data", subfolder, "annotation_data.json"
-    )
+    data_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", subfolder)
+
+    api_json_path = os.path.join(data_path, "api_data.json")
+    usages_json_path = os.path.join(data_path, "usage_data.json")
+    annotations_json_path = os.path.join(data_path, "annotation_data.json")
 
     with open(api_json_path, "r", encoding="utf-8") as api_file:
         api_json = json.load(api_file)
