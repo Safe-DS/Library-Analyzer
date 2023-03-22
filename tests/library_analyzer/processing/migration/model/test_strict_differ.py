@@ -20,6 +20,7 @@ from library_analyzer.processing.migration.model import (
     OneToOneMapping,
     StrictDiffer,
 )
+
 from .test_differ import differ_list
 
 

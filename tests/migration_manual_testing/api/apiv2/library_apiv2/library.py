@@ -137,7 +137,9 @@ class OurLibrary(Library):
 
     def let_seminar_room(
         self, money: float, person: Person, renting_date: date
-    ) -> float:  # apiv2: remove rented_date, move to new subclass OurLibrary with additional attributes owner and address
+    ) -> (
+        float
+    ):  # apiv2: remove rented_date, move to new subclass OurLibrary with additional attributes owner and address
         """rent the seminar room of the library after it closed
 
         Parameters

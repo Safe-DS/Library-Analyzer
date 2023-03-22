@@ -94,7 +94,9 @@ def test_add_function_usages_for_new_function(usage_counts: UsageCountStore) -> 
     }
 
 
-def test_add_function_usages_for_existing_function(usage_counts: UsageCountStore) -> None:
+def test_add_function_usages_for_existing_function(
+    usage_counts: UsageCountStore,
+) -> None:
     usage_counts.add_function_usages("TestClass.test_function", 2)
 
     assert usage_counts.to_json() == {
@@ -142,7 +144,9 @@ def test_add_parameter_usages_for_new_parameter(usage_counts: UsageCountStore) -
     }
 
 
-def test_add_parameter_usages_for_existing_parameter(usage_counts: UsageCountStore) -> None:
+def test_add_parameter_usages_for_existing_parameter(
+    usage_counts: UsageCountStore,
+) -> None:
     usage_counts.add_parameter_usages("TestClass.test_function.test_parameter", 2)
 
     assert usage_counts.to_json() == {
@@ -261,13 +265,17 @@ def test_n_function_usages_for_existing_function(usage_counts: UsageCountStore) 
     assert usage_counts.n_function_usages("TestClass.test_function") == 2
 
 
-def test_n_parameter_usages_for_missing_parameter(usage_counts: UsageCountStore) -> None:
+def test_n_parameter_usages_for_missing_parameter(
+    usage_counts: UsageCountStore,
+) -> None:
     assert (
         usage_counts.n_parameter_usages("TestClass.test_function.test_parameter_2") == 0
     )
 
 
-def test_n_parameter_usages_for_existing_parameter(usage_counts: UsageCountStore) -> None:
+def test_n_parameter_usages_for_existing_parameter(
+    usage_counts: UsageCountStore,
+) -> None:
     assert (
         usage_counts.n_parameter_usages("TestClass.test_function.test_parameter") == 2
     )
@@ -289,7 +297,9 @@ def test_n_value_usages_for_missing_value(usage_counts: UsageCountStore) -> None
     )
 
 
-def test_n_value_usages_for_existing_parameter_and_value(usage_counts: UsageCountStore) -> None:
+def test_n_value_usages_for_existing_parameter_and_value(
+    usage_counts: UsageCountStore,
+) -> None:
     assert (
         usage_counts.n_value_usages("TestClass.test_function.test_parameter", "'test'")
         == 2

@@ -23,11 +23,13 @@ from library_analyzer.processing.migration.model import (
 )
 
 
-def migrate_enum_annotation_data_one_to_one_mapping() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_enum_annotation_data_one_to_one_mapping() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.enum.test1.TestA",
         name="TestA",
@@ -68,11 +70,13 @@ def migrate_enum_annotation_data_one_to_one_mapping() -> Tuple[
     return mapping, enum_annotation, [migrated_enum_annotation]
 
 
-def migrate_enum_annotation_data_one_to_many_mapping() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_enum_annotation_data_one_to_many_mapping() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.enum.test2.Test",
         name="Test",
@@ -136,11 +140,13 @@ def migrate_enum_annotation_data_one_to_many_mapping() -> Tuple[
 
 
 # pylint: disable=duplicate-code
-def migrate_enum_annotation_data_one_to_many_mapping__only_one_relevant_mapping() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_enum_annotation_data_one_to_many_mapping__only_one_relevant_mapping() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.enum.test3.Test",
         name="Test",
@@ -214,11 +220,13 @@ def migrate_enum_annotation_data_one_to_many_mapping__only_one_relevant_mapping(
     )
 
 
-def migrate_enum_annotation_data_duplicated() -> Tuple[
-    Mapping,
-    list[AbstractAnnotation],
-    list[AbstractAnnotation],
-]:
+def migrate_enum_annotation_data_duplicated() -> (
+    Tuple[
+        Mapping,
+        list[AbstractAnnotation],
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.enum.duplicate.TestA",
         name="TestA",

@@ -23,12 +23,13 @@ from library_analyzer.processing.migration.model import (
     Mapping,
     OneToOneMapping,
 )
+
 from .test_differ import differ_list
 
 
-def create_api_super() -> Tuple[
-    API, Class, Class, Attribute, Function, Parameter, Result
-]:
+def create_api_super() -> (
+    Tuple[API, Class, Class, Attribute, Function, Parameter, Result]
+):
     apiv1 = API("test-distribution", "test-package-super", "1.0")
     code_a = cleandoc(
         """
@@ -111,9 +112,9 @@ def create_api_super() -> Tuple[
     )
 
 
-def create_api_sub() -> Tuple[
-    API, Class, Class, Attribute, Function, Parameter, Result
-]:
+def create_api_sub() -> (
+    Tuple[API, Class, Class, Attribute, Function, Parameter, Result]
+):
     apiv1 = API("test-distribution", "test-package-sub", "1.0")
     code_a = cleandoc(
         """

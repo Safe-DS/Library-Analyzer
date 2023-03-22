@@ -20,11 +20,13 @@ from library_analyzer.processing.migration.model import (
 
 
 # pylint: disable=duplicate-code
-def migrate_called_after_annotation_data_one_to_one_mapping() -> Tuple[
-    list[Mapping],
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_called_after_annotation_data_one_to_one_mapping() -> (
+    Tuple[
+        list[Mapping],
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     functionv1_after = Function(
         id="test/test.called_after.test1.test/OldClass/test_after",
         qname="test.called_after.test1.test.OldClass.test_after",
@@ -90,11 +92,13 @@ def migrate_called_after_annotation_data_one_to_one_mapping() -> Tuple[
     return [mapping_after, mapping_before], annotationv1, [annotationv2]
 
 
-def migrate_called_after_annotation_data_one_to_many_mapping() -> Tuple[
-    list[Mapping],
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_called_after_annotation_data_one_to_many_mapping() -> (
+    Tuple[
+        list[Mapping],
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     functionv1_after = Function(
         id="test/test.called_after.test2.test/OldClass/test_after",
         qname="test.called_after.test2.test.OldClass.test_after",
@@ -185,11 +189,13 @@ def migrate_called_after_annotation_data_one_to_many_mapping() -> Tuple[
     )
 
 
-def migrate_called_after_annotation_data_one_to_one_mapping__no_mapping_found() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_called_after_annotation_data_one_to_one_mapping__no_mapping_found() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     functionv1_after = Function(
         id="test/test.called_after.test3.test/OldClass/test_after",
         qname="test.called_after.test3.test.OldClass.test_after",
@@ -232,11 +238,13 @@ def migrate_called_after_annotation_data_one_to_one_mapping__no_mapping_found() 
     return mapping_after, annotationv1, [annotationv2]
 
 
-def migrate_called_after_annotation_data_one_to_one_mapping__before_splits() -> Tuple[
-    list[Mapping],
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_called_after_annotation_data_one_to_one_mapping__before_splits() -> (
+    Tuple[
+        list[Mapping],
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     functionv1_after = Function(
         id="test/test.called_after.test4.test/OldClass/test_after",
         qname="test.called_after.test4.test.OldClass.test_after",
@@ -319,11 +327,13 @@ def migrate_called_after_annotation_data_one_to_one_mapping__before_splits() -> 
     return [mapping_after, mapping_before], annotationv1, [annotationv2]
 
 
-def migrate_called_after_annotation_data_one_to_many_mapping__two_classes() -> Tuple[
-    list[Mapping],
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_called_after_annotation_data_one_to_many_mapping__two_classes() -> (
+    Tuple[
+        list[Mapping],
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     functionv1_after = Function(
         id="test/test.called_after.test5.test/OldClass/test_after",
         qname="test.called_after.test5.test.OldClass.test_after",
@@ -427,11 +437,13 @@ def migrate_called_after_annotation_data_one_to_many_mapping__two_classes() -> T
     )
 
 
-def migrate_called_after_annotation_data_duplicated() -> Tuple[
-    list[Mapping],
-    list[AbstractAnnotation],
-    list[AbstractAnnotation],
-]:
+def migrate_called_after_annotation_data_duplicated() -> (
+    Tuple[
+        list[Mapping],
+        list[AbstractAnnotation],
+        list[AbstractAnnotation],
+    ]
+):
     functionv1_after = Function(
         id="test/test.called_after.duplicate.test/OldClass/test_after",
         qname="test.called_after.duplicate.test.OldClass.test_after",

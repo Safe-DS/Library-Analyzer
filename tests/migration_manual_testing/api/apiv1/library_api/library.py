@@ -108,7 +108,9 @@ class Library:
         address: str,
         start_of_renting: date,
         end_of_renting: date,
-    ) -> float:  # apiv2: remove rented_date, move to new subclass OurLibrary with additional attributes owner and address
+    ) -> (
+        float
+    ):  # apiv2: remove rented_date, move to new subclass OurLibrary with additional attributes owner and address
         """rent the seminar room of the library after it closed
 
         Parameters

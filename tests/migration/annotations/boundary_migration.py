@@ -23,11 +23,13 @@ from library_analyzer.processing.migration.model import (
 )
 
 
-def migrate_boundary_annotation_data_one_to_one_mapping() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_boundary_annotation_data_one_to_one_mapping() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.boundary.test1.testA",
         name="testA",
@@ -81,11 +83,13 @@ def migrate_boundary_annotation_data_one_to_one_mapping() -> Tuple[
     )
 
 
-def migrate_boundary_annotation_data_one_to_one_mapping_int_to_float() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_boundary_annotation_data_one_to_one_mapping_int_to_float() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.boundary.test2.testA",
         name="testA",
@@ -145,11 +149,13 @@ def migrate_boundary_annotation_data_one_to_one_mapping_int_to_float() -> Tuple[
     )
 
 
-def migrate_boundary_annotation_data_one_to_one_mapping_float_to_int() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_boundary_annotation_data_one_to_one_mapping_float_to_int() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.boundary.test3.testA",
         name="testA",
@@ -209,11 +215,13 @@ def migrate_boundary_annotation_data_one_to_one_mapping_float_to_int() -> Tuple[
 
 
 # pylint: disable=duplicate-code
-def migrate_boundary_annotation_data_one_to_many_mapping() -> Tuple[
-    Mapping,
-    AbstractAnnotation,
-    list[AbstractAnnotation],
-]:
+def migrate_boundary_annotation_data_one_to_many_mapping() -> (
+    Tuple[
+        Mapping,
+        AbstractAnnotation,
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.boundary.test4.testv1",
         name="testA",
@@ -324,11 +332,13 @@ def migrate_boundary_annotation_data_one_to_many_mapping() -> Tuple[
     )
 
 
-def migrate_boundary_annotation_data_duplicated() -> Tuple[
-    Mapping,
-    list[AbstractAnnotation],
-    list[AbstractAnnotation],
-]:
+def migrate_boundary_annotation_data_duplicated() -> (
+    Tuple[
+        Mapping,
+        list[AbstractAnnotation],
+        list[AbstractAnnotation],
+    ]
+):
     parameterv1 = Parameter(
         id_="test/test.boundary.duplicate.testA",
         name="testA",

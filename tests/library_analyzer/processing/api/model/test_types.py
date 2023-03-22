@@ -2,7 +2,6 @@ from copy import deepcopy
 from typing import Any, Optional
 
 import pytest
-
 from library_analyzer.processing.api.model import (
     Attribute,
     BoundaryType,
@@ -73,7 +72,7 @@ from library_analyzer.processing.api.model import (
                     {
                         "kind": "NamedType",
                         "name": "shape (n_samples, n_classes) or (n_samples, 1) when "
-                                "binary.",
+                        "binary.",
                     },
                 ],
             },
