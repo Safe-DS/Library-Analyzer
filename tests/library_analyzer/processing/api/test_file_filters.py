@@ -3,7 +3,7 @@ from library_analyzer.processing.api._file_filters import _is_init_file, _is_tes
 
 def test_is_init_file_positive():
     assert _is_init_file("path/to/file/__init__.py")
-    assert _is_init_file("__init__.py")
+    assert _is_init_file("../../../processing/api/__init__.py")
 
 
 def test_is_init_file_negative():

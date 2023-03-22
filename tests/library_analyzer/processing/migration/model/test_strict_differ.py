@@ -20,7 +20,7 @@ from library_analyzer.processing.migration.model import (
     OneToOneMapping,
     StrictDiffer,
 )
-from .test_base_differ import differ_list
+from processing.migration.test_base_differ import differ_list
 
 
 @pytest.mark.parametrize(

@@ -245,7 +245,7 @@ def test_simple_differ() -> None:
             assert similarity >= 0
 
 
-def test_wheighted_levenshtein_distance() -> None:
+def test_weighted_levenshtein_distance() -> None:
     differ = SimpleDiffer(None, [], API("", "", ""), API("", "", ""))
 
     def cost_function(iteration: int, max_iteration: int) -> float:
