@@ -23,7 +23,7 @@ from library_analyzer.processing.migration.model import (
     Mapping,
     OneToOneMapping,
 )
-from processing.migration.test_base_differ import differ_list
+from .test_differ import differ_list
 
 
 def create_api_super() -> Tuple[
