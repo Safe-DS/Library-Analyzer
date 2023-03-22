@@ -60,7 +60,7 @@ def test_get_class_documentation(
     default_documentation_parser: DefaultDocumentationParser,
     python_code: str,
     expected_class_documentation: ClassDocumentation,
-):
+) -> None:
     node = astroid.extract_node(python_code)
 
     assert isinstance(node, astroid.ClassDef)
@@ -113,7 +113,7 @@ def test_get_function_documentation(
     default_documentation_parser: DefaultDocumentationParser,
     python_code: str,
     expected_function_documentation: FunctionDocumentation,
-):
+) -> None:
     node = astroid.extract_node(python_code)
 
     assert isinstance(node, astroid.FunctionDef)
@@ -155,7 +155,7 @@ def test_get_parameter_documentation(
     python_code: str,
     parameter_name: str,
     expected_parameter_documentation: ParameterDocumentation,
-):
+) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.FunctionDef)
     assert (

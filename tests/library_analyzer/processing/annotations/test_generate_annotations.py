@@ -18,14 +18,14 @@ from library_analyzer.processing.usages.model import UsageCountStore
 )
 def test_generate_annotations(
     subfolder: str,
-):
+) -> None:
     usages, api, expected_annotations = read_test_data(subfolder)
     annotations = generate_annotations(api, usages)
 
     assert annotations.to_json()[subfolder] == expected_annotations
 
 
-def read_test_data(subfolder: str):
+def read_test_data(subfolder: str) -> tuple[UsageCountStore, API, dict]:
     api_json_path = os.path.join(
         os.getcwd(), "tests", "data", subfolder, "api_data.json"
     )

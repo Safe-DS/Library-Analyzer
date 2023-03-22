@@ -74,7 +74,7 @@ def f():
         "function without documentation",
     ],
 )
-def test_get_full_docstring(python_code: str, expected_docstring: str):
+def test_get_full_docstring(python_code: str, expected_docstring: str) -> None:
     node = astroid.extract_node(python_code)
 
     assert isinstance(node, astroid.ClassDef) or isinstance(node, astroid.FunctionDef)

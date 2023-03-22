@@ -232,7 +232,7 @@ def test_correct_hash() -> None:
         ),
     ],
 )
-def test_boundaries_from_string(string: str, expected: BoundaryType):
+def test_boundaries_from_string(string: str, expected: BoundaryType) -> None:
     ref_type = BoundaryType.from_string(string)
     assert ref_type == expected
 
@@ -266,7 +266,7 @@ def test_boundaries_from_string(string: str, expected: BoundaryType):
         ("""{'best\\', \\'random'}""", {"best', 'random"}),
     ],
 )
-def test_enum_from_string(docstring_type: str, expected: Optional[set[str]]):
+def test_enum_from_string(docstring_type: str, expected: Optional[set[str]]) -> None:
     result = EnumType.from_string(docstring_type)
     if result is not None:
         assert result.values == expected

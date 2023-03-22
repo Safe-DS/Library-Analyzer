@@ -118,7 +118,7 @@ def f(**kwargs):
 )
 def test_get_parameter_list_on_global_functions(
     python_code: str, expected_parameter_list: list
-):
+) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.FunctionDef)
 
@@ -248,7 +248,7 @@ class C:
         "instance method with variadic first parameter",
     ],
 )
-def test_get_parameter_list_on_method(python_code: str, expected_parameter_list: list):
+def test_get_parameter_list_on_method(python_code: str, expected_parameter_list: list) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.ClassDef)
 

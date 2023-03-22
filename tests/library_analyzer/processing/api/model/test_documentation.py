@@ -15,7 +15,7 @@ from library_analyzer.processing.api.model import (
 )
 def test_dict_conversion_for_class_documentation(
     class_documentation: ClassDocumentation,
-):
+) -> None:
     assert (
         ClassDocumentation.from_dict(class_documentation.to_dict())
         == class_documentation
@@ -31,7 +31,7 @@ def test_dict_conversion_for_class_documentation(
 )
 def test_dict_conversion_for_function_documentation(
     function_documentation: FunctionDocumentation,
-):
+) -> None:
     assert (
         FunctionDocumentation.from_dict(function_documentation.to_dict())
         == function_documentation
@@ -47,7 +47,7 @@ def test_dict_conversion_for_function_documentation(
 )
 def test_dict_conversion_for_parameter_documentation(
     parameter_documentation: ParameterDocumentation,
-):
+) -> None:
     assert (
         ParameterDocumentation.from_dict(parameter_documentation.to_dict())
         == parameter_documentation

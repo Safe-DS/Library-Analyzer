@@ -57,7 +57,7 @@ def test_get_class_documentation(
     numpydoc_parser: NumpyDocParser,
     python_code: str,
     expected_class_documentation: ClassDocumentation,
-):
+) -> None:
     node = astroid.extract_node(python_code)
 
     assert isinstance(node, astroid.ClassDef)
@@ -109,7 +109,7 @@ def test_get_function_documentation(
     numpydoc_parser: NumpyDocParser,
     python_code: str,
     expected_function_documentation: FunctionDocumentation,
-):
+) -> None:
     node = astroid.extract_node(python_code)
 
     assert isinstance(node, astroid.FunctionDef)
@@ -323,7 +323,7 @@ def test_get_parameter_documentation(
     parameter_name: str,
     parameter_assigned_by: ParameterAssignment,
     expected_parameter_documentation: ParameterDocumentation,
-):
+) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.ClassDef) or isinstance(node, astroid.FunctionDef)
 
