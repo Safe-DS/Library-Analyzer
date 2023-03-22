@@ -3,6 +3,7 @@ import subprocess
 
 _project_root = os.path.join(os.path.dirname(__file__), "..", "..", "..")
 
+
 def test_cli_api() -> None:
     subprocess.run(
         [

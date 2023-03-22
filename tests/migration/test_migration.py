@@ -202,18 +202,10 @@ def test_migrate_all_annotations() -> None:
 def test_migrate_command_and_both_annotation_stores() -> None:
     data_path = os.path.join(os.path.dirname(__file__), "..", "data")
 
-    apiv1_json_path = os.path.join(
-        data_path, "migration", "apiv1_data.json"
-    )
-    apiv2_json_path = os.path.join(
-        data_path, "migration", "apiv2_data.json"
-    )
-    annotationsv1_json_path = os.path.join(
-        data_path, "migration", "annotationv1.json"
-    )
-    annotationsv2_json_path = os.path.join(
-        data_path, "migration", "annotationv2.json"
-    )
+    apiv1_json_path = os.path.join(data_path, "migration", "apiv1_data.json")
+    apiv2_json_path = os.path.join(data_path, "migration", "apiv2_data.json")
+    annotationsv1_json_path = os.path.join(data_path, "migration", "annotationv1.json")
+    annotationsv2_json_path = os.path.join(data_path, "migration", "annotationv2.json")
     unsure_annotationsv2_json_path = os.path.join(
         data_path, "migration", "unsure_annotationv2.json"
     )
