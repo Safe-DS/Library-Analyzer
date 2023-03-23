@@ -42,7 +42,7 @@ class GlobalAccess(Expression):
         return hash(self.name)
 
     def is_reason_for_impurity(self) -> bool:
-        return True  # TODO: check if this is correct
+        return True
 
 
 @dataclass
@@ -55,7 +55,7 @@ class ParameterAccess(Expression):
         return hash(self.name)
 
     def is_reason_for_impurity(self) -> bool:
-        return False  # TODO: check if this is correct
+        return False
 
 
 @dataclass
@@ -68,7 +68,7 @@ class FieldAccess(Expression):
         return hash((self.receiver, self.target))
 
     def is_reason_for_impurity(self) -> bool:
-        return False  # TODO: check if this is correct
+        return True  # TODO: check if this is correct
 
 
 @dataclass
@@ -79,7 +79,7 @@ class StringLiteral(Expression):
         return hash(self.value)
 
     def is_reason_for_impurity(self) -> bool:
-        return False  # TODO: check if this is correct
+        return True  # TODO: check if this is correct
 
 
 # Reasons for impurity

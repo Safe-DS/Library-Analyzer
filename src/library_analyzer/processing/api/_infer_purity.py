@@ -15,6 +15,7 @@ class PurityResult(ABC):
     pass
 
 
+@dataclass
 class DefinitelyPure(PurityResult):
     reasons = None
 
@@ -43,11 +44,14 @@ class PurityInformation:
     reasons: list[ImpurityReason]
     # last_accessed: str  # for later use in memoization
 
+    # TODO: At the moment the reasons are stored in PurityInformation.reasons and not via PurityResult.reasons... Is
+    #  there any use case where the reason in PurityResult.reasons are needed or can this stay the way it is?
+
     def __hash__(self):
         return hash((self.function, self.id, self.purity))
 
 
-purity_list = list[PurityInformation]()
+result_list = list[PurityInformation]()
 
 dummy_reason1 = VariableRead(AttributeAccess("dummy until further improvements"))
 dummy_reason2 = FileWrite(StringLiteral("test.txt"))
@@ -101,29 +105,35 @@ def infer_purity(code):
         if not isinstance(purity_result, DefinitelyPure):
             print(f"Reasons: {purity_result.reasons}")
         print(f"Function {function.name} is done. \n")
-        purity_list.append(generate_purity_information(function, purity_result))
-        purity_handler.purity_reason.clear()
+        result_list.append(generate_purity_information(function, purity_result))
+        purity_handler.purity_reason.clear()  # this line removes the reasons for the next function so if we want to
+        # keep them in PurityResult.reason we need to change this
 
 
 def determine_purity(purity_reasons: list[ImpurityReason]) -> PurityResult:
-
     # print(f"Maybe check {(any(purity_reason.is_reason_for_impurity() for purity_reason in purity_reasons))}")
     if any(reason.is_reason_for_impurity() for reason in purity_reasons):
         # print(f"Definitely check {any(isinstance(reason, Call) for reason in purity_reasons)}")
+        result = MaybeImpure(reasons=purity_reasons)
         if any(isinstance(reason, Call) for reason in purity_reasons):
             return DefinitelyImpure(reasons=purity_reasons)
-        return MaybeImpure(reasons=purity_reasons)
+        return result
     else:
         return DefinitelyPure()
 
 
 def get_function_defs(code) -> list[astroid.FunctionDef]:
-    module = astroid.parse(code)
+    try:
+        module = astroid.parse(code)
+    except SyntaxError as error:
+        raise ValueError("Invalid Python code") from error
+
     function_defs = list[astroid.FunctionDef]()
     for node in module.body:
         if isinstance(node, astroid.FunctionDef):
             function_defs.append(node)
     return function_defs
+    # TODO: This function should read from a file and return a list of FunctionDefs
 
 
 def generate_purity_information(function: astroid.FunctionDef, purity: PurityResult) -> PurityInformation:
@@ -139,17 +149,16 @@ def generate_purity_information(function: astroid.FunctionDef, purity: PurityRes
 
 
 def calc_function_id(node):
-    if node.is_function:
-        module = node.root().name
-        #  module = "_infer_purity.py"
-        if module.endswith(".py"):
-            module = module[:-3]
-        name = node.name
-        pos = node.position
-        line = pos.lineno
-        col = pos.col_offset
-    else:
-        module = name = line = col = "fail"
+    if not isinstance(node, astroid.FunctionDef):
+        raise TypeError("Node is not a function")
+    module = node.root().name
+    # module = "_infer_purity.py"
+    if module.endswith(".py"):
+        module = module[:-3]
+    name = node.name
+    pos = node.position
+    line = pos.lineno
+    col = pos.col_offset
 
     function_id = f"{module}.{name}.{line}.{col}"
     return function_id
@@ -157,8 +166,15 @@ def calc_function_id(node):
 
 if __name__ == '__main__':
     sourcecode = """
+    def impure_fun(a):
+        impure_call(a) # call => impure
+        return a
+
     def my_function(x):
-        g(x)
+        return x + 1
+
+    def g(a):
+        return a + 1
 
     def fun(a):
             h(a)
@@ -166,37 +182,21 @@ if __name__ == '__main__':
             b += 1
             return b
 
-    glob = fun(42)
-
     def h(a):
         a = glob.name
         return a
 
-    def g(a):
-        return a + 1
+    glob = g(1) #TODO: This will get filtered out because it is not a function call, but a variable assignment with a
+    function call and therefore further analysis is needed
+
+    def fun(a):
+        h(a) # call => impure
+        return a
     """
-    # TODO: Write more test cases
 
     infer_purity(sourcecode)
-    for f in purity_list:
+    for f in result_list:
+        # print(f"Purity {f.purity}")
+        # print(f"Purity Reason {f.purity.reasons}")
+        # print(f"Reason {f.reasons}")
         print(f"Function {f.function.name} with ID {f.id} is {f.purity.__class__.__name__} because {f.reasons}")
-
-x = """
-    def my_function(x):
-        x = 1
-
-    def fun(a):
-            h(a)
-            b =  g(a) # call => impure
-            b += 1
-            return b
-
-    glob = fun(42)
-
-    def h(a):
-        a = glob.name
-        return a
-
-    def g(a):
-        return a + 1
-    """
