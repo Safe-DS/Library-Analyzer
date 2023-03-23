@@ -11,6 +11,7 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import API, Class, ClassDocumentation
 from library_analyzer.processing.migration import APIMapping, Migration
+from library_analyzer.processing.migration.annotations._migrate_move_annotation import _was_moved
 from library_analyzer.processing.migration.model import (
     ManyToOneMapping,
     Mapping,
@@ -365,3 +366,7 @@ def test_handle_duplicates() -> None:
         "reviewers": [""],
         "target": "test/test.duplicate/TestClass",
     }
+
+
+def test_was_moved() -> None:
+    assert _was_moved(None, None) is True
