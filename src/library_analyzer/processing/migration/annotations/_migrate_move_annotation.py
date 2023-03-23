@@ -35,13 +35,11 @@ def is_moveable(element: Attribute | Class | Function | Parameter | Result) -> b
     return isinstance(element, Class)
 
 
-def was_moved(
+def _was_moved(
     elementv1: Optional[Attribute | Class | Function | Parameter | Result],
     elementv2: Optional[Attribute | Class | Function | Parameter | Result],
 ) -> bool:
-    if not isinstance(elementv1, (Class, Function)) or elementv1 is None:
-        return True
-    if not isinstance(elementv2, (Class, Function)) or elementv2 is None:
+    if not isinstance(elementv1, (Class, Function)) or elementv1 is None or not isinstance(elementv2, (Class, Function)) or elementv2 is None:
         return True
     return elementv1.id.split("/")[1] != elementv2.id.split("/")[1]
 
@@ -72,7 +70,7 @@ def migrate_move_annotation(
                     ),
                 )
             ]
-        if was_moved(
+        if _was_moved(
             get_annotated_api_element(move_annotation, mapping.get_apiv1_elements()),
             element,
         ):
@@ -93,14 +91,7 @@ def migrate_move_annotation(
             and is_moveable(element)
             and not isinstance(element, (Attribute, Result))
         ):
-            review_result = EnumReviewResult.NONE
-            if was_moved(
-                get_annotated_api_element(
-                    move_annotation, mapping.get_apiv1_elements()
-                ),
-                element,
-            ):
-                review_result = EnumReviewResult.UNSURE
+            review_result = EnumReviewResult.NONE if not _was_moved(get_annotated_api_element(move_annotation, mapping.get_apiv1_elements()), element) else EnumReviewResult.UNSURE
             move_annotations.append(
                 MoveAnnotation(
                     element.id,
