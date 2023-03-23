@@ -59,6 +59,14 @@ class StringLiteral(Expression):
         return hash(self.value)
 
 
+@dataclass
+class Reference(Expression):
+    name: str
+
+    def __hash__(self):
+        return hash(self.name)
+
+
 class ImpurityCertainty(Enum):
     maybe = auto()
     definitely = auto()

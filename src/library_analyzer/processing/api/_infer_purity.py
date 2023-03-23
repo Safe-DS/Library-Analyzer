@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import astroid
 
 from library_analyzer.processing.api.model import ImpurityIndicator, VariableRead, AttributeAccess, Call, FileWrite, \
-    StringLiteral, ImpurityCertainty
+    StringLiteral, ImpurityCertainty, Reference
 from library_analyzer.utils import ASTWalker
 
 
@@ -60,9 +60,6 @@ class PurityInformation:
 
 _result_list = list[PurityInformation]()
 
-_dummy_reason1 = VariableRead(AttributeAccess("dummy until further improvements"))
-_dummy_reason2 = FileWrite(StringLiteral("test.txt"))
-
 
 class PurityHandler:
     def __init__(self):
@@ -78,11 +75,11 @@ class PurityHandler:
         # Handle the Assign node here
         if isinstance(node.value, astroid.Call):
             print("This is a call within an assign node:")
-            impurity_reason = Call(node)
+            impurity_reason = Call(Reference(node))
             self.purity_reason.append(impurity_reason)
         else:
-            # impurity_reason = VariableRead(node)
-            self.purity_reason.append(_dummy_reason1)
+            impurity_reason = VariableRead(node)
+            self.purity_reason.append(impurity_reason)
             # TODO: Assign node needs further analysis to determine if it is pure or impure
 
     def enter_assignattr(self, node):
@@ -95,7 +92,7 @@ class PurityHandler:
     def enter_call(self, node):
         print(f"Entering Call node {node.as_string()}")
         # Handle the Call node here
-        impurity_reason = Call(node)
+        impurity_reason = Call(Reference(node))
         self.purity_reason.append(impurity_reason)
         # TODO: Call node needs further analysis to determine if it is pure or impure
 
@@ -113,8 +110,7 @@ def infer_purity(code):
             print(f"Reasons: {purity_result.reasons}")
         print(f"Function {function.name} is done. \n")
         _result_list.append(generate_purity_information(function, purity_result))
-        purity_handler.purity_reason = []  # this line removes the reasons for the next function so if we want to
-        # keep them in PurityResult.reason we need to change this
+        purity_handler.purity_reason = []
 
 
 def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
@@ -147,7 +143,7 @@ def get_function_defs(code) -> list[astroid.FunctionDef]:
         if isinstance(node, astroid.FunctionDef):
             function_defs.append(node)
     return function_defs
-    # TODO: This function should read from a file and return a list of FunctionDefs
+    # TODO: This function should read from a python file (module) and return a list of FunctionDefs
 
 
 def extract_impurity_reasons(purity: PurityResult) -> list[ImpurityIndicator]:
@@ -193,28 +189,44 @@ if __name__ == '__main__':
         impure_call(a) # call => impure - check if the analysis is correct for multiple calls - done
         return a
 
-    def my_function(x):
-        return x + 1
-
-    def g(a):
-        return a + 1
-
-    def fun(a):
-            h(a)
-            b =  g(a) # call => impure
-            b += 1
-            return b
-
-    def h(a):
-        a = glob.name
+    def pure_fun(a):
+        a += 1
         return a
+
+    class A:
+        def __init__(self):
+            self.value = 42
+
+        a = A()
+
+        def instance(a):
+            res = a.value # InstanceAccess => pure??
+            return res
+
+    class B:
+        name = "test"
+    b = B()
+    def attribute(b):
+        res = b.name # AttributeAccess => maybe impure
+        return res
+
+    global_var = 17
+    def global_access():
+        res = global_var # GlobalAccess => impure
+        return res
+
+    def parameter_access(a):
+        res = a # ParameterAccess => pure
+        return res
 
     glob = g(1) #TODO: This will get filtered out because it is not a function call, but a variable assignment with a
     # function call and therefore further analysis is needed
 
     def fun(a):
-        h(a) # call => impure
-        return a
+        h(a)
+        b =  g(a) # call => impure
+        b += 1
+        return b
     """
 
     infer_purity(sourcecode)

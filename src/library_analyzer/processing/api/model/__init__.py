@@ -31,6 +31,7 @@ from ._purity import (
     ParameterAccess,
     InstanceAccess,
     StringLiteral,
+    Reference,
     ImpurityCertainty,
     ImpurityIndicator,
     VariableRead,
