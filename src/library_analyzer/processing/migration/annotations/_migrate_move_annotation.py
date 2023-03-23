@@ -47,7 +47,10 @@ def _was_moved(
         or elementv2 is None
     ):
         return True
-    return elementv1.id.split("/")[1] != elementv2.id.split("/")[1] and move_annotation.destination != elementv2.id.split("/")[1]
+    return (
+        elementv1.id.split("/")[1] != elementv2.id.split("/")[1]
+        and move_annotation.destination != elementv2.id.split("/")[1]
+    )
 
 
 # pylint: disable=duplicate-code
@@ -105,7 +108,7 @@ def migrate_move_annotation(
                         move_annotation, mapping.get_apiv1_elements()
                     ),
                     element,
-                    move_annotation
+                    move_annotation,
                 )
                 else EnumReviewResult.NONE
             )

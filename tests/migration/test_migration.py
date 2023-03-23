@@ -7,11 +7,20 @@ from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
     AnnotationStore,
     EnumReviewResult,
-    TodoAnnotation, MoveAnnotation,
+    MoveAnnotation,
+    TodoAnnotation,
 )
-from library_analyzer.processing.api.model import API, Class, ClassDocumentation, Function, FunctionDocumentation
+from library_analyzer.processing.api.model import (
+    API,
+    Class,
+    ClassDocumentation,
+    Function,
+    FunctionDocumentation,
+)
 from library_analyzer.processing.migration import APIMapping, Migration
-from library_analyzer.processing.migration.annotations._migrate_move_annotation import _was_moved
+from library_analyzer.processing.migration.annotations._migrate_move_annotation import (
+    _was_moved,
+)
 from library_analyzer.processing.migration.model import (
     ManyToOneMapping,
     Mapping,
@@ -373,33 +382,60 @@ def test_handle_duplicates() -> None:
 
 
 def test_was_moved() -> None:
-    move_annotation = MoveAnnotation(target="test/test.move.test_was_moved.test/test", authors=["testauthor"], reviewers=[],
-                                comment="", reviewResult=EnumReviewResult.NONE,
-                                destination="test.move.test_was_moved.test.moved", )
+    move_annotation = MoveAnnotation(
+        target="test/test.move.test_was_moved.test/test",
+        authors=["testauthor"],
+        reviewers=[],
+        comment="",
+        reviewResult=EnumReviewResult.NONE,
+        destination="test.move.test_was_moved.test.moved",
+    )
     assert _was_moved(None, None, move_annotation) is True
-    function = Function(id="test/test.move.test_was_moved.test/new_test", qname="test.move.test_was_moved.test.new_test", decorators=[],
-                        parameters=[], results=[], is_public=True, reexported_by=[],
-                        documentation=FunctionDocumentation("", ""), code="", )
+    function = Function(
+        id="test/test.move.test_was_moved.test/new_test",
+        qname="test.move.test_was_moved.test.new_test",
+        decorators=[],
+        parameters=[],
+        results=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=FunctionDocumentation("", ""),
+        code="",
+    )
     assert _was_moved(function, function, move_annotation) is False
-    assert _was_moved(function, Function(
-        id="test/test.move.test_was_moved.test.moved/new_test",
-        qname="test.move.test_was_moved.test.moved.new_test",
-        decorators=[],
-        parameters=[],
-        results=[],
-        is_public=True,
-        reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
-        code="",
-    ), move_annotation) is False
-    assert _was_moved(function, Function(
-        id="test/test.move.test_was_moved.test.moved2/new_test",
-        qname="test.move.test_was_moved.test.moved2.new_test",
-        decorators=[],
-        parameters=[],
-        results=[],
-        is_public=True,
-        reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
-        code="",
-    ), move_annotation) is True
+    assert (
+        _was_moved(
+            function,
+            Function(
+                id="test/test.move.test_was_moved.test.moved/new_test",
+                qname="test.move.test_was_moved.test.moved.new_test",
+                decorators=[],
+                parameters=[],
+                results=[],
+                is_public=True,
+                reexported_by=[],
+                documentation=FunctionDocumentation("", ""),
+                code="",
+            ),
+            move_annotation,
+        )
+        is False
+    )
+    assert (
+        _was_moved(
+            function,
+            Function(
+                id="test/test.move.test_was_moved.test.moved2/new_test",
+                qname="test.move.test_was_moved.test.moved2.new_test",
+                decorators=[],
+                parameters=[],
+                results=[],
+                is_public=True,
+                reexported_by=[],
+                documentation=FunctionDocumentation("", ""),
+                code="",
+            ),
+            move_annotation,
+        )
+        is True
+    )
