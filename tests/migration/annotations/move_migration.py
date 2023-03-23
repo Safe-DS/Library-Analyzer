@@ -270,4 +270,3 @@ def migrate_move_annotation_data_one_to_one_mapping_duplicated() -> (
         destination="test.move.duplicate.destination",
     )
     return mapping, [annotationv1, annotationv1_2], [annotationv2]
-
