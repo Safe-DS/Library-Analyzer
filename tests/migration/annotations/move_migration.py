@@ -16,9 +16,6 @@ from library_analyzer.processing.migration.annotations import (
     get_migration_text,
     migration_author,
 )
-from library_analyzer.processing.migration.annotations._migrate_move_annotation import (
-    _was_moved,
-)
 from library_analyzer.processing.migration.model import (
     ManyToOneMapping,
     Mapping,
