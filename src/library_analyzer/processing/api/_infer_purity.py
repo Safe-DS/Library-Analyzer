@@ -4,16 +4,13 @@ from dataclasses import dataclass
 import astroid
 
 from library_analyzer.processing.api.model import ImpurityIndicator, VariableRead, AttributeAccess, Call, FileWrite, \
-    StringLiteral
-from library_analyzer.processing.api.model._purity import ImpurityCertainty
+    StringLiteral, ImpurityCertainty
 from library_analyzer.utils import ASTWalker
 
 
 class PurityResult(ABC):
     def __init__(self):
         self.reasons = None
-
-    pass
 
 
 @dataclass
@@ -39,31 +36,26 @@ class DefinitelyImpure(PurityResult):
 
 @dataclass
 class PurityInformation:
-    function: astroid.FunctionDef
     id: str
-    purity: PurityResult
+    # purity: PurityResult
     reasons: list[ImpurityIndicator]
-    # last_accessed: str  # for later use in memoization
-
-    # TODO: At the moment the reasons are stored in PurityInformation.reasons and not via PurityResult.reasons... Is
-    #  there any use case where the reason in PurityResult.reasons are needed or can this stay the way it is?
 
     def __hash__(self):
-        return hash((self.id, self.purity))
+        return hash((self.id, self.reasons))
 
     def __eq__(self, other):
-        return self.id == other.id and self.purity == other.purity
+        return self.id == other.id and self.reasons == other.reasons
 
 
-result_list = list[PurityInformation]
+_result_list = list[PurityInformation]()
 
-dummy_reason1 = VariableRead(AttributeAccess("dummy until further improvements"))
-dummy_reason2 = FileWrite(StringLiteral("test.txt"))
+_dummy_reason1 = VariableRead(AttributeAccess("dummy until further improvements"))
+_dummy_reason2 = FileWrite(StringLiteral("test.txt"))
 
 
 class PurityHandler:
     def __init__(self):
-        self.purity_reason = list[ImpurityIndicator]
+        self.purity_reason = list[ImpurityIndicator]()
 
     def enter_functiondef(self, node):
         # print(f"Enter function node: {node.name} of Class: {node.__class__.__name__}")
@@ -79,7 +71,7 @@ class PurityHandler:
             self.purity_reason.append(impurity_reason)
         else:
             # impurity_reason = VariableRead(node)
-            self.purity_reason.append(dummy_reason1)
+            self.purity_reason.append(_dummy_reason1)
             # TODO: Assign node needs further analysis to determine if it is pure or impure
 
     def enter_assignattr(self, node):
@@ -109,7 +101,7 @@ def infer_purity(code):
         if not isinstance(purity_result, DefinitelyPure):
             print(f"Reasons: {purity_result.reasons}")
         print(f"Function {function.name} is done. \n")
-        result_list.append(generate_purity_information(function, purity_result))
+        _result_list.append(generate_purity_information(function, purity_result))
         purity_handler.purity_reason = []  # this line removes the reasons for the next function so if we want to
         # keep them in PurityResult.reason we need to change this
 
@@ -139,7 +131,7 @@ def get_function_defs(code) -> list[astroid.FunctionDef]:
     except SyntaxError as error:
         raise ValueError("Invalid Python code") from error
 
-    function_defs = list[astroid.FunctionDef]
+    function_defs = list[astroid.FunctionDef]()
     for node in module.body:
         if isinstance(node, astroid.FunctionDef):
             function_defs.append(node)
@@ -149,13 +141,13 @@ def get_function_defs(code) -> list[astroid.FunctionDef]:
 
 def generate_purity_information(function: astroid.FunctionDef, purity: PurityResult) -> PurityInformation:
     function_id = calc_function_id(function)
-    reasons = list[ImpurityIndicator]
+    reasons = list[ImpurityIndicator]()
     if isinstance(purity, DefinitelyPure):
-        purity_info = PurityInformation(function, function_id, purity, reasons)
+        purity_info = PurityInformation(function_id, reasons)
         return purity_info
     for r in purity.reasons:
         reasons.append(r)
-    purity_info = PurityInformation(function, function_id, purity, reasons)
+    purity_info = PurityInformation(function_id, reasons)
     return purity_info
 
 
@@ -179,6 +171,7 @@ if __name__ == '__main__':
     sourcecode = """
     def impure_fun(a):
         impure_call(a) # call => impure
+        impure_call2(a) # call => impure - check if the analysis is correct for multiple calls
         return a
 
     def my_function(x):
@@ -206,8 +199,5 @@ if __name__ == '__main__':
     """
 
     infer_purity(sourcecode)
-    for f in result_list:
-        print(f"Purity {f.purity}")
-        print(f"Purity Reason {f.purity.reasons}")
-        print(f"Reason {f.reasons}")
-        print(f"Function {f.function.name} with ID {f.id} is {f.purity.__class__.__name__} because {f.reasons}")
+    for f in _result_list:
+        print(f"Function {f} with ID {f.id} is XX because {f.reasons}")

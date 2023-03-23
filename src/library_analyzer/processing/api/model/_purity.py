@@ -15,12 +15,6 @@ class Expression(ABC):
     def __hash__(self) -> int:
         pass
 
-    @abstractmethod
-    def is_reason_for_impurity(self) -> bool:
-        pass  # TODO: check if this is correct
-
-    ...
-
 
 @dataclass
 class AttributeAccess(Expression):
@@ -29,9 +23,6 @@ class AttributeAccess(Expression):
 
     def __hash__(self) -> int:
         return hash(self.name)
-
-    def is_reason_for_impurity(self) -> bool:
-        return False  # TODO: check if this is correct
 
 
 @dataclass
@@ -43,9 +34,6 @@ class GlobalAccess(Expression):
     def __hash__(self):
         return hash(self.name)
 
-    def is_reason_for_impurity(self) -> bool:
-        return True
-
 
 @dataclass
 class ParameterAccess(Expression):
@@ -55,9 +43,6 @@ class ParameterAccess(Expression):
 
     def __hash__(self):
         return hash(self.name)
-
-    def is_reason_for_impurity(self) -> bool:
-        return False
 
 
 @dataclass
@@ -69,9 +54,6 @@ class InstanceAccess(Expression):
     def __hash__(self):
         return hash((self.receiver, self.target))
 
-    def is_reason_for_impurity(self) -> bool:
-        return True  # TODO: check if this is correct
-
 
 @dataclass
 class StringLiteral(Expression):
@@ -79,9 +61,6 @@ class StringLiteral(Expression):
 
     def __hash__(self):
         return hash(self.value)
-
-    def is_reason_for_impurity(self) -> bool:
-        return True  # TODO: check if this is correct
 
 
 class ImpurityCertainty(Enum):
@@ -91,7 +70,7 @@ class ImpurityCertainty(Enum):
 
 # Reasons for impurity
 class ImpurityIndicator(ABC):
-    certainty: ImpurityCertainty = ImpurityCertainty.maybe # TODO remove default
+    certainty: ImpurityCertainty
 
     @abstractmethod
     def __hash__(self) -> int:
@@ -105,6 +84,7 @@ class ImpurityIndicator(ABC):
 @dataclass
 class VariableRead(ImpurityIndicator):
     expression: Expression
+    certainty = ImpurityCertainty.maybe
 
     def __hash__(self):
         return hash(self.expression)
@@ -116,6 +96,7 @@ class VariableRead(ImpurityIndicator):
 @dataclass
 class VariableWrite(ImpurityIndicator):
     expression: Expression
+    certainty = ImpurityCertainty.maybe
 
     def __hash__(self):
         return hash(self.expression)
@@ -127,6 +108,7 @@ class VariableWrite(ImpurityIndicator):
 @dataclass
 class FileRead(ImpurityIndicator):
     path: Expression
+    certainty = ImpurityCertainty.definitely
 
     def __hash__(self):
         return hash(self.path)
@@ -138,6 +120,7 @@ class FileRead(ImpurityIndicator):
 @dataclass
 class FileWrite(ImpurityIndicator):
     path: Expression
+    certainty = ImpurityCertainty.definitely
 
     def __hash__(self):
         return hash(self.path)
@@ -149,6 +132,7 @@ class FileWrite(ImpurityIndicator):
 @dataclass
 class UnknownCallTarget(ImpurityIndicator):
     expression: Expression
+    certainty = ImpurityCertainty.definitely
 
     def __hash__(self):
         return hash(self.expression)
@@ -160,6 +144,7 @@ class UnknownCallTarget(ImpurityIndicator):
 @dataclass
 class Call(ImpurityIndicator):
     expression: Expression
+    certainty = ImpurityCertainty
 
     def __hash__(self):
         return hash(self.expression)
