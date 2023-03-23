@@ -8,6 +8,17 @@ from library_analyzer.processing.api.model import ImpurityIndicator, VariableRea
 from library_analyzer.utils import ASTWalker
 
 
+@dataclass
+class FunctionID:
+    module: str
+    name: str
+    line: int
+    col: int
+
+    def __str__(self):
+        return f"{self.module}.{self.name}.{self.line}.{self.col}"
+
+
 class PurityResult(ABC):
     def __init__(self):
         self.reasons = None
@@ -36,7 +47,7 @@ class DefinitelyImpure(PurityResult):
 
 @dataclass
 class PurityInformation:
-    id: str
+    id: FunctionID
     # purity: PurityResult
     reasons: list[ImpurityIndicator]
 
@@ -139,14 +150,15 @@ def get_function_defs(code) -> list[astroid.FunctionDef]:
     # TODO: This function should read from a file and return a list of FunctionDefs
 
 
-def generate_purity_information(function: astroid.FunctionDef, purity: PurityResult) -> PurityInformation:
-    function_id = calc_function_id(function)
-    reasons = list[ImpurityIndicator]()
+def extract_impurity_reasons(purity: PurityResult) -> list[ImpurityIndicator]:
     if isinstance(purity, DefinitelyPure):
-        purity_info = PurityInformation(function_id, reasons)
-        return purity_info
-    for r in purity.reasons:
-        reasons.append(r)
+        return []
+    return purity.reasons
+
+
+def generate_purity_information(function: astroid.FunctionDef, purity_result: PurityResult) -> PurityInformation:
+    function_id = calc_function_id(function)
+    reasons = extract_impurity_reasons(purity_result)
     purity_info = PurityInformation(function_id, reasons)
     return purity_info
 
@@ -159,19 +171,26 @@ def calc_function_id(node):
     if module.endswith(".py"):
         module = module[:-3]
     name = node.name
-    pos = node.position
-    line = pos.lineno
-    col = pos.col_offset
+    line = node.position.lineno
+    col = node.position.col_offset
+    return FunctionID(module, name, line, col)
 
-    function_id = f"{module}.{name}.{line}.{col}"
-    return function_id
+
+# this function is only for visualization purposes
+def get_purity_result_str(indicators: list[ImpurityIndicator]) -> str:
+    if len(indicators) == 0:
+        return "Definitely Pure"
+    if any(indicator.certainty == ImpurityCertainty.definitely for indicator in indicators):
+        return "Definitely Impure"
+    else:
+        return "Maybe Impure"
 
 
 if __name__ == '__main__':
     sourcecode = """
     def impure_fun(a):
         impure_call(a) # call => impure
-        impure_call2(a) # call => impure - check if the analysis is correct for multiple calls
+        impure_call(a) # call => impure - check if the analysis is correct for multiple calls - done
         return a
 
     def my_function(x):
@@ -200,4 +219,5 @@ if __name__ == '__main__':
 
     infer_purity(sourcecode)
     for f in _result_list:
-        print(f"Function {f} with ID {f.id} is XX because {f.reasons}")
+        p = get_purity_result_str(f.reasons)
+        print(f"Function {f.id.name} with ID: {f.id} is {p} because {f.reasons}")

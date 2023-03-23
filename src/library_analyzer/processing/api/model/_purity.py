@@ -5,11 +5,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 
 
-# TODO each data model should have an unique ID,oo therefore we could possibly use the
-#  function-/variable-/parameter-/etc.-name in combination with the line and column offset provided by astroid
-
 # Type of access
-
 class Expression(ABC):
     @abstractmethod
     def __hash__(self) -> int:
@@ -144,7 +140,7 @@ class UnknownCallTarget(ImpurityIndicator):
 @dataclass
 class Call(ImpurityIndicator):
     expression: Expression
-    certainty = ImpurityCertainty
+    certainty = ImpurityCertainty.definitely
 
     def __hash__(self):
         return hash(self.expression)

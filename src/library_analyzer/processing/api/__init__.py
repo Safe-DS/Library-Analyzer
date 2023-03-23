@@ -13,6 +13,7 @@ from ._infer_purity import (
     calc_function_id,
     get_function_defs,
     determine_purity,
+    extract_impurity_reasons
 )
 
 from ._infer_purity import (
