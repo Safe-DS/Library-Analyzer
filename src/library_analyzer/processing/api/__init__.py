@@ -21,5 +21,5 @@ from ._infer_purity import (
     MaybeImpure,
     PurityResult,
     PurityInformation,
-    ImpurityReason,
+    ImpurityIndicator,
 )

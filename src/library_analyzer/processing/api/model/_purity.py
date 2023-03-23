@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum, auto
 
 
 # TODO each data model should have an unique ID,oo therefore we could possibly use the
@@ -17,6 +18,7 @@ class Expression(ABC):
     @abstractmethod
     def is_reason_for_impurity(self) -> bool:
         pass  # TODO: check if this is correct
+
     ...
 
 
@@ -82,78 +84,85 @@ class StringLiteral(Expression):
         return True  # TODO: check if this is correct
 
 
+class ImpurityCertainty(Enum):
+    maybe = auto()
+    definitely = auto()
+
+
 # Reasons for impurity
-class ImpurityReason(ABC):
+class ImpurityIndicator(ABC):
+    certainty: ImpurityCertainty = ImpurityCertainty.maybe # TODO remove default
+
     @abstractmethod
     def __hash__(self) -> int:
         pass
 
     @abstractmethod
-    def is_reason_for_impurity(self) -> bool:
+    def is_side_effect(self) -> bool:
         pass
 
 
 @dataclass
-class VariableRead(ImpurityReason):
+class VariableRead(ImpurityIndicator):
     expression: Expression
 
     def __hash__(self):
         return hash(self.expression)
 
-    def is_reason_for_impurity(self) -> bool:
-        return self.expression.is_reason_for_impurity()
+    def is_side_effect(self) -> bool:
+        return False
 
 
 @dataclass
-class VariableWrite(ImpurityReason):
+class VariableWrite(ImpurityIndicator):
     expression: Expression
 
     def __hash__(self):
         return hash(self.expression)
 
-    def is_reason_for_impurity(self) -> bool:
-        return self.expression.is_reason_for_impurity()
+    def is_side_effect(self) -> bool:
+        return True
 
 
 @dataclass
-class FileRead(ImpurityReason):
+class FileRead(ImpurityIndicator):
     path: Expression
 
     def __hash__(self):
         return hash(self.path)
 
-    def is_reason_for_impurity(self) -> bool:
-        return self.path.is_reason_for_impurity()
+    def is_side_effect(self) -> bool:
+        return False
 
 
 @dataclass
-class FileWrite(ImpurityReason):
+class FileWrite(ImpurityIndicator):
     path: Expression
 
     def __hash__(self):
         return hash(self.path)
 
-    def is_reason_for_impurity(self) -> bool:
-        return self.path.is_reason_for_impurity()
+    def is_side_effect(self) -> bool:
+        return True
 
 
 @dataclass
-class UnknownCallTarget(ImpurityReason):
+class UnknownCallTarget(ImpurityIndicator):
     expression: Expression
 
     def __hash__(self):
         return hash(self.expression)
 
-    def is_reason_for_impurity(self) -> bool:
+    def is_side_effect(self) -> bool:
         return True  # TODO: improve this to make analysis more precise
 
 
 @dataclass
-class Call(ImpurityReason):
+class Call(ImpurityIndicator):
     expression: Expression
 
     def __hash__(self):
         return hash(self.expression)
 
-    def is_reason_for_impurity(self) -> bool:
+    def is_side_effect(self) -> bool:
         return True  # TODO: improve this to make analysis more precise

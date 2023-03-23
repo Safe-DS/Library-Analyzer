@@ -83,14 +83,7 @@ def test_calc_function_id(code, expected):
                     impure_call(a) # call => impure
                     return a
             """,
-            DefinitelyImpure(reasons=[Call(expression=AttributeAccess(name="impure_call"))]),
-            PurityInformation(
-                function=FunctionDef(name="impure_fun", lineno=2),  # TODO: how to ignore address?
-                id=".impure_fun.2.0",
-                purity=DefinitelyImpure(reasons=[Call(expression=AttributeAccess(
-                    name="impure_call"))]),
-                reasons=[Call(expression=AttributeAccess(name='impure_call'))]
-                )
+            [Call(expression=AttributeAccess(name="impure_call"))],
         ),
         (
             """
