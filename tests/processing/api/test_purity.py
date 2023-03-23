@@ -22,7 +22,7 @@ from library_analyzer.processing.api.model import (
     AttributeAccess,
     GlobalAccess,
     ParameterAccess,
-    FieldAccess,
+    InstanceAccess,
     StringLiteral,
     VariableRead,
     VariableWrite,
@@ -38,25 +38,23 @@ from library_analyzer.processing.api.model import (
     [
         (
             """
-                def fun(a):
-                    h(a)
-                    b =  g(a) # call => impure
-                    b += 1
-                    return b
+                def impure_call(a):
+                    h(a) # call => impure
+                    return a
             """,
             ".fun.2.0"
         ),
         (
             """
                 def x(a):
-                    a = 1
+                    a = 1 # ParameterAccess => pure
                     return a
             """,
             ".x.2.0"
         ),
         (
             """
-                a += 1
+                a += 1 # not a function => TypeError
             """,
             None
         ),
@@ -89,7 +87,8 @@ def test_calc_function_id(code, expected):
             PurityInformation(
                 function=FunctionDef(name="impure_fun", lineno=2),  # TODO: how to ignore address?
                 id=".impure_fun.2.0",
-                purity=DefinitelyImpure(reasons=[Call(expression=AttributeAccess(name="impure_call"))]),
+                purity=DefinitelyImpure(reasons=[Call(expression=AttributeAccess(
+                    name="impure_call"))]),
                 reasons=[Call(expression=AttributeAccess(name='impure_call'))]
                 )
         ),
@@ -107,7 +106,79 @@ def test_calc_function_id(code, expected):
                 reasons=[]
             )
         ),
+        (
+            """
+                class A:
+                    def __init__(self):
+                        self.value = 42
 
+                a = A()
+
+                def instance(a):
+                    res = a.value # InstanceAccess => pure??
+                    return res
+            """,
+            MaybeImpure(reasons=[VariableRead(InstanceAccess(
+                receiver=StringLiteral(value="a"),
+                target=StringLiteral(value="value")))]),
+            PurityInformation(
+                function=FunctionDef(name="instance", lineno=8),  # TODO: how to ignore address?
+                id=".instance.8.0",
+                purity=MaybeImpure(reasons=[VariableRead(InstanceAccess(
+                    receiver=StringLiteral(value="a"),
+                    target=StringLiteral(value="value")))]),
+                reasons=[VariableRead(InstanceAccess(
+                    receiver=StringLiteral(value="a"),
+                    target=StringLiteral(value="value")))]
+            )
+        ),
+        (
+            """
+                Class B:
+                    name = "test"
+
+                b = B()
+
+                def attribute(b):
+                    res = b.name # AttributeAccess => maybe impure
+                    return res
+            """,
+            MaybeImpure(reasons=[VariableRead(AttributeAccess(name="name"))]),
+            PurityInformation(
+                function=FunctionDef(name="attribute", lineno=7),  # TODO: how to ignore address?
+                id=".attribute.7.0",
+                purity=MaybeImpure(reasons=[VariableRead(AttributeAccess(name="name"))]),
+                reasons=[VariableRead(AttributeAccess(name="name"))]
+            )
+        ),
+        (
+            """
+                global_var = 17
+
+                def global_access():
+                    res = global_var # GlobalAccess => impure
+                    return res
+            """,
+            DefinitelyImpure(reasons=[VariableRead(GlobalAccess(name="global_var"))]),
+            PurityInformation(
+                function=FunctionDef(name="global_access", lineno=4),  # TODO: how to ignore address?
+                id=".global_access.4.0",
+                purity=DefinitelyImpure(reasons=[VariableRead(GlobalAccess(name="global_var"))]),
+                reasons=[VariableRead(GlobalAccess(name="global_var"))])
+        ),
+        (
+            """
+                def parameter_access(a):
+                    res = a # ParameterAccess => pure
+                    return res
+            """,
+            DefinitelyPure(),
+            PurityInformation(
+                function=FunctionDef(name="parameter_access", lineno=2),  # TODO: how to ignore address?
+                id=".parameter_access.2.0",
+                purity=DefinitelyPure(),
+                reasons=[])
+        ),
     ]
 )
 def test_generate_purity_information(code, purity, expected):

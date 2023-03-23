@@ -187,7 +187,7 @@ if __name__ == '__main__':
         return a
 
     glob = g(1) #TODO: This will get filtered out because it is not a function call, but a variable assignment with a
-    function call and therefore further analysis is needed
+    # function call and therefore further analysis is needed
 
     def fun(a):
         h(a) # call => impure

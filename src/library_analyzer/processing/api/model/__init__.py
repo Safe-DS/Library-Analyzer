@@ -29,7 +29,7 @@ from ._purity import (
     AttributeAccess,
     GlobalAccess,
     ParameterAccess,
-    FieldAccess,
+    InstanceAccess,
     StringLiteral,
     ImpurityReason,
     VariableRead,

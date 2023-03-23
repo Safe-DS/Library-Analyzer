@@ -22,7 +22,7 @@ class Expression(ABC):
 
 @dataclass
 class AttributeAccess(Expression):
-    """ Class for class variable access"""
+    """ Class for class attribute access """
     name: str
 
     def __hash__(self) -> int:
@@ -36,7 +36,7 @@ class AttributeAccess(Expression):
 class GlobalAccess(Expression):
     """ Class for global variable access"""
     name: str
-    module: str
+    module: str = None
 
     def __hash__(self):
         return hash(self.name)
@@ -59,8 +59,8 @@ class ParameterAccess(Expression):
 
 
 @dataclass
-class FieldAccess(Expression):
-    """ Class for field access (receiver.target)"""
+class InstanceAccess(Expression):
+    """ Class for field access of an instance attribute (receiver.target)"""
     receiver: Expression
     target: Expression
 
