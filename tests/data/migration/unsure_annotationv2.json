@@ -12,7 +12,7 @@
             "authors": ["$autogen$", "migration"],
             "comment": "",
             "destination": "test/test.moved.package",
-            "reviewResult": "",
+            "reviewResult": "unsure",
             "reviewers": [],
             "target": "test/test.other_package/complete_different_function"
         }

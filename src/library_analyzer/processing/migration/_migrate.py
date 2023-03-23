@@ -136,7 +136,7 @@ class Migration:
     ) -> None:
         if isinstance(mapping, ManyToManyMapping):
             self.unsure_migrated_annotation_store.add_annotation(annotation)
-        if mapping.similarity >= self.reliable_similarity:
+        elif mapping.similarity >= self.reliable_similarity:
             self.migrated_annotation_store.add_annotation(annotation)
         elif mapping.similarity >= self.unsure_similarity:
             annotation.reviewResult = EnumReviewResult.UNSURE

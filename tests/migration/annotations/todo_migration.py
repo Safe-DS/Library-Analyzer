@@ -140,15 +140,6 @@ def migrate_todo_annotation_data_many_to_many_mapping() -> (
         is_public=True,
         documentation=ParameterDocumentation("str", "", ""),
     )
-    parameterv1_b = Parameter(
-        id_="test/test.todo.test3.TestB",
-        name="TestB",
-        qname="test.todo.test3.TestB",
-        default_value=None,
-        assigned_by=ParameterAssignment.POSITION_OR_NAME,
-        is_public=True,
-        documentation=ParameterDocumentation("str", "", ""),
-    )
     parameterv2_a = Parameter(
         id_="test/test.todo.test3.NewTestA",
         name="NewTestA",
@@ -179,8 +170,8 @@ def migrate_todo_annotation_data_many_to_many_mapping() -> (
         code="class TestTodoClass:\n    pass",
         instance_attributes=[],
     )
-    mappings = ManyToManyMapping(
-        1.0, [parameterv1_a, parameterv1_b], [parameterv2_a, parameterv2_b, classv2]
+    mappings = OneToManyMapping(
+        1.0, parameterv1_a, [parameterv2_a, parameterv2_b, classv2]
     )
     annotationv1 = TodoAnnotation(
         target="test/test.todo.test3.TestA",

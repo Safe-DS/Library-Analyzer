@@ -34,6 +34,10 @@ def is_moveable(element: Attribute | Class | Function | Parameter | Result) -> b
     return isinstance(element, Class)
 
 
+def was_moved(elementv1: Attribute | Class | Function | Parameter | Result, elementv2: Attribute | Class | Function | Parameter | Result) -> bool:
+    return elementv1.id.split("/")[1] != elementv2.id.split("/")[1]
+
+
 # pylint: disable=duplicate-code
 def migrate_move_annotation(
     move_annotation: MoveAnnotation, mapping: Mapping
@@ -60,6 +64,8 @@ def migrate_move_annotation(
                     ),
                 )
             ]
+        if was_moved(get_annotated_api_element(move_annotation, mapping.get_apiv1_elements()), element):
+            move_annotation.reviewResult = EnumReviewResult.UNSURE
         move_annotation.target = element.id
         return [move_annotation]
 
@@ -76,13 +82,16 @@ def migrate_move_annotation(
             and is_moveable(element)
             and not isinstance(element, (Attribute, Result))
         ):
+            review_result = EnumReviewResult.NONE
+            if was_moved(get_annotated_api_element(move_annotation, mapping.get_apiv1_elements()), element):
+                review_result = EnumReviewResult.UNSURE
             move_annotations.append(
                 MoveAnnotation(
                     element.id,
                     authors,
                     move_annotation.reviewers,
                     move_annotation.comment,
-                    EnumReviewResult.NONE,
+                    review_result,
                     move_annotation.destination,
                 )
             )
