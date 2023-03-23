@@ -273,4 +273,4 @@ def migrate_move_annotation_data_one_to_one_mapping_duplicated() -> (
     return mapping, [annotationv1, annotationv1_2], [annotationv2]
 
 def test_was_moved() -> None:
-    assert _was_moved(None, None) == False
+    assert _was_moved(None, None) is False
