@@ -245,7 +245,6 @@ def test_migrate_command_and_both_annotation_stores() -> None:
         _assert_annotation_stores_are_equal(
             migration.unsure_migrated_annotation_store, unsure_annotationsv2
         )
-        migration.print(apiv1, apiv2)
 
 
 def _assert_annotation_stores_are_equal(

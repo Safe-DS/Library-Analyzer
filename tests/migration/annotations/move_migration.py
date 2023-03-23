@@ -16,6 +16,7 @@ from library_analyzer.processing.migration.annotations import (
     get_migration_text,
     migration_author,
 )
+from library_analyzer.processing.migration.annotations._migrate_move_annotation import _was_moved
 from library_analyzer.processing.migration.model import (
     ManyToOneMapping,
     Mapping,
@@ -270,3 +271,6 @@ def migrate_move_annotation_data_one_to_one_mapping_duplicated() -> (
         destination="test.move.duplicate.destination",
     )
     return mapping, [annotationv1, annotationv1_2], [annotationv2]
+
+def test_was_moved() -> None:
+    assert _was_moved(None, None) == False
