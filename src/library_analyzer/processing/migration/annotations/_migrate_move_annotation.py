@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Optional
 
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
@@ -34,7 +35,11 @@ def is_moveable(element: Attribute | Class | Function | Parameter | Result) -> b
     return isinstance(element, Class)
 
 
-def was_moved(elementv1: Attribute | Class | Function | Parameter | Result, elementv2: Attribute | Class | Function | Parameter | Result) -> bool:
+def was_moved(elementv1: Optional[Attribute | Class | Function | Parameter | Result], elementv2: Optional[Attribute | Class | Function | Parameter | Result]) -> bool:
+    if not isinstance(elementv1, (Class, Function)) or elementv1 is None:
+        return True
+    if not isinstance(elementv2, (Class, Function)) or elementv2 is None:
+        return True
     return elementv1.id.split("/")[1] != elementv2.id.split("/")[1]
 
 

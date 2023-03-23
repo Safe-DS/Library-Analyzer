@@ -17,7 +17,6 @@ from library_analyzer.processing.migration.annotations import (
     migration_author,
 )
 from library_analyzer.processing.migration.model import (
-    ManyToManyMapping,
     ManyToOneMapping,
     Mapping,
     OneToManyMapping,
