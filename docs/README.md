@@ -3,7 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/library-analyzer)](https://pypi.org/project/library-analyzer)
 [![Main](https://github.com/Safe-DS/Library-Analyzer/actions/workflows/main.yml/badge.svg)](https://github.com/Safe-DS/Library-Analyzer/actions/workflows/main.yml)
 [![codecov](https://codecov.io/gh/Safe-DS/Library-Analyzer/branch/main/graph/badge.svg?token=UyCUY59HKM)](https://codecov.io/gh/Safe-DS/Library-Analyzer)
-[![Documentation Status](https://readthedocs.org/projects/library-analyzer/badge/?version=latest)](https://library-analyzer.safe-ds.com)
+[![Documentation Status](https://readthedocs.org/projects/library-analyzer/badge/?version=stable)](https://library-analyzer.safe-ds.com)
 
 Analysis of Python libraries and code that uses them.
 
