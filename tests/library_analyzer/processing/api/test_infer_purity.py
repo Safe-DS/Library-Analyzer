@@ -1,13 +1,8 @@
-from unittest.mock import ANY
-
 import astroid
 import pytest
-from astroid import FunctionDef
 
 from library_analyzer.processing.api import (
     calc_function_id,
-    get_function_defs,
-    generate_purity_information,
     determine_purity,
     extract_impurity_reasons,
     infer_purity,
@@ -69,7 +64,7 @@ from library_analyzer.processing.api.model import (
 
     ]
 )
-def test_calc_function_id(code: str, expected):
+def test_calc_function_id(code: str, expected) -> None:
     module = astroid.parse(code)
     function_node = module.body[0]
     if expected is None:
@@ -111,7 +106,7 @@ def test_calc_function_id(code: str, expected):
         )
     ]
 )
-def test_generate_purity_information(purity_result: PurityResult, expected: list[ImpurityIndicator]):
+def test_generate_purity_information(purity_result: PurityResult, expected: list[ImpurityIndicator]) -> None:
     purity_info = extract_impurity_reasons(purity_result)
 
     assert purity_info == expected
@@ -151,7 +146,7 @@ def test_generate_purity_information(purity_result: PurityResult, expected: list
         )
     ]
 )
-def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: PurityResult):
+def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: PurityResult) -> None:
     result = determine_purity(purity_reasons)
     assert result == expected
 
@@ -162,42 +157,42 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
         (
             """
                 def fun1():
-                    open("test.txt")
+                    open("test.txt") # default mode: read only
             """,
             [FileRead(path=Reference("test.txt"))]
         ),
         (
             """
                 def fun2():
-                    open("test.txt", "r")
+                    open("test.txt", "r") # read only
             """,
             [FileRead(path=Reference("test.txt"))]
         ),
         (
             """
                 def fun3():
-                    open("test.txt", "w")
+                    open("test.txt", "w") # write only
             """,
             [FileWrite(path=Reference("test.txt"))]
         ),
         (
             """
                 def fun4():
-                    open("test.txt", "a")
+                    open("test.txt", "a") # append
             """,
             [FileWrite(path=Reference("test.txt"))]
         ),
         (
             """
                 def fun5():
-                    open("test.txt", "r+")
+                    open("test.txt", "r+")  # read and write
             """,
             [FileRead(path=Reference("test.txt")), FileWrite(path=Reference("test.txt"))]
         ),
         (
             """
                 def fun6():
-                    f = open("test.txt")
+                    f = open("test.txt") # default mode: read only
                     f.read()
             """,
             [FileRead(path=Reference("test.txt"))]
@@ -205,7 +200,7 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
         (
             """
                 def fun7():
-                    f = open("test.txt")
+                    f = open("test.txt") # default mode: read only
                     f.readline([2])
             """,
             [FileRead(path=Reference("test.txt"))]
@@ -213,7 +208,7 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
         (
             """
                 def fun8():
-                    f = open("test.txt")
+                    f = open("test.txt", "w") # write only
                     f.write("message")
             """,
             [FileWrite(path=Reference("test.txt"))]
@@ -221,7 +216,7 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
         (
             """
                 def fun9():
-                    f = open("test.txt")
+                    f = open("test.txt", "w") # write only
                     f.writelines(["message1", "message2"])
             """,
             [FileWrite(path=Reference("test.txt"))]
@@ -229,18 +224,32 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
         (
             """
                 def fun10():
-                    with open("test.txt") as f:
+                    with open("test.txt") as f: # default mode: read only
                         f.read()
             """,
-            [FileRead(path=Reference("test.txt"))]  # @Lars ??
+            [FileRead(path=Reference("test.txt"))]
+        ),
+        (
+            """
+                def fun11(path): # open with variable
+                    open(path)
+            """,
+            [FileRead(path=Reference("path"))]  # ??
+        ),
+        (
+            """
+                def fun12(path):
+                    with open(path) as f:
+                        f.read()
+            """,
+            [FileRead(path=Reference("path"))]  # ??
         )
 
     ]
 )
-def test_file_read(code: str, expected: list[ImpurityIndicator]):
+def test_file_read(code: str, expected: list[ImpurityIndicator]) -> None:
     purity_info: list[PurityInformation] = infer_purity(code)
     for f in purity_info:
         p = get_purity_result_str(f.reasons)
         print(f"Function {f.id.name} with ID: {f.id} is {p} because {f.reasons}")
     assert purity_info[0].reasons == expected
-
