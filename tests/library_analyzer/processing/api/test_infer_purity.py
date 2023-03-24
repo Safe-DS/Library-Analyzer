@@ -9,7 +9,10 @@ from library_analyzer.processing.api import (
     get_function_defs,
     generate_purity_information,
     determine_purity,
-    extract_impurity_reasons
+    extract_impurity_reasons,
+    infer_purity,
+    get_purity_result_str,
+
 )
 
 from library_analyzer.processing.api import (
@@ -17,6 +20,8 @@ from library_analyzer.processing.api import (
     DefinitelyImpure,
     DefinitelyPure,
     MaybeImpure,
+    PurityResult,
+    ImpurityIndicator,
 )
 
 from library_analyzer.processing.api.model import (
@@ -31,6 +36,7 @@ from library_analyzer.processing.api.model import (
     FileWrite,
     UnknownCallTarget,
     Call,
+    Reference,
 )
 
 
@@ -63,7 +69,7 @@ from library_analyzer.processing.api.model import (
 
     ]
 )
-def test_calc_function_id(code, expected):
+def test_calc_function_id(code: str, expected):
     module = astroid.parse(code)
     function_node = module.body[0]
     if expected is None:
@@ -105,7 +111,7 @@ def test_calc_function_id(code, expected):
         )
     ]
 )
-def test_generate_purity_information(purity_result, expected):
+def test_generate_purity_information(purity_result: PurityResult, expected: list[ImpurityIndicator]):
     purity_info = extract_impurity_reasons(purity_result)
 
     assert purity_info == expected
@@ -145,7 +151,96 @@ def test_generate_purity_information(purity_result, expected):
         )
     ]
 )
-def test_determine_purity(purity_reasons, expected):
+def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: PurityResult):
     result = determine_purity(purity_reasons)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "code, expected",
+    [
+        (
+            """
+                def fun1():
+                    open("test.txt")
+            """,
+            [FileRead(path=Reference("test.txt"))]
+        ),
+        (
+            """
+                def fun2():
+                    open("test.txt", "r")
+            """,
+            [FileRead(path=Reference("test.txt"))]
+        ),
+        (
+            """
+                def fun3():
+                    open("test.txt", "w")
+            """,
+            [FileWrite(path=Reference("test.txt"))]
+        ),
+        (
+            """
+                def fun4():
+                    open("test.txt", "a")
+            """,
+            [FileWrite(path=Reference("test.txt"))]
+        ),
+        (
+            """
+                def fun5():
+                    open("test.txt", "r+")
+            """,
+            [FileRead(path=Reference("test.txt")), FileWrite(path=Reference("test.txt"))]
+        ),
+        (
+            """
+                def fun6():
+                    f = open("test.txt")
+                    f.read()
+            """,
+            [FileRead(path=Reference("test.txt"))]
+        ),
+        (
+            """
+                def fun7():
+                    f = open("test.txt")
+                    f.readline([2])
+            """,
+            [FileRead(path=Reference("test.txt"))]
+        ),
+        (
+            """
+                def fun8():
+                    f = open("test.txt")
+                    f.write("message")
+            """,
+            [FileWrite(path=Reference("test.txt"))]
+        ),
+        (
+            """
+                def fun9():
+                    f = open("test.txt")
+                    f.writelines(["message1", "message2"])
+            """,
+            [FileWrite(path=Reference("test.txt"))]
+        ),
+        (
+            """
+                def fun10():
+                    with open("test.txt") as f:
+                        f.read()
+            """,
+            [FileRead(path=Reference("test.txt"))]  # @Lars ??
+        )
+
+    ]
+)
+def test_file_read(code: str, expected: list[ImpurityIndicator]):
+    purity_info: list[PurityInformation] = infer_purity(code)
+    for f in purity_info:
+        p = get_purity_result_str(f.reasons)
+        print(f"Function {f.id.name} with ID: {f.id} is {p} because {f.reasons}")
+    assert purity_info[0].reasons == expected
 
