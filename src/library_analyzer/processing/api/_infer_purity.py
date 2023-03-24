@@ -4,8 +4,13 @@ from dataclasses import dataclass
 import astroid
 
 from library_analyzer.processing.api.model import ImpurityIndicator, VariableRead, AttributeAccess, Call, FileWrite, \
-    StringLiteral, ImpurityCertainty, Reference
+    StringLiteral, ImpurityCertainty, Reference, FileRead, BuiltInFunction, SystemInteraction
 from library_analyzer.utils import ASTWalker
+
+BUILTIN_FUNCTIONS = {
+    "open": BuiltInFunction(Reference("open"), FileRead(Reference("")), ImpurityCertainty.DEFINITELY_IMPURE),
+    "print": BuiltInFunction(Reference("print"), SystemInteraction(), ImpurityCertainty.DEFINITELY_IMPURE),
+}
 
 
 @dataclass
@@ -73,31 +78,32 @@ class PurityHandler:
     def enter_assign(self, node):
         print(f"Entering Assign node {node.as_string()}")
         # Handle the Assign node here
-        if isinstance(node.value, astroid.Call):
-            print("This is a call within an assign node:")
-            impurity_reason = Call(Reference(node))
-            self.purity_reason.append(impurity_reason)
-        else:
-            impurity_reason = VariableRead(node)
-            self.purity_reason.append(impurity_reason)
-            # TODO: Assign node needs further analysis to determine if it is pure or impure
+        impurity_indicator: ImpurityIndicator = VariableRead(node.as_string())
+        self.purity_reason.append(impurity_indicator)
+        # TODO: Assign node needs further analysis to determine if it is pure or impure
 
     def enter_assignattr(self, node):
         print(f"Entering AssignAttr node {node.as_string()}")
         # Handle the AssignAtr node here
-        impurity_reason = VariableRead(node)
-        self.purity_reason.append(impurity_reason)
+        impurity_indicator: ImpurityIndicator = VariableRead(node.as_string())
+        self.purity_reason.append(impurity_indicator)
         # TODO: AssignAttr node needs further analysis to determine if it is pure or impure
 
     def enter_call(self, node):
         print(f"Entering Call node {node.as_string()}")
         # Handle the Call node here
-        impurity_reason = Call(Reference(node))
-        self.purity_reason.append(impurity_reason)
+        if node.func.name in BUILTIN_FUNCTIONS.keys():
+            BUILTIN_FUNCTIONS[node.func.name].indicator.path.name = node.args[0].value  # for open
+            self.purity_reason.append(BUILTIN_FUNCTIONS[node.func.name].indicator)
+        else:
+            impurity_indicator: ImpurityIndicator = Call(Reference(node.as_string()))
+            self.purity_reason.append(impurity_indicator)
+        # impurity_indicator = Call(Reference(node))
+        # self.purity_reason.append(impurity_indicator)
         # TODO: Call node needs further analysis to determine if it is pure or impure
 
 
-def infer_purity(code):
+def infer_purity(code) -> list[PurityInformation]:
     purity_handler: PurityHandler = PurityHandler()
     walker = ASTWalker(purity_handler)
     functions = get_function_defs(code)
@@ -106,17 +112,18 @@ def infer_purity(code):
         walker.walk(function)
         purity_result = determine_purity(purity_handler.purity_reason)
         print(f"Result: {purity_result.__class__.__name__}")
-        if not isinstance(purity_result, DefinitelyPure):
-            print(f"Reasons: {purity_result.reasons}")
+        # if not isinstance(purity_result, DefinitelyPure):
+        #    print(f"Reasons: {purity_result.reasons}")
         print(f"Function {function.name} is done. \n")
         _result_list.append(generate_purity_information(function, purity_result))
         purity_handler.purity_reason = []
+    return _result_list
 
 
 def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
     if len(indicators) == 0:
         return DefinitelyPure()
-    if any(indicator.certainty == ImpurityCertainty.definitely for indicator in indicators):
+    if any(indicator.certainty == ImpurityCertainty.DEFINITELY_IMPURE for indicator in indicators):
         return DefinitelyImpure(reasons=indicators)
     else:
         return MaybeImpure(reasons=indicators)
@@ -159,7 +166,7 @@ def generate_purity_information(function: astroid.FunctionDef, purity_result: Pu
     return purity_info
 
 
-def calc_function_id(node):
+def calc_function_id(node) -> FunctionID:
     if not isinstance(node, astroid.FunctionDef):
         raise TypeError("Node is not a function")
     module = node.root().name
@@ -176,7 +183,7 @@ def calc_function_id(node):
 def get_purity_result_str(indicators: list[ImpurityIndicator]) -> str:
     if len(indicators) == 0:
         return "Definitely Pure"
-    if any(indicator.certainty == ImpurityCertainty.definitely for indicator in indicators):
+    if any(indicator.certainty == ImpurityCertainty.DEFINITELY_IMPURE for indicator in indicators):
         return "Definitely Impure"
     else:
         return "Maybe Impure"
@@ -219,14 +226,15 @@ if __name__ == '__main__':
         res = a # ParameterAccess => pure
         return res
 
-    glob = g(1) #TODO: This will get filtered out because it is not a function call, but a variable assignment with a
+    glob = g(1)  # TODO: This will get filtered out because it is not a function call, but a variable assignment with a
     # function call and therefore further analysis is needed
 
-    def fun(a):
+    def fun(a):  # TODO: this function oddly has three calls in the results
         h(a)
         b =  g(a) # call => impure
         b += 1
         return b
+
     """
 
     infer_purity(sourcecode)

@@ -68,8 +68,9 @@ class Reference(Expression):
 
 
 class ImpurityCertainty(Enum):
-    maybe = auto()
-    definitely = auto()
+    DEFINITELY_PURE = auto()
+    MAYBE_IMPURE = auto()
+    DEFINITELY_IMPURE = auto()
 
 
 # Reasons for impurity
@@ -88,7 +89,7 @@ class ImpurityIndicator(ABC):
 @dataclass
 class VariableRead(ImpurityIndicator):
     expression: Expression
-    certainty = ImpurityCertainty.maybe
+    certainty = ImpurityCertainty.MAYBE_IMPURE
 
     def __hash__(self):
         return hash(self.expression)
@@ -100,7 +101,7 @@ class VariableRead(ImpurityIndicator):
 @dataclass
 class VariableWrite(ImpurityIndicator):
     expression: Expression
-    certainty = ImpurityCertainty.maybe
+    certainty = ImpurityCertainty.MAYBE_IMPURE
 
     def __hash__(self):
         return hash(self.expression)
@@ -112,7 +113,7 @@ class VariableWrite(ImpurityIndicator):
 @dataclass
 class FileRead(ImpurityIndicator):
     path: Expression
-    certainty = ImpurityCertainty.definitely
+    certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
     def __hash__(self):
         return hash(self.path)
@@ -124,7 +125,7 @@ class FileRead(ImpurityIndicator):
 @dataclass
 class FileWrite(ImpurityIndicator):
     path: Expression
-    certainty = ImpurityCertainty.definitely
+    certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
     def __hash__(self):
         return hash(self.path)
@@ -136,7 +137,7 @@ class FileWrite(ImpurityIndicator):
 @dataclass
 class UnknownCallTarget(ImpurityIndicator):
     expression: Expression
-    certainty = ImpurityCertainty.definitely
+    certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
     def __hash__(self):
         return hash(self.expression)
@@ -148,10 +149,35 @@ class UnknownCallTarget(ImpurityIndicator):
 @dataclass
 class Call(ImpurityIndicator):
     expression: Expression
-    certainty = ImpurityCertainty.definitely
+    certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
     def __hash__(self):
         return hash(self.expression)
 
     def is_side_effect(self) -> bool:
         return True  # TODO: improve this to make analysis more precise
+
+
+@dataclass
+class SystemInteraction(ImpurityIndicator):
+    certainty = ImpurityCertainty.DEFINITELY_IMPURE
+
+    def __hash__(self):
+        return hash("SystemInteraction")
+
+    def is_side_effect(self) -> bool:
+        return True
+
+@dataclass
+class BuiltInFunction(ImpurityIndicator):
+    """ Class for built-in functions """
+    expression: Expression
+    indicator: ImpurityIndicator  # this should be a list to handle multiple reasons
+    certainty: ImpurityCertainty
+
+    def __hash__(self):
+        return hash(self.indicator)
+
+    def is_side_effect(self) -> bool:
+        pass
+

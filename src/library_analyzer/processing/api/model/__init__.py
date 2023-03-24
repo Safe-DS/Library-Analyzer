@@ -40,4 +40,8 @@ from ._purity import (
     FileWrite,
     UnknownCallTarget,
     Call,
+    SystemInteraction,
+    BuiltInFunction
 )
+
+
