@@ -168,6 +168,7 @@ class SystemInteraction(ImpurityIndicator):
     def is_side_effect(self) -> bool:
         return True
 
+
 @dataclass
 class BuiltInFunction(ImpurityIndicator):
     """ Class for built-in functions """
@@ -180,4 +181,3 @@ class BuiltInFunction(ImpurityIndicator):
 
     def is_side_effect(self) -> bool:
         pass
-

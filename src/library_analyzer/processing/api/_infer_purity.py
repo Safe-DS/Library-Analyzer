@@ -1,5 +1,7 @@
 from abc import ABC
+from copy import copy
 from dataclasses import dataclass
+from enum import Enum
 
 import astroid
 
@@ -8,7 +10,7 @@ from library_analyzer.processing.api.model import ImpurityIndicator, VariableRea
 from library_analyzer.utils import ASTWalker
 
 BUILTIN_FUNCTIONS = {
-    "open": BuiltInFunction(Reference("open"), FileRead(Reference("")), ImpurityCertainty.DEFINITELY_IMPURE),
+    "open": BuiltInFunction(Reference("open"), ..., ImpurityCertainty.DEFINITELY_IMPURE),  # how to replace the ... with the correct type?
     "print": BuiltInFunction(Reference("print"), SystemInteraction(), ImpurityCertainty.DEFINITELY_IMPURE),
 }
 
@@ -71,19 +73,19 @@ class PurityHandler:
         self.purity_reason = list[ImpurityIndicator]()
 
     def enter_functiondef(self, node):
-        # print(f"Enter function node: {node.name} of Class: {node.__class__.__name__}")
+        # print(f"Enter functionDef node: {node.as_string()}")
         # Handle the FunctionDef node here
         pass  # Are we analyzing function defs within function defs? Yes, we are.
 
     def enter_assign(self, node):
-        print(f"Entering Assign node {node.as_string()}")
+        # print(f"Entering Assign node {node.as_string()}")
         # Handle the Assign node here
         impurity_indicator: ImpurityIndicator = VariableRead(node.as_string())
         self.purity_reason.append(impurity_indicator)
         # TODO: Assign node needs further analysis to determine if it is pure or impure
 
     def enter_assignattr(self, node):
-        print(f"Entering AssignAttr node {node.as_string()}")
+        # print(f"Entering AssignAttr node {node.as_string()}")
         # Handle the AssignAtr node here
         impurity_indicator: ImpurityIndicator = VariableRead(node.as_string())
         self.purity_reason.append(impurity_indicator)
@@ -92,15 +94,84 @@ class PurityHandler:
     def enter_call(self, node):
         print(f"Entering Call node {node.as_string()}")
         # Handle the Call node here
+        # TODO: move analysis of built-in functions to a separate function
         if node.func.name in BUILTIN_FUNCTIONS.keys():
-            BUILTIN_FUNCTIONS[node.func.name].indicator.path.name = node.args[0].value  # for open
-            self.purity_reason.append(BUILTIN_FUNCTIONS[node.func.name].indicator)
+            # print(f"Indicators: {BUILTIN_FUNCTIONS[node.func.name].indicator}")
+            builtin_function = copy(BUILTIN_FUNCTIONS[node.func.name])
+            open_mode = determine_open_mode(node)
+            # print(node.args[0].value)
+            if open_mode == OpenMode.WRITE:  # write mode
+                # set ImpurityIndicator to FileWrite
+                builtin_function.indicator = FileWrite(Reference(node.args[0].value))
+                impurity_indicator = builtin_function.indicator
+                self.purity_reason.append(impurity_indicator)
+
+            elif open_mode == OpenMode.READ:  # read mode
+                # set ImpurityIndicator to FileRead
+                # print(builtin_function)
+                builtin_function.indicator = FileRead(Reference(node.args[0].value))
+                # print(builtin_function)
+                impurity_indicator = builtin_function.indicator
+                self.purity_reason.append(impurity_indicator)
+            else:
+                pass
+
         else:
             impurity_indicator: ImpurityIndicator = Call(Reference(node.as_string()))
             self.purity_reason.append(impurity_indicator)
-        # impurity_indicator = Call(Reference(node))
-        # self.purity_reason.append(impurity_indicator)
         # TODO: Call node needs further analysis to determine if it is pure or impure
+
+    def enter_arguments(self, node):
+        # print(f"Entering Arguments node {node.as_string()}")
+        # Handle the Arguments node here
+        pass
+
+    def enter_expr(self, node):
+        # print(f"Entering Expr node {node.as_string()}")
+        # print(node.value)
+        # Handle the Expr node here
+        pass
+
+    def enter_name(self, node):
+        # print(f"Entering Name node {node.as_string()}")
+        # Handle the Name node here
+        pass
+
+    def enter_const(self, node):
+        # print(f"Entering Const node {node.as_string()}")
+        # Handle the Const node here
+        pass
+
+    def enter_assignname(self, node):
+        # print(f"Entering AssignName node {node.as_string()}")
+        # Handle the AssignName node here
+        pass
+
+    def enter_with(self, node):
+        # print(f"Entering With node {node.as_string()}")
+        # Handle the With node here
+        pass
+
+
+class OpenMode(Enum):
+    READ = 1
+    WRITE = 2
+    UNKNOWN = 3
+
+
+def determine_open_mode(node) -> OpenMode:
+    write_mode = {"w", "wb", "a", "ab", "x", "xb", "w+", "wb+", "a+", "ab+", "x+", "xb+"}
+    read_mode = {"r", "rb", "r+", "rb+"}
+    if len(node.args) == 1:
+        return OpenMode.READ
+    for arg in node.args:
+        if str(arg.value) in write_mode:
+            return OpenMode.WRITE
+
+        elif str(arg.value) in read_mode:
+            return OpenMode.READ
+
+    return OpenMode.UNKNOWN
 
 
 def infer_purity(code) -> list[PurityInformation]:
@@ -108,13 +179,14 @@ def infer_purity(code) -> list[PurityInformation]:
     walker = ASTWalker(purity_handler)
     functions = get_function_defs(code)
     for function in functions:
-        print(f"Analyse {function.name}:")
+        # print(function)
+        # print(f"Analyse {function.name}:")
         walker.walk(function)
         purity_result = determine_purity(purity_handler.purity_reason)
-        print(f"Result: {purity_result.__class__.__name__}")
+        # print(f"Result: {purity_result.__class__.__name__}")
         # if not isinstance(purity_result, DefinitelyPure):
         #    print(f"Reasons: {purity_result.reasons}")
-        print(f"Function {function.name} is done. \n")
+        # print(f"Function {function.name} is done. \n")
         _result_list.append(generate_purity_information(function, purity_result))
         purity_handler.purity_reason = []
     return _result_list
@@ -236,8 +308,70 @@ if __name__ == '__main__':
         return b
 
     """
+    a = """
+    def fun1():
+        open("test1.txt") # default mode: read only
 
-    infer_purity(sourcecode)
+    def fun2():
+        open("test2.txt", "r") # read only
+
+    def fun3():
+        open("test3.txt", "w") # write only
+
+    def fun4():
+        open("test4.txt", "a") # append
+
+    def fun5():
+        open("test5.txt", "r+")  # read and write
+
+    """
+
+    infer_purity(a)
     for f in _result_list:
         p = get_purity_result_str(f.reasons)
         print(f"Function {f.id.name} with ID: {f.id} is {p} because {f.reasons}")
+
+    a = """
+    def fun1():
+        open("test1.txt") # default mode: read only
+
+    def fun2():
+        open("test2.txt", "r") # read only
+
+    def fun3():
+        open("test3.txt", "w") # write only
+
+    def fun4():
+        open("test4.txt", "a") # append
+
+    def fun5():
+        open("test5.txt", "r+")  # read and write
+
+    def fun6():
+        f = open("test6.txt") # default mode: read only
+        f.read()
+
+    def fun7():
+        f = open("test7.txt") # default mode: read only
+        f.readline([2])
+
+    def fun8():
+        f = open("test8.txt", "w") # write only
+        f.write("message")
+
+    def fun9():
+        f = open("test9.txt", "w") # write only
+        f.writelines(["message1", "message2"])
+
+    def fun10():
+        with open("test10.txt") as f: # default mode: read only
+            f.read()
+
+    def fun11(path11): # open with variable
+        open(path11)
+
+    def fun12(path12):
+        with open(path12) as f:
+            f.read()
+
+    """

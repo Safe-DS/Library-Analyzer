@@ -157,92 +157,92 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
         (
             """
                 def fun1():
-                    open("test.txt") # default mode: read only
+                    open("test1.txt") # default mode: read only
             """,
-            [FileRead(path=Reference("test.txt"))]
+            [FileRead(path=Reference("test1.txt"))]
         ),
         (
             """
                 def fun2():
-                    open("test.txt", "r") # read only
+                    open("test2.txt", "r") # read only
             """,
-            [FileRead(path=Reference("test.txt"))]
+            [FileRead(path=Reference("test2.txt"))]
         ),
         (
             """
                 def fun3():
-                    open("test.txt", "w") # write only
+                    open("test3.txt", "w") # write only
             """,
-            [FileWrite(path=Reference("test.txt"))]
+            [FileWrite(path=Reference("test3.txt"))]
         ),
         (
             """
                 def fun4():
-                    open("test.txt", "a") # append
+                    open("test4.txt", "a") # append
             """,
-            [FileWrite(path=Reference("test.txt"))]
+            [FileWrite(path=Reference("test4.txt"))]
         ),
         (
             """
                 def fun5():
-                    open("test.txt", "r+")  # read and write
+                    open("test5.txt", "r+")  # read and write
             """,
-            [FileRead(path=Reference("test.txt")), FileWrite(path=Reference("test.txt"))]
-        ),
+            [FileRead(path=Reference("test5.txt")), FileWrite(path=Reference("test.txt"))]
+        ),  # TODO: do we need to distinguish between read and write?
         (
             """
                 def fun6():
-                    f = open("test.txt") # default mode: read only
+                    f = open("test6.txt") # default mode: read only
                     f.read()
             """,
-            [FileRead(path=Reference("test.txt"))]
+            [FileRead(path=Reference("test6.txt"))]
         ),
         (
             """
                 def fun7():
-                    f = open("test.txt") # default mode: read only
+                    f = open("test7.txt") # default mode: read only
                     f.readline([2])
             """,
-            [FileRead(path=Reference("test.txt"))]
+            [FileRead(path=Reference("test7.txt"))]
         ),
         (
             """
                 def fun8():
-                    f = open("test.txt", "w") # write only
+                    f = open("test8.txt", "w") # write only
                     f.write("message")
             """,
-            [FileWrite(path=Reference("test.txt"))]
+            [FileWrite(path=Reference("test8.txt"))]
         ),
         (
             """
                 def fun9():
-                    f = open("test.txt", "w") # write only
+                    f = open("test9.txt", "w") # write only
                     f.writelines(["message1", "message2"])
             """,
-            [FileWrite(path=Reference("test.txt"))]
+            [FileWrite(path=Reference("test9.txt"))]
         ),
         (
             """
                 def fun10():
-                    with open("test.txt") as f: # default mode: read only
+                    with open("test10.txt") as f: # default mode: read only
                         f.read()
             """,
-            [FileRead(path=Reference("test.txt"))]
+            [FileRead(path=Reference("test10.txt"))]
         ),
         (
             """
-                def fun11(path): # open with variable
-                    open(path)
+                def fun11(path11): # open with variable
+                    open(path11)
             """,
-            [FileRead(path=Reference("path"))]  # ??
+            [FileRead(path=Reference("path11"))]  # ??
         ),
         (
             """
-                def fun12(path):
-                    with open(path) as f:
+                def fun12(path12):
+                    with open(path12) as f:
                         f.read()
             """,
-            [FileRead(path=Reference("path"))]  # ??
+            [FileRead(path=Reference("path12"))]  # ??
         )
 
     ]
