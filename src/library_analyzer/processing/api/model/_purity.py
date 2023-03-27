@@ -27,7 +27,7 @@ class AttributeAccess(Expression):
 class GlobalAccess(Expression):
     """ Class for global variable access"""
     name: str
-    module: str = None
+    module: str = "None"
 
     def __hash__(self) -> int:
         return hash(self.name)

@@ -37,12 +37,12 @@ class FunctionID:
 
 class PurityResult(ABC):
     def __init__(self) -> None:
-        self.reasons = None
+        self.reasons = []
 
 
 @dataclass
 class DefinitelyPure(PurityResult):
-    reasons = None
+    reasons = []
 
 
 @dataclass
@@ -110,12 +110,11 @@ class PurityHandler:
         if isinstance(node.func, astroid.Attribute):
             pass
         elif isinstance(node.func, astroid.Name):
-            if node.func.name in BUILTIN_FUNCTIONS.keys():
+            if node.func.name in BUILTIN_FUNCTIONS:
                 impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].value)
                 self.append_reason(impurity_indicator)
 
-        impurity_indicator: list[ImpurityIndicator] = [Call(Reference(node.as_string()))]
-        self.append_reason(impurity_indicator)
+        self.append_reason([Call(Reference(node.as_string()))])
         # TODO: Call node needs further analysis to determine if it is pure or impure
 
     def enter_attribute(self, node: astroid.Attribute) -> None:
@@ -123,7 +122,7 @@ class PurityHandler:
         # Handle the Attribute node here
         impurity_indicator: list[ImpurityIndicator] = []
         if isinstance(node.expr, astroid.Name):
-            if node.attrname in BUILTIN_FUNCTIONS.keys():
+            if node.attrname in BUILTIN_FUNCTIONS:
                 impurity_indicator = check_builtin_function(node, node.attrname)
                 self.append_reason(impurity_indicator)
         else:
@@ -178,16 +177,16 @@ def determine_open_mode(node: astroid.NodeNG) -> OpenMode:
         if str(arg.value) in write_mode:
             return OpenMode.WRITE
 
-        elif str(arg.value) in read_mode:
+        if str(arg.value) in read_mode:
             return OpenMode.READ
 
-        elif str(arg.value) in read_and_write_mode:
+        if str(arg.value) in read_and_write_mode:
             return OpenMode.BOTH
 
     return OpenMode.UNKNOWN
 
 
-def check_builtin_function(node: astroid.NodeNG, key: str, value=None) -> list[ImpurityIndicator]:
+def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None) -> list[ImpurityIndicator]:
     impurity_indicator: list[ImpurityIndicator] = []
     builtin_function = copy(BUILTIN_FUNCTIONS[key])
 
@@ -207,7 +206,7 @@ def check_builtin_function(node: astroid.NodeNG, key: str, value=None) -> list[I
             elif open_mode == OpenMode.BOTH:  # read and write mode
                 # set ImpurityIndicator to FileReadWrite and FileWrite
                 builtin_function.indicator = [FileRead(StringLiteral(value)), FileWrite(StringLiteral(value))]
-                impurity_indicator = builtin_function.indicator
+                impurity_indicator = list(builtin_function.indicator)
 
         else:
             print(f"Unknown builtin function {key}")
@@ -250,8 +249,8 @@ def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
         return DefinitelyPure()
     if any(indicator.certainty == ImpurityCertainty.DEFINITELY_IMPURE for indicator in indicators):
         return DefinitelyImpure(reasons=indicators)
-    else:
-        return MaybeImpure(reasons=indicators)
+
+    return MaybeImpure(reasons=indicators)
 
     # print(f"Maybe check {(any(purity_reason.is_reason_for_impurity() for purity_reason in purity_reasons))}")
     # if any(reason.is_reason_for_impurity() for reason in purity_reasons):
@@ -281,7 +280,7 @@ def get_function_defs(code: str) -> list[astroid.FunctionDef]:
 def extract_impurity_reasons(purity: PurityResult) -> list[ImpurityIndicator]:
     if isinstance(purity, DefinitelyPure):
         return []
-    return purity.reasons
+    return list(purity.reasons)
 
 
 def generate_purity_information(function: astroid.FunctionDef, purity_result: PurityResult) -> PurityInformation:
@@ -310,8 +309,8 @@ def get_purity_result_str(indicators: list[ImpurityIndicator]) -> str:
         return "Definitely Pure"
     if any(indicator.certainty == ImpurityCertainty.DEFINITELY_IMPURE for indicator in indicators):
         return "Definitely Impure"
-    else:
-        return "Maybe Impure"
+
+    return "Maybe Impure"
 
 
 if __name__ == '__main__':

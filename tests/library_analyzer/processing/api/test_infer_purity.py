@@ -59,7 +59,7 @@ from library_analyzer.processing.api.model import (
 
     ]
 )
-def test_calc_function_id(code: str, expected) -> None:
+def test_calc_function_id(code: str, expected: str) -> None:
     module = astroid.parse(code)
     function_node = module.body[0]
     if expected is None:
