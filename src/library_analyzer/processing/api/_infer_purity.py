@@ -73,9 +73,6 @@ class PurityInformation:
         return self.id == other.id and self.reasons == other.reasons
 
 
-_result_list = list[PurityInformation]()
-
-
 class PurityHandler:
     def __init__(self):
         self.purity_reason = list[ImpurityIndicator]()
@@ -225,6 +222,7 @@ def infer_purity(code: str) -> list[PurityInformation]:
     purity_handler: PurityHandler = PurityHandler()
     walker = ASTWalker(purity_handler)
     functions = get_function_defs(code)
+    result = []
     for function in functions:
         # print(function)
         # print(f"Analyse {function.name}:")
@@ -234,9 +232,9 @@ def infer_purity(code: str) -> list[PurityInformation]:
         # if not isinstance(purity_result, DefinitelyPure):
         #    print(f"Reasons: {purity_result.reasons}")
         # print(f"Function {function.name} is done. \n")
-        _result_list.append(generate_purity_information(function, purity_result))
+        result.append(generate_purity_information(function, purity_result))
         purity_handler.purity_reason = []
-    return _result_list
+    return result
 
 
 def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
@@ -391,8 +389,8 @@ if __name__ == '__main__':
 
     """
 
-    infer_purity(a)
-    for f in _result_list:
+    result_list = infer_purity(a)
+    for f in result_list:
         p = get_purity_result_str(f.reasons)
         print(f"Function {f.id.name} with ID: {f.id} is {p} because {f.reasons}")
 
