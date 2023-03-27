@@ -78,6 +78,10 @@ class PurityHandler:
     def __init__(self) -> None:
         self.purity_reason: list[ImpurityIndicator] = []
 
+    def append_reason(self, reason: list[ImpurityIndicator]) -> None:
+        for r in reason:
+            self.purity_reason.append(r)
+
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
         # print(f"Enter functionDef node: {node.as_string()}")
         # Handle the FunctionDef node here
@@ -89,33 +93,29 @@ class PurityHandler:
         if isinstance(node.value, astroid.Call):
             pass
         if isinstance(node.value, astroid.Const):
-            impurity_indicator: ImpurityIndicator = VariableWrite(Reference(node.as_string()))
-            self.purity_reason.append(impurity_indicator)
+            self.append_reason([VariableWrite(Reference(node.as_string()))])
         else:  # default case
-            impurity_indicator: ImpurityIndicator = VariableWrite(Reference(node.as_string()))
-            self.purity_reason.append(impurity_indicator)
+            self.append_reason([VariableWrite(Reference(node.as_string()))])
         # TODO: Assign node needs further analysis to determine if it is pure or impure
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         # print(f"Entering AssignAttr node {node.as_string()}")
         # Handle the AssignAtr node here
-        impurity_indicator: ImpurityIndicator = VariableWrite(Reference(node.as_string()))
-        self.purity_reason.append(impurity_indicator)
+        self.append_reason([VariableWrite(Reference(node.as_string()))])
         # TODO: AssignAttr node needs further analysis to determine if it is pure or impure
 
     def enter_call(self, node: astroid.Call) -> None:
         # print(f"Entering Call node {node.as_string()}")
         # Handle the Call node here
-        impurity_indicator: list[ImpurityIndicator] = []
         if isinstance(node.func, astroid.Attribute):
             pass
         elif isinstance(node.func, astroid.Name):
             if node.func.name in BUILTIN_FUNCTIONS.keys():
                 impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].value)
-                for indicator in impurity_indicator:
-                    self.purity_reason.append(indicator)
-        impurity_indicator: ImpurityIndicator = Call(Reference(node.as_string()))
-        self.purity_reason.append(impurity_indicator)
+                self.append_reason(impurity_indicator)
+
+        impurity_indicator: list[ImpurityIndicator] = [Call(Reference(node.as_string()))]
+        self.append_reason(impurity_indicator)
         # TODO: Call node needs further analysis to determine if it is pure or impure
 
     def enter_attribute(self, node: astroid.Attribute) -> None:
@@ -125,11 +125,9 @@ class PurityHandler:
         if isinstance(node.expr, astroid.Name):
             if node.attrname in BUILTIN_FUNCTIONS.keys():
                 impurity_indicator = check_builtin_function(node, node.attrname)
-                for indicator in impurity_indicator:
-                    self.purity_reason.append(indicator)
+                self.append_reason(impurity_indicator)
         else:
-            impurity_indicator: ImpurityIndicator = Call(Reference(node.as_string()))
-            self.purity_reason.append(impurity_indicator)
+            self.append_reason([Call(Reference(node.as_string()))])
 
     def enter_arguments(self, node: astroid.Arguments) -> None:
         # print(f"Entering Arguments node {node.as_string()}")
