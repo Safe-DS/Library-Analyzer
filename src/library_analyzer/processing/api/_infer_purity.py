@@ -6,11 +6,12 @@ from enum import Enum, auto
 import astroid
 
 from library_analyzer.processing.api.model import ImpurityIndicator, VariableRead, AttributeAccess, Call, FileWrite, \
-    StringLiteral, ImpurityCertainty, Reference, FileRead, BuiltInFunction, SystemInteraction, VariableWrite
+    StringLiteral, ImpurityCertainty, Reference, FileRead, BuiltInFunction, SystemInteraction, VariableWrite, Expression
 from library_analyzer.utils import ASTWalker
 
 BUILTIN_FUNCTIONS = {
-    "open": BuiltInFunction(Reference("open"), ..., ImpurityCertainty.DEFINITELY_IMPURE),  # how to replace the ... with the correct type?
+    "open": BuiltInFunction(Reference("open"), ..., ImpurityCertainty.DEFINITELY_IMPURE),
+    # TODO: how to replace the ... with the correct type?
     "print": BuiltInFunction(Reference("print"), SystemInteraction(), ImpurityCertainty.DEFINITELY_IMPURE),
 
     "read": BuiltInFunction(Reference("read"), ..., ImpurityCertainty.DEFINITELY_IMPURE),
@@ -79,12 +80,12 @@ class PurityHandler:
     def __init__(self):
         self.purity_reason = list[ImpurityIndicator]()
 
-    def enter_functiondef(self, node):
+    def enter_functiondef(self, node: astroid.FunctionDef) -> None:
         # print(f"Enter functionDef node: {node.as_string()}")
         # Handle the FunctionDef node here
         pass  # Are we analyzing function defs within function defs? Yes, we are.
 
-    def enter_assign(self, node):
+    def enter_assign(self, node: astroid.Assign) -> None:
         # print(f"Entering Assign node {node}")
         # Handle the Assign node here
         if isinstance(node.value, astroid.Call):
@@ -97,14 +98,14 @@ class PurityHandler:
             self.purity_reason.append(impurity_indicator)
         # TODO: Assign node needs further analysis to determine if it is pure or impure
 
-    def enter_assignattr(self, node):
+    def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         # print(f"Entering AssignAttr node {node.as_string()}")
         # Handle the AssignAtr node here
         impurity_indicator: ImpurityIndicator = VariableWrite(node.as_string())
         self.purity_reason.append(impurity_indicator)
         # TODO: AssignAttr node needs further analysis to determine if it is pure or impure
 
-    def enter_call(self, node):
+    def enter_call(self, node: astroid.Call) -> None:
         # print(f"Entering Call node {node.as_string()}")
         # Handle the Call node here
         # TODO: move analysis of built-in functions to a separate function
@@ -114,12 +115,12 @@ class PurityHandler:
             if node.func.name in BUILTIN_FUNCTIONS.keys():
                 impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].value)
                 self.purity_reason.append(impurity_indicator)
-        #else:
-            #impurity_indicator: ImpurityIndicator = Call(Reference(node.as_string()))
-            #self.purity_reason.append(impurity_indicator)
+        # else:
+            # impurity_indicator: ImpurityIndicator = Call(Reference(node.as_string()))
+            # self.purity_reason.append(impurity_indicator)
         # TODO: Call node needs further analysis to determine if it is pure or impure
 
-    def enter_attribute(self, node):
+    def enter_attribute(self, node: astroid.Attribute) -> None:
         # print(f"Entering Attribute node {node.as_string()}")
         # Handle the Attribute node here
         if isinstance(node.expr, astroid.Name):
@@ -127,36 +128,36 @@ class PurityHandler:
                 impurity_indicator = check_builtin_function(node, node.attrname)
                 self.purity_reason.append(impurity_indicator)
         else:
-            impurity_indicator: ImpurityIndicator = Call(Reference(node))
+            impurity_indicator: ImpurityIndicator = Call(Reference(node.as_string()))
             self.purity_reason.append(impurity_indicator)
 
-    def enter_arguments(self, node):
+    def enter_arguments(self, node: astroid.Arguments) -> None:
         # print(f"Entering Arguments node {node.as_string()}")
         # Handle the Arguments node here
         pass
 
-    def enter_expr(self, node):
+    def enter_expr(self, node: astroid.Expr) -> None:
         # print(f"Entering Expr node {node.as_string()}")
         # print(node.value)
         # Handle the Expr node here
         pass
 
-    def enter_name(self, node):
+    def enter_name(self, node: astroid.Name) -> None:
         # print(f"Entering Name node {node.as_string()}")
         # Handle the Name node here
         pass
 
-    def enter_const(self, node):
+    def enter_const(self, node: astroid.Const) -> None:
         # print(f"Entering Const node {node.as_string()}")
         # Handle the Const node here
         pass
 
-    def enter_assignname(self, node):
+    def enter_assignname(self, node: astroid.AssignName) -> None:
         # print(f"Entering AssignName node {node.as_string()}")
         # Handle the AssignName node here
         pass
 
-    def enter_with(self, node):
+    def enter_with(self, node: astroid.With) -> None:
         # print(f"Entering With node {node.as_string()}")
         # Handle the With node here
         pass
@@ -168,7 +169,7 @@ class OpenMode(Enum):
     UNKNOWN = auto()
 
 
-def determine_open_mode(node) -> OpenMode:
+def determine_open_mode(node: astroid.NodeNG) -> OpenMode:
     write_mode = {"w", "wb", "a", "ab", "x", "xb", "w+", "wb+", "a+", "ab+", "x+", "xb+"}
     read_mode = {"r", "rb", "r+", "rb+"}
     if len(node.args) == 1:
@@ -183,8 +184,8 @@ def determine_open_mode(node) -> OpenMode:
     return OpenMode.UNKNOWN
 
 
-def check_builtin_function(node, key, value=None):
-    impurity_indicator = None
+def check_builtin_function(node: astroid.NodeNG, key: str, value=None) -> ImpurityIndicator:
+    impurity_indicator: ImpurityIndicator
     builtin_function = copy(BUILTIN_FUNCTIONS[key])
 
     if type(value) == str:
@@ -220,7 +221,7 @@ def check_builtin_function(node, key, value=None):
     return impurity_indicator
 
 
-def infer_purity(code) -> list[PurityInformation]:
+def infer_purity(code: str) -> list[PurityInformation]:
     purity_handler: PurityHandler = PurityHandler()
     walker = ASTWalker(purity_handler)
     functions = get_function_defs(code)

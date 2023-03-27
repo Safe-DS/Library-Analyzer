@@ -4,9 +4,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
 
+import astroid
+from astroid import NodeNG
+
 
 # Type of access
-class Expression(ABC):
+class Expression(astroid.NodeNG, ABC):
     @abstractmethod
     def __hash__(self) -> int:
         pass
