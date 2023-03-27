@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC
 from copy import copy
 from dataclasses import dataclass
@@ -37,12 +39,12 @@ class FunctionID:
 
 class PurityResult(ABC):
     def __init__(self) -> None:
-        self.reasons = []
+        self.reasons: list[ImpurityIndicator] = []
 
 
 @dataclass
 class DefinitelyPure(PurityResult):
-    reasons = []
+    reasons: list[ImpurityIndicator] = None
 
 
 @dataclass
@@ -70,7 +72,7 @@ class PurityInformation:
     def __hash__(self) -> int:
         return hash((self.id, self.reasons))
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: PurityInformation) -> bool:
         return self.id == other.id and self.reasons == other.reasons
 
 
@@ -189,6 +191,7 @@ def determine_open_mode(node: astroid.NodeNG) -> OpenMode:
 def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None) -> list[ImpurityIndicator]:
     impurity_indicator: list[ImpurityIndicator] = []
     builtin_function = copy(BUILTIN_FUNCTIONS[key])
+    builtin_function.indicator = []
 
     if isinstance(value, str):
         if key == "open":
@@ -206,7 +209,7 @@ def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None) ->
             elif open_mode == OpenMode.BOTH:  # read and write mode
                 # set ImpurityIndicator to FileReadWrite and FileWrite
                 builtin_function.indicator = [FileRead(StringLiteral(value)), FileWrite(StringLiteral(value))]
-                impurity_indicator = list(builtin_function.indicator)
+                impurity_indicator = builtin_function.indicator
 
         else:
             print(f"Unknown builtin function {key}")
