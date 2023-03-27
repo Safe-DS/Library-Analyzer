@@ -5,8 +5,8 @@ from enum import Enum, auto
 
 import astroid
 
-from library_analyzer.processing.api.model import ImpurityIndicator, VariableRead, AttributeAccess, Call, FileWrite, \
-    StringLiteral, ImpurityCertainty, Reference, FileRead, BuiltInFunction, SystemInteraction, VariableWrite, Expression
+from library_analyzer.processing.api.model import ImpurityIndicator, VariableRead, Call, FileWrite, \
+    StringLiteral, ImpurityCertainty, Reference, FileRead, BuiltInFunction, SystemInteraction, VariableWrite
 from library_analyzer.utils import ASTWalker
 
 BUILTIN_FUNCTIONS = {
@@ -30,12 +30,12 @@ class FunctionID:
     line: int
     col: int
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.module}.{self.name}.{self.line}.{self.col}"
 
 
 class PurityResult(ABC):
-    def __init__(self):
+    def __init__(self) -> None:
         self.reasons = None
 
 
@@ -48,7 +48,7 @@ class DefinitelyPure(PurityResult):
 class MaybeImpure(PurityResult):
     reasons: list[ImpurityIndicator]
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(tuple(self.reasons))
 
 
@@ -56,7 +56,7 @@ class MaybeImpure(PurityResult):
 class DefinitelyImpure(PurityResult):
     reasons: list[ImpurityIndicator]
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(tuple(self.reasons))
 
 
@@ -66,10 +66,10 @@ class PurityInformation:
     # purity: PurityResult
     reasons: list[ImpurityIndicator]
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.id, self.reasons))
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.id == other.id and self.reasons == other.reasons
 
 
@@ -77,7 +77,7 @@ _result_list = list[PurityInformation]()
 
 
 class PurityHandler:
-    def __init__(self):
+    def __init__(self) -> None:
         self.purity_reason = list[ImpurityIndicator]()
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
@@ -258,7 +258,7 @@ def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
     #     return DefinitelyPure()
 
 
-def get_function_defs(code) -> list[astroid.FunctionDef]:
+def get_function_defs(code: str) -> list[astroid.FunctionDef]:
     try:
         module = astroid.parse(code)
     except SyntaxError as error:
@@ -285,7 +285,7 @@ def generate_purity_information(function: astroid.FunctionDef, purity_result: Pu
     return purity_info
 
 
-def calc_function_id(node) -> FunctionID:
+def calc_function_id(node: astroid.NodeNG) -> FunctionID:
     if not isinstance(node, astroid.FunctionDef):
         raise TypeError("Node is not a function")
     module = node.root().name

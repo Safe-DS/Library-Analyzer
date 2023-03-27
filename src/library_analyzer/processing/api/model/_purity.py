@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from enum import Enum, auto
 
 import astroid
-from astroid import NodeNG
 
 
 # Type of access

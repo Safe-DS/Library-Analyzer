@@ -6,7 +6,6 @@ from library_analyzer.processing.api import (
     determine_purity,
     extract_impurity_reasons,
     infer_purity,
-    get_purity_result_str,
 
 )
 
@@ -21,15 +20,11 @@ from library_analyzer.processing.api import (
 
 from library_analyzer.processing.api.model import (
     AttributeAccess,
-    GlobalAccess,
-    ParameterAccess,
-    InstanceAccess,
     StringLiteral,
     VariableRead,
     VariableWrite,
     FileRead,
     FileWrite,
-    UnknownCallTarget,
     Call,
     Reference,
 )
