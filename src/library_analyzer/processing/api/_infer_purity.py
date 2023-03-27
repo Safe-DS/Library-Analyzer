@@ -1,17 +1,24 @@
 from abc import ABC
 from copy import copy
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, auto
 
 import astroid
 
 from library_analyzer.processing.api.model import ImpurityIndicator, VariableRead, AttributeAccess, Call, FileWrite, \
-    StringLiteral, ImpurityCertainty, Reference, FileRead, BuiltInFunction, SystemInteraction
+    StringLiteral, ImpurityCertainty, Reference, FileRead, BuiltInFunction, SystemInteraction, VariableWrite
 from library_analyzer.utils import ASTWalker
 
 BUILTIN_FUNCTIONS = {
     "open": BuiltInFunction(Reference("open"), ..., ImpurityCertainty.DEFINITELY_IMPURE),  # how to replace the ... with the correct type?
     "print": BuiltInFunction(Reference("print"), SystemInteraction(), ImpurityCertainty.DEFINITELY_IMPURE),
+
+    "read": BuiltInFunction(Reference("read"), ..., ImpurityCertainty.DEFINITELY_IMPURE),
+    "write": BuiltInFunction(Reference("write"), ..., ImpurityCertainty.DEFINITELY_IMPURE),
+    "readline": BuiltInFunction(Reference("readline"), ..., ImpurityCertainty.DEFINITELY_IMPURE),
+    "readlines": BuiltInFunction(Reference("readlines"), ..., ImpurityCertainty.DEFINITELY_IMPURE),
+    "writelines": BuiltInFunction(Reference("writelines"), ..., ImpurityCertainty.DEFINITELY_IMPURE),
+    "close": BuiltInFunction(Reference("close"), ..., ImpurityCertainty.DEFINITELY_PURE),
 }
 
 
@@ -78,48 +85,50 @@ class PurityHandler:
         pass  # Are we analyzing function defs within function defs? Yes, we are.
 
     def enter_assign(self, node):
-        # print(f"Entering Assign node {node.as_string()}")
+        # print(f"Entering Assign node {node}")
         # Handle the Assign node here
-        impurity_indicator: ImpurityIndicator = VariableRead(node.as_string())
-        self.purity_reason.append(impurity_indicator)
+        if isinstance(node.value, astroid.Call):
+            pass
+        if isinstance(node.value, astroid.Const):
+            impurity_indicator: ImpurityIndicator = VariableWrite(node.as_string())
+            self.purity_reason.append(impurity_indicator)
+        else:  # default case
+            impurity_indicator: ImpurityIndicator = VariableWrite(node.as_string())
+            self.purity_reason.append(impurity_indicator)
         # TODO: Assign node needs further analysis to determine if it is pure or impure
 
     def enter_assignattr(self, node):
         # print(f"Entering AssignAttr node {node.as_string()}")
         # Handle the AssignAtr node here
-        impurity_indicator: ImpurityIndicator = VariableRead(node.as_string())
+        impurity_indicator: ImpurityIndicator = VariableWrite(node.as_string())
         self.purity_reason.append(impurity_indicator)
         # TODO: AssignAttr node needs further analysis to determine if it is pure or impure
 
     def enter_call(self, node):
-        print(f"Entering Call node {node.as_string()}")
+        # print(f"Entering Call node {node.as_string()}")
         # Handle the Call node here
         # TODO: move analysis of built-in functions to a separate function
-        if node.func.name in BUILTIN_FUNCTIONS.keys():
-            # print(f"Indicators: {BUILTIN_FUNCTIONS[node.func.name].indicator}")
-            builtin_function = copy(BUILTIN_FUNCTIONS[node.func.name])
-            open_mode = determine_open_mode(node)
-            # print(node.args[0].value)
-            if open_mode == OpenMode.WRITE:  # write mode
-                # set ImpurityIndicator to FileWrite
-                builtin_function.indicator = FileWrite(Reference(node.args[0].value))
-                impurity_indicator = builtin_function.indicator
+        if isinstance(node.func, astroid.Attribute):
+            pass
+        if isinstance(node.func, astroid.Name):
+            if node.func.name in BUILTIN_FUNCTIONS.keys():
+                impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].value)
                 self.purity_reason.append(impurity_indicator)
-
-            elif open_mode == OpenMode.READ:  # read mode
-                # set ImpurityIndicator to FileRead
-                # print(builtin_function)
-                builtin_function.indicator = FileRead(Reference(node.args[0].value))
-                # print(builtin_function)
-                impurity_indicator = builtin_function.indicator
-                self.purity_reason.append(impurity_indicator)
-            else:
-                pass
-
-        else:
-            impurity_indicator: ImpurityIndicator = Call(Reference(node.as_string()))
-            self.purity_reason.append(impurity_indicator)
+        #else:
+            #impurity_indicator: ImpurityIndicator = Call(Reference(node.as_string()))
+            #self.purity_reason.append(impurity_indicator)
         # TODO: Call node needs further analysis to determine if it is pure or impure
+
+    def enter_attribute(self, node):
+        # print(f"Entering Attribute node {node.as_string()}")
+        # Handle the Attribute node here
+        if isinstance(node.expr, astroid.Name):
+            if node.attrname in BUILTIN_FUNCTIONS.keys():
+                impurity_indicator = check_builtin_function(node, node.attrname)
+                self.purity_reason.append(impurity_indicator)
+        else:
+            impurity_indicator: ImpurityIndicator = Call(Reference(node))
+            self.purity_reason.append(impurity_indicator)
 
     def enter_arguments(self, node):
         # print(f"Entering Arguments node {node.as_string()}")
@@ -154,9 +163,9 @@ class PurityHandler:
 
 
 class OpenMode(Enum):
-    READ = 1
-    WRITE = 2
-    UNKNOWN = 3
+    READ = auto()
+    WRITE = auto()
+    UNKNOWN = auto()
 
 
 def determine_open_mode(node) -> OpenMode:
@@ -170,8 +179,45 @@ def determine_open_mode(node) -> OpenMode:
 
         elif str(arg.value) in read_mode:
             return OpenMode.READ
-
+    # TODO: check if the mode is both read and write
     return OpenMode.UNKNOWN
+
+
+def check_builtin_function(node, key, value=None):
+    impurity_indicator = None
+    builtin_function = copy(BUILTIN_FUNCTIONS[key])
+
+    if type(value) == str:
+        if key == "open":
+            open_mode = determine_open_mode(node)
+            if open_mode == OpenMode.WRITE:  # write mode
+                # set ImpurityIndicator to FileWrite
+                builtin_function.indicator = FileWrite(StringLiteral(value))
+                impurity_indicator = builtin_function.indicator
+
+            elif open_mode == OpenMode.READ:  # read mode
+                # set ImpurityIndicator to FileRead
+                builtin_function.indicator = FileRead(StringLiteral(value))
+                impurity_indicator = builtin_function.indicator
+            else:
+                pass
+
+        else:
+            print(f"Unknown builtin function {key}")
+    # TODO: handle the case where the argument is not a string literal
+    else:
+        if key == "read":
+            builtin_function.indicator = VariableRead(Reference(node.as_string()))
+            impurity_indicator = builtin_function.indicator
+        elif key == "write" or key == "writelines":
+            builtin_function.indicator = VariableWrite(Reference(node.as_string()))
+            impurity_indicator = builtin_function.indicator
+        elif key == "readline" or key == "readlines":
+            builtin_function.indicator = VariableRead(Reference(node.as_string()))
+            impurity_indicator = builtin_function.indicator
+        pass
+
+    return impurity_indicator
 
 
 def infer_purity(code) -> list[PurityInformation]:
@@ -309,6 +355,7 @@ if __name__ == '__main__':
 
     """
     a = """
+
     def fun1():
         open("test1.txt") # default mode: read only
 
@@ -323,6 +370,23 @@ if __name__ == '__main__':
 
     def fun5():
         open("test5.txt", "r+")  # read and write
+
+    def fun6():
+        f = open("test6.txt") # default mode: read only
+        f.read()
+
+    def fun7():
+        f = open("test7.txt") # default mode: read only
+        f.readline([2])
+
+    def fun8():
+        f = open("test8.txt", "w") # write only
+        f.write("message")
+
+    def fun9():
+        f = open("test9.txt", "w") # write only
+        f.writelines(["message1", "message2"])
+
 
     """
 

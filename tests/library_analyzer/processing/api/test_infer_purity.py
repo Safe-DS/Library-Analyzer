@@ -89,12 +89,12 @@ def test_calc_function_id(code: str, expected) -> None:
             [Call(expression=AttributeAccess(name="impure_call"))]
         ),
         (
-            MaybeImpure(reasons=[FileRead(path=StringLiteral(value="read_path"))]),
-            [FileRead(path=StringLiteral(value="read_path"))]
+            MaybeImpure(reasons=[FileRead(source=StringLiteral(value="read_path"))]),
+            [FileRead(source=StringLiteral(value="read_path"))]
         ),
         (
-            MaybeImpure(reasons=[FileWrite(path=StringLiteral(value="write_path"))]),
-            [FileWrite(path=StringLiteral(value="write_path"))]
+            MaybeImpure(reasons=[FileWrite(source=StringLiteral(value="write_path"))]),
+            [FileWrite(source=StringLiteral(value="write_path"))]
         ),
         (
             MaybeImpure(reasons=[VariableRead(StringLiteral(value="var_read"))]),
@@ -129,12 +129,12 @@ def test_generate_purity_information(purity_result: PurityResult, expected: list
         #    DefinitelyPure()
         # ),
         (
-            [FileRead(path=StringLiteral(value="read_path"))],
-            DefinitelyImpure(reasons=[FileRead(path=StringLiteral(value="read_path"))])
+            [FileRead(source=StringLiteral(value="read_path"))],
+            DefinitelyImpure(reasons=[FileRead(source=StringLiteral(value="read_path"))])
         ),
         (
-            [FileWrite(path=StringLiteral(value="write_path"))],
-            DefinitelyImpure(reasons=[FileWrite(path=StringLiteral(value="write_path"))])
+            [FileWrite(source=StringLiteral(value="write_path"))],
+            DefinitelyImpure(reasons=[FileWrite(source=StringLiteral(value="write_path"))])
         ),
         (
             [VariableRead(StringLiteral(value="var_read"))],
@@ -159,35 +159,35 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                 def fun1():
                     open("test1.txt") # default mode: read only
             """,
-            [FileRead(path=Reference("test1.txt"))]
+            [FileRead(source=StringLiteral(value='test1.txt'))]
         ),
         (
             """
                 def fun2():
                     open("test2.txt", "r") # read only
             """,
-            [FileRead(path=Reference("test2.txt"))]
+            [FileRead(source=StringLiteral(value='test2.txt'))]
         ),
         (
             """
                 def fun3():
                     open("test3.txt", "w") # write only
             """,
-            [FileWrite(path=Reference("test3.txt"))]
+            [FileWrite(source=StringLiteral(value='test3.txt'))]
         ),
         (
             """
                 def fun4():
                     open("test4.txt", "a") # append
             """,
-            [FileWrite(path=Reference("test4.txt"))]
+            [FileWrite(source=StringLiteral(value='test4.txt'))]
         ),
         (
             """
                 def fun5():
                     open("test5.txt", "r+")  # read and write
             """,
-            [FileRead(path=Reference("test5.txt")), FileWrite(path=Reference("test.txt"))]
+            [FileRead(source=StringLiteral(value='test5.txt')), FileWrite(source=StringLiteral(value='test5.txt'))]
         ),  # TODO: do we need to distinguish between read and write?
         (
             """
@@ -195,7 +195,7 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                     f = open("test6.txt") # default mode: read only
                     f.read()
             """,
-            [FileRead(path=Reference("test6.txt"))]
+            [FileRead(source=StringLiteral(value='test6.txt'))]
         ),
         (
             """
@@ -203,7 +203,7 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                     f = open("test7.txt") # default mode: read only
                     f.readline([2])
             """,
-            [FileRead(path=Reference("test7.txt"))]
+            [FileRead(source=StringLiteral(value='test7.txt'))]
         ),
         (
             """
@@ -211,7 +211,7 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                     f = open("test8.txt", "w") # write only
                     f.write("message")
             """,
-            [FileWrite(path=Reference("test8.txt"))]
+            [FileWrite(source=StringLiteral(value='test8.txt'))]
         ),
         (
             """
@@ -219,7 +219,7 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                     f = open("test9.txt", "w") # write only
                     f.writelines(["message1", "message2"])
             """,
-            [FileWrite(path=Reference("test9.txt"))]
+            [FileWrite(source=StringLiteral(value='test9.txt'))]
         ),
         (
             """
@@ -227,14 +227,14 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                     with open("test10.txt") as f: # default mode: read only
                         f.read()
             """,
-            [FileRead(path=Reference("test10.txt"))]
+            [FileRead(source=StringLiteral(value='test10.txt'))]
         ),
         (
             """
                 def fun11(path11): # open with variable
                     open(path11)
             """,
-            [FileRead(path=Reference("path11"))]  # ??
+            [FileRead(source=Reference("path11"))]  # ??
         ),
         (
             """
@@ -242,14 +242,11 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                     with open(path12) as f:
                         f.read()
             """,
-            [FileRead(path=Reference("path12"))]  # ??
+            [FileRead(source=Reference("path12"))]  # ??
         )
 
     ]
 )
 def test_file_read(code: str, expected: list[ImpurityIndicator]) -> None:
     purity_info: list[PurityInformation] = infer_purity(code)
-    for f in purity_info:
-        p = get_purity_result_str(f.reasons)
-        print(f"Function {f.id.name} with ID: {f.id} is {p} because {f.reasons}")
     assert purity_info[0].reasons == expected

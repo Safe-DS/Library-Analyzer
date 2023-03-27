@@ -112,11 +112,11 @@ class VariableWrite(ImpurityIndicator):
 
 @dataclass
 class FileRead(ImpurityIndicator):
-    path: Expression
+    source: Expression
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
     def __hash__(self):
-        return hash(self.path)
+        return hash(self.source)
 
     def is_side_effect(self) -> bool:
         return False
@@ -124,11 +124,11 @@ class FileRead(ImpurityIndicator):
 
 @dataclass
 class FileWrite(ImpurityIndicator):
-    path: Expression
+    source: Expression
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
     def __hash__(self):
-        return hash(self.path)
+        return hash(self.source)
 
     def is_side_effect(self) -> bool:
         return True
