@@ -154,35 +154,41 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                 def fun1():
                     open("test1.txt") # default mode: read only
             """,
-            [FileRead(source=StringLiteral(value='test1.txt'))]
+            [FileRead(source=StringLiteral(value='test1.txt')),
+             Call(expression=Reference(name="open('test1.txt')"))]
         ),
         (
             """
                 def fun2():
                     open("test2.txt", "r") # read only
             """,
-            [FileRead(source=StringLiteral(value='test2.txt'))]
+            [FileRead(source=StringLiteral(value='test2.txt')),
+             Call(expression=Reference(name="open('test2.txt', 'r')"))]
         ),
         (
             """
                 def fun3():
                     open("test3.txt", "w") # write only
             """,
-            [FileWrite(source=StringLiteral(value='test3.txt'))]
+            [FileWrite(source=StringLiteral(value='test3.txt')),
+             Call(expression=Reference(name="open('test3.txt', 'w')"))]
         ),
         (
             """
                 def fun4():
                     open("test4.txt", "a") # append
             """,
-            [FileWrite(source=StringLiteral(value='test4.txt'))]
+            [FileWrite(source=StringLiteral(value='test4.txt')),
+             Call(expression=Reference(name="open('test4.txt', 'a')"))]
         ),
         (
             """
                 def fun5():
                     open("test5.txt", "r+")  # read and write
             """,
-            [FileRead(source=StringLiteral(value='test5.txt')), FileWrite(source=StringLiteral(value='test5.txt'))]
+            [FileRead(source=StringLiteral(value='test5.txt')),
+             FileWrite(source=StringLiteral(value='test5.txt')),
+             Call(expression=Reference(name="open('test5.txt', 'r+')"))]
         ),  # TODO: do we need to distinguish between read and write?
         (
             """
@@ -190,7 +196,11 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                     f = open("test6.txt") # default mode: read only
                     f.read()
             """,
-            [FileRead(source=StringLiteral(value='test6.txt'))]
+            [VariableWrite(expression=Reference(name="f = open('test6.txt')")),
+             FileRead(source=StringLiteral(value='test6.txt')),
+             Call(expression=Reference(name="open('test6.txt')")),
+             Call(expression=Reference(name='f.read()')),
+             VariableRead(expression=Reference(name='f.read'))]
         ),
         (
             """
@@ -198,7 +208,11 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                     f = open("test7.txt") # default mode: read only
                     f.readline([2])
             """,
-            [FileRead(source=StringLiteral(value='test7.txt'))]
+            [VariableWrite(expression=Reference(name="f = open('test7.txt')")),
+             FileRead(source=StringLiteral(value='test7.txt')),
+             Call(expression=Reference(name="open('test7.txt')")),
+             Call(expression=Reference(name='f.readline([2])')),
+             VariableRead(expression=Reference(name='f.readline'))]
         ),
         (
             """
@@ -206,7 +220,11 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                     f = open("test8.txt", "w") # write only
                     f.write("message")
             """,
-            [FileWrite(source=StringLiteral(value='test8.txt'))]
+            [VariableWrite(expression=Reference(name="f = open('test8.txt', 'w')")),
+             FileWrite(source=StringLiteral(value='test8.txt')),
+             Call(expression=Reference(name="open('test8.txt', 'w')")),
+             Call(expression=Reference(name="f.write('message')")),
+             VariableWrite(expression=Reference(name='f.write'))]
         ),
         (
             """
@@ -214,7 +232,11 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                     f = open("test9.txt", "w") # write only
                     f.writelines(["message1", "message2"])
             """,
-            [FileWrite(source=StringLiteral(value='test9.txt'))]
+            [VariableWrite(expression=Reference(name="f = open('test9.txt', 'w')")),
+             FileWrite(source=StringLiteral(value='test9.txt')),
+             Call(expression=Reference(name="open('test9.txt', 'w')")),
+             Call(expression=Reference(name="f.writelines(['message1', 'message2'])")),
+             VariableWrite(expression=Reference(name='f.writelines'))]
         ),
         (
             """
@@ -222,7 +244,10 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                     with open("test10.txt") as f: # default mode: read only
                         f.read()
             """,
-            [FileRead(source=StringLiteral(value='test10.txt'))]
+            [FileRead(source=StringLiteral(value='test10.txt')),
+             Call(expression=Reference(name="open('test10.txt')")),
+             Call(expression=Reference(name='f.read()')),
+             VariableRead(expression=Reference(name='f.read'))]
         ),
         (
             """
