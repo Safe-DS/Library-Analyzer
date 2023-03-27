@@ -68,7 +68,7 @@ def test_calc_function_id(code: str, expected) -> None:
 
     else:
         result = calc_function_id(function_node)
-        assert result.__str__() == expected
+        assert str(result) == expected
 
 
 # since we only look at FunctionDefs we can not use other types of CodeSnippets

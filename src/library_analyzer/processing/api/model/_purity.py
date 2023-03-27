@@ -29,7 +29,7 @@ class GlobalAccess(Expression):
     name: str
     module: str = None
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.name)
 
 
@@ -39,7 +39,7 @@ class ParameterAccess(Expression):
     name: str
     function: str
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.name)
 
 
@@ -49,7 +49,7 @@ class InstanceAccess(Expression):
     receiver: Expression
     target: Expression
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.receiver, self.target))
 
 
@@ -57,7 +57,7 @@ class InstanceAccess(Expression):
 class StringLiteral(Expression):
     value: str
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.value)
 
 
@@ -65,7 +65,7 @@ class StringLiteral(Expression):
 class Reference(Expression):
     name: str
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.name)
 
 
@@ -102,7 +102,7 @@ class VariableRead(ImpurityIndicator):
     expression: Expression
     certainty = ImpurityCertainty.MAYBE_IMPURE
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.expression)
 
     def is_side_effect(self) -> bool:
@@ -114,7 +114,7 @@ class VariableWrite(ImpurityIndicator):
     expression: Expression
     certainty = ImpurityCertainty.MAYBE_IMPURE
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.expression)
 
     def is_side_effect(self) -> bool:
@@ -126,7 +126,7 @@ class FileRead(ImpurityIndicator):
     source: Expression
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.source)
 
     def is_side_effect(self) -> bool:
@@ -138,7 +138,7 @@ class FileWrite(ImpurityIndicator):
     source: Expression
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.source)
 
     def is_side_effect(self) -> bool:
@@ -150,7 +150,7 @@ class UnknownCallTarget(ImpurityIndicator):
     expression: Expression
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.expression)
 
     def is_side_effect(self) -> bool:
@@ -162,7 +162,7 @@ class Call(ImpurityIndicator):
     expression: Expression
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.expression)
 
     def is_side_effect(self) -> bool:
@@ -173,7 +173,7 @@ class Call(ImpurityIndicator):
 class SystemInteraction(ImpurityIndicator):
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash("SystemInteraction")
 
     def is_side_effect(self) -> bool:
@@ -187,8 +187,8 @@ class BuiltInFunction(ImpurityIndicator):
     indicator: ImpurityIndicator  # this should be a list to handle multiple reasons
     certainty: ImpurityCertainty
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.indicator)
 
     def is_side_effect(self) -> bool:
-        pass
+        return False

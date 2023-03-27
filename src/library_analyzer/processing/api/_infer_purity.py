@@ -193,7 +193,7 @@ def check_builtin_function(node: astroid.NodeNG, key: str, value=None) -> list[I
     impurity_indicator: list[ImpurityIndicator] = []
     builtin_function = copy(BUILTIN_FUNCTIONS[key])
 
-    if type(value) == str:
+    if isinstance(value, str):
         if key == "open":
             open_mode = determine_open_mode(node)
             if open_mode == OpenMode.WRITE:  # write mode
@@ -210,8 +210,6 @@ def check_builtin_function(node: astroid.NodeNG, key: str, value=None) -> list[I
                 # set ImpurityIndicator to FileReadWrite and FileWrite
                 builtin_function.indicator = [FileRead(StringLiteral(value)), FileWrite(StringLiteral(value))]
                 impurity_indicator = builtin_function.indicator
-            else:
-                pass
 
         else:
             print(f"Unknown builtin function {key}")
@@ -220,13 +218,12 @@ def check_builtin_function(node: astroid.NodeNG, key: str, value=None) -> list[I
         if key == "read":
             builtin_function.indicator = VariableRead(Reference(node.as_string()))
             impurity_indicator = [builtin_function.indicator]
-        elif key == "write" or key == "writelines":
+        elif key in ("write", "writelines"):
             builtin_function.indicator = VariableWrite(Reference(node.as_string()))
             impurity_indicator = [builtin_function.indicator]
-        elif key == "readline" or key == "readlines":
+        elif key in ("readline", "readlines"):
             builtin_function.indicator = VariableRead(Reference(node.as_string()))
             impurity_indicator = [builtin_function.indicator]
-        pass
 
     return impurity_indicator
 
