@@ -73,6 +73,8 @@ class PurityInformation:
         return hash((self.id, self.reasons))
 
     def __eq__(self, other: PurityInformation) -> bool:
+        if not isinstance(other, PurityInformation):
+            return False
         return self.id == other.id and self.reasons == other.reasons
 
 
@@ -166,7 +168,6 @@ class OpenMode(Enum):
     READ = auto()
     WRITE = auto()
     BOTH = auto()
-    UNKNOWN = auto()
 
 
 def determine_open_mode(node: astroid.NodeNG) -> OpenMode:
@@ -185,13 +186,10 @@ def determine_open_mode(node: astroid.NodeNG) -> OpenMode:
         if str(arg.value) in read_and_write_mode:
             return OpenMode.BOTH
 
-    return OpenMode.UNKNOWN
-
 
 def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None) -> list[ImpurityIndicator]:
     impurity_indicator: list[ImpurityIndicator] = []
     builtin_function = copy(BUILTIN_FUNCTIONS[key])
-    builtin_function.indicator = []
 
     if isinstance(value, str):
         if key == "open":
@@ -203,8 +201,8 @@ def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None) ->
 
             elif open_mode == OpenMode.READ:  # read mode
                 # set ImpurityIndicator to FileRead
-                builtin_function.indicator = FileRead(StringLiteral(value))
-                impurity_indicator = [builtin_function.indicator]
+                builtin_function.indicator = [FileRead(StringLiteral(value))]
+                impurity_indicator = builtin_function.indicator
 
             elif open_mode == OpenMode.BOTH:  # read and write mode
                 # set ImpurityIndicator to FileReadWrite and FileWrite
