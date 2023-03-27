@@ -10,7 +10,7 @@ from library_analyzer.processing.api.model import ImpurityIndicator, VariableRea
 from library_analyzer.utils import ASTWalker
 
 BUILTIN_FUNCTIONS = {
-    "open": BuiltInFunction(Reference("open"), ..., ImpurityCertainty.DEFINITELY_IMPURE),
+    "open": BuiltInFunction(Reference("open"), ImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
     # TODO: how to replace the ... with the correct type?
     "print": BuiltInFunction(Reference("print"), SystemInteraction(), ImpurityCertainty.DEFINITELY_IMPURE),
 
