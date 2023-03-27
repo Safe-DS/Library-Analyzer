@@ -1,1 +1,9 @@
-* @lars-reimann
+*                       @lars-reimann
+
+# Documentation
+/docs/                  @Safe-DS/Library-Analysis
+/mkdocs.yml             @Safe-DS/Library-Analysis
+
+# Code
+/src/                   @Safe-DS/Library-Analysis
+/tests/                 @Safe-DS/Library-Analysis

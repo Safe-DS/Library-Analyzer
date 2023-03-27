@@ -44,7 +44,7 @@ def distribution(package_name: str) -> Optional[str]:
 
 
 def distribution_version(dist: Optional[str]) -> Optional[str]:
-    if dist is None:
+    if dist is None or len(dist) == 0:
         return None
 
     return version(dist)
