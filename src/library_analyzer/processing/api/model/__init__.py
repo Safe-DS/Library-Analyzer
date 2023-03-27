@@ -34,6 +34,7 @@ from ._purity import (
     Reference,
     ImpurityCertainty,
     ImpurityIndicator,
+    ConcreteImpurityIndicator,
     VariableRead,
     VariableWrite,
     FileRead,

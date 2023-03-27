@@ -89,6 +89,15 @@ class ImpurityIndicator(ABC):
 
 
 @dataclass
+class ConcreteImpurityIndicator(ImpurityIndicator):
+    def __hash__(self) -> int:
+        return hash(self.certainty)
+
+    def is_side_effect(self) -> bool:
+        return False
+
+
+@dataclass
 class VariableRead(ImpurityIndicator):
     expression: Expression
     certainty = ImpurityCertainty.MAYBE_IMPURE
