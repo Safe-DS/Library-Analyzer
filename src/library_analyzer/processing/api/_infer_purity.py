@@ -238,8 +238,7 @@ def check_builtin_function(
             if open_mode == OpenMode.READ_WRITE:  # read and write mode
                 return [FileRead(StringLiteral(value)), FileWrite(StringLiteral(value))]
 
-        else:
-            raise TypeError(f"Unknown builtin function {key}")
+        raise TypeError(f"Unknown builtin function {key}")
 
     else:
         if key in ("read", "readline", "readlines"):
