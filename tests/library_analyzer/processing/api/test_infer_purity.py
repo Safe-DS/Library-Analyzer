@@ -5,13 +5,14 @@ from library_analyzer.processing.api import (
     DefinitelyPure,
     ImpurityIndicator,
     MaybeImpure,
+    OpenMode,
     PurityInformation,
     PurityResult,
-    OpenMode,
     calc_function_id,
+    determine_open_mode,
     determine_purity,
     extract_impurity_reasons,
-    infer_purity, determine_open_mode,
+    infer_purity,
 )
 from library_analyzer.processing.api.model import (
     AttributeAccess,
