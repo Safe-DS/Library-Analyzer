@@ -240,11 +240,10 @@ def check_builtin_function(
 
         raise TypeError(f"Unknown builtin function {key}")
 
-    else:
-        if key in ("read", "readline", "readlines"):
-            return [VariableRead(Reference(node.as_string()))]
-        if key in ("write", "writelines"):
-            return [VariableWrite(Reference(node.as_string()))]
+    if key in ("read", "readline", "readlines"):
+        return [VariableRead(Reference(node.as_string()))]
+    if key in ("write", "writelines"):
+        return [VariableWrite(Reference(node.as_string()))]
 
     raise TypeError(f"Unknown builtin function {key}")
 
