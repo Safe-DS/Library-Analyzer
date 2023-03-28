@@ -42,12 +42,12 @@ class FunctionID:
 
 class PurityResult(ABC):
     def __init__(self) -> None:
-        self.reasons: list[ImpurityIndicator] | None = []
+        self.reasons: list[ImpurityIndicator] = []
 
 
 @dataclass
 class DefinitelyPure(PurityResult):
-    reasons: list[ImpurityIndicator] = None
+    reasons = []
 
 
 @dataclass
@@ -291,7 +291,7 @@ def get_function_defs(code: str) -> list[astroid.FunctionDef]:
 def extract_impurity_reasons(purity: PurityResult) -> list[ImpurityIndicator]:
     if isinstance(purity, DefinitelyPure):
         return []
-    return list(purity.reasons)
+    return purity.reasons
 
 
 def generate_purity_information(function: astroid.FunctionDef, purity_result: PurityResult) -> PurityInformation:
