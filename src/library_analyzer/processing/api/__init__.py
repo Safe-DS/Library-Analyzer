@@ -8,6 +8,7 @@ from ._infer_purity import (
     MaybeImpure,
     PurityInformation,
     PurityResult,
+    OpenMode,
     calc_function_id,
     determine_purity,
     extract_impurity_reasons,
@@ -15,6 +16,7 @@ from ._infer_purity import (
     get_function_defs,
     get_purity_result_str,
     infer_purity,
+    determine_open_mode,
 )
 from ._package_metadata import (
     distribution,

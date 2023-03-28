@@ -185,27 +185,30 @@ class PurityHandler:
 class OpenMode(Enum):
     READ = auto()
     WRITE = auto()
-    BOTH = auto()
+    READ_WRITE = auto()
 
 
-def determine_open_mode(node: astroid.NodeNG) -> OpenMode:
-    write_mode = {"w", "wb", "a", "ab", "x", "xb"}
-    read_mode = {"r", "rb"}
-    read_and_write_mode = {"r+", "rb+", "w+", "wb+", "a+", "ab+", "x+", "xb+"}
-    if len(node.args) == 1:
+def determine_open_mode(args: list[str]) -> OpenMode:
+    write_mode = {"w", "wb", "a", "ab", "x", "xb", "wt", "at", "xt"}
+    read_mode = {"r", "rb", "rt"}
+    read_and_write_mode = {"r+", "rb+", "w+", "wb+", "a+", "ab+", "x+", "xb+", "r+t", "rb+t", "w+t", "wb+t", "a+t",
+                           "ab+t", "x+t", "xb+t", "r+b", "rb+b", "w+b", "wb+b", "a+b", "ab+b", "x+b", "xb+b"}
+    if len(args) == 1:
         return OpenMode.READ
 
-    for arg in node.args:
-        if str(arg.value) in write_mode:
-            return OpenMode.WRITE
+    if isinstance(args[1], astroid.Const):
+        mode = args[1].value
+    else:
+        mode = args[1]
 
-        if str(arg.value) in read_mode:
-            return OpenMode.READ
-
-        if str(arg.value) in read_and_write_mode:
-            return OpenMode.BOTH
-
-    raise TypeError(f"{node.args} is not a valid mode for open function")
+    if mode in read_mode:
+        return OpenMode.READ
+    if mode in write_mode:
+        return OpenMode.WRITE
+    if mode in read_and_write_mode:
+        return OpenMode.READ_WRITE
+    else:
+        raise ValueError(f"{mode} is not a valid mode for the open function")
 
 
 def check_builtin_function(
@@ -213,26 +216,26 @@ def check_builtin_function(
 ) -> list[ImpurityIndicator]:
     if is_var:
         if key == "open":
-            open_mode = determine_open_mode(node)
+            open_mode = determine_open_mode(node.args)
             if open_mode == OpenMode.WRITE:
                 return [FileWrite(Reference(value))]
 
             if open_mode == OpenMode.READ:
                 return [FileRead(Reference(value))]
 
-            if open_mode == OpenMode.BOTH:
+            if open_mode == OpenMode.READ_WRITE:
                 return [FileRead(Reference(value)), FileWrite(Reference(value))]
 
     elif isinstance(value, str):
         if key == "open":
-            open_mode = determine_open_mode(node)
+            open_mode = determine_open_mode(node.args)
             if open_mode == OpenMode.WRITE:  # write mode
                 return [FileWrite(StringLiteral(value))]
 
             if open_mode == OpenMode.READ:  # read mode
                 return [FileRead(StringLiteral(value))]
 
-            if open_mode == OpenMode.BOTH:  # read and write mode
+            if open_mode == OpenMode.READ_WRITE:  # read and write mode
                 return [FileRead(StringLiteral(value)), FileWrite(StringLiteral(value))]
 
         else:
