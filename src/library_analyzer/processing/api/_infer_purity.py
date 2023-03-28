@@ -72,9 +72,9 @@ class PurityInformation:
     def __hash__(self) -> int:
         return hash((self.id, self.reasons))
 
-    def __eq__(self, other: PurityInformation) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, PurityInformation):
-            return False
+            return NotImplemented
         return self.id == other.id and self.reasons == other.reasons
 
 
@@ -175,7 +175,7 @@ class OpenMode(Enum):
     BOTH = auto()
 
 
-def determine_open_mode(node: astroid.NodeNG) -> OpenMode:
+def determine_open_mode(node: astroid.NodeNG) -> OpenMode | TypeError:
     write_mode = {"w", "wb", "a", "ab", "x", "xb"}
     read_mode = {"r", "rb"}
     read_and_write_mode = {"r+", "rb+", "w+", "wb+", "a+", "ab+", "x+", "xb+"}
@@ -191,8 +191,10 @@ def determine_open_mode(node: astroid.NodeNG) -> OpenMode:
         if str(arg.value) in read_and_write_mode:
             return OpenMode.BOTH
 
+    return TypeError(f"{node.args} is not a valid mode for open function")
 
-def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None, is_var: bool = False) -> list[ImpurityIndicator]:
+
+def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None, is_var: bool = False) -> list[ImpurityIndicator] | TypeError:
     impurity_indicator: list[ImpurityIndicator] = []
     builtin_function = copy(BUILTIN_FUNCTIONS[key])
     if is_var:
@@ -200,50 +202,36 @@ def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None, is
         if key == "open":
             open_mode = determine_open_mode(node)
             if open_mode == OpenMode.WRITE:
-                builtin_function.indicator = FileWrite(Reference(value))
-                impurity_indicator = [builtin_function.indicator]
+                return [FileWrite(Reference(value))]
 
             elif open_mode == OpenMode.READ:
-                builtin_function.indicator = FileRead(Reference(value))
-                impurity_indicator = [builtin_function.indicator]
+                return [FileRead(Reference(value))]
 
             elif open_mode == OpenMode.BOTH:
-                builtin_function.indicator = [FileRead(Reference(value)), FileWrite(Reference(value))]
-                impurity_indicator = builtin_function.indicator
+                return [FileRead(Reference(value)), FileWrite(Reference(value))]
 
     elif isinstance(value, str):
         if key == "open":
             open_mode = determine_open_mode(node)
             if open_mode == OpenMode.WRITE:  # write mode
-                # set ImpurityIndicator to FileWrite
-                builtin_function.indicator = FileWrite(StringLiteral(value))
-                impurity_indicator = [builtin_function.indicator]
+                return [FileWrite(StringLiteral(value))]
 
             elif open_mode == OpenMode.READ:  # read mode
-                # set ImpurityIndicator to FileRead
-                builtin_function.indicator = FileRead(StringLiteral(value))
-                impurity_indicator = [builtin_function.indicator]
+                return [FileRead(StringLiteral(value))]
 
             elif open_mode == OpenMode.BOTH:  # read and write mode
-                # set ImpurityIndicator to FileReadWrite and FileWrite
-                builtin_function.indicator = [FileRead(StringLiteral(value)), FileWrite(StringLiteral(value))]
-                impurity_indicator = builtin_function.indicator
+                return [FileRead(StringLiteral(value)), FileWrite(StringLiteral(value))]
 
         else:
-            print(f"Unknown builtin function {key}")
+            return TypeError(f"Unknown builtin function {key}")
 
     else:
-        if key == "read":
-            builtin_function.indicator = VariableRead(Reference(node.as_string()))
-            impurity_indicator = [builtin_function.indicator]
+        if key in ("read", "readline", "readlines"):
+            return [VariableRead(Reference(node.as_string()))]
         elif key in ("write", "writelines"):
-            builtin_function.indicator = VariableWrite(Reference(node.as_string()))
-            impurity_indicator = [builtin_function.indicator]
-        elif key in ("readline", "readlines"):
-            builtin_function.indicator = VariableRead(Reference(node.as_string()))
-            impurity_indicator = [builtin_function.indicator]
+            return [VariableWrite(Reference(node.as_string()))]
 
-    return impurity_indicator
+    return TypeError(f"Unknown builtin function {key}")
 
 
 def infer_purity(code: str) -> list[PurityInformation]:
