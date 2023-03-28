@@ -254,7 +254,8 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                 def fun11(path11): # open with variable
                     open(path11)
             """,
-            [FileRead(source=Reference("path11"))]  # ??
+            [FileRead(source=Reference("path11")),
+             Call(expression=Reference(name="open(path11)"))]  # ??
         ),
         (
             """
@@ -262,11 +263,14 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                     with open(path12) as f:
                         f.read()
             """,
-            [FileRead(source=Reference("path12"))]  # ??
+            [FileRead(source=Reference("path12")),
+             Call(expression=Reference(name="open(path12)")),
+             Call(expression=Reference(name='f.read()')),
+             VariableRead(expression=Reference(name='f.read'))]  # ??
         )
 
     ]
 )
-def test_file_read(code: str, expected: list[ImpurityIndicator]) -> None:
+def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
     purity_info: list[PurityInformation] = infer_purity(code)
     assert purity_info[0].reasons == expected

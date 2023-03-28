@@ -115,8 +115,13 @@ class PurityHandler:
             pass
         elif isinstance(node.func, astroid.Name):
             if node.func.name in BUILTIN_FUNCTIONS:
-                impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].value)
-                self.append_reason(impurity_indicator)
+
+                if isinstance(node.args[0], astroid.Name):
+                    impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].name, True)
+                    self.append_reason(impurity_indicator)
+                else:
+                    impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].value)
+                    self.append_reason(impurity_indicator)
 
         self.append_reason([Call(Reference(node.as_string()))])
         # TODO: Call node needs further analysis to determine if it is pure or impure
@@ -187,11 +192,26 @@ def determine_open_mode(node: astroid.NodeNG) -> OpenMode:
             return OpenMode.BOTH
 
 
-def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None) -> list[ImpurityIndicator]:
+def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None, is_var: bool = False) -> list[ImpurityIndicator]:
     impurity_indicator: list[ImpurityIndicator] = []
     builtin_function = copy(BUILTIN_FUNCTIONS[key])
+    if is_var:
+        print(f"Variable {value} is used as an argument for {key} function")
+        if key == "open":
+            open_mode = determine_open_mode(node)
+            if open_mode == OpenMode.WRITE:
+                builtin_function.indicator = FileWrite(Reference(value))
+                impurity_indicator = [builtin_function.indicator]
 
-    if isinstance(value, str):
+            elif open_mode == OpenMode.READ:
+                builtin_function.indicator = FileRead(Reference(value))
+                impurity_indicator = [builtin_function.indicator]
+
+            elif open_mode == OpenMode.BOTH:
+                builtin_function.indicator = [FileRead(Reference(value)), FileWrite(Reference(value))]
+                impurity_indicator = builtin_function.indicator
+
+    elif isinstance(value, str):
         if key == "open":
             open_mode = determine_open_mode(node)
             if open_mode == OpenMode.WRITE:  # write mode
@@ -201,8 +221,8 @@ def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None) ->
 
             elif open_mode == OpenMode.READ:  # read mode
                 # set ImpurityIndicator to FileRead
-                builtin_function.indicator = [FileRead(StringLiteral(value))]
-                impurity_indicator = builtin_function.indicator
+                builtin_function.indicator = FileRead(StringLiteral(value))
+                impurity_indicator = [builtin_function.indicator]
 
             elif open_mode == OpenMode.BOTH:  # read and write mode
                 # set ImpurityIndicator to FileReadWrite and FileWrite
@@ -211,7 +231,7 @@ def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None) ->
 
         else:
             print(f"Unknown builtin function {key}")
-    # TODO: handle the case where the argument is not a string literal
+
     else:
         if key == "read":
             builtin_function.indicator = VariableRead(Reference(node.as_string()))
