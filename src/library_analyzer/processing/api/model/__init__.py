@@ -16,6 +16,26 @@ from ._documentation import (
     ParameterDocumentation,
 )
 from ._parameters import Parameter, ParameterAssignment
+from ._purity import (
+    AttributeAccess,
+    BuiltInFunction,
+    Call,
+    ConcreteImpurityIndicator,
+    Expression,
+    FileRead,
+    FileWrite,
+    GlobalAccess,
+    ImpurityCertainty,
+    ImpurityIndicator,
+    InstanceAccess,
+    ParameterAccess,
+    Reference,
+    StringLiteral,
+    SystemInteraction,
+    UnknownCallTarget,
+    VariableRead,
+    VariableWrite,
+)
 from ._types import (
     AbstractType,
     BoundaryType,
@@ -24,25 +44,3 @@ from ._types import (
     UnionType,
     create_type,
 )
-from ._purity import (
-    Expression,
-    AttributeAccess,
-    GlobalAccess,
-    ParameterAccess,
-    InstanceAccess,
-    StringLiteral,
-    Reference,
-    ImpurityCertainty,
-    ImpurityIndicator,
-    ConcreteImpurityIndicator,
-    VariableRead,
-    VariableWrite,
-    FileRead,
-    FileWrite,
-    UnknownCallTarget,
-    Call,
-    SystemInteraction,
-    BuiltInFunction
-)
-
-

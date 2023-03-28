@@ -16,7 +16,8 @@ class Expression(astroid.NodeNG, ABC):
 
 @dataclass
 class AttributeAccess(Expression):
-    """ Class for class attribute access """
+    """Class for class attribute access"""
+
     name: str
 
     def __hash__(self) -> int:
@@ -25,7 +26,8 @@ class AttributeAccess(Expression):
 
 @dataclass
 class GlobalAccess(Expression):
-    """ Class for global variable access"""
+    """Class for global variable access"""
+
     name: str
     module: str = "None"
 
@@ -35,7 +37,8 @@ class GlobalAccess(Expression):
 
 @dataclass
 class ParameterAccess(Expression):
-    """ Class for function parameter access"""
+    """Class for function parameter access"""
+
     name: str
     function: str
 
@@ -45,7 +48,8 @@ class ParameterAccess(Expression):
 
 @dataclass
 class InstanceAccess(Expression):
-    """ Class for field access of an instance attribute (receiver.target)"""
+    """Class for field access of an instance attribute (receiver.target)"""
+
     receiver: Expression
     target: Expression
 
@@ -182,7 +186,8 @@ class SystemInteraction(ImpurityIndicator):
 
 @dataclass
 class BuiltInFunction(ImpurityIndicator):
-    """ Class for built-in functions """
+    """Class for built-in functions"""
+
     expression: Expression
     indicator: ImpurityIndicator  # this should be a list to handle multiple reasons
     certainty: ImpurityCertainty

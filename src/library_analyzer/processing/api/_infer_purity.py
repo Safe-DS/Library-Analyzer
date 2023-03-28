@@ -6,25 +6,37 @@ from enum import Enum, auto
 from typing import Optional
 
 import astroid
-
-from library_analyzer.processing.api.model import ImpurityIndicator, VariableRead, Call, FileWrite, \
-    StringLiteral, ImpurityCertainty, Reference, FileRead, BuiltInFunction, SystemInteraction, VariableWrite, \
-    ConcreteImpurityIndicator
+from library_analyzer.processing.api.model import (
+    BuiltInFunction,
+    Call,
+    ConcreteImpurityIndicator,
+    FileRead,
+    FileWrite,
+    ImpurityCertainty,
+    ImpurityIndicator,
+    Reference,
+    StringLiteral,
+    SystemInteraction,
+    VariableRead,
+    VariableWrite,
+)
 from library_analyzer.utils import ASTWalker
 
 BUILTIN_FUNCTIONS = {
     "open": BuiltInFunction(Reference("open"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
     # TODO: how to replace the ... with the correct type?
     "print": BuiltInFunction(Reference("print"), SystemInteraction(), ImpurityCertainty.DEFINITELY_IMPURE),
-
     "read": BuiltInFunction(Reference("read"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
     "write": BuiltInFunction(Reference("write"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
-    "readline": BuiltInFunction(Reference("readline"), ConcreteImpurityIndicator(),
-                                ImpurityCertainty.DEFINITELY_IMPURE),
-    "readlines": BuiltInFunction(Reference("readlines"), ConcreteImpurityIndicator(),
-                                 ImpurityCertainty.DEFINITELY_IMPURE),
-    "writelines": BuiltInFunction(Reference("writelines"), ConcreteImpurityIndicator(),
-                                  ImpurityCertainty.DEFINITELY_IMPURE),
+    "readline": BuiltInFunction(
+        Reference("readline"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE
+    ),
+    "readlines": BuiltInFunction(
+        Reference("readlines"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE
+    ),
+    "writelines": BuiltInFunction(
+        Reference("writelines"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE
+    ),
     "close": BuiltInFunction(Reference("close"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_PURE),
 }
 
@@ -118,7 +130,6 @@ class PurityHandler:
             pass
         elif isinstance(node.func, astroid.Name):
             if node.func.name in BUILTIN_FUNCTIONS:
-
                 if isinstance(node.args[0], astroid.Name):
                     impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].name, True)
                     self.append_reason(impurity_indicator)
@@ -197,9 +208,9 @@ def determine_open_mode(node: astroid.NodeNG) -> OpenMode:
     raise TypeError(f"{node.args} is not a valid mode for open function")
 
 
-def check_builtin_function(node: astroid.NodeNG, key: str, value: Optional[str] = None, is_var: bool = False) -> \
-        list[ImpurityIndicator]:
-
+def check_builtin_function(
+    node: astroid.NodeNG, key: str, value: Optional[str] = None, is_var: bool = False
+) -> list[ImpurityIndicator]:
     if is_var:
         if key == "open":
             open_mode = determine_open_mode(node)
@@ -324,7 +335,7 @@ def get_purity_result_str(indicators: list[ImpurityIndicator]) -> str:
     return "Maybe Impure"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sourcecode = """
     def impure_fun(a):
         impure_call(a) # call => impure
