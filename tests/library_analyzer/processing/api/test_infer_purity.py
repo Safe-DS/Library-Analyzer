@@ -7,10 +7,11 @@ from library_analyzer.processing.api import (
     MaybeImpure,
     PurityInformation,
     PurityResult,
+    OpenMode,
     calc_function_id,
     determine_purity,
     extract_impurity_reasons,
-    infer_purity,
+    infer_purity, determine_open_mode,
 )
 from library_analyzer.processing.api.model import (
     AttributeAccess,
@@ -134,6 +135,41 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
 
 
 @pytest.mark.parametrize(
+    "args, expected",
+    [
+        (["test"], OpenMode.READ),
+        (["test", "r"], OpenMode.READ),
+        (["test", "rb"], OpenMode.READ),
+        (["test", "rt"], OpenMode.READ),
+        (["test", "r+"], OpenMode.READ_WRITE),
+        (["test", "w"], OpenMode.WRITE),
+        (["test", "wb"], OpenMode.WRITE),
+        (["test", "wt"], OpenMode.WRITE),
+        (["test", "w+"], OpenMode.READ_WRITE),
+        (["test", "x"], OpenMode.WRITE),
+        (["test", "xb"], OpenMode.WRITE),
+        (["test", "xt"], OpenMode.WRITE),
+        (["test", "x+"], OpenMode.READ_WRITE),
+        (["test", "a"], OpenMode.WRITE),
+        (["test", "ab"], OpenMode.WRITE),
+        (["test", "at"], OpenMode.WRITE),
+        (["test", "a+"], OpenMode.READ_WRITE),
+        (["test", "r+b"], OpenMode.READ_WRITE),
+        (["test", "w+b"], OpenMode.READ_WRITE),
+        (["test", "x+b"], OpenMode.READ_WRITE),
+        (["test", "a+b"], OpenMode.READ_WRITE),
+        (["test", "r+t"], OpenMode.READ_WRITE),
+        (["test", "w+t"], OpenMode.READ_WRITE),
+        (["test", "x+t"], OpenMode.READ_WRITE),
+        (["test", "a+t"], OpenMode.READ_WRITE),
+    ],
+)
+def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
+    result = determine_open_mode(args)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
     "code, expected",
     [
         (
@@ -183,7 +219,7 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
                 FileWrite(source=StringLiteral(value="test5.txt")),
                 Call(expression=Reference(name="open('test5.txt', 'r+')")),
             ],
-        ),  # TODO: do we need to distinguish between read and write?
+        ),
         (
             """
                 def fun6():
