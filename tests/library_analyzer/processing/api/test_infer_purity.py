@@ -271,6 +271,8 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
 
     ]
 )
+# TODO: test for wrong arguments
 def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
     purity_info: list[PurityInformation] = infer_purity(code)
     assert purity_info[0].reasons == expected
+

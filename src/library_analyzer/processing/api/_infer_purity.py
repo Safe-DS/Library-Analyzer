@@ -19,9 +19,12 @@ BUILTIN_FUNCTIONS = {
 
     "read": BuiltInFunction(Reference("read"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
     "write": BuiltInFunction(Reference("write"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
-    "readline": BuiltInFunction(Reference("readline"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
-    "readlines": BuiltInFunction(Reference("readlines"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
-    "writelines": BuiltInFunction(Reference("writelines"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
+    "readline": BuiltInFunction(Reference("readline"), ConcreteImpurityIndicator(),
+                                ImpurityCertainty.DEFINITELY_IMPURE),
+    "readlines": BuiltInFunction(Reference("readlines"), ConcreteImpurityIndicator(),
+                                 ImpurityCertainty.DEFINITELY_IMPURE),
+    "writelines": BuiltInFunction(Reference("writelines"), ConcreteImpurityIndicator(),
+                                  ImpurityCertainty.DEFINITELY_IMPURE),
     "close": BuiltInFunction(Reference("close"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_PURE),
 }
 
@@ -39,7 +42,7 @@ class FunctionID:
 
 class PurityResult(ABC):
     def __init__(self) -> None:
-        self.reasons: list[ImpurityIndicator] = []
+        self.reasons: list[ImpurityIndicator] | None = None
 
 
 @dataclass
@@ -129,7 +132,6 @@ class PurityHandler:
     def enter_attribute(self, node: astroid.Attribute) -> None:
         # print(f"Entering Attribute node {node.as_string()}")
         # Handle the Attribute node here
-        impurity_indicator: list[ImpurityIndicator] = []
         if isinstance(node.expr, astroid.Name):
             if node.attrname in BUILTIN_FUNCTIONS:
                 impurity_indicator = check_builtin_function(node, node.attrname)
@@ -175,12 +177,13 @@ class OpenMode(Enum):
     BOTH = auto()
 
 
-def determine_open_mode(node: astroid.NodeNG) -> OpenMode | TypeError:
+def determine_open_mode(node: astroid.NodeNG) -> OpenMode:
     write_mode = {"w", "wb", "a", "ab", "x", "xb"}
     read_mode = {"r", "rb"}
     read_and_write_mode = {"r+", "rb+", "w+", "wb+", "a+", "ab+", "x+", "xb+"}
     if len(node.args) == 1:
         return OpenMode.READ
+
     for arg in node.args:
         if str(arg.value) in write_mode:
             return OpenMode.WRITE
@@ -191,23 +194,22 @@ def determine_open_mode(node: astroid.NodeNG) -> OpenMode | TypeError:
         if str(arg.value) in read_and_write_mode:
             return OpenMode.BOTH
 
-    return TypeError(f"{node.args} is not a valid mode for open function")
+    raise TypeError(f"{node.args} is not a valid mode for open function")
 
 
-def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None, is_var: bool = False) -> list[ImpurityIndicator] | TypeError:
-    impurity_indicator: list[ImpurityIndicator] = []
-    builtin_function = copy(BUILTIN_FUNCTIONS[key])
+def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None, is_var: bool = False) -> \
+        list[ImpurityIndicator]:
+
     if is_var:
-        print(f"Variable {value} is used as an argument for {key} function")
         if key == "open":
             open_mode = determine_open_mode(node)
             if open_mode == OpenMode.WRITE:
                 return [FileWrite(Reference(value))]
 
-            elif open_mode == OpenMode.READ:
+            if open_mode == OpenMode.READ:
                 return [FileRead(Reference(value))]
 
-            elif open_mode == OpenMode.BOTH:
+            if open_mode == OpenMode.BOTH:
                 return [FileRead(Reference(value)), FileWrite(Reference(value))]
 
     elif isinstance(value, str):
@@ -216,22 +218,22 @@ def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None, is
             if open_mode == OpenMode.WRITE:  # write mode
                 return [FileWrite(StringLiteral(value))]
 
-            elif open_mode == OpenMode.READ:  # read mode
+            if open_mode == OpenMode.READ:  # read mode
                 return [FileRead(StringLiteral(value))]
 
-            elif open_mode == OpenMode.BOTH:  # read and write mode
+            if open_mode == OpenMode.BOTH:  # read and write mode
                 return [FileRead(StringLiteral(value)), FileWrite(StringLiteral(value))]
 
         else:
-            return TypeError(f"Unknown builtin function {key}")
+            raise TypeError(f"Unknown builtin function {key}")
 
     else:
         if key in ("read", "readline", "readlines"):
             return [VariableRead(Reference(node.as_string()))]
-        elif key in ("write", "writelines"):
+        if key in ("write", "writelines"):
             return [VariableWrite(Reference(node.as_string()))]
 
-    return TypeError(f"Unknown builtin function {key}")
+    raise TypeError(f"Unknown builtin function {key}")
 
 
 def infer_purity(code: str) -> list[PurityInformation]:
