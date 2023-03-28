@@ -207,8 +207,8 @@ def determine_open_mode(args: list[str]) -> OpenMode:
         return OpenMode.WRITE
     if mode in read_and_write_mode:
         return OpenMode.READ_WRITE
-    else:
-        raise ValueError(f"{mode} is not a valid mode for the open function")
+
+    raise ValueError(f"{mode} is not a valid mode for the open function")
 
 
 def check_builtin_function(
