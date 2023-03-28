@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC
-from copy import copy
 from dataclasses import dataclass
 from enum import Enum, auto
+from typing import Optional
 
 import astroid
 
@@ -42,7 +42,7 @@ class FunctionID:
 
 class PurityResult(ABC):
     def __init__(self) -> None:
-        self.reasons: list[ImpurityIndicator] | None = None
+        self.reasons: list[ImpurityIndicator] | None = []
 
 
 @dataclass
@@ -197,7 +197,7 @@ def determine_open_mode(node: astroid.NodeNG) -> OpenMode:
     raise TypeError(f"{node.args} is not a valid mode for open function")
 
 
-def check_builtin_function(node: astroid.NodeNG, key: str, value: str = None, is_var: bool = False) -> \
+def check_builtin_function(node: astroid.NodeNG, key: str, value: Optional[str] = None, is_var: bool = False) -> \
         list[ImpurityIndicator]:
 
     if is_var:
