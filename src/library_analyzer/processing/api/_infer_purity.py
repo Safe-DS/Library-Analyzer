@@ -191,8 +191,32 @@ class OpenMode(Enum):
 def determine_open_mode(args: list[str]) -> OpenMode:
     write_mode = {"w", "wb", "a", "ab", "x", "xb", "wt", "at", "xt"}
     read_mode = {"r", "rb", "rt"}
-    read_and_write_mode = {"r+", "rb+", "w+", "wb+", "a+", "ab+", "x+", "xb+", "r+t", "rb+t", "w+t", "wb+t", "a+t",
-                           "ab+t", "x+t", "xb+t", "r+b", "rb+b", "w+b", "wb+b", "a+b", "ab+b", "x+b", "xb+b"}
+    read_and_write_mode = {
+        "r+",
+        "rb+",
+        "w+",
+        "wb+",
+        "a+",
+        "ab+",
+        "x+",
+        "xb+",
+        "r+t",
+        "rb+t",
+        "w+t",
+        "wb+t",
+        "a+t",
+        "ab+t",
+        "x+t",
+        "xb+t",
+        "r+b",
+        "rb+b",
+        "w+b",
+        "wb+b",
+        "a+b",
+        "ab+b",
+        "x+b",
+        "xb+b",
+    }
     if len(args) == 1:
         return OpenMode.READ
 
