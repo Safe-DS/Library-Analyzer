@@ -66,16 +66,16 @@ class DefinitelyPure(PurityResult):
 class MaybeImpure(PurityResult):
     reasons: list[ImpurityIndicator]
 
-    def __hash__(self) -> int:
-        return hash(tuple(self.reasons))
+    # def __hash__(self) -> int:
+    #     return hash(tuple(self.reasons))
 
 
 @dataclass
 class DefinitelyImpure(PurityResult):
     reasons: list[ImpurityIndicator]
 
-    def __hash__(self) -> int:
-        return hash(tuple(self.reasons))
+    # def __hash__(self) -> int:
+    #     return hash(tuple(self.reasons))
 
 
 @dataclass
@@ -84,13 +84,13 @@ class PurityInformation:
     # purity: PurityResult
     reasons: list[ImpurityIndicator]
 
-    def __hash__(self) -> int:
-        return hash((self.id, self.reasons))
+    # def __hash__(self) -> int:
+    #     return hash((self.id, self.reasons))
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, PurityInformation):
-            return NotImplemented
-        return self.id == other.id and self.reasons == other.reasons
+    # def __eq__(self, other: object) -> bool:
+    #     if not isinstance(other, PurityInformation):
+    #         return NotImplemented
+    #     return self.id == other.id and self.reasons == other.reasons
 
 
 class PurityHandler:
