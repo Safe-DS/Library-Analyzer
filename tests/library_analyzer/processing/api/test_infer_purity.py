@@ -22,7 +22,7 @@ from library_analyzer.processing.api.model import (
     Reference,
     StringLiteral,
     VariableRead,
-    VariableWrite, GlobalAccess, InstanceAccess, ParameterAccess,
+    VariableWrite,
 )
 
 
