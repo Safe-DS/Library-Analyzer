@@ -18,7 +18,7 @@ from library_analyzer.processing.api.model import (
     StringLiteral,
     SystemInteraction,
     VariableRead,
-    VariableWrite,
+    VariableWrite, InstanceAccess,
 )
 from library_analyzer.utils import ASTWalker
 
@@ -107,14 +107,22 @@ class PurityHandler:
         pass  # Are we analyzing function defs within function defs? Yes, we are.
 
     def enter_assign(self, node: astroid.Assign) -> None:
-        # print(f"Entering Assign node {node}")
+        # print(f"Entering Assign node {node}, {node.as_string()}")
         # Handle the Assign node here
         if isinstance(node.value, astroid.Call):
-            pass
-        if isinstance(node.value, astroid.Const):
             self.append_reason([VariableWrite(Reference(node.as_string()))])
-        else:  # default case
+        elif isinstance(node.value, astroid.Const):
             self.append_reason([VariableWrite(Reference(node.as_string()))])
+        # else:  # default case
+        #     for child in node.parent.get_children():
+        #         if isinstance(child, astroid.Assign):
+        #             target = child.value.attrname
+        #         elif isinstance(child, astroid.Name):
+        #             target = child.name
+        #     self.append_reason([VariableWrite(InstanceAccess(
+        #         receiver=Reference(node.parent.get_children().__next__().as_string()),
+        #         target=Reference(target)
+        #     ))])
         # TODO: Assign node needs further analysis to determine if it is pure or impure
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
@@ -133,6 +141,9 @@ class PurityHandler:
                 if isinstance(node.args[0], astroid.Name):
                     impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].name, True)
                     self.append_reason(impurity_indicator)
+                # if isinstance(node, astroid.Call):
+                #     impurity_indicator = check_builtin_function(node, node.func.name)
+                #     self.append_reason(impurity_indicator)
                 else:
                     impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].value)
                     self.append_reason(impurity_indicator)
@@ -162,8 +173,12 @@ class PurityHandler:
         pass
 
     def enter_name(self, node: astroid.Name) -> None:
-        # print(f"Entering Name node {node.as_string()}")
+        #print(f"Entering Name node {node.as_string()}")
         # Handle the Name node here
+        # if isinstance(node.parent, astroid.AssignAttr) and node.parent.expr == node:
+        #     print(f"{node.name} is an attribute")
+        # elif isinstance(node.parent, astroid.Call) and node.parent.func == node:
+        #     print(f"{node.name} is an instance")
         pass
 
     def enter_const(self, node: astroid.Const) -> None:
@@ -191,32 +206,8 @@ class OpenMode(Enum):
 def determine_open_mode(args: list[str]) -> OpenMode:
     write_mode = {"w", "wb", "a", "ab", "x", "xb", "wt", "at", "xt"}
     read_mode = {"r", "rb", "rt"}
-    read_and_write_mode = {
-        "r+",
-        "rb+",
-        "w+",
-        "wb+",
-        "a+",
-        "ab+",
-        "x+",
-        "xb+",
-        "r+t",
-        "rb+t",
-        "w+t",
-        "wb+t",
-        "a+t",
-        "ab+t",
-        "x+t",
-        "xb+t",
-        "r+b",
-        "rb+b",
-        "w+b",
-        "wb+b",
-        "a+b",
-        "ab+b",
-        "x+b",
-        "xb+b",
-    }
+    read_and_write_mode = {"r+", "rb+", "w+", "wb+", "a+", "ab+", "x+", "xb+", "r+t", "rb+t", "w+t", "wb+t", "a+t",
+                           "ab+t", "x+t", "xb+t", "r+b", "rb+b", "w+b", "wb+b", "a+b", "ab+b", "x+b", "xb+b"}
     if len(args) == 1:
         return OpenMode.READ
 
@@ -269,26 +260,41 @@ def check_builtin_function(
     if key in ("write", "writelines"):
         return [VariableWrite(Reference(node.as_string()))]
 
+    if key in ("print", "input"):
+        return [SystemInteraction()]
+
     raise TypeError(f"Unknown builtin function {key}")
 
 
 def infer_purity(code: str) -> list[PurityInformation]:
+    module = astroid.parse(code)
     purity_handler: PurityHandler = PurityHandler()
     walker = ASTWalker(purity_handler)
-    functions = get_function_defs(code)
     result = []
-    for function in functions:
-        # print(function)
-        # print(f"Analyse {function.name}:")
-        walker.walk(function)
+    for node in module.body:
+        tree = astroid.extract_node(node.as_string())
+        print(tree.repr_tree())
+        print("\n\n")
+
+    for node in module.body:
+        walker.walk(node)
         purity_result = determine_purity(purity_handler.purity_reason)
-        # print(f"Result: {purity_result.__class__.__name__}")
-        # if not isinstance(purity_result, DefinitelyPure):
-        #    print(f"Reasons: {purity_result.reasons}")
-        # print(f"Function {function.name} is done. \n")
-        result.append(generate_purity_information(function, purity_result))
+        result.append(generate_purity_information(node, purity_result))
         purity_handler.purity_reason = []
     return result
+
+    # for function in functions:
+    #     # print(function)
+    #     # print(f"Analyse {function.name}:")
+    #     walker.walk(function)
+    #     purity_result = determine_purity(purity_handler.purity_reason)
+    #     # print(f"Result: {purity_result.__class__.__name__}")
+    #     # if not isinstance(purity_result, DefinitelyPure):
+    #     #    print(f"Reasons: {purity_result.reasons}")
+    #     # print(f"Function {function.name} is done. \n")
+    #     result.append(generate_purity_information(function, purity_result))
+    #     purity_handler.purity_reason = []
+    # return result
 
 
 def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
@@ -310,18 +316,18 @@ def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
     #     return DefinitelyPure()
 
 
-def get_function_defs(code: str) -> list[astroid.FunctionDef]:
-    try:
-        module = astroid.parse(code)
-    except SyntaxError as error:
-        raise ValueError("Invalid Python code") from error
-
-    function_defs = list[astroid.FunctionDef]()
-    for node in module.body:
-        if isinstance(node, astroid.FunctionDef):
-            function_defs.append(node)
-    return function_defs
-    # TODO: This function should read from a python file (module) and return a list of FunctionDefs
+# deprecated
+# def get_function_defs(code: str) -> list[astroid.FunctionDef]:
+#     try:
+#         module = astroid.parse(code)
+#     except SyntaxError as error:
+#         raise ValueError("Invalid Python code") from error
+#
+#     function_defs = list[astroid.FunctionDef]()
+#     for node in module.body:
+#         if isinstance(node, astroid.FunctionDef):
+#             function_defs.append(node)
+#     return function_defs
 
 
 def extract_impurity_reasons(purity: PurityResult) -> list[ImpurityIndicator]:
@@ -337,17 +343,18 @@ def generate_purity_information(function: astroid.FunctionDef, purity_result: Pu
     return purity_info
 
 
-def calc_function_id(node: astroid.NodeNG) -> FunctionID:
+def calc_function_id(node: astroid.NodeNG) -> FunctionID | None:
     if not isinstance(node, astroid.FunctionDef):
-        raise TypeError("Node is not a function")
-    module = node.root().name
+        return FunctionID("NODE (not a functionDef):", node.as_string(), 0, 0)
+    # module = node.root().name   TODO: Use module correctly
     # module = "_infer_purity.py"
-    if module.endswith(".py"):
-        module = module[:-3]
+    # if module.endswith(".py"):
+    #    module = module[:-3]
     name = node.name
     line = node.position.lineno
     col = node.position.col_offset
-    return FunctionID(module, name, line, col)
+    return FunctionID("NODE:", name, line, col)
+# TODO: This function should return a correct FunctionID object for a given function and an other ID for everything else
 
 
 # this function is only for visualization purposes
@@ -358,3 +365,58 @@ def get_purity_result_str(indicators: list[ImpurityIndicator]) -> str:
         return "Definitely Impure"
 
     return "Maybe Impure"
+
+
+if __name__ == "__main__":
+    import astroid
+
+    sourcecode = """
+       def impure_fun(a):
+           impure_call(a) # call => impure
+           impure_call(a) # call => impure - check if the analysis is correct for multiple calls - done
+           return a
+
+       def pure_fun(a):
+           a += 1
+           return a
+
+       class A:
+           def __init__(self):
+               self.value = 42
+       def instance_access():
+           a = A()
+           print(a.value) # InstanceAccess => pure ??
+
+       class B:
+           name = "test"
+       b = B()
+
+       def attribute_access():
+           res = b.name # AttributeAccess => maybe impure
+           print(res)
+
+       global_var = 17
+       def global_access():
+           res = global_var # GlobalAccess => impure
+           return res
+
+       def parameter_access(a):
+           res = a # ParameterAccess => pure
+           return res
+
+       glob = g(1)  # TODO: This will get filtered out because it is not a function call, but a variable assignment with a
+       # function call and therefore further analysis is needed
+
+       def fun(a):  # TODO: this function oddly has three calls in the results
+           h(a)
+           b =  g(a) # call => impure
+           b += 1
+           return b
+
+       """
+    result_list = infer_purity(sourcecode)
+    for info in result_list:
+        p = get_purity_result_str(info.reasons)
+        print(f"{info.id.module} {info.id.name} is {p} because {info.reasons} \n")
+
+
