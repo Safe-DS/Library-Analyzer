@@ -183,8 +183,7 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
                 def fun1():
                     open("test1.txt") # default mode: read only
             """,
-            [FileRead(source=StringLiteral(value="test1.txt")),
-             Call(expression=Reference(name="open('test1.txt')"))],
+            [FileRead(source=StringLiteral(value="test1.txt")), Call(expression=Reference(name="open('test1.txt')"))],
         ),
         (
             """
@@ -301,25 +300,25 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
                 def fun11(path11): # open with variable
                     open(path11)
             """,
-            [FileRead(source=Reference("path11")),
-             Call(expression=Reference(name="open(path11)"))],  # ??
+            [FileRead(source=Reference("path11")), Call(expression=Reference(name="open(path11)"))],  # ??
         ),
         (
             """
                 def fun12(path12): # open with variable write mode
                     open(path12, "w")
             """,
-            [FileWrite(source=Reference(name='path12')),
-             Call(expression=Reference(name="open(path12, 'w')"))],  # ??
+            [FileWrite(source=Reference(name="path12")), Call(expression=Reference(name="open(path12, 'w')"))],  # ??
         ),
         (
             """
                 def fun13(path13): # open with variable write mode
                     open(path13, "wb+")
             """,
-            [FileRead(source=Reference(name='path13')),
-             FileWrite(source=Reference(name='path13')),
-             Call(expression=Reference(name="open(path13, 'wb+')"))],  # ??
+            [
+                FileRead(source=Reference(name="path13")),
+                FileWrite(source=Reference(name="path13")),
+                Call(expression=Reference(name="open(path13, 'wb+')")),
+            ],  # ??
         ),
         (
             """
