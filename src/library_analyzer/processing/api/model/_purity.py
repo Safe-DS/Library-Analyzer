@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
+from typing import Optional
 
 import astroid
 
@@ -68,6 +69,7 @@ class StringLiteral(Expression):
 @dataclass
 class Reference(Expression):
     name: str
+    expression: Optional[Expression] = None
 
     def __hash__(self) -> int:
         return hash(self.name)

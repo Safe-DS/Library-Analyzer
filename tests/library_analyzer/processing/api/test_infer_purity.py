@@ -236,7 +236,7 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
                 FileRead(source=StringLiteral(value="test6.txt")),
                 Call(expression=Reference(name="open('test6.txt')")),
                 Call(expression=Reference(name="f.read()")),
-                VariableRead(expression=Reference(name="f.read")),
+                VariableRead(expression=Reference(name="f.read")),  # TODO: this is wrong
             ],
         ),
         (
@@ -250,7 +250,7 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
                 FileRead(source=StringLiteral(value="test7.txt")),
                 Call(expression=Reference(name="open('test7.txt')")),
                 Call(expression=Reference(name="f.readline([2])")),
-                VariableRead(expression=Reference(name="f.readline")),
+                VariableRead(expression=Reference(name="f.readline")),  # TODO: this is wrong
             ],
         ),
         (
@@ -264,7 +264,7 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
                 FileWrite(source=StringLiteral(value="test8.txt")),
                 Call(expression=Reference(name="open('test8.txt', 'w')")),
                 Call(expression=Reference(name="f.write('message')")),
-                VariableWrite(expression=Reference(name="f.write")),
+                VariableWrite(expression=Reference(name="f.write")),  # TODO: this is wrong
             ],
         ),
         (
@@ -278,7 +278,7 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
                 FileWrite(source=StringLiteral(value="test9.txt")),
                 Call(expression=Reference(name="open('test9.txt', 'w')")),
                 Call(expression=Reference(name="f.writelines(['message1', 'message2'])")),
-                VariableWrite(expression=Reference(name="f.writelines")),
+                VariableWrite(expression=Reference(name="f.writelines")),  # TODO: this is wrong
             ],
         ),
         (
@@ -291,7 +291,7 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
                 FileRead(source=StringLiteral(value="test10.txt")),
                 Call(expression=Reference(name="open('test10.txt')")),
                 Call(expression=Reference(name="f.read()")),
-                VariableRead(expression=Reference(name="f.read")),
+                VariableRead(expression=Reference(name="f.read")),  # TODO: this is wrong
             ],
         ),
         (
@@ -317,7 +317,7 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
                 FileRead(source=Reference(name="path13")),
                 FileWrite(source=Reference(name="path13")),
                 Call(expression=Reference(name="open(path13, 'wb+')")),
-            ],  # ??
+            ],
         ),
         (
             """
@@ -329,32 +329,32 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
                 FileRead(source=Reference("path14")),
                 Call(expression=Reference(name="open(path14)")),
                 Call(expression=Reference(name="f.read()")),
-                VariableRead(expression=Reference(name="f.read")),
-            ],  # ??
+                VariableRead(expression=Reference(name="f.read")),  # TODO: this is wrong
+            ],  # TODO: ??
         ),
         (
             """
-                def fun14(path14):
-                    with open(path14) as f:
-                        f.read()
+                def fun15(path15):
+                    with open(path15, "w") as f:
+                        f.write("test")
             """,
             [
-                FileRead(source=Reference("path14")),
-                Call(expression=Reference(name="open(path14)")),
-                Call(expression=Reference(name="f.read()")),
-                VariableRead(expression=Reference(name="f.read")),
-            ],  # ??
+                FileWrite(source=Reference(name='path15')),
+                Call(expression=Reference(name="open(path15, 'w')")),
+                Call(expression=Reference(name="f.write('test')")),
+                VariableWrite(expression=Reference(name='f.write')),  # TODO: this is wrong
+            ],  # TODO: ??
         ),
         (
             """
-                def fun15(path15): # open with variable and wrong mode
-                    open(path15, "test")
+                def fun16(path16): # open with variable and wrong mode
+                    open(path16, "test")
             """,
             ValueError,
         ),
         (
             """
-                def fun16(): # this does not belong here but is needed for code coverage
+                def fun17(): # this does not belong here but is needed for code coverage
                     print("test")
             """,
             TypeError,
@@ -407,9 +407,12 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
                     res = a.value # InstanceAccess => pure??
                     return res
             """,
-            [VariableWrite(expression=InstanceAccess(
-                receiver=Reference(name='a'),
-                target=Reference(name='value')
+            [VariableWrite(expression=Reference(
+                name="res",
+                expression=InstanceAccess(
+                    receiver=Reference(name='a'),
+                    target=Reference(name='value')
+                )
             ))],  # TODO: is this correct?
         ),
         (
@@ -423,7 +426,9 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
                     res = b.name # AttributeAccess => maybe impure
                     return res
             """,
-            [VariableWrite(expression=AttributeAccess(name='res = b.name'))],  # TODO: is this correct?
+            [VariableWrite(Reference(
+                name="res",
+                expression=AttributeAccess(name='b.name')))],  # TODO: is this correct?
         ),
         (
             """
@@ -432,7 +437,9 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
                     res = global_var # GlobalAccess => impure
                     return res
             """,
-            [VariableWrite(expression=GlobalAccess(name='global_var'))],  # TODO: is this correct?
+            [VariableWrite(Reference(
+                name="res",
+                expression=GlobalAccess(name='global_var')))],  # TODO: is this correct?
         ),
         (
             """
@@ -440,17 +447,16 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
                     res = a # ParameterAccess => pure
                     return res
             """,
-            [Call(expression=ParameterAccess(
+            [VariableWrite(Reference(name="res", expression=ParameterAccess(
                 name="a",
                 function="parameter_access"),
-            )],  # TODO: is this correct?
+            ))],  # TODO: is this correct?
         ),
         (
             """
-                glob = g(1)  # TODO: This will get filtered out because it is not a function call, but a variable assignment with a
-                # function call and therefore further analysis is needed
+                glob = g(1)  # call => impure
             """,
-            [VariableWrite(expression=Reference(name='b = g(a)')),
+            [VariableWrite(expression=Reference(name="glob", expression=Reference(name="g(1)"))),
              Call(expression=Reference(name="g(1)"))],  # TODO: is this correct?
         ),
         (
@@ -462,7 +468,7 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
                     return b
             """,
             [Call(expression=Reference(name='h(a)')),
-             VariableWrite(expression=Reference(name='b = g(a)')),
+             VariableWrite(expression=Reference(name="b", expression=Reference(name="g(a)"))),
              Call(expression=Reference(name='g(a)'))],  # TODO: is this correct?
         ),
 
