@@ -1,0 +1,63 @@
+{ "parameters": [
+    {
+        "id": "test/test/enumWithDoubleQuotes",
+        "name": "enumWithDoubleQuotes",
+        "qname": "test.enumWithDoubleQuotes",
+        "docstring": {
+            "type": "str",
+            "description": "If \"mean\", then replace missing values using the mean along each column\nIf \"median\", then replace missing values using the median along each column\nIf \"most_frequent\", then replace missing using the most frequent value along each column\nIf \"constant\", then replace missing values with fill_value\n"
+        },
+        "expected_literals": ["\"mean\"","\"median\"", "\"most_frequent\"", "\"constant\""]
+    },
+    {
+        "id": "test/test/enumWithSingleQuotes",
+        "name": "enumWithSingleQuotes",
+        "qname": "test.enumWithSingleQuotes",
+        "docstring": {
+            "type": "str",
+            "description": "If 'mean', then replace missing values using the mean along each column\nIf 'median', then replace missing values using the median along each column\nIf 'most_frequent', then replace missing using the most frequent value along each column\nIf 'constant', then replace missing values with fill_value\n"
+        },
+        "expected_literals": ["'median'", "'most_frequent'", "'constant'", "'mean'"]
+    },
+    {
+        "id": "test/test/NoneTest",
+        "name": "NoneTest",
+        "qname": "test.NoneTest",
+        "docstring": {
+            "type": "str",
+            "description": "Attribute name(s) given as string or a list/tuple of strings Eg.: [\"coef_\", \"estimator_\", ...], \"coef_\"\n\nIf None, estimator is considered fitted if there exist an attribute that ends with a underscore and does not start with double underscore."
+        },
+        "expected_literals": ["None"]
+    },
+        {
+        "id": "test/test/negativeExampleWithSingleQuotes",
+        "name": "negativeExampleWithSingleQuotes",
+        "qname": "test.negativeExampleWithSingleQuotes",
+        "docstring": {
+            "type": "str or bool",
+            "description": "When set to True, change the display of 'values' and/or 'samples' to be proportions and percentages respectively."
+        },
+        "expected_literals": []
+    },
+        {
+        "id": "test/test/negativeExampleValuesoOfDifferentParameter",
+        "name": "negativeExampleValuesoOfDifferentParameter",
+        "qname": "test.negativeExampleValuesoOfDifferentParameter",
+        "docstring": {
+            "type": "int, RandomState instance or None",
+            "description": "Controls the randomness of the estimator. The features are always randomly permuted at each split, even if splitter is set to \"best\". When max_features < n_features, the algorithm will select max_features at random at each split before finding the best split among them. But the best found split may vary across different runs, even if max_features=n_features. That is the case, if the improvement of the criterion is identical for several splits and one split has to be selected at random. To obtain a deterministic behaviour during fitting, random_state has to be fixed to an integer. See :term:Glossary <random_state> for details."
+        },
+        "expected_literals": []
+    },
+        {
+        "id": "test/test/EnumInTypestring",
+        "name": "EnumInTypestring",
+        "qname": "test.EnumInTypestring",
+        "docstring": {
+            "type": "{\"random\", \"best\"}",
+            "description": "The strategy used to choose the split at each node. Supported strategies are \"best\" to choose the best split and \"random\" to choose the best random split."
+        },
+        "expected_literals": ["\"best\"", "\"random\"" ]
+    }
+]
+}
