@@ -130,11 +130,12 @@ class PurityHandler:
             pass
         elif isinstance(node.func, astroid.Name):
             if node.func.name in BUILTIN_FUNCTIONS:
-                if isinstance(node.args[0], astroid.Name):
-                    impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].name, True)
+                value = node.args[0]
+                if isinstance(value, astroid.Name):
+                    impurity_indicator = check_builtin_function(node, node.func.name, value.name, True)
                     self.append_reason(impurity_indicator)
                 else:
-                    impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].value)
+                    impurity_indicator = check_builtin_function(node, node.func.name, value.value)
                     self.append_reason(impurity_indicator)
 
         self.append_reason([Call(Reference(node.as_string()))])
@@ -220,10 +221,9 @@ def determine_open_mode(args: list[str]) -> OpenMode:
     if len(args) == 1:
         return OpenMode.READ
 
-    if isinstance(args[1], astroid.Const):
-        mode = args[1].value
-    else:
-        mode = args[1]
+    mode = args[1]
+    if isinstance(mode, astroid.Const):
+        mode = mode.value
 
     if mode in read_mode:
         return OpenMode.READ
