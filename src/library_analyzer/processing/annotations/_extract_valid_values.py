@@ -1,4 +1,14 @@
+import dataclasses
 import re
+
+# @dataclasses.dataclass
+# class DescriptionStringConfiguration:
+#     _extract_from_description_if_listings: bool = True
+#     _extract_from_description_indented_listings: bool = True
+#
+#     def _build_function_list(self):
+#         if _extract_from_description_if_listings:
+#             self._function_list.append(_extract_from_description_if_listings)
 
 
 def extract_valid_literals(param_description: str, param_type: str) -> set[str]:
@@ -72,5 +82,3 @@ def _extract_from_description_indented_listings(description: str) -> set[str]:
     pattern = r"\s+(\"\w*\"|'\w*'|None|True|False):"
     matches = re.findall(pattern, description)
     return set(matches)
-
-
