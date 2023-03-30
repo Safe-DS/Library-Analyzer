@@ -2,10 +2,10 @@ from ._get_api import get_api
 from ._get_instance_attributes import get_instance_attributes
 from ._get_parameter_list import get_parameter_list
 from ._infer_purity import (
-    DefinitelyImpure,
-    DefinitelyPure,
+    Impure,
+    Pure,
     ImpurityIndicator,
-    MaybeImpure,
+    Unknown,
     OpenMode,
     PurityInformation,
     PurityResult,

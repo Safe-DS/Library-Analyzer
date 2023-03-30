@@ -1,10 +1,10 @@
 import astroid
 import pytest
 from library_analyzer.processing.api import (
-    DefinitelyImpure,
-    DefinitelyPure,
+    Impure,
+    Pure,
     ImpurityIndicator,
-    MaybeImpure,
+    Unknown,
     PurityInformation,
     PurityResult,
     OpenMode,
@@ -74,25 +74,25 @@ from library_analyzer.processing.api.model import (
 @pytest.mark.parametrize(
     "purity_result, expected",
     [
-        (DefinitelyPure(), []),
+        (Pure(), []),
         (
-            DefinitelyImpure(reasons=[Call(expression=AttributeAccess(name="impure_call"))]),
+            Impure(reasons=[Call(expression=AttributeAccess(name="impure_call"))]),
             [Call(expression=AttributeAccess(name="impure_call"))],
         ),
         (
-            MaybeImpure(reasons=[FileRead(source=StringLiteral(value="read_path"))]),
+            Unknown(reasons=[FileRead(source=StringLiteral(value="read_path"))]),
             [FileRead(source=StringLiteral(value="read_path"))],
         ),
         (
-            MaybeImpure(reasons=[FileWrite(source=StringLiteral(value="write_path"))]),
+            Unknown(reasons=[FileWrite(source=StringLiteral(value="write_path"))]),
             [FileWrite(source=StringLiteral(value="write_path"))],
         ),
         (
-            MaybeImpure(reasons=[VariableRead(StringLiteral(value="var_read"))]),
+            Unknown(reasons=[VariableRead(StringLiteral(value="var_read"))]),
             [VariableRead(StringLiteral(value="var_read"))],
         ),
         (
-            MaybeImpure(reasons=[VariableWrite(StringLiteral(value="var_write"))]),
+            Unknown(reasons=[VariableWrite(StringLiteral(value="var_write"))]),
             [VariableWrite(StringLiteral(value="var_write"))],
         ),
     ],
@@ -106,10 +106,10 @@ def test_generate_purity_information(purity_result: PurityResult, expected: list
 @pytest.mark.parametrize(
     "purity_reasons, expected",
     [
-        ([], DefinitelyPure()),
+        ([], Pure()),
         (
             [Call(expression=AttributeAccess(name="impure_call"))],
-            DefinitelyImpure(reasons=[Call(expression=AttributeAccess(name="impure_call"))]),
+            Impure(reasons=[Call(expression=AttributeAccess(name="impure_call"))]),
         ),
         # TODO: improve analysis so this test does not fail:
         # (
@@ -118,19 +118,19 @@ def test_generate_purity_information(purity_result: PurityResult, expected: list
         # ),
         (
             [FileRead(source=StringLiteral(value="read_path"))],
-            DefinitelyImpure(reasons=[FileRead(source=StringLiteral(value="read_path"))]),
+            Impure(reasons=[FileRead(source=StringLiteral(value="read_path"))]),
         ),
         (
             [FileWrite(source=StringLiteral(value="write_path"))],
-            DefinitelyImpure(reasons=[FileWrite(source=StringLiteral(value="write_path"))]),
+            Impure(reasons=[FileWrite(source=StringLiteral(value="write_path"))]),
         ),
         (
             [VariableRead(StringLiteral(value="var_read"))],
-            MaybeImpure(reasons=[VariableRead(StringLiteral(value="var_read"))]),
+            Unknown(reasons=[VariableRead(StringLiteral(value="var_read"))]),
         ),
         (
             [VariableWrite(StringLiteral(value="var_write"))],
-            MaybeImpure(reasons=[VariableWrite(StringLiteral(value="var_write"))]),
+            Unknown(reasons=[VariableWrite(StringLiteral(value="var_write"))]),
         ),
     ],
 )
@@ -368,6 +368,9 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
             infer_purity(code)
     else:
         purity_info: list[PurityInformation] = infer_purity(code)
+        for info in purity_info:
+            p = get_purity_result_str(info.reasons)
+            print(f"{info.id.module} {info.id.name} is {p} because {info.reasons} \n")
         assert purity_info[0].reasons == expected
 
 

@@ -59,12 +59,12 @@ class PurityResult(ABC):
 
 
 @dataclass
-class DefinitelyPure(PurityResult):
+class Pure(PurityResult):
     reasons = []
 
 
 @dataclass
-class MaybeImpure(PurityResult):
+class Unknown(PurityResult):
     reasons: list[ImpurityIndicator]
 
     # def __hash__(self) -> int:
@@ -72,7 +72,7 @@ class MaybeImpure(PurityResult):
 
 
 @dataclass
-class DefinitelyImpure(PurityResult):
+class Impure(PurityResult):
     reasons: list[ImpurityIndicator]
 
     # def __hash__(self) -> int:
@@ -101,7 +101,7 @@ class ParameterUsageHandler:
 
     def enter_name(self, node):
         variable = node.as_string()
-        print("WITHIN PARAMETER enter_name", variable)
+        # print("WITHIN PARAMETER ", variable)
         if isinstance(node.parent, astroid.Call):
             return  # TODO: is a function call, also a parameter access if a parameter is passed?
 
@@ -131,12 +131,12 @@ class PurityHandler:
             parameters = []
             for arg in node.args.args:
                 parameters.append(arg.name)
-                print(f"Argument: {arg.name}")
-            print("\n")
+                # print(f"Argument: {arg.name}")
+
             parameter_handler = ParameterUsageHandler(parameters, {})
             visitor = ASTWalker(parameter_handler)
             visitor.walk(node)
-            print("Used parameters: ", parameter_handler.get_used_parameters())
+            # print("Used parameters: ", parameter_handler.get_used_parameters())
             for parameter in parameter_handler.get_used_parameters():
                 self.append_reason([VariableWrite(ParameterAccess(parameters=parameter, function=node.name))])
 
@@ -347,11 +347,11 @@ def infer_purity(code: str) -> list[PurityInformation]:
 
 def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
     if len(indicators) == 0:
-        return DefinitelyPure()
+        return Pure()
     if any(indicator.certainty == ImpurityCertainty.DEFINITELY_IMPURE for indicator in indicators):
-        return DefinitelyImpure(reasons=indicators)
+        return Impure(reasons=indicators)
 
-    return MaybeImpure(reasons=indicators)
+    return Unknown(reasons=indicators)
 
     # print(f"Maybe check {(any(purity_reason.is_reason_for_impurity() for purity_reason in purity_reasons))}")
     # if any(reason.is_reason_for_impurity() for reason in purity_reasons):
@@ -379,7 +379,7 @@ def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
 
 
 def extract_impurity_reasons(purity: PurityResult) -> list[ImpurityIndicator]:
-    if isinstance(purity, DefinitelyPure):
+    if isinstance(purity, Pure):
         return []
     return purity.reasons
 
@@ -408,11 +408,11 @@ def calc_function_id(node: astroid.NodeNG) -> FunctionID | None:
 # this function is only for visualization purposes
 def get_purity_result_str(indicators: list[ImpurityIndicator]) -> str:
     if len(indicators) == 0:
-        return "Definitely Pure"
+        return "Pure"
     if any(indicator.certainty == ImpurityCertainty.DEFINITELY_IMPURE for indicator in indicators):
-        return "Definitely Impure"
+        return "Impure"
 
-    return "Maybe Impure"
+    return "Unknown"
 
 
 if __name__ == "__main__":
