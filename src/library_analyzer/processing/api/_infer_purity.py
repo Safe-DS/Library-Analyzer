@@ -251,30 +251,22 @@ def determine_open_mode(args: list[str]) -> OpenMode:
 def check_builtin_function(
     node: astroid.NodeNG, key: str, value: Optional[str] = None, is_var: bool = False
 ) -> list[ImpurityIndicator]:
-    if is_var:
+    if isinstance(value, str):
         if key == "open":
             open_mode = determine_open_mode(node.args)
-            if open_mode == OpenMode.WRITE:
-                return [FileWrite(Reference(value))]
-
-            if open_mode == OpenMode.READ:
-                return [FileRead(Reference(value))]
-
-            if open_mode == OpenMode.READ_WRITE:
-                return [FileRead(Reference(value)), FileWrite(Reference(value))]
-
-    elif isinstance(value, str):
-        if key == "open":
-            open_mode = determine_open_mode(node.args)
-            if open_mode == OpenMode.WRITE:  # write mode
-                return [FileWrite(StringLiteral(value))]
-
-            if open_mode == OpenMode.READ:  # read mode
-                return [FileRead(StringLiteral(value))]
-
-            if open_mode == OpenMode.READ_WRITE:  # read and write mode
-                return [FileRead(StringLiteral(value)), FileWrite(StringLiteral(value))]
-
+            match open_mode:
+                case OpenMode.WRITE:
+                    if is_var:
+                        return [FileWrite(Reference(value))]
+                    return [FileWrite(StringLiteral(value))]
+                case OpenMode.READ:
+                    if is_var:
+                        return [FileRead(Reference(value))]
+                    return [FileRead(StringLiteral(value))]
+                case OpenMode.READ_WRITE:
+                    if is_var:
+                        return [FileRead(Reference(value)), FileWrite(Reference(value))]
+                    return [FileRead(StringLiteral(value)), FileWrite(StringLiteral(value))]
         raise TypeError(f"Unknown builtin function {key}")
 
     if key in ("read", "readline", "readlines"):

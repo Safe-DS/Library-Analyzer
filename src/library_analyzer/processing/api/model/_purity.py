@@ -70,6 +70,7 @@ class StringLiteral(Expression):
 @dataclass
 class Reference(Expression):
     name: str
+    expression: Optional[Expression] = None
 
     # def __hash__(self) -> int:
     #     return hash(self.name)
