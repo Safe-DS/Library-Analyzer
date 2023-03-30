@@ -11,7 +11,9 @@ from library_analyzer.processing.api import (
     calc_function_id,
     determine_purity,
     extract_impurity_reasons,
-    infer_purity, determine_open_mode, get_purity_result_str,
+    infer_purity,
+    determine_open_mode,
+    get_purity_result_str,
 )
 from library_analyzer.processing.api.model import (
     AttributeAccess,
@@ -21,7 +23,10 @@ from library_analyzer.processing.api.model import (
     Reference,
     StringLiteral,
     VariableRead,
-    VariableWrite, GlobalAccess, InstanceAccess, ParameterAccess,
+    VariableWrite,
+    GlobalAccess,
+    InstanceAccess,
+    ParameterAccess,
 )
 
 

@@ -18,7 +18,8 @@ from library_analyzer.processing.api.model import (
     StringLiteral,
     SystemInteraction,
     VariableRead,
-    VariableWrite, InstanceAccess,
+    VariableWrite,
+    InstanceAccess,
 )
 from library_analyzer.utils import ASTWalker
 
@@ -138,14 +139,12 @@ class PurityHandler:
             pass
         elif isinstance(node.func, astroid.Name):
             if node.func.name in BUILTIN_FUNCTIONS:
-                if isinstance(node.args[0], astroid.Name):
-                    impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].name, True)
-                    self.append_reason(impurity_indicator)
-                elif isinstance(node, astroid.Call):
-                    impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].value)
+                value = node.args[0]
+                if isinstance(value, astroid.Name):
+                    impurity_indicator = check_builtin_function(node, node.func.name, value.name, True)
                     self.append_reason(impurity_indicator)
                 else:
-                    impurity_indicator = check_builtin_function(node, node.func.name, node.args[0].value)
+                    impurity_indicator = check_builtin_function(node, node.func.name, value.value)
                     self.append_reason(impurity_indicator)
 
         self.append_reason([Call(Reference(node.as_string()))])
@@ -206,15 +205,38 @@ class OpenMode(Enum):
 def determine_open_mode(args: list[str]) -> OpenMode:
     write_mode = {"w", "wb", "a", "ab", "x", "xb", "wt", "at", "xt"}
     read_mode = {"r", "rb", "rt"}
-    read_and_write_mode = {"r+", "rb+", "w+", "wb+", "a+", "ab+", "x+", "xb+", "r+t", "rb+t", "w+t", "wb+t", "a+t",
-                           "ab+t", "x+t", "xb+t", "r+b", "rb+b", "w+b", "wb+b", "a+b", "ab+b", "x+b", "xb+b"}
+    read_and_write_mode = {
+        "r+",
+        "rb+",
+        "w+",
+        "wb+",
+        "a+",
+        "ab+",
+        "x+",
+        "xb+",
+        "r+t",
+        "rb+t",
+        "w+t",
+        "wb+t",
+        "a+t",
+        "ab+t",
+        "x+t",
+        "xb+t",
+        "r+b",
+        "rb+b",
+        "w+b",
+        "wb+b",
+        "a+b",
+        "ab+b",
+        "x+b",
+        "xb+b",
+    }
     if len(args) == 1:
         return OpenMode.READ
 
-    if isinstance(args[1], astroid.Const):
-        mode = args[1].value
-    else:
-        mode = args[1]
+    mode = args[1]
+    if isinstance(mode, astroid.Const):
+        mode = mode.value
 
     if mode in read_mode:
         return OpenMode.READ
