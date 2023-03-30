@@ -27,18 +27,18 @@ BUILTIN_FUNCTIONS = {
     "open": BuiltInFunction(Reference("open"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
     # TODO: how to replace the ... with the correct type?
     "print": BuiltInFunction(Reference("print"), SystemInteraction(), ImpurityCertainty.DEFINITELY_IMPURE),
-    "read": BuiltInFunction(Reference("read"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
-    "write": BuiltInFunction(Reference("write"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
-    "readline": BuiltInFunction(
-        Reference("readline"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE
-    ),
-    "readlines": BuiltInFunction(
-        Reference("readlines"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE
-    ),
-    "writelines": BuiltInFunction(
-        Reference("writelines"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE
-    ),
-    "close": BuiltInFunction(Reference("close"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_PURE),
+    # "read": BuiltInFunction(Reference("read"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
+    # "write": BuiltInFunction(Reference("write"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
+    # "readline": BuiltInFunction(
+    #     Reference("readline"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE
+    # ),
+    # "readlines": BuiltInFunction(
+    #     Reference("readlines"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE
+    # ),
+    # "writelines": BuiltInFunction(
+    #     Reference("writelines"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE
+    # ),
+    # "close": BuiltInFunction(Reference("close"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_PURE),
 }
 
 
@@ -110,10 +110,10 @@ class PurityHandler:
     def enter_assign(self, node: astroid.Assign) -> None:
         # print(f"Entering Assign node {node}, {node.as_string()}")
         # Handle the Assign node here
-        if isinstance(node.value, astroid.Call):
-            self.append_reason([VariableWrite(Reference(node.as_string()))])
-        elif isinstance(node.value, astroid.Const):
-            self.append_reason([VariableWrite(Reference(node.as_string()))])
+        # if isinstance(node.value, astroid.Call):
+        #     self.append_reason([VariableWrite(Reference(node.as_string()))])
+        # elif isinstance(node.value, astroid.Const):
+        #     self.append_reason([VariableWrite(Reference(node.as_string()))])
         # else:  # default case
         #     for child in node.parent.get_children():
         #         if isinstance(child, astroid.Assign):
@@ -124,6 +124,7 @@ class PurityHandler:
         #         receiver=Reference(node.parent.get_children().__next__().as_string()),
         #         target=Reference(target)
         #     ))])
+        pass
         # TODO: Assign node needs further analysis to determine if it is pure or impure
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
@@ -269,10 +270,10 @@ def check_builtin_function(
                     return [FileRead(StringLiteral(value)), FileWrite(StringLiteral(value))]
         raise TypeError(f"Unknown builtin function {key}")
 
-    if key in ("read", "readline", "readlines"):
-        return [VariableRead(Reference(node.as_string()))]
-    if key in ("write", "writelines"):
-        return [VariableWrite(Reference(node.as_string()))]
+    # if key in ("read", "readline", "readlines"):
+    #     return [VariableRead(Reference(node.as_string()))]
+    # if key in ("write", "writelines"):
+    #     return [VariableWrite(Reference(node.as_string()))]
 
     if key in ("print", "input"):
         return [SystemInteraction()]
@@ -285,10 +286,10 @@ def infer_purity(code: str) -> list[PurityInformation]:
     purity_handler: PurityHandler = PurityHandler()
     walker = ASTWalker(purity_handler)
     result = []
-    for node in module.body:
-        tree = astroid.extract_node(node.as_string())
-        print(tree.repr_tree())
-        print("\n\n")
+    # for node in module.body:
+    #     tree = astroid.extract_node(node.as_string())
+    #     print(tree.repr_tree())
+    #     print("\n\n")
 
     for node in module.body:
         walker.walk(node)
@@ -396,18 +397,18 @@ if __name__ == "__main__":
 
        class A:
            def __init__(self):
-               self.value = 42
+               self.number = 42
        def instance_access():
            a = A()
-           print(a.value) # InstanceAccess => pure ??
+           return a.number # InstanceAccess => impure
 
        class B:
            name = "test"
        b = B()
 
        def attribute_access():
-           res = b.name # AttributeAccess => maybe impure
-           print(res)
+           res = b.name # AttributeAccess => impure
+           return res
 
        global_var = 17
        def global_access():
