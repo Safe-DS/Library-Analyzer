@@ -409,16 +409,14 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
                 a = A()
 
                 def instance(a):
-                    res = a.value # InstanceAccess => pure??
+                    res = a.value # InstanceAccess => impure
                     return res
             """,
-            [VariableWrite(expression=Reference(
-                name="res",
-                expression=InstanceAccess(
+            [InstanceAccess(
                     receiver=Reference(name='a'),
                     target=Reference(name='value')
                 )
-            ))],  # TODO: is this correct?
+            ],
         ),
         (
             """
@@ -428,23 +426,19 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
                 b = B()
 
                 def attribute(b):
-                    res = b.name # AttributeAccess => maybe impure
+                    res = b.name # AttributeAccess => impure
                     return res
             """,
-            [VariableWrite(Reference(
-                name="res",
-                expression=AttributeAccess(name='b.name')))],  # TODO: is this correct?
+            [AttributeAccess(name='b.name')],
         ),
         (
             """
-                global_var = 17
+                glob = 17
                 def global_access():
-                    res = global_var # GlobalAccess => impure
+                    res = glob # GlobalAccess => impure
                     return res
             """,
-            [VariableWrite(Reference(
-                name="res",
-                expression=GlobalAccess(name='global_var')))],  # TODO: is this correct?
+            [GlobalAccess(name='glob')],
         ),
         (
             """
@@ -452,17 +446,17 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
                     res = a # ParameterAccess => pure
                     return res
             """,
-            [VariableWrite(Reference(name="res", expression=ParameterAccess(
+            [ParameterAccess(
                 name="a",
                 function="parameter_access"),
-            ))],  # TODO: is this correct?
+            ],
         ),
         (
             """
                 glob = g(1)  # call => impure
             """,
             [VariableWrite(expression=Reference(name="glob", expression=Reference(name="g(1)"))),
-             Call(expression=Reference(name="g(1)"))],  # TODO: is this correct?
+             Call(expression=Reference(name="g(1)"))],
         ),
         (
             """
@@ -473,10 +467,62 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
                     return b
             """,
             [Call(expression=Reference(name='h(a)')),
-             VariableWrite(expression=Reference(name="b", expression=Reference(name="g(a)"))),
-             Call(expression=Reference(name='g(a)'))],  # TODO: is this correct?
+             Call(expression=Reference(name='g(a)'))],
         ),
+        (
+            """
+                glob = 1
+                def global_fun():
+                    global glob
+                    glob += 1   # GlobalWrite => impure
+            """,
+            [GlobalAccess(name='glob')],
+        ),
+        (
+            """
+                def pure_fun(a):
+                    return a
 
+                def impure_fun(a):
+                    impure_call(a) # call => impure
+
+                def access(fun):    # function as parameter
+                    fun() # call => impure
+
+                access(pure_fun)
+                access(impure_fun)
+            """,  # TODO: just for now it is impure: further analysis of fun is needed
+            [Call(expression=Reference(name='fun()')),
+             Call(expression=Reference(name='access(pure_fun)')),
+             Call(expression=Reference(name='access(impure_fun)'))],
+        ),
+        (
+            """
+                def pure_fun(a):
+                    return a
+
+                def impure_fun(a):
+                    impure_call(a) # call => impure
+
+                if True:
+                    access(pure_fun)
+                else:
+                    access(impure_fun)
+            """,  # TODO: just for now it is impure: further analysis of fun is needed
+            [Call(expression=Reference(name='access(pure_fun)')),
+             Call(expression=Reference(name='access(impure_fun)'))],
+        ),
+        (
+            """
+                def impure_fun(a):
+                    impure_call(a) # call => impure
+
+                for i in range(10):
+                    impure_fun(i)
+            """,  # TODO: just for now it is impure: further analysis of fun is needed
+            [Call(expression=Reference(name='impure_call(a)')),
+             Call(expression=Reference(name='impure_fun(i)'))],
+        )
     ]
 
 )
