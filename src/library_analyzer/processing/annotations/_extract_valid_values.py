@@ -1,22 +1,32 @@
 import re
 
 
-
 def extract_valid_literals(param_description: str, param_type: str) -> set[str]:
+    type_string_configuration = {
+        _extract_from_type_curly_enum: True,
+        _extract_from_type_and_or: True
+    }
 
-    type_string_patterns = [_extract_from_type_and_or, _extract_from_type_curly_enum]
-    description_string_patterns = [_extract_from_description_if_listings, _extract_from_description_indented_listings]
-    matches = set()
+    description_string_configuration = {
+        _extract_from_description_if_listings: True,
+        _extract_from_description_indented_listings: True
+    }
 
-    for pattern in type_string_patterns:
-        matches = pattern(param_type)
-        if matches:
-            return set(matches)
+    def _execute_pattern(string: str, config: dict) -> set[str]:
+        result = set()
+        for pattern_function in config.keys():
+            if config[pattern_function]:
+                result = pattern_function(string)
+            if result:
+                break
+        return result
 
-    for pattern in description_string_patterns:
-        matches = pattern(param_description)
-        if matches:
-            return set(matches)
+    matches = _execute_pattern(param_type, type_string_configuration)
+
+    if matches:
+        return matches
+
+    matches = _execute_pattern(param_description, description_string_configuration)
 
     return matches
 
@@ -62,11 +72,5 @@ def _extract_from_description_indented_listings(description: str) -> set[str]:
     pattern = r"\s+(\"\w*\"|'\w*'|None|True|False):"
     matches = re.findall(pattern, description)
     return set(matches)
-
-
-if __name__ == '__main__':
-    print(extract_valid_literals("If 'mean' than you can lunch. If None you cannot lunch.", "str"))
-
-
 
 
