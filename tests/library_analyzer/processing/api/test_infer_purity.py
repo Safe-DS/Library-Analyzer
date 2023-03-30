@@ -404,10 +404,10 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
                     res = a.number # InstanceAccess => impure
                     return res
             """,
-            [InstanceAccess(
+            [
+                InstanceAccess(
                     receiver=Reference(name='a'),
-                    target=Reference(name='number')
-                )
+                    target=Reference(name='number'))
             ],
         ),
         (
@@ -431,17 +431,6 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
                     return res
             """,
             [GlobalAccess(name='glob')],
-        ),
-        (
-            """
-                def parameter_access(a):
-                    res = a # ParameterAccess => pure
-                    return res
-            """,
-            [ParameterAccess(
-                name="a",
-                function="parameter_access"),
-            ],
         ),
         (
             """
@@ -519,6 +508,58 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
 
 )
 def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> None:
+    result_list = infer_purity(code)
+    for info in result_list:
+        p = get_purity_result_str(info.reasons)
+        print(f"{info.id.module} {info.id.name} is {p} because {info.reasons} \n")
+
+    assert result_list[0].reasons == expected
+
+
+@pytest.mark.parametrize(
+    "code, expected",
+    [
+        (
+            """
+                def parameter_access1(a):
+                    res = a # ParameterAccess => pure
+                    return res
+            """,  # function with one parameter, one accessed parameter
+            [VariableWrite(expression=ParameterAccess(parameters='a',
+                                                      function='parameter_access1'))],
+        ),
+        (
+            """
+                def parameter_access(a, b):
+                    res1 = a  # ParameterAccess => pure
+                    res2 = b  # ParameterAccess => pure
+                    return res1, res2
+            """,  # function with two parameters, two accessed parameters
+            [VariableWrite(expression=ParameterAccess(parameters='a',
+                                                      function='parameter_access')),
+             VariableWrite(expression=ParameterAccess(parameters='b',
+                                                      function='parameter_access'))],
+        ),
+        (
+            """
+                def parameter_access(a, b):
+                    res1 = a  # ParameterAccess => pure
+                    return res1
+            """,  # function with two parameters, one accessed parameter and one not accessed parameter
+            [VariableWrite(expression=ParameterAccess(parameters='a',
+                                                      function='parameter_access'))]
+        ),
+        (
+            """
+                def parameter_access(a, b):
+                    res1 = 1234
+                    return res1
+            """,  # function with two parameters, two not accessed parameters
+            [],
+        ),
+    ]
+)
+def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicator]) -> None:
     result_list = infer_purity(code)
     for info in result_list:
         p = get_purity_result_str(info.reasons)
