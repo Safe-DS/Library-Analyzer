@@ -19,7 +19,7 @@ from library_analyzer.processing.api.model import (
     SystemInteraction,
     VariableRead,
     VariableWrite,
-    InstanceAccess,
+    InstanceAccess, ParameterAccess,
 )
 from library_analyzer.utils import ASTWalker
 
@@ -94,6 +94,28 @@ class PurityInformation:
     #     return self.id == other.id and self.reasons == other.reasons
 
 
+@dataclass
+class ParameterUsageHandler:
+    parameters: list[str]
+    parameter_usage: dict[str, bool]
+
+    def enter_name(self, node):
+        variable = node.as_string()
+        print("WITHIN PARAMETER enter_name", variable)
+        if isinstance(node.parent, astroid.Call):
+            return  # TODO: is a function call, also a parameter access if a parameter is passed?
+
+        if variable in self.parameters:
+            self.parameter_usage[variable] = True
+            # print("PARAMETER IS USED", variable)
+
+    def get_used_parameters(self):
+        return [parameter for parameter, used in self.parameter_usage.items() if used]
+
+    def get_unused_parameters(self):
+        return [parameter for parameter, used in self.parameter_usage.items() if not used]
+
+
 class PurityHandler:
     def __init__(self) -> None:
         self.purity_reason: list[ImpurityIndicator] = []
@@ -105,7 +127,18 @@ class PurityHandler:
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
         # print(f"Enter functionDef node: {node.as_string()}")
         # Handle the FunctionDef node here
-        pass  # Are we analyzing function defs within function defs? Yes, we are.
+        if node.args.args:
+            parameters = []
+            for arg in node.args.args:
+                parameters.append(arg.name)
+                print(f"Argument: {arg.name}")
+            print("\n")
+            parameter_handler = ParameterUsageHandler(parameters, {})
+            visitor = ASTWalker(parameter_handler)
+            visitor.walk(node)
+            print("Used parameters: ", parameter_handler.get_used_parameters())
+            for parameter in parameter_handler.get_used_parameters():
+                self.append_reason([VariableWrite(ParameterAccess(parameters=parameter, function=node.name))])
 
     def enter_assign(self, node: astroid.Assign) -> None:
         # print(f"Entering Assign node {node}, {node.as_string()}")
@@ -419,10 +452,9 @@ if __name__ == "__main__":
            res = a # ParameterAccess => pure
            return res
 
-       glob = g(1)  # TODO: This will get filtered out because it is not a function call, but a variable assignment with a
-       # function call and therefore further analysis is needed
+       glob = g(1)
 
-       def fun(a):  # TODO: this function oddly has three calls in the results
+       def fun(a):
            h(a)
            b =  g(a) # call => impure
            b += 1
@@ -433,5 +465,3 @@ if __name__ == "__main__":
     for info in result_list:
         p = get_purity_result_str(info.reasons)
         print(f"{info.id.module} {info.id.name} is {p} because {info.reasons} \n")
-
-
