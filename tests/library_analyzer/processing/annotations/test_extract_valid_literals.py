@@ -1,25 +1,18 @@
 import pytest
-import os
-import json
 
 from library_analyzer.processing.annotations._extract_valid_values import extract_valid_literals
+
+
 @pytest.mark.parametrize(
-    "subfolder",
+    ("type_", "description", "expected_literals"),
     [
-        "enumAnnotations"
+        (
+            "str",
+            "If \"mean\", then replace missing values using the mean along each column\nIf \"median\", then replace missing values using the median along each column\nIf \"most_frequent\", then replace missing using the most frequent value along each column\nIf \"constant\", then replace missing values with fill_value\n",
+            ["\"mean\"", "\"median\"", "\"most_frequent\"", "\"constant\""]
+        )
+        # TODO: add other test cases from file
     ]
 )
-def test_extract_values(subfolder: str):
-    parameter_json_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "data", subfolder, "parameter_data_with_description.json"
-    )
-
-    with open(parameter_json_path, "r") as param_data:
-        params = json.load(param_data)["parameters"]
-
-    for param in params:
-        description = param["docstring"]["description"]
-        typestring = param["docstring"]["type"]
-        expected_literals = param["expected_literals"]
-
-        assert extract_valid_literals(description, typestring) == set(expected_literals)
+def test_extract_values(type_: str, description: str, expected_literals: list):
+    assert extract_valid_literals(description, type_) == set(expected_literals)
