@@ -6,7 +6,7 @@ import re
 class Configuration:
     _function_list: list = field(default_factory=list)
 
-    def get_function_list(self):
+    def get_function_list(self) -> list:
         return self._function_list
 
 
@@ -15,10 +15,10 @@ class DescriptionStringConfiguration(Configuration):
     if_listings: bool = True
     indented_listings: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._build_function_list()
 
-    def _build_function_list(self):
+    def _build_function_list(self) -> None:
         if self.if_listings:
             self._function_list.append(_extract_from_description_if_listings)
         if self.indented_listings:
@@ -30,10 +30,10 @@ class TypeStringConfiguration(Configuration):
     curly_enum: bool = True
     and_or_enum: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._build_function_list()
 
-    def _build_function_list(self):
+    def _build_function_list(self) -> None:
         if self.curly_enum:
             self._function_list.append(_extract_from_type_curly_enum)
         if self.and_or_enum:
