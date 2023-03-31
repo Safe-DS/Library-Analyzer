@@ -33,7 +33,7 @@ from library_analyzer.processing.api._extract_valid_values import extract_valid_
         (
             "str or bool",
             "When set to True, change the display of 'values' and/or 'samples' to be proportions and percentages respectively.",
-            ['True'],
+            ["True"],
         ),
         (
             "int, RandomState instance or None",
