@@ -19,7 +19,7 @@ from library_analyzer.processing.api.model import (
     SystemInteraction,
     VariableRead,
     VariableWrite,
-    InstanceAccess, ParameterAccess,
+    InstanceAccess, ParameterAccess, GlobalAccess,
 )
 from library_analyzer.utils import ASTWalker
 
@@ -48,6 +48,7 @@ class FunctionID:
     name: str
     line: int
     col: int
+    node_type: Optional
 
     def __str__(self) -> str:
         return f"{self.module}.{self.name}.{self.line}.{self.col}"
@@ -82,7 +83,6 @@ class Impure(PurityResult):
 @dataclass
 class PurityInformation:
     id: FunctionID
-    # purity: PurityResult
     reasons: list[ImpurityIndicator]
 
     # def __hash__(self) -> int:
@@ -139,6 +139,10 @@ class PurityHandler:
             # print("Used parameters: ", parameter_handler.get_used_parameters())
             for parameter in parameter_handler.get_used_parameters():
                 self.append_reason([VariableWrite(ParameterAccess(parameters=parameter, function=node.name))])
+        for nodes in node.body:
+            if isinstance(nodes, astroid.Global):
+                self.append_reason([VariableWrite(GlobalAccess(name=nodes.names[0], module=node.root().name))])
+                print("GLOBAL", nodes.names[0], node.root().name)
 
     def enter_assign(self, node: astroid.Assign) -> None:
         # print(f"Entering Assign node {node}, {node.as_string()}")
@@ -315,14 +319,18 @@ def check_builtin_function(
 
 
 def infer_purity(code: str) -> list[PurityInformation]:
-    module = astroid.parse(code)
+    try:
+        module = astroid.parse(code)
+    except SyntaxError as error:
+        raise ValueError("Invalid Python code") from error
+
     purity_handler: PurityHandler = PurityHandler()
     walker = ASTWalker(purity_handler)
     result = []
-    # for node in module.body:
-    #     tree = astroid.extract_node(node.as_string())
-    #     print(tree.repr_tree())
-    #     print("\n\n")
+    for node in module.body:
+        tree = astroid.extract_node(node.as_string())
+        print(tree.repr_tree())
+        print("\n\n")
 
     for node in module.body:
         walker.walk(node)
@@ -330,19 +338,6 @@ def infer_purity(code: str) -> list[PurityInformation]:
         result.append(generate_purity_information(node, purity_result))
         purity_handler.purity_reason = []
     return result
-
-    # for function in functions:
-    #     # print(function)
-    #     # print(f"Analyse {function.name}:")
-    #     walker.walk(function)
-    #     purity_result = determine_purity(purity_handler.purity_reason)
-    #     # print(f"Result: {purity_result.__class__.__name__}")
-    #     # if not isinstance(purity_result, DefinitelyPure):
-    #     #    print(f"Reasons: {purity_result.reasons}")
-    #     # print(f"Function {function.name} is done. \n")
-    #     result.append(generate_purity_information(function, purity_result))
-    #     purity_handler.purity_reason = []
-    # return result
 
 
 def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
@@ -364,20 +359,6 @@ def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
     #     return DefinitelyPure()
 
 
-# deprecated
-# def get_function_defs(code: str) -> list[astroid.FunctionDef]:
-#     try:
-#         module = astroid.parse(code)
-#     except SyntaxError as error:
-#         raise ValueError("Invalid Python code") from error
-#
-#     function_defs = list[astroid.FunctionDef]()
-#     for node in module.body:
-#         if isinstance(node, astroid.FunctionDef):
-#             function_defs.append(node)
-#     return function_defs
-
-
 def extract_impurity_reasons(purity: PurityResult) -> list[ImpurityIndicator]:
     if isinstance(purity, Pure):
         return []
@@ -393,7 +374,7 @@ def generate_purity_information(function: astroid.FunctionDef, purity_result: Pu
 
 def calc_function_id(node: astroid.NodeNG) -> FunctionID | None:
     if not isinstance(node, astroid.FunctionDef):
-        return FunctionID("NODE (not a functionDef):", node.as_string(), 0, 0)
+        return FunctionID("NODE (not a functionDef):", node.as_string(), 0, 0, node.__class__.__name__)
     # module = node.root().name   TODO: Use module correctly
     # module = "_infer_purity.py"
     # if module.endswith(".py"):
@@ -401,8 +382,20 @@ def calc_function_id(node: astroid.NodeNG) -> FunctionID | None:
     name = node.name
     line = node.position.lineno
     col = node.position.col_offset
-    return FunctionID("NODE:", name, line, col)
+    return FunctionID("NODE:", name, line, col, astroid.FunctionDef)
 # TODO: This function should return a correct FunctionID object for a given function and an other ID for everything else
+
+
+# TODO: This function does not work correctly: it should only remove the reasons for nodes that are not functions
+def remove_irrelevant_information(purity_information: list[PurityInformation]) -> list[PurityInformation]:
+    result = []
+    for info in purity_information:
+        # print(info.reasons)
+        if not isinstance(info.id.node_type, astroid.FunctionDef):  # this does not work as intended
+            if len(info.reasons) == 0:
+                continue
+        result.append(info)  # TODO: should we check if the global variable is actually used in the function?
+    return result
 
 
 # this function is only for visualization purposes
@@ -443,15 +436,6 @@ if __name__ == "__main__":
            res = b.name # AttributeAccess => impure
            return res
 
-       global_var = 17
-       def global_access():
-           res = global_var # GlobalAccess => impure
-           return res
-
-       def parameter_access(a):
-           res = a # ParameterAccess => pure
-           return res
-
        glob = g(1)
 
        def fun(a):
@@ -462,6 +446,6 @@ if __name__ == "__main__":
 
        """
     result_list = infer_purity(sourcecode)
-    for info in result_list:
-        p = get_purity_result_str(info.reasons)
-        print(f"{info.id.module} {info.id.name} is {p} because {info.reasons} \n")
+    for pinfo in result_list:
+        p = get_purity_result_str(pinfo.reasons)
+        print(f"{pinfo.id.module} {pinfo.id.name} is {p} because {pinfo.reasons} \n")

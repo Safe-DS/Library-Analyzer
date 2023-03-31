@@ -14,7 +14,7 @@ from ._infer_purity import (
     determine_purity,
     extract_impurity_reasons,
     generate_purity_information,
-    # get_function_defs,
+    remove_irrelevant_information,
     get_purity_result_str,
     infer_purity,
 )
