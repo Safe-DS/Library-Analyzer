@@ -13,8 +13,10 @@ from library_analyzer.processing.api import (
     extract_impurity_reasons,
     infer_purity,
     determine_open_mode,
+    remove_irrelevant_information,
     get_purity_result_str,
 )
+
 from library_analyzer.processing.api.model import (
     AttributeAccess,
     Call,
@@ -394,6 +396,8 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
                     return a
             """,
             [],
+            # TODO: ParameterAccess is detected for all function calls with parameters -
+            #  do we actually want this? I think it would be necessary
         ),
         (
             """
@@ -428,17 +432,11 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
         ),
         (
             """
-                glob = 17
-                def global_access():
-                    res = glob # GlobalAccess => impure
-                    return res
-            """,
-            [GlobalAccess(name='glob')],
-        ),
-        (
-            """
                 glob = g(1)  # call => impure
             """,
+            # TODO: since this is a global variable VariableWrite is needed, or is it?
+            #  I can be complicated to distinguish between global and local variables -
+            #  therefore wo should discuss if it is really needed
             [VariableWrite(expression=Reference(name="glob", expression=Reference(name="g(1)"))),
              Call(expression=Reference(name="g(1)"))],
         ),
@@ -564,6 +562,44 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
 )
 def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicator]) -> None:
     result_list = infer_purity(code)
+    for info in result_list:
+        p = get_purity_result_str(info.reasons)
+        print(f"{info.id.module} {info.id.name} is {p} because {info.reasons} \n")
+
+    assert result_list[0].reasons == expected
+
+
+@pytest.mark.parametrize(
+    "code, expected",
+    [
+        (
+            """
+                glob = 17
+                def global_access():
+                    global glob
+                    res = glob # GlobalAccess => impure
+                    return res
+            """,
+            [VariableWrite(expression=GlobalAccess(name='glob', module=''))],
+        ),
+        (
+            """
+                glob1 = 17
+                glob2 = 18
+                def global_access():
+                    global glob1
+                    global glob2
+                    res = glob1 # GlobalAccess => impure
+                    return res
+            """,
+            [VariableWrite(expression=GlobalAccess(name='glob1', module='')),
+             VariableWrite(expression=GlobalAccess(name='glob2', module=''))],
+        ),
+    ]
+)
+def test_infer_purity_global_access(code: str, expected: list[ImpurityIndicator]) -> None:
+    result_list = infer_purity(code)
+    result_list = remove_irrelevant_information(result_list)
     for info in result_list:
         p = get_purity_result_str(info.reasons)
         print(f"{info.id.module} {info.id.name} is {p} because {info.reasons} \n")
