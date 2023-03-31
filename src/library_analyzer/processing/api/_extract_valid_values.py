@@ -14,12 +14,15 @@ class Configuration:
 class DescriptionStringConfiguration(Configuration):
     if_listings: bool = True
     indented_listings: bool = True
+    when_set_to: bool = True
 
     def __post_init__(self) -> None:
         if self.if_listings:
             self._function_list.append(_extract_from_description_if_listings)
         if self.indented_listings:
             self._function_list.append(_extract_from_description_indented_listings)
+        if self.when_set_to:
+            self._function_list.append(_extract_from_descritpion_when_set_to)
 
 
 
@@ -44,9 +47,7 @@ def extract_valid_literals(param_description: str, param_type: str) -> set[str]:
     def _execute_pattern(string: str, config: Configuration) -> set[str]:
         result = set()
         for pattern_function in config.get_function_list():
-            result = pattern_function(string)
-            if result:
-                break
+            result.update(pattern_function(string))
         return result
 
     matches = _execute_pattern(param_type, type_config)
@@ -91,12 +92,24 @@ def _extract_from_type_and_or(type_string: str) -> set[str]:
 
 
 def _extract_from_description_if_listings(description: str) -> set[str]:
-    pattern = r"[-+*]?\s*If\s*('[^']*'|\"[^\"]*\"|True|False|None)"
+    # Detection of substrings starting with 'if' and satisfying one of the following cases:
+    # A value between single or double quotes, False, True, or None.
+    pattern = r"[-\+\*]?\s*If\s*('[^']*'|\"[^\"]*\"|True|False|None)"
     matches = re.findall(pattern, description)
     return set(matches)
 
 
 def _extract_from_description_indented_listings(description: str) -> set[str]:
-    pattern = r"\s+(\"[^\"]*\"|'[^']*'|None|True|False):"
+    # Detect substrings that appear in an indented list and match one of the following cases:
+    # A value between single or double quotes, False, True, or None.
+    pattern = r"[-\+\*]?\s+(\"[^\"]*\"|'[^']*'|None|True|False):"
     matches = re.findall(pattern, description)
+    return set(matches)
+
+
+def _extract_from_descritpion_when_set_to(description: str) -> set[str]:
+    # Detection of substrings starting with 'when set to' and satisfying one of the following cases:
+    # A value between single or double quotes, False, True, or None.
+    pattern = r"When set to (\"[^\"]*\"|'[^']*'|None|True|False)"
+    matches = re.findall(pattern, description, re.IGNORECASE)
     return set(matches)
