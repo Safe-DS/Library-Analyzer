@@ -25,7 +25,6 @@ class DescriptionStringConfiguration(Configuration):
             self._function_list.append(_extract_from_descritpion_when_set_to)
 
 
-
 @dataclass
 class TypeStringConfiguration(Configuration):
     curly_enum: bool = True
@@ -36,8 +35,6 @@ class TypeStringConfiguration(Configuration):
             self._function_list.append(_extract_from_type_curly_enum)
         if self.and_or_enum:
             self._function_list.append(_extract_from_type_and_or)
-
-
 
 
 def extract_valid_literals(param_description: str, param_type: str) -> set[str]:
