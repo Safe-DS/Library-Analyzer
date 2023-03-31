@@ -25,7 +25,6 @@ from library_analyzer.utils import ASTWalker
 
 BUILTIN_FUNCTIONS = {
     "open": BuiltInFunction(Reference("open"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
-    # TODO: how to replace the ... with the correct type?
     "print": BuiltInFunction(Reference("print"), SystemInteraction(), ImpurityCertainty.DEFINITELY_IMPURE),
     # "read": BuiltInFunction(Reference("read"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
     # "write": BuiltInFunction(Reference("write"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
@@ -138,7 +137,7 @@ class PurityHandler:
             visitor.walk(node)
             # print("Used parameters: ", parameter_handler.get_used_parameters())
             for parameter in parameter_handler.get_used_parameters():
-                self.append_reason([VariableWrite(ParameterAccess(parameters=parameter, function=node.name))])
+                self.append_reason([VariableWrite(ParameterAccess(parameter=parameter, function=node.name))])
         for nodes in node.body:
             if isinstance(nodes, astroid.Global):
                 self.append_reason([VariableWrite(GlobalAccess(name=nodes.names[0], module=node.root().name))])
@@ -386,7 +385,8 @@ def calc_function_id(node: astroid.NodeNG) -> FunctionID | None:
 # TODO: This function should return a correct FunctionID object for a given function and an other ID for everything else
 
 
-# TODO: This function does not work correctly: it should only remove the reasons for nodes that are not functions
+# TODO: This function does not work correctly: it should only remove the reasons for some specific nodes
+#  that are not functions (but not all)
 def remove_irrelevant_information(purity_information: list[PurityInformation]) -> list[PurityInformation]:
     result = []
     for info in purity_information:

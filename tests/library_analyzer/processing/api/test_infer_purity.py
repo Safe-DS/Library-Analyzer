@@ -397,7 +397,7 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
             """,
             [],
             # TODO: ParameterAccess is detected for all function calls with parameters -
-            #  do we actually want this? I think it would be necessary
+            #  do we actually want this? I think it is necessary
         ),
         (
             """
@@ -526,7 +526,7 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                     res = a # ParameterAccess => pure
                     return res
             """,  # function with one parameter, one accessed parameter
-            [VariableWrite(expression=ParameterAccess(parameters='a',
+            [VariableWrite(expression=ParameterAccess(parameter='a',
                                                       function='parameter_access1'))],
         ),
         (
@@ -536,9 +536,9 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                     res2 = b  # ParameterAccess => pure
                     return res1, res2
             """,  # function with two parameters, two accessed parameters
-            [VariableWrite(expression=ParameterAccess(parameters='a',
+            [VariableWrite(expression=ParameterAccess(parameter='a',
                                                       function='parameter_access')),
-             VariableWrite(expression=ParameterAccess(parameters='b',
+             VariableWrite(expression=ParameterAccess(parameter='b',
                                                       function='parameter_access'))],
         ),
         (
@@ -547,7 +547,7 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                     res1 = a  # ParameterAccess => pure
                     return res1
             """,  # function with two parameters, one accessed parameter and one not accessed parameter
-            [VariableWrite(expression=ParameterAccess(parameters='a',
+            [VariableWrite(expression=ParameterAccess(parameter='a',
                                                       function='parameter_access'))]
         ),
         (
@@ -557,6 +557,15 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                     return res1
             """,  # function with two parameters, two not accessed parameters
             [],
+        ),
+        (
+            """
+                def parameter_access(a):
+                    res1 = f(a)  # ParameterAccess => pure but Call => impure
+                    return res1
+            """,  # function with one parameter, one accessed parameter via a call argument
+            [Call(expression=ParameterAccess(parameter='a',
+                                             function='parameter_access'))],
         ),
     ]
 )
@@ -595,6 +604,31 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
             [VariableWrite(expression=GlobalAccess(name='glob1', module='')),
              VariableWrite(expression=GlobalAccess(name='glob2', module=''))],
         ),
+        # TODO: this is not correct, but it is not easy to fix
+        #  we need some kind of Expression that represents "Other" Reasons
+        (
+            """
+                glob = 19
+                def global_access():
+                    global glob
+                    glob = "test"  # GlobalAccess => impure
+                    return res
+            """,
+            [VariableWrite(expression=GlobalAccess(name='glob', module=''))],
+        ),
+        (
+            """
+                glob = 20
+                def global_access():
+                    global glob
+                    glob = h(1)  # GlobalAccess + Call => impure
+                    return res
+            """,
+            [VariableWrite(expression=GlobalAccess(name='glob', module='')),
+             Call(expression=Reference(name='h(1)', expression=None))],
+        ),
+        # TODO: this is not correct, but it is not easy to fix
+        #  we need some kind of Expression that represents "Other" Reasons
     ]
 )
 def test_infer_purity_global_access(code: str, expected: list[ImpurityIndicator]) -> None:

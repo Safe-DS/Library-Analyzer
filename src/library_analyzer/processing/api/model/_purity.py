@@ -41,7 +41,7 @@ class GlobalAccess(Expression):
 class ParameterAccess(Expression):
     """Class for function parameter access"""
 
-    parameters: str
+    parameter: str
     function: str
 
     # def __hash__(self) -> int:
