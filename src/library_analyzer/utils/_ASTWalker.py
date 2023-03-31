@@ -29,6 +29,7 @@ class ASTWalker:
         if node in visited_nodes:
             raise AssertionError("Node visited twice")
         visited_nodes.add(node)
+        # print(f"{node}\n")
 
         self.__enter(node)
         for child_node in node.get_children():
@@ -52,12 +53,8 @@ class ASTWalker:
         if methods is None:
             handler = self._handler
             class_name = klass.__name__.lower()
-            enter_method = getattr(
-                handler, f"enter_{class_name}", getattr(handler, "enter_default", None)
-            )
-            leave_method = getattr(
-                handler, f"leave_{class_name}", getattr(handler, "leave_default", None)
-            )
+            enter_method = getattr(handler, f"enter_{class_name}", getattr(handler, "enter_default", None))
+            leave_method = getattr(handler, f"leave_{class_name}", getattr(handler, "leave_default", None))
             self._cache[klass] = (enter_method, leave_method)
         else:
             enter_method, leave_method = methods
