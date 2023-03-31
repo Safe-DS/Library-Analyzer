@@ -16,13 +16,11 @@ class DescriptionStringConfiguration(Configuration):
     indented_listings: bool = True
 
     def __post_init__(self) -> None:
-        self._build_function_list()
-
-    def _build_function_list(self) -> None:
         if self.if_listings:
             self._function_list.append(_extract_from_description_if_listings)
         if self.indented_listings:
             self._function_list.append(_extract_from_description_indented_listings)
+
 
 
 @dataclass
@@ -31,13 +29,12 @@ class TypeStringConfiguration(Configuration):
     and_or_enum: bool = True
 
     def __post_init__(self) -> None:
-        self._build_function_list()
-
-    def _build_function_list(self) -> None:
         if self.curly_enum:
             self._function_list.append(_extract_from_type_curly_enum)
         if self.and_or_enum:
             self._function_list.append(_extract_from_type_and_or)
+
+
 
 
 def extract_valid_literals(param_description: str, param_type: str) -> set[str]:
