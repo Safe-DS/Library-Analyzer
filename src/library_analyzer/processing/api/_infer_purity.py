@@ -394,7 +394,7 @@ def remove_irrelevant_information(purity_information: list[PurityInformation]) -
         if not isinstance(info.id.node_type, astroid.FunctionDef):  # this does not work as intended
             if len(info.reasons) == 0:
                 continue
-        result.append(info)  # TODO: should we check if the global variable is actually used in the function?
+        result.append(info)  # TODO: should we check if the global variable is actually used in the function? - yes
     return result
 
 
@@ -409,9 +409,9 @@ def get_purity_result_str(indicators: list[ImpurityIndicator]) -> str:
 
 
 if __name__ == "__main__":
-    import astroid
-
+    # import astroid  # impure import
     sourcecode = """
+
        def impure_fun(a):
            impure_call(a) # call => impure
            impure_call(a) # call => impure - check if the analysis is correct for multiple calls - done

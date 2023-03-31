@@ -395,9 +395,7 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
                     a += 1
                     return a
             """,
-            [],
-            # TODO: ParameterAccess is detected for all function calls with parameters -
-            #  do we actually want this? I think it is necessary
+            []
         ),
         (
             """
@@ -434,9 +432,8 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
             """
                 glob = g(1)  # call => impure
             """,
-            # TODO: since this is a global variable VariableWrite is needed, or is it?
-            #  I can be complicated to distinguish between global and local variables -
-            #  therefore wo should discuss if it is really needed
+            # TODO: Nur wenn wir auf Modul ebene arbeiten soll für "globale Variablen"
+            #  die PurityInformation gespeichert werde, sonst nicht
             [VariableWrite(expression=Reference(name="glob", expression=Reference(name="g(1)"))),
              Call(expression=Reference(name="g(1)"))],
         ),
@@ -526,8 +523,7 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                     res = a # ParameterAccess => pure
                     return res
             """,  # function with one parameter, one accessed parameter
-            [VariableWrite(expression=ParameterAccess(parameter='a',
-                                                      function='parameter_access1'))],
+            [],
         ),
         (
             """
@@ -536,10 +532,7 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                     res2 = b  # ParameterAccess => pure
                     return res1, res2
             """,  # function with two parameters, two accessed parameters
-            [VariableWrite(expression=ParameterAccess(parameter='a',
-                                                      function='parameter_access')),
-             VariableWrite(expression=ParameterAccess(parameter='b',
-                                                      function='parameter_access'))],
+            [],
         ),
         (
             """
@@ -547,8 +540,7 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                     res1 = a  # ParameterAccess => pure
                     return res1
             """,  # function with two parameters, one accessed parameter and one not accessed parameter
-            [VariableWrite(expression=ParameterAccess(parameter='a',
-                                                      function='parameter_access'))]
+            []
         ),
         (
             """
@@ -601,11 +593,8 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
                     res = glob1 # GlobalAccess => impure
                     return res
             """,
-            [VariableWrite(expression=GlobalAccess(name='glob1', module='')),
-             VariableWrite(expression=GlobalAccess(name='glob2', module=''))],
+            [VariableWrite(expression=GlobalAccess(name='glob1', module=''))],
         ),
-        # TODO: this is not correct, but it is not easy to fix
-        #  we need some kind of Expression that represents "Other" Reasons
         (
             """
                 glob = 19
@@ -627,8 +616,6 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
             [VariableWrite(expression=GlobalAccess(name='glob', module='')),
              Call(expression=Reference(name='h(1)', expression=None))],
         ),
-        # TODO: this is not correct, but it is not easy to fix
-        #  we need some kind of Expression that represents "Other" Reasons
     ]
 )
 def test_infer_purity_global_access(code: str, expected: list[ImpurityIndicator]) -> None:
