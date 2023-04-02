@@ -1,26 +1,26 @@
-from typing import Any, Callable, Optional, Type
+from collections.abc import Callable
+from typing import Any
 
 import astroid
 
 _EnterAndLeaveFunctions = tuple[
-    Optional[Callable[[astroid.NodeNG], None]],
-    Optional[Callable[[astroid.NodeNG], None]],
+    Callable[[astroid.NodeNG], None] | None,
+    Callable[[astroid.NodeNG], None] | None,
 ]
 
 
 class ASTWalker:
-    """A walker visiting a tree in preorder, calling on the handler:
+    """A walker visiting an abstract syntax tree in preorder.
 
-    * enter_<class_name> on entering a node, where class name is the class of
-    the node in lower case.
+    The following methods get called:
 
-    * leave_<class_name> on leaving a node, where class name is the class of
-    the node in lower case.
+    * enter_<class_name> on entering a node, where class name is the class of the node in lower case.
+    * leave_<class_name> on leaving a node, where class name is the class of the node in lower case.
     """
 
     def __init__(self, handler: Any) -> None:
         self._handler = handler
-        self._cache: dict[Type, _EnterAndLeaveFunctions] = {}
+        self._cache: dict[type, _EnterAndLeaveFunctions] = {}
 
     def walk(self, node: astroid.NodeNG) -> None:
         self.__walk(node, set())
@@ -29,7 +29,6 @@ class ASTWalker:
         if node in visited_nodes:
             raise AssertionError("Node visited twice")
         visited_nodes.add(node)
-        # print(f"{node}\n")
 
         self.__enter(node)
         for child_node in node.get_children():

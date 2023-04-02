@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Optional, Union
+from typing import Any
 
 from black import FileMode, InvalidInput, format_str
 from black.brackets import BracketMatchError
 from black.linegen import CannotSplit
 from black.trans import CannotTransform
+
 from library_analyzer.utils import parent_id
 
 from ._documentation import ClassDocumentation, FunctionDocumentation
@@ -39,9 +40,9 @@ class API:
         self.modules: dict[str, Module] = {}
         self.classes: dict[str, Class] = {}
         self.functions: dict[str, Function] = {}
-        self.attributes_: Optional[dict[str, Attribute]] = None
-        self.parameters_: Optional[dict[str, Parameter]] = None
-        self.results_: Optional[dict[str, Result]] = None
+        self.attributes_: dict[str, Attribute] | None = None
+        self.parameters_: dict[str, Parameter] | None = None
+        self.results_: dict[str, Result] | None = None
 
     def add_module(self, module: Module) -> None:
         self.modules[module.id] = module
@@ -113,7 +114,7 @@ class API:
         self.results_ = results_
         return results_
 
-    def get_default_value(self, parameter_id: str) -> Optional[str]:
+    def get_default_value(self, parameter_id: str) -> str | None:
         function_id = parent_id(parameter_id)
 
         if function_id not in self.functions:
@@ -131,18 +132,9 @@ class API:
             "distribution": self.distribution,
             "package": self.package,
             "version": self.version,
-            "modules": [
-                module.to_json()
-                for module in sorted(self.modules.values(), key=lambda it: it.id)
-            ],
-            "classes": [
-                class_.to_json()
-                for class_ in sorted(self.classes.values(), key=lambda it: it.id)
-            ],
-            "functions": [
-                function.to_json()
-                for function in sorted(self.functions.values(), key=lambda it: it.id)
-            ],
+            "modules": [module.to_json() for module in sorted(self.modules.values(), key=lambda it: it.id)],
+            "classes": [class_.to_json() for class_ in sorted(self.classes.values(), key=lambda it: it.id)],
+            "functions": [function.to_json() for function in sorted(self.functions.values(), key=lambda it: it.id)],
         }
 
 
@@ -153,10 +145,7 @@ class Module:
             json["id"],
             json["name"],
             [Import.from_json(import_json) for import_json in json.get("imports", [])],
-            [
-                FromImport.from_json(from_import_json)
-                for from_import_json in json.get("from_imports", [])
-            ],
+            [FromImport.from_json(from_import_json) for from_import_json in json.get("from_imports", [])],
         )
 
         for class_id in json.get("classes", []):
@@ -167,9 +156,7 @@ class Module:
 
         return result
 
-    def __init__(
-        self, id_: str, name: str, imports: list[Import], from_imports: list[FromImport]
-    ):
+    def __init__(self, id_: str, name: str, imports: list[Import], from_imports: list[FromImport]):
         self.id: str = id_
         self.name: str = name
         self.imports: list[Import] = imports
@@ -188,9 +175,7 @@ class Module:
             "id": self.id,
             "name": self.name,
             "imports": [import_.to_json() for import_ in self.imports],
-            "from_imports": [
-                from_import.to_json() for from_import in self.from_imports
-            ],
+            "from_imports": [from_import.to_json() for from_import in self.from_imports],
             "classes": self.classes,
             "functions": self.functions,
         }
@@ -199,7 +184,7 @@ class Module:
 @dataclass
 class Import:
     module_name: str
-    alias: Optional[str]
+    alias: str | None
 
     @staticmethod
     def from_json(json: Any) -> Import:
@@ -213,7 +198,7 @@ class Import:
 class FromImport:
     module_name: str
     declaration_name: str
-    alias: Optional[str]
+    alias: str | None
 
     @staticmethod
     def from_json(json: Any) -> FromImport:
@@ -288,9 +273,7 @@ class Class:
             "description": self.documentation.description,
             "docstring": self.documentation.full_docstring,
             "code": self.code,
-            "instance_attributes": [
-                attribute.to_json() for attribute in self.instance_attributes
-            ],
+            "instance_attributes": [attribute.to_json() for attribute in self.instance_attributes],
         }
 
     def get_formatted_code(self, *, cut_documentation: bool = False) -> str:
@@ -300,7 +283,7 @@ class Class:
         return formatted_code
 
 
-def _generate_formatted_code(api_element: Union[Class, Function]) -> str:
+def _generate_formatted_code(api_element: Class | Function) -> str:
     code = api_element.code
     try:
         code_tmp = format_str(code, mode=FileMode())
@@ -312,7 +295,7 @@ def _generate_formatted_code(api_element: Union[Class, Function]) -> str:
     return code
 
 
-def _cut_documentation_from_code(code: str, api_element: Union[Class, Function]) -> str:
+def _cut_documentation_from_code(code: str, api_element: Class | Function) -> str:
     start_keyword = "class " if isinstance(api_element, Class) else "def "
     lines = code.split("\n")
     start_line = -1
@@ -336,29 +319,23 @@ def _cut_documentation_from_code(code: str, api_element: Union[Class, Function])
             if end_line >= 0:
                 if (end_line + 1) < len(lines) and lines[end_line + 1].lstrip() == "":
                     end_line += 1
-                return (
-                    "\n".join(lines[:start_line])
-                    + "\n"
-                    + "\n".join(lines[end_line + 1 :])
-                )
+                return "\n".join(lines[:start_line]) + "\n" + "\n".join(lines[end_line + 1 :])
     return code
 
 
 @dataclass(frozen=True)
 class Attribute:
     name: str
-    types: Optional[AbstractType]
-    class_id: Optional[str] = None
+    types: AbstractType | None
+    class_id: str | None = None
 
     def to_json(self) -> dict[str, Any]:
         types_json = self.types.to_json() if self.types is not None else None
         return {"name": self.name, "types": types_json}
 
     @staticmethod
-    def from_json(json: Any, class_id: Optional[str] = None) -> Attribute:
-        return Attribute(
-            json["name"], AbstractType.from_json(json.get("types", {})), class_id
-        )
+    def from_json(json: Any, class_id: str | None = None) -> Attribute:
+        return Attribute(json["name"], AbstractType.from_json(json.get("types", {})), class_id)
 
 
 @dataclass(frozen=True)
@@ -379,10 +356,7 @@ class Function:
             json["id"],
             json["qname"],
             json.get("decorators", []),
-            [
-                Parameter.from_json(parameter_json)
-                for parameter_json in json.get("parameters", [])
-            ],
+            [Parameter.from_json(parameter_json) for parameter_json in json.get("parameters", [])],
             [Result.from_json(result_json) for result_json in json.get("results", [])],
             json.get("is_public", True),
             json.get("reexported_by", []),
@@ -423,10 +397,10 @@ class Function:
 class Result:
     name: str
     docstring: ResultDocstring
-    function_id: Optional[str] = None
+    function_id: str | None = None
 
     @staticmethod
-    def from_json(json: Any, function_id: Optional[str] = None) -> Result:
+    def from_json(json: Any, function_id: str | None = None) -> Result:
         return Result(
             json["name"],
             ResultDocstring.from_json(json.get("docstring", {})),

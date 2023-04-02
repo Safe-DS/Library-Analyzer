@@ -2,7 +2,6 @@ import astroid
 import pytest
 from library_analyzer.processing.api.documentation_parsing import get_full_docstring
 
-# language=python
 class_with_multi_line_documentation = '''
 class C:
     """
@@ -14,7 +13,6 @@ class C:
     pass
 '''
 
-# language=python
 class_with_single_line_documentation = '''
 class C:
     """Lorem ipsum."""
@@ -22,13 +20,11 @@ class C:
     pass
 '''
 
-# language=python
 class_without_documentation = """
 class C:
     pass
 """
 
-# language=python
 function_with_multi_line_documentation = '''
 def f():
     """
@@ -40,7 +36,6 @@ def f():
     pass
 '''
 
-# language=python
 function_with_single_line_documentation = '''
 def f():
     """Lorem ipsum."""
@@ -48,7 +43,6 @@ def f():
     pass
 '''
 
-# language=python
 function_without_documentation = """
 def f():
     pass
@@ -56,7 +50,7 @@ def f():
 
 
 @pytest.mark.parametrize(
-    "python_code, expected_docstring",
+    ("python_code", "expected_docstring"),
     [
         (class_with_multi_line_documentation, "Lorem ipsum.\n\nDolor sit amet."),
         (class_with_single_line_documentation, "Lorem ipsum."),
@@ -77,5 +71,5 @@ def f():
 def test_get_full_docstring(python_code: str, expected_docstring: str) -> None:
     node = astroid.extract_node(python_code)
 
-    assert isinstance(node, (astroid.ClassDef, astroid.FunctionDef))
+    assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
     assert get_full_docstring(node) == expected_docstring

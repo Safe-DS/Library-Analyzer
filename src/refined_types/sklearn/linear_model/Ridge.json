@@ -3,16 +3,7 @@
         "solver": {
             "refined_type": {
                 "kind": "EnumType",
-                "values": [
-                    "sparse_cg",
-                    "sag",
-                    "cholesky",
-                    "lsqr",
-                    "auto",
-                    "svd",
-                    "lbfgs",
-                    "saga"
-                ]
+                "values": ["sparse_cg", "sag", "cholesky", "lsqr", "auto", "svd", "lbfgs", "saga"]
             },
             "docstring": {
                 "type": "{'auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg',             'sag', 'saga', 'lbfgs'}, default='auto'",

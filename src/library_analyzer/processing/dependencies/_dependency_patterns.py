@@ -13,5 +13,5 @@ dependency_matcher_patterns = {
             "RIGHT_ID": "dependee_param",
             "RIGHT_ATTRS": {"DEP": {"IN": ["nsubj", "nsubjpass"]}},
         },
-    ]
+    ],
 }

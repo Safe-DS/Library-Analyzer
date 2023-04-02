@@ -1,3 +1,6 @@
+"""Model classes for annotations."""
+
+from ._annotation_store import AnnotationStore
 from ._annotations import (
     ANNOTATION_SCHEMA_VERSION,
     AbstractAnnotation,
@@ -24,4 +27,31 @@ from ._annotations import (
     TodoAnnotation,
     ValueAnnotation,
 )
-from ._AnnotationStore import AnnotationStore
+
+__all__ = [
+    "ANNOTATION_SCHEMA_VERSION",
+    "AbstractAnnotation",
+    "AnnotationStore",
+    "BoundaryAnnotation",
+    "CalledAfterAnnotation",
+    "CompleteAnnotation",
+    "ConstantAnnotation",
+    "DescriptionAnnotation",
+    "EnumAnnotation",
+    "EnumPair",
+    "EnumReviewResult",
+    "ExpertAnnotation",
+    "GroupAnnotation",
+    "Interval",
+    "MoveAnnotation",
+    "OmittedAnnotation",
+    "OptionalAnnotation",
+    "ParameterInfo",
+    "ParameterType",
+    "PureAnnotation",
+    "RemoveAnnotation",
+    "RenameAnnotation",
+    "RequiredAnnotation",
+    "TodoAnnotation",
+    "ValueAnnotation",
+]

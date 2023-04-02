@@ -1,5 +1,3 @@
-from typing import Optional
-
 from library_analyzer.processing.annotations.model import (
     AnnotationStore,
     BoundaryAnnotation,
@@ -15,25 +13,28 @@ from ._constants import autogen_author
 def _generate_boundary_annotations(api: API, annotations: AnnotationStore) -> None:
     """
     Annotates all parameters which are a boundary.
-    :param api: Description of the API
-    :param annotations: AnnotationStore, that holds all annotations
-    """
-    # pylint: disable=duplicate-code
-    for _, parameter in api.parameters().items():
 
+    Parameters
+    ----------
+    api: API
+        Description of the API
+    annotations: AnnotationStore
+        AnnotationStore, that holds all annotations.
+    """
+    for _, parameter in api.parameters().items():
         # Don't add boundary annotation to constant parameters
-        if parameter.id in set(
+        if parameter.id in {
             annotation.target
             for annotation in annotations.valueAnnotations
             if annotation.variant == ValueAnnotation.Variant.CONSTANT
-        ):
+        }:
             continue
 
         parameter_type = parameter.type
         if parameter_type is None:
             continue
 
-        boundary_type: Optional[BoundaryType] = None
+        boundary_type: BoundaryType | None = None
 
         if isinstance(parameter_type, UnionType):
             for type_in_union in parameter_type.types:
@@ -63,11 +64,11 @@ def _generate_boundary_annotations(api: API, annotations: AnnotationStore) -> No
                 max_limit_type = 2
 
             interval = Interval(
-                isDiscrete=is_discrete,
                 lowerIntervalLimit=min_value,
                 upperIntervalLimit=max_value,
                 lowerLimitType=min_limit_type,
                 upperLimitType=max_limit_type,
+                isDiscrete=is_discrete,
             )
             boundary = BoundaryAnnotation(
                 target=parameter.id,

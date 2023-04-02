@@ -1,4 +1,6 @@
-from typing import Any, Optional
+from typing import Any
+
+from scipy.stats import binom
 
 from library_analyzer.processing.annotations.model import (
     AnnotationStore,
@@ -11,17 +13,13 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import API, Parameter, ParameterAssignment
 from library_analyzer.processing.usages.model import UsageCountStore
-from scipy.stats import binom
+from library_analyzer.utils import pluralize
 
-from ...utils import pluralize
 from ._constants import autogen_author
 
 
-def _generate_value_annotations(
-    api: API, usages: UsageCountStore, annotations: AnnotationStore
-) -> None:
+def _generate_value_annotations(api: API, usages: UsageCountStore, annotations: AnnotationStore) -> None:
     for parameter in api.parameters().values():
-
         # Don't create annotations for variadic parameters
         if parameter.assigned_by in (
             ParameterAssignment.POSITIONAL_VARARG,
@@ -38,15 +36,22 @@ def _generate_value_annotations(
 
 
 def _generate_constant_annotation(
-    parameter: Parameter, sole_stringified_value: str, annotations: AnnotationStore
+    parameter: Parameter,
+    sole_stringified_value: str,
+    annotations: AnnotationStore,
 ) -> None:
     """
     Collect all parameters that are only ever assigned a single value.
-    :param parameter: Parameter to be annotated
-    :param sole_stringified_value: The sole value that is assigned to the parameter
-    :param annotations: AnnotationStore object
-    """
 
+    Parameters
+    ----------
+    parameter: Parameter
+        Parameter to be annotated
+    sole_stringified_value: str
+        The sole value that is assigned to the parameter
+    annotations: AnnotationStore
+        AnnotationStore object.
+    """
     # Always set to original default value
     if sole_stringified_value == parameter.default_value:
         annotations.valueAnnotations.append(
@@ -54,26 +59,26 @@ def _generate_constant_annotation(
                 target=parameter.id,
                 authors=[autogen_author],
                 reviewers=[],
-                comment=f"I omitted this parameter because it is always set to the original default value ({parameter.default_value}).",
+                comment="I omitted this parameter because it is always set to the original default value "
+                f"({parameter.default_value}).",
                 reviewResult=EnumReviewResult.NONE,
-            )
+            ),
         )
         return
 
-    default_value_type, default_value = _get_type_and_value_for_stringified_value(
-        sole_stringified_value
-    )
+    default_value_type, default_value = _get_type_and_value_for_stringified_value(sole_stringified_value)
     if default_value_type is not None:
         annotations.valueAnnotations.append(
             ConstantAnnotation(
                 target=parameter.id,
                 authors=[autogen_author],
                 reviewers=[],
-                comment=f"I replaced this parameter with a constant because it is always set to the same literal value ({sole_stringified_value}).",
+                comment="I replaced this parameter with a constant because it is always set to the same literal value "
+                f"({sole_stringified_value}).",
                 reviewResult=EnumReviewResult.NONE,
                 defaultValueType=default_value_type,
                 defaultValue=default_value,
-            )
+            ),
         )
     else:
         annotations.valueAnnotations.append(
@@ -81,14 +86,17 @@ def _generate_constant_annotation(
                 target=parameter.id,
                 authors=[autogen_author],
                 reviewers=[],
-                comment=f"I made this parameter required because, even though it is always set to the same value ({sole_stringified_value}), that value is not a literal.",
+                comment="I made this parameter required because, even though it is always set to the same value "
+                f"({sole_stringified_value}), that value is not a literal.",
                 reviewResult=EnumReviewResult.NONE,
-            )
+            ),
         )
 
 
 def _generate_required_or_optional_annotation(
-    parameter: Parameter, usages: UsageCountStore, annotations: AnnotationStore
+    parameter: Parameter,
+    usages: UsageCountStore,
+    annotations: AnnotationStore,
 ) -> None:
     most_common_values = usages.most_common_parameter_values(parameter.id)
     if len(most_common_values) < 2:
@@ -101,17 +109,16 @@ def _generate_required_or_optional_annotation(
                 target=parameter.id,
                 authors=[autogen_author],
                 reviewers=[],
-                comment=f"I made this parameter required because the most common value ({most_common_values[0]}) is not a literal.",
+                comment=f"I made this parameter required because the most common value ({most_common_values[0]}) is "
+                "not a literal.",
                 reviewResult=EnumReviewResult.NONE,
-            )
+            ),
         )
         return
 
     # Compute metrics
     most_common_value_count = usages.n_value_usages(parameter.id, most_common_values[0])
-    second_most_common_value_count = usages.n_value_usages(
-        parameter.id, most_common_values[1]
-    )
+    second_most_common_value_count = usages.n_value_usages(parameter.id, most_common_values[1])
 
     # Add appropriate annotation
     should_be_required, comment = _should_be_required(
@@ -128,7 +135,7 @@ def _generate_required_or_optional_annotation(
                 reviewers=[],
                 comment=comment,
                 reviewResult=EnumReviewResult.NONE,
-            )
+            ),
         )
     else:
         (
@@ -145,7 +152,7 @@ def _generate_required_or_optional_annotation(
                     reviewResult=EnumReviewResult.NONE,
                     defaultValueType=default_value_type,
                     defaultValue=default_value,
-                )
+                ),
             )
 
 
@@ -156,18 +163,32 @@ def _should_be_required(
     second_most_common_value_count: int,
 ) -> tuple[bool, str]:
     """
-    This function determines how to differentiate between an optional and a required parameter
-    :param most_common_value_count: How often the most common value is used
-    :param second_most_common_value_count: How often the second most common value is used
-    :return: True means the parameter should be required, False means it should be optional. The second result is an
-    explanation.
-    """
+    Determine whether the parameter should be required or optional.
 
+    Parameters
+    ----------
+    most_common_value: int
+        The most common value
+    most_common_value_count: int
+        How often the most common value is used
+    second_most_common_value: int
+        The second most common value
+    second_most_common_value_count: int
+        How often the second most common value is used
+
+    Returns
+    -------
+    should_be_required: bool
+        True means the parameter should be required, False means it should be optional.
+    explanation: str
+        An explanation why the parameter should be required or optional.
+    """
     # Shortcut to speed up the check
     if most_common_value_count == second_most_common_value_count:
         return (
             True,
-            f"I made this parameter required because there is no single most common value ({most_common_value} and {second_most_common_value} are both used {pluralize(most_common_value_count, 'time')}).",
+            f"I made this parameter required because there is no single most common value ({most_common_value} and "
+            f"{second_most_common_value} are both used {pluralize(most_common_value_count, 'time')}).",
         )
 
     # Precaution to ensure proper order of most_common_value_count and second_most_common_value_count
@@ -183,19 +204,19 @@ def _should_be_required(
     # toss. Unless this hypothesis is rejected, we make the parameter required. We reject the hypothesis if the p-value
     # is less than or equal to 5%. The p-value is the probability that we observe results that are at least as extreme
     # as the values we observed, assuming the null hypothesis is true.
-    p_value = 2 * sum(
-        binom.pmf(i, total, 0.5) for i in range(most_common_value_count, total + 1)
-    )
+    p_value = 2 * sum(binom.pmf(i, total, 0.5) for i in range(most_common_value_count, total + 1))
     significance_level = 0.05
 
     if p_value <= significance_level:
         return (
             False,
-            f"I made this parameter optional because there is a statistically significant most common value (p-value {p_value:.2%} <= significance level {significance_level:.0%}).",
+            "I made this parameter optional because there is a statistically significant most common value (p-value "
+            f"{p_value:.2%} <= significance level {significance_level:.0%}).",
         )
     return (
         True,
-        f"I made this parameter required because there is no statistically significant most common value (p-value ({p_value:.2%}) > significance level ({significance_level:.0%}).",
+        "I made this parameter required because there is no statistically significant most common value (p-value "
+        f"({p_value:.2%}) > significance level ({significance_level:.0%}).",
     )
 
 
@@ -206,7 +227,7 @@ def _is_stringified_literal(stringified_value: str) -> bool:
 
 def _get_type_and_value_for_stringified_value(
     stringified_value: str,
-) -> tuple[Optional[ValueAnnotation.DefaultValueType], Any]:
+) -> tuple[ValueAnnotation.DefaultValueType | None, Any]:
     if stringified_value == "None":
         return ValueAnnotation.DefaultValueType.NONE, None
     if stringified_value in ("True", "False"):
@@ -221,6 +242,7 @@ def _get_type_and_value_for_stringified_value(
 def _is_float(stringified_value: str) -> bool:
     try:
         float(stringified_value)
-        return True
     except ValueError:
         return False
+    else:
+        return True

@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Optional, Union
 
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
@@ -43,15 +42,10 @@ class Migration:
         self.migrated_annotation_store = AnnotationStore()
         self.unsure_migrated_annotation_store = AnnotationStore()
 
-    def _get_mapping_from_annotation(
-        self, annotation: AbstractAnnotation
-    ) -> Optional[Mapping]:
+    def _get_mapping_from_annotation(self, annotation: AbstractAnnotation) -> Mapping | None:
         for mapping in self.mappings:
             for element in mapping.get_apiv1_elements():
-                if (
-                    not isinstance(element, (Attribute, Result))
-                    and element.id == annotation.target
-                ):
+                if not isinstance(element, Attribute | Result) and element.id == annotation.target:
                     return mapping
         return None
 
@@ -59,25 +53,19 @@ class Migration:
         for boundary_annotation in self.annotationsv1.boundaryAnnotations:
             mapping = self._get_mapping_from_annotation(boundary_annotation)
             if mapping is not None:
-                for annotation in migrate_boundary_annotation(
-                    boundary_annotation, mapping
-                ):
+                for annotation in migrate_boundary_annotation(boundary_annotation, mapping):
                     self.add_annotations_based_on_similarity(annotation, mapping)
 
         for called_after_annotation in self.annotationsv1.calledAfterAnnotations:
             mapping = self._get_mapping_from_annotation(called_after_annotation)
             if mapping is not None:
-                for annotation in migrate_called_after_annotation(
-                    called_after_annotation, mapping, self.mappings
-                ):
+                for annotation in migrate_called_after_annotation(called_after_annotation, mapping, self.mappings):
                     self.add_annotations_based_on_similarity(annotation, mapping)
 
         for description_annotation in self.annotationsv1.descriptionAnnotations:
             mapping = self._get_mapping_from_annotation(description_annotation)
             if mapping is not None:
-                for annotation in migrate_description_annotation(
-                    description_annotation, mapping
-                ):
+                for annotation in migrate_description_annotation(description_annotation, mapping):
                     self.add_annotations_based_on_similarity(annotation, mapping)
 
         for enum_annotation in self.annotationsv1.enumAnnotations:
@@ -95,9 +83,7 @@ class Migration:
         for group_annotation in self.annotationsv1.groupAnnotations:
             mapping = self._get_mapping_from_annotation(group_annotation)
             if mapping is not None:
-                for annotation in migrate_group_annotation(
-                    group_annotation, mapping, self.mappings
-                ):
+                for annotation in migrate_group_annotation(group_annotation, mapping, self.mappings):
                     self.add_annotations_based_on_similarity(annotation, mapping)
 
         for move_annotation in self.annotationsv1.moveAnnotations:
@@ -131,9 +117,7 @@ class Migration:
                     self.add_annotations_based_on_similarity(annotation, mapping)
         self._handle_duplicates()
 
-    def add_annotations_based_on_similarity(
-        self, annotation: AbstractAnnotation, mapping: Mapping
-    ) -> None:
+    def add_annotations_based_on_similarity(self, annotation: AbstractAnnotation, mapping: Mapping) -> None:
         if isinstance(mapping, ManyToManyMapping):
             self.unsure_migrated_annotation_store.add_annotation(annotation)
         elif mapping.similarity >= self.reliable_similarity:
@@ -148,100 +132,86 @@ class Migration:
         table_rows: list[str] = []
         for mapping in self.mappings:
 
-            def print_api_element(
-                api_element: Union[Attribute, Class, Function, Parameter, Result]
-            ) -> str:
+            def print_api_element(api_element: Attribute | Class | Function | Parameter | Result) -> str:
                 if isinstance(api_element, Result):
                     return api_element.name
                 if isinstance(api_element, Attribute):
                     return str(api_element.class_id) + "/" + api_element.name
                 return api_element.id
 
-            apiv1_elements = ", ".join(
-                [
-                    print_api_element(api_element)
-                    for api_element in mapping.get_apiv1_elements()
-                ]
-            )
-            apiv2_elements = ", ".join(
-                [
-                    print_api_element(api_element)
-                    for api_element in mapping.get_apiv2_elements()
-                ]
-            )
+            apiv1_elements = ", ".join([print_api_element(api_element) for api_element in mapping.get_apiv1_elements()])
+            apiv2_elements = ", ".join([print_api_element(api_element) for api_element in mapping.get_apiv2_elements()])
             apiv1_elements = "`" + apiv1_elements + "`"
             apiv2_elements = "`" + apiv2_elements + "`"
-            table_rows.append(
-                f"{mapping.similarity:.4}|{apiv1_elements}|{apiv2_elements}|"
-            )
+            table_rows.append(f"{mapping.similarity:.4}|{apiv1_elements}|{apiv2_elements}|")
         return table_rows
 
-    def _get_not_mapped_api_elements_for_table(
-        self, apiv1: API, apiv2: API
-    ) -> list[str]:
+    def _get_not_mapped_api_elements_for_table(self, apiv1: API, apiv2: API) -> list[str]:
         not_mapped_api_elements: list[str] = []
         not_mapped_apiv1_elements = self._get_not_mapped_api_elements_as_string(apiv1)
         for element_id in not_mapped_apiv1_elements:
             not_mapped_api_elements.append(f"-|`{element_id}`||")
-        not_mapped_apiv2_elements = self._get_not_mapped_api_elements_as_string(
-            apiv2, print_for_apiv2=True
-        )
+        not_mapped_apiv2_elements = self._get_not_mapped_api_elements_as_string(apiv2, print_for_apiv2=True)
         for element_id in not_mapped_apiv2_elements:
             not_mapped_api_elements.append(f"-||`{element_id}`|")
         return not_mapped_api_elements
 
-    def _get_not_mapped_api_elements_as_string(
-        self, api: API, print_for_apiv2: bool = False
-    ) -> list[str]:
+    def _get_not_mapped_api_elements_as_string(self, api: API, print_for_apiv2: bool = False) -> list[str]:
         not_mapped_api_elements: list[str] = []
 
-        def is_included(
-            api_element: Union[Attribute, Class, Function, Parameter, Result]
-        ) -> bool:
+        def is_included(api_element: Attribute | Class | Function | Parameter | Result) -> bool:
             if not print_for_apiv2:
                 for mapping in self.mappings:
                     for element in mapping.get_apiv1_elements():
-                        if isinstance(api_element, Attribute) and isinstance(
-                            element, Attribute
-                        ):
-                            if element.name == api_element.name and isinstance(
-                                element.types, type(api_element.types)
-                            ):
-                                return True
-                        if isinstance(api_element, Result) and isinstance(
-                            element, Result
-                        ):
-                            if (
-                                element.name == api_element.name
-                                and element.docstring == api_element.docstring
-                            ):
-                                return True
-                        if not isinstance(
-                            api_element, (Attribute, Result)
-                        ) and not isinstance(element, (Attribute, Result)):
-                            if element.id == api_element.id:
-                                return True
-                return False
-            for mapping in self.mappings:
-                for element in mapping.get_apiv2_elements():
-                    if isinstance(api_element, Attribute) and isinstance(
-                        element, Attribute
-                    ):
-                        if element.name == api_element.name and isinstance(
-                            element.types, type(api_element.types)
+                        if (
+                            isinstance(api_element, Attribute)
+                            and isinstance(element, Attribute)
+                            and element.name == api_element.name
+                            and isinstance(element.types, type(api_element.types))
                         ):
                             return True
-                    if isinstance(api_element, Result) and isinstance(element, Result):
                         if (
-                            element.name == api_element.name
+                            isinstance(api_element, Result)
+                            and isinstance(element, Result)
+                            and element.name == api_element.name
                             and element.docstring == api_element.docstring
                         ):
                             return True
-                    if not isinstance(
-                        api_element, (Attribute, Result)
-                    ) and not isinstance(element, (Attribute, Result)):
-                        if element.id == api_element.id:
+                        if (
+                            not isinstance(api_element, Attribute | Result)
+                            and not isinstance(
+                                element,
+                                Attribute | Result,
+                            )
+                            and element.id == api_element.id
+                        ):
                             return True
+                return False
+            for mapping in self.mappings:
+                for element in mapping.get_apiv2_elements():
+                    if (
+                        isinstance(api_element, Attribute)
+                        and isinstance(element, Attribute)
+                        and element.name == api_element.name
+                        and isinstance(element.types, type(api_element.types))
+                    ):
+                        return True
+                    if (
+                        isinstance(api_element, Result)
+                        and isinstance(element, Result)
+                        and element.name == api_element.name
+                        and element.docstring == api_element.docstring
+                    ):
+                        return True
+                    if (
+                        not isinstance(api_element, Attribute | Result)
+                        and not isinstance(
+                            element,
+                            Attribute | Result,
+                        )
+                        and element.id == api_element.id
+                    ):
+                        return True
             return False
 
         for class_ in api.classes.values():
@@ -254,30 +224,22 @@ class Migration:
             if not is_included(parameter):
                 not_mapped_api_elements.append(parameter.id)
         for attribute, class_ in [
-            (attribute, class_)
-            for class_ in api.classes.values()
-            for attribute in class_.instance_attributes
+            (attribute, class_1) for class_1 in api.classes.values() for attribute in class_1.instance_attributes
         ]:
             if not is_included(attribute):
                 not_mapped_api_elements.append(class_.id + "/" + attribute.name)
         for result, function in [
-            (result, function)
-            for function in api.functions.values()
-            for result in function.results
+            (result, function_1) for function_1 in api.functions.values() for result in function_1.results
         ]:
             if not is_included(result):
                 not_mapped_api_elements.append(function.id + "/" + result.name)
         return not_mapped_api_elements
 
     def print(self, apiv1: API, apiv2: API) -> None:
-        print(
-            "**Similarity**|**APIV1**|**APIV2**|**comment**\n:-----:|:-----:|:-----:|:----:|"
-        )
+        print("**Similarity**|**APIV1**|**APIV2**|**comment**\n:-----:|:-----:|:-----:|:----:|")
         table_body = self._get_mappings_for_table()
         table_body.extend(self._get_not_mapped_api_elements_for_table(apiv1, apiv2))
-        table_body.sort(
-            key=lambda row: max(len(cell.split("/")) for cell in row.split("|")[:-1])
-        )
+        table_body.sort(key=lambda row: max(len(cell.split("/")) for cell in row.split("|")[:-1]))
         print("\n".join(table_body))
 
     def _handle_duplicates(self) -> None:
@@ -306,15 +268,10 @@ class Migration:
             duplicates_dict: dict[str, list[AbstractAnnotation]] = {}
             for duplicated_annotations in migrated_annotations:
                 if duplicated_annotations.target in duplicates_dict:
-                    duplicates_dict[duplicated_annotations.target].append(
-                        duplicated_annotations
-                    )
+                    duplicates_dict[duplicated_annotations.target].append(duplicated_annotations)
                     continue
                 for annotation in migrated_annotations:
-                    if (
-                        duplicated_annotations is annotation
-                        or annotation.target in duplicates_dict
-                    ):
+                    if duplicated_annotations is annotation or annotation.target in duplicates_dict:
                         continue
                     if (
                         isinstance(annotation, type(duplicated_annotations))
@@ -328,14 +285,10 @@ class Migration:
 
             for duplicates in duplicates_dict.values():
                 if len(duplicates) > 1:
-                    duplicates = sorted(
-                        duplicates, key=lambda annotation: annotation.reviewResult.name
-                    )
+                    sorted_duplicates = sorted(duplicates, key=lambda annotation: annotation.reviewResult.name)
                     different_values = set()
-                    first_annotation_and_value: Optional[
-                        tuple[AbstractAnnotation, str]
-                    ] = None
-                    for annotation in duplicates:
+                    first_annotation_and_value: tuple[AbstractAnnotation, str] | None = None
+                    for annotation in sorted_duplicates:
                         annotation_dict = annotation.to_json()
                         for key in [
                             "target",
@@ -354,10 +307,7 @@ class Migration:
                         first_annotation, first_value = first_annotation_and_value
                         if len(different_values) > 1:
                             different_values.remove(first_value)
-                            comment = (
-                                "Conflicting Attribute during migration: "
-                                + ", ".join(sorted(different_values))
-                            )
+                            comment = "Conflicting Attribute during migration: " + ", ".join(sorted(different_values))
                             first_annotation.comment = (
                                 "\n".join([comment, first_annotation.comment])
                                 if len(first_annotation.comment) > 0
@@ -368,11 +318,9 @@ class Migration:
                             self.migrated_annotation_store,
                             self.unsure_migrated_annotation_store,
                         ]:
-                            for annotation in duplicates:
+                            for annotation in sorted_duplicates:
                                 if annotation is first_annotation:
                                     continue
-                                annotations: list[AbstractAnnotation] = getattr(
-                                    annotation_store, annotation_type
-                                )
+                                annotations: list[AbstractAnnotation] = getattr(annotation_store, annotation_type)
                                 if annotation in annotations:
                                     annotations.remove(annotation)

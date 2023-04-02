@@ -1,2 +1,7 @@
-from ._api_mapping import APIMapping
+"""Migrating annotations from one library version to another."""
+
 from ._migrate import Migration
+
+__all__ = [
+    "Migration",
+]

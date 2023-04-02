@@ -1,6 +1,5 @@
-from typing import Optional
-
 import astroid
+
 from library_analyzer.processing.api.documentation_parsing import (
     AbstractDocumentationParser,
 )
@@ -25,15 +24,15 @@ def get_parameter_list(
                 id_=function_id + "/" + parameter_name,
                 name=parameter_name,
                 qname=function_qname + "." + parameter_name,
-                default_value=_get_stringified_default_value(
-                    function_node, parameter_name
-                ),
+                default_value=_get_stringified_default_value(function_node, parameter_name),
                 assigned_by=parameter_assigned_by,
                 is_public=function_is_public,
                 documentation=documentation_parser.get_parameter_documentation(
-                    function_node, parameter_name, parameter_assigned_by
+                    function_node,
+                    parameter_name,
+                    parameter_assigned_by,
                 ),
-            )
+            ),
         )
 
     return result
@@ -69,9 +68,7 @@ def _get_parameters_assigned_by(
     return result
 
 
-def _get_stringified_default_value(
-    function_node: astroid.FunctionDef, parameter_name
-) -> Optional[str]:
+def _get_stringified_default_value(function_node: astroid.FunctionDef, parameter_name: str) -> str | None:
     try:
         default_value = function_node.args.default_value(parameter_name)
         if default_value is None:

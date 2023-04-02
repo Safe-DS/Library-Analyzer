@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
 from library_analyzer.processing.api.model import Parameter
 
@@ -9,10 +11,10 @@ class Action:
     action: str
 
     @classmethod
-    def from_json(cls, json: Any):
+    def from_json(cls, json: Any) -> Action:
         return cls(json["action"])
 
-    def to_json(self) -> Dict:
+    def to_json(self) -> dict:
         return {"action": self.action}
 
 
@@ -41,10 +43,10 @@ class Condition:
     condition: str
 
     @classmethod
-    def from_json(cls, json: Any):
+    def from_json(cls, json: Any) -> Condition:
         return cls(json["condition"])
 
-    def to_json(self) -> Dict:
+    def to_json(self) -> dict:
         return {"condition": self.condition}
 
 
@@ -70,13 +72,13 @@ class ParameterIsNone(StaticCondition):
 
 @dataclass
 class Dependency:
-    hasDependentParameter: Parameter
-    isDependingOn: Parameter
-    hasCondition: Condition
-    hasAction: Action
+    hasDependentParameter: Parameter  # noqa: N815
+    isDependingOn: Parameter  # noqa: N815
+    hasCondition: Condition  # noqa: N815
+    hasAction: Action  # noqa: N815
 
     @classmethod
-    def from_json(cls, json: Any):
+    def from_json(cls, json: Any) -> Dependency:
         return cls(
             Parameter.from_json(json["hasDependentParameter"]),
             Parameter.from_json(json["isDependingOn"]),
@@ -95,9 +97,9 @@ class Dependency:
 
 @dataclass
 class APIDependencies:
-    dependencies: Dict
+    dependencies: dict
 
-    def to_json(self) -> Dict:
+    def to_json(self) -> dict:
         return {
             function_name: {
                 parameter_name: [dependency.to_json() for dependency in dependencies]

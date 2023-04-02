@@ -3,9 +3,10 @@ from __future__ import annotations
 import re
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Optional, Union
+from typing import TYPE_CHECKING, Any, ClassVar
 
-from ._documentation import ParameterDocumentation
+if TYPE_CHECKING:
+    from ._documentation import ParameterDocumentation
 
 
 class AbstractType(metaclass=ABCMeta):
@@ -14,10 +15,10 @@ class AbstractType(metaclass=ABCMeta):
         pass
 
     @classmethod
-    def from_json(cls, json: Any) -> Optional[AbstractType]:
+    def from_json(cls, json: Any) -> AbstractType | None:
         if json is None:
             return None
-        value: Optional[AbstractType] = NamedType.from_json(json)
+        value: AbstractType | None = NamedType.from_json(json)
         if value is not None:
             return value
         value = EnumType.from_json(json)
@@ -34,7 +35,7 @@ class NamedType(AbstractType):
     name: str
 
     @classmethod
-    def from_json(cls, json: Any) -> Optional[NamedType]:
+    def from_json(cls, json: Any) -> NamedType | None:
         if json.get("kind", "") == cls.__name__:
             return NamedType(json["name"])
         return None
@@ -53,13 +54,13 @@ class EnumType(AbstractType):
     full_match: str = field(default="", compare=False)
 
     @classmethod
-    def from_json(cls, json: Any) -> Optional[EnumType]:
+    def from_json(cls, json: Any) -> EnumType | None:
         if json["kind"] == cls.__name__:
             return EnumType(json["values"])
         return None
 
     @classmethod
-    def from_string(cls, string: str) -> Optional[EnumType]:
+    def from_string(cls, string: str) -> EnumType | None:
         def remove_backslash(e: str) -> str:
             e = e.replace(r"\"", '"')
             e = e.replace(r"\'", "'")
@@ -108,8 +109,8 @@ class BoundaryType(AbstractType):
     INFINITY: ClassVar = "Infinity"
 
     base_type: str
-    min: Union[float, int, str]
-    max: Union[float, int, str]
+    min: float | int | str
+    max: float | int | str
     min_inclusive: bool
     max_inclusive: bool
 
@@ -124,7 +125,7 @@ class BoundaryType(AbstractType):
         raise ValueError(f"{bracket} is not one of []()")
 
     @classmethod
-    def from_json(cls, json: Any) -> Optional[BoundaryType]:
+    def from_json(cls, json: Any) -> BoundaryType | None:
         if json["kind"] == cls.__name__:
             return BoundaryType(
                 json["base_type"],
@@ -136,8 +137,7 @@ class BoundaryType(AbstractType):
         return None
 
     @classmethod
-    def from_string(cls, string: str) -> Optional[BoundaryType]:
-        # language=PythonRegExp
+    def from_string(cls, string: str) -> BoundaryType | None:
         pattern = r"""(?P<base_type>float|int)?[ ]  # optional base type of either float or int
                     (in|of)[ ](the[ ])?(range|interval)[ ](of[ ])?  # 'in' or 'of', optional 'the', 'range' or 'interval', optional 'of'
                     `?(?P<min_bracket>[\[(])(?P<min>[-+]?\d+(.\d*)?|negative_infinity),[ ]  # left side of the range
@@ -149,7 +149,7 @@ class BoundaryType(AbstractType):
             if base_type is None:
                 base_type = "float"
 
-            min_value: Union[str, int, float] = match.group("min")
+            min_value: str | int | float = match.group("min")
             if min_value != "negative_infinity":
                 if base_type == "int":
                     min_value = int(min_value)
@@ -158,7 +158,7 @@ class BoundaryType(AbstractType):
             else:
                 min_value = BoundaryType.NEGATIVE_INFINITY
 
-            max_value: Union[str, int, float] = match.group("max")
+            max_value: str | int | float = match.group("max")
             if max_value != "infinity":
                 if base_type == "int":
                     max_value = int(max_value)
@@ -213,7 +213,7 @@ class UnionType(AbstractType):
     types: list[AbstractType]
 
     @classmethod
-    def from_json(cls, json: Any) -> Optional[UnionType]:
+    def from_json(cls, json: Any) -> UnionType | None:
         if json["kind"] == cls.__name__:
             types = []
             for element in json["types"]:
@@ -231,12 +231,12 @@ class UnionType(AbstractType):
         return {"kind": self.__class__.__name__, "types": type_list}
 
     def __hash__(self) -> int:
-        return hash((frozenset(self.types)))
+        return hash(frozenset(self.types))
 
 
 def create_type(
     parameter_documentation: ParameterDocumentation,
-) -> Optional[AbstractType]:
+) -> AbstractType | None:
     type_string = parameter_documentation.type
     types: list[AbstractType] = []
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import Any, Union
+from typing import Any
 
 ANNOTATION_SCHEMA_VERSION = 2
 
@@ -29,7 +29,7 @@ class AbstractAnnotation(ABC):
     authors: list[str]
     reviewers: list[str]
     comment: str
-    reviewResult: EnumReviewResult
+    reviewResult: EnumReviewResult  # noqa: N815
 
     def to_json(self) -> dict:
         return asdict(self, dict_factory=EnumReviewResult.to_json)
@@ -63,11 +63,11 @@ class RemoveAnnotation(AbstractAnnotation):
 
 @dataclass
 class Interval:
-    isDiscrete: bool
-    lowerIntervalLimit: Union[int, float, str]
-    lowerLimitType: int
-    upperIntervalLimit: Union[int, float, str]
-    upperLimitType: int
+    lowerIntervalLimit: int | float | str  # noqa: N815
+    lowerLimitType: int  # noqa: N815
+    upperIntervalLimit: int | float | str  # noqa: N815
+    upperLimitType: int  # noqa: N815
+    isDiscrete: bool  # noqa: N815
 
     def to_json(self) -> dict:
         return asdict(self)
@@ -75,11 +75,11 @@ class Interval:
     @staticmethod
     def from_json(json: Any) -> Interval:
         return Interval(
-            json["isDiscrete"],
             json["lowerIntervalLimit"],
             json["lowerLimitType"],
             json["upperIntervalLimit"],
             json["upperLimitType"],
+            json["isDiscrete"],
         )
 
 
@@ -112,8 +112,8 @@ class BoundaryAnnotation(AbstractAnnotation):
 
 @dataclass
 class EnumPair:
-    stringValue: str
-    instanceName: str
+    stringValue: str  # noqa: N815
+    instanceName: str  # noqa: N815
 
     def to_json(self) -> dict:
         return asdict(self)
@@ -125,7 +125,7 @@ class EnumPair:
 
 @dataclass
 class EnumAnnotation(AbstractAnnotation):
-    enumName: str
+    enumName: str  # noqa: N815
     pairs: list[EnumPair]
 
     def to_json(self) -> dict:
@@ -186,8 +186,8 @@ class ValueAnnotation(AbstractAnnotation, ABC):
 @dataclass
 class ConstantAnnotation(ValueAnnotation):
     variant = ValueAnnotation.Variant.CONSTANT
-    defaultValueType: ValueAnnotation.DefaultValueType
-    defaultValue: Any
+    defaultValueType: ValueAnnotation.DefaultValueType  # noqa: N815
+    defaultValue: Any  # noqa: N815
 
     def to_json(self) -> dict:
         return {
@@ -244,8 +244,8 @@ class OmittedAnnotation(ValueAnnotation):
 @dataclass
 class OptionalAnnotation(ValueAnnotation):
     variant = ValueAnnotation.Variant.OPTIONAL
-    defaultValueType: ValueAnnotation.DefaultValueType
-    defaultValue: Any
+    defaultValueType: ValueAnnotation.DefaultValueType  # noqa: N815
+    defaultValue: Any  # noqa: N815
 
     def to_json(self) -> dict:
         return {
@@ -311,9 +311,7 @@ class ParameterInfo:
     value: str
     value_type: str
 
-    def __init__(
-        self, parameter_type: ParameterType, value: str = "", value_type: str = ""
-    ) -> None:
+    def __init__(self, parameter_type: ParameterType, value: str = "", value_type: str = "") -> None:
         self.type = parameter_type
         self.value = value
         self.value_type = value_type
@@ -321,7 +319,7 @@ class ParameterInfo:
 
 @dataclass
 class CalledAfterAnnotation(AbstractAnnotation):
-    calledAfterName: str
+    calledAfterName: str  # noqa: N815
 
     @staticmethod
     def from_json(json: Any) -> CalledAfterAnnotation:
@@ -351,7 +349,7 @@ class CompleteAnnotation(AbstractAnnotation):
 
 @dataclass
 class DescriptionAnnotation(AbstractAnnotation):
-    newDescription: str
+    newDescription: str  # noqa: N815
 
     @staticmethod
     def from_json(json: Any) -> DescriptionAnnotation:
@@ -382,7 +380,7 @@ class ExpertAnnotation(AbstractAnnotation):
 
 @dataclass
 class GroupAnnotation(AbstractAnnotation):
-    groupName: str
+    groupName: str  # noqa: N815
     parameters: list[str]
 
     @staticmethod
@@ -431,7 +429,7 @@ class PureAnnotation(AbstractAnnotation):
 
 @dataclass
 class RenameAnnotation(AbstractAnnotation):
-    newName: str
+    newName: str  # noqa: N815
 
     @staticmethod
     def from_json(json: Any) -> RenameAnnotation:
@@ -448,7 +446,7 @@ class RenameAnnotation(AbstractAnnotation):
 
 @dataclass
 class TodoAnnotation(AbstractAnnotation):
-    newTodo: str
+    newTodo: str  # noqa: N815
 
     @staticmethod
     def from_json(json: Any) -> TodoAnnotation:

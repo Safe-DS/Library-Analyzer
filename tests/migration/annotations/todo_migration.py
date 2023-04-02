@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
     EnumReviewResult,
@@ -25,9 +23,7 @@ from library_analyzer.processing.migration.model import (
 )
 
 
-def migrate_todo_annotation_data_one_to_one_mapping() -> (
-    Tuple[Mapping, AbstractAnnotation, list[AbstractAnnotation]]
-):
+def migrate_todo_annotation_data_one_to_one_mapping() -> tuple[Mapping, AbstractAnnotation, list[AbstractAnnotation]]:
     parameterv1 = Parameter(
         id_="test/test.todo.test1.Test",
         name="Test",
@@ -67,7 +63,7 @@ def migrate_todo_annotation_data_one_to_one_mapping() -> (
 
 
 def migrate_todo_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -128,9 +124,7 @@ def migrate_todo_annotation_data_one_to_many_mapping() -> (
     return mappings, annotationsv1, [annotationsv2_a, annotationsv2_b]
 
 
-def migrate_todo_annotation_data_many_to_many_mapping() -> (
-    Tuple[Mapping, AbstractAnnotation, list[AbstractAnnotation]]
-):
+def migrate_todo_annotation_data_many_to_many_mapping() -> tuple[Mapping, AbstractAnnotation, list[AbstractAnnotation]]:
     parameterv1_a = Parameter(
         id_="test/test.todo.test3.TestA",
         name="TestA",
@@ -167,7 +161,6 @@ def migrate_todo_annotation_data_many_to_many_mapping() -> (
         is_public=True,
         documentation=ParameterDocumentation("str", "", ""),
     )
-    # pylint: disable=duplicate-code
     classv2 = Class(
         id="test/test.todo.test3.TestTodoClass",
         qname="test.todo.test3.TestTodoClass",
@@ -179,9 +172,7 @@ def migrate_todo_annotation_data_many_to_many_mapping() -> (
         code="class TestTodoClass:\n    pass",
         instance_attributes=[],
     )
-    mappings = ManyToManyMapping(
-        1.0, [parameterv1_a, parameterv1_b], [parameterv2_a, parameterv2_b, classv2]
-    )
+    mappings = ManyToManyMapping(1.0, [parameterv1_a, parameterv1_b], [parameterv2_a, parameterv2_b, classv2])
     annotationv1 = TodoAnnotation(
         target="test/test.todo.test3.TestA",
         authors=["testauthor"],
@@ -221,9 +212,7 @@ def migrate_todo_annotation_data_many_to_many_mapping() -> (
     )
 
 
-def migrate_todo_annotation_data_duplicated() -> (
-    Tuple[Mapping, list[AbstractAnnotation], list[AbstractAnnotation]]
-):
+def migrate_todo_annotation_data_duplicated() -> tuple[Mapping, list[AbstractAnnotation], list[AbstractAnnotation]]:
     parameterv1 = Parameter(
         id_="test/test.todo.duplicate.Test",
         name="Test",

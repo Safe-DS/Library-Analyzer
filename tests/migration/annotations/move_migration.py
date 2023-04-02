@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
     EnumReviewResult,
@@ -24,9 +22,8 @@ from library_analyzer.processing.migration.model import (
 )
 
 
-# pylint: disable=duplicate-code
 def migrate_move_annotation_data_one_to_one_mapping__global_function() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -77,9 +74,8 @@ def migrate_move_annotation_data_one_to_one_mapping__global_function() -> (
     return mapping, annotationv1, [annotationv2]
 
 
-# pylint: disable=duplicate-code
 def migrate_move_annotation_data_one_to_one_mapping__class() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -130,7 +126,7 @@ def migrate_move_annotation_data_one_to_one_mapping__class() -> (
 
 
 def migrate_move_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -202,7 +198,7 @@ def migrate_move_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_move_annotation_data_one_to_one_mapping_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],

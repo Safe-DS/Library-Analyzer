@@ -181,12 +181,7 @@
         "loss": {
             "refined_type": {
                 "kind": "EnumType",
-                "values": [
-                    "quantile",
-                    "huber",
-                    "absolute_error",
-                    "squared_error"
-                ]
+                "values": ["quantile", "huber", "absolute_error", "squared_error"]
             },
             "docstring": {
                 "type": "{'squared_error', 'absolute_error', 'huber', 'quantile'},             default='squared_error'",
@@ -719,11 +714,7 @@
                 "types": [
                     {
                         "kind": "EnumType",
-                        "values": [
-                            "raw_values",
-                            "uniform_average",
-                            "variance_weighted"
-                        ]
+                        "values": ["raw_values", "uniform_average", "variance_weighted"]
                     },
                     {
                         "kind": "NamedType",
@@ -1004,13 +995,7 @@
                 "types": [
                     {
                         "kind": "EnumType",
-                        "values": [
-                            "linear",
-                            "poly",
-                            "rbf",
-                            "sigmoid",
-                            "precomputed"
-                        ]
+                        "values": ["linear", "poly", "rbf", "sigmoid", "precomputed"]
                     },
                     {
                         "kind": "NamedType",
@@ -1236,16 +1221,7 @@
         "solver": {
             "refined_type": {
                 "kind": "EnumType",
-                "values": [
-                    "sparse_cg",
-                    "sag",
-                    "cholesky",
-                    "lsqr",
-                    "auto",
-                    "svd",
-                    "lbfgs",
-                    "saga"
-                ]
+                "values": ["sparse_cg", "sag", "cholesky", "lsqr", "auto", "svd", "lbfgs", "saga"]
             },
             "docstring": {
                 "type": "{'auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg',             'sag', 'saga', 'lbfgs'}, default='auto'",
