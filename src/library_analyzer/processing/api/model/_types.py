@@ -3,9 +3,10 @@ from __future__ import annotations
 import re
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
-from ._documentation import ParameterDocumentation
+if TYPE_CHECKING:
+    from ._documentation import ParameterDocumentation
 
 
 class AbstractType(metaclass=ABCMeta):

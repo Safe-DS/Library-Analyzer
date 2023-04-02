@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
-import astroid
+if TYPE_CHECKING:
+    import astroid
 
-from library_analyzer.processing.api.model import (
-    ClassDocumentation,
-    FunctionDocumentation,
-    ParameterAssignment,
-    ParameterDocumentation,
-)
+    from library_analyzer.processing.api.model import (
+        ClassDocumentation,
+        FunctionDocumentation,
+        ParameterAssignment,
+        ParameterDocumentation,
+    )
 
 
 class AbstractDocumentationParser(ABC):
