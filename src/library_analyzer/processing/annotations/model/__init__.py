@@ -1,3 +1,4 @@
+from ._annotation_store import AnnotationStore
 from ._annotations import (
     ANNOTATION_SCHEMA_VERSION,
     AbstractAnnotation,
@@ -24,7 +25,6 @@ from ._annotations import (
     TodoAnnotation,
     ValueAnnotation,
 )
-from ._AnnotationStore import AnnotationStore
 
 __all__ = [
     "ANNOTATION_SCHEMA_VERSION",

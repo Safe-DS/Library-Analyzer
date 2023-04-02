@@ -1,7 +1,7 @@
-from ._AbstractDocumentationParser import AbstractDocumentationParser
-from ._DefaultDocumentationParser import DefaultDocumentationParser
+from ._abstract_documentation_parser import AbstractDocumentationParser
+from ._default_documentation_parser import DefaultDocumentationParser
 from ._get_full_docstring import get_full_docstring
-from ._NumpyDocParser import NumpyDocParser
+from ._numpydoc_parser import NumpyDocParser
 
 __all__ = [
     "AbstractDocumentationParser",
