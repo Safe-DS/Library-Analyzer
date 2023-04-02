@@ -196,7 +196,7 @@ class SimpleDiffer(AbstractDiffer):
         """
         return self.related_mappings
 
-    def notify_new_mapping(self, mappings: list[Mapping]) -> None:
+    def notify_new_mapping(self, mappings: list[Mapping]) -> None:  # noqa: ARG002
         """
         If previous mappings return None, the differ will be notified about a new mapping.
 

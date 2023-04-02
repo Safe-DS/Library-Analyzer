@@ -26,8 +26,8 @@ class DefaultDocumentationParser(AbstractDocumentationParser):
 
     def get_parameter_documentation(
         self,
-        function_node: astroid.FunctionDef,
-        parameter_name: str,
-        parameter_assigned_by: ParameterAssignment,
+        function_node: astroid.FunctionDef,  # noqa: ARG002
+        parameter_name: str,  # noqa: ARG002
+        parameter_assigned_by: ParameterAssignment,  # noqa: ARG002
     ) -> ParameterDocumentation:
         return ParameterDocumentation()
