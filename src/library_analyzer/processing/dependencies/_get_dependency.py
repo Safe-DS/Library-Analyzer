@@ -44,6 +44,7 @@ def extract_lefts_and_rights(curr_token: Token, extracted: list | None = None):
 def extract_action(action_token: Token, condition_token: Token) -> Action:
     """
     Create action object given head token of action phrase in docstring.
+
     Condition token used to avoid traversing into the condition phrase dependency subtree of the docstring.
     """
     action_tokens = []
@@ -151,6 +152,7 @@ def extract_dependencies_from_docstring(
 ) -> list[Dependency]:
     """
     Extract readable dependencies in a Docstring from pattern matches.
+
     Function fetched from class DependencyExtractor, when 'extract_' + pattern name match function name in the class.
     """
     dependencies = []
@@ -165,9 +167,10 @@ def extract_dependencies_from_docstring(
 
 def get_dependencies(api: API) -> APIDependencies:
     """
-    Loop through all functions in the API
-    Parse and preprocess each doc string from every function
-    Extract and return all dependencies as a dict with function and parameter names as keys.
+    Loop through all functions in the API and get their dependencies.
+
+    Parse and preprocess each doc string from every function. Extract and return all dependencies as a dict with
+    function and parameter names as keys.
     """
     nlp = spacy.load(PIPELINE)
 

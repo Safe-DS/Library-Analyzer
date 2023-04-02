@@ -3,6 +3,8 @@ import re
 
 def preprocess_docstring(docstring: str) -> str:
     """
+    Preprocess docstring to make it easier to parse.
+
     1. Remove cluttered punctuation around parameter references
     2. Set '=', ==' to 'equals' and set '!=' to 'does not equal'
     3. Handle cases of step two where the signs are not separate tokens, e.g. "a=b".

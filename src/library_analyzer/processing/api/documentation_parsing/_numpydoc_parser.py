@@ -17,10 +17,15 @@ from ._get_full_docstring import get_full_docstring
 
 class NumpyDocParser(AbstractDocumentationParser):
     """
-    Parses documentation in the NumpyDoc format. See https://numpydoc.readthedocs.io/en/latest/format.html for more
-    information.
+    Parses documentation in the NumpyDoc format.
 
+    Notes
+    -----
     This class is not thread-safe. Each thread should create its own instance.
+
+    References
+    ----------
+    .. [1] https://numpydoc.readthedocs.io/en/latest/format.html
     """
 
     def __init__(self):

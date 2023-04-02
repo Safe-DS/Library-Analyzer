@@ -14,8 +14,13 @@ from ._constants import autogen_author
 def _generate_boundary_annotations(api: API, annotations: AnnotationStore) -> None:
     """
     Annotates all parameters which are a boundary.
-    :param api: Description of the API
-    :param annotations: AnnotationStore, that holds all annotations.
+
+    Parameters
+    ----------
+    api: API
+        Description of the API
+    annotations: AnnotationStore
+        AnnotationStore, that holds all annotations.
     """
     for _, parameter in api.parameters().items():
         # Don't add boundary annotation to constant parameters

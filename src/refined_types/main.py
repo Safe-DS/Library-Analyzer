@@ -1,10 +1,11 @@
-"""Iterate over the `json` files inside the `sklearn` folder
-and concatenate them to form `ground_truth.json`.
+"""
+Iterate over the `json` files inside the `sklearn` folder and concatenate them to form `ground_truth.json`.
 
 Usage:
 ------
 python sync.py
 """
+
 import glob
 import json
 

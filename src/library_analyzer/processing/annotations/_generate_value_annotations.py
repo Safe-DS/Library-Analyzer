@@ -40,9 +40,15 @@ def _generate_constant_annotation(
 ) -> None:
     """
     Collect all parameters that are only ever assigned a single value.
-    :param parameter: Parameter to be annotated
-    :param sole_stringified_value: The sole value that is assigned to the parameter
-    :param annotations: AnnotationStore object.
+
+    Parameters
+    ----------
+    parameter: Parameter
+        Parameter to be annotated
+    sole_stringified_value: str
+        The sole value that is assigned to the parameter
+    annotations: AnnotationStore
+        AnnotationStore object.
     """
     # Always set to original default value
     if sole_stringified_value == parameter.default_value:

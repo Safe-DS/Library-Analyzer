@@ -157,6 +157,8 @@ class APIMapping:
 
     def _merge_similar_mappings(self, mappings: list[Mapping]) -> Mapping | None:
         """
+        Return the best mapping from this apiv1 element to apiv2 elements.
+
         Given a list of OneToOne(Many)Mappings which apiv1 element is the same, this method returns the best mapping
         from this apiv1 element to apiv2 elements by merging the first and second elements recursively,
         if the difference in similarity is smaller than THRESHOLD_OF_SIMILARITY_BETWEEN_MAPPINGS.

@@ -130,10 +130,7 @@ class UsageCountStore:
         return 0
 
     def most_common_parameter_values(self, parameter_id: ParameterId) -> list[str]:
-        """
-        Return all values that have been set for the parameter with the given name sorted by their count in descending
-        order.
-        """
+        """Return all values set for the parameter with the given ID sorted by their count in descending order."""
         if parameter_id in self.value_usages:
             return [value for value, count in self.value_usages[parameter_id].most_common() if count > 0]
 
