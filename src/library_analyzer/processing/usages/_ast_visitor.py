@@ -39,8 +39,8 @@ class _UsageFinder:
             parameter_id = f"{function_id}/{parameter_name}"
             self.usages.add_parameter_usages(parameter_id)
 
-            value = _stringify_value(value)
-            self.usages.add_value_usages(parameter_id, value)
+            value_string = _stringify_value(value)
+            self.usages.add_value_usages(parameter_id, value_string)
 
 
 def _analyze_declaration_called_by(

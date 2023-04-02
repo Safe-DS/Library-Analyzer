@@ -652,7 +652,6 @@ def visit_ast(ast: astroid.NodeNG) -> None:
     if isinstance(ast, astroid.Call):
         # handle expression
         enclosing = infer_function(ast)
-        global list_of_traversed_functions
 
         if isinstance(ast.func, astroid.FunctionDef | astroid.AsyncFunctionDef):
             if ast.func.name == "print":

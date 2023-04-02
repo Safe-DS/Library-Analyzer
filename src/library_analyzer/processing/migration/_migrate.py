@@ -269,10 +269,10 @@ class Migration:
 
             for duplicates in duplicates_dict.values():
                 if len(duplicates) > 1:
-                    duplicates = sorted(duplicates, key=lambda annotation: annotation.reviewResult.name)
+                    sorted_duplicates = sorted(duplicates, key=lambda annotation: annotation.reviewResult.name)
                     different_values = set()
                     first_annotation_and_value: tuple[AbstractAnnotation, str] | None = None
-                    for annotation in duplicates:
+                    for annotation in sorted_duplicates:
                         annotation_dict = annotation.to_json()
                         for key in [
                             "target",
@@ -302,7 +302,7 @@ class Migration:
                             self.migrated_annotation_store,
                             self.unsure_migrated_annotation_store,
                         ]:
-                            for annotation in duplicates:
+                            for annotation in sorted_duplicates:
                                 if annotation is first_annotation:
                                     continue
                                 annotations: list[AbstractAnnotation] = getattr(annotation_store, annotation_type)
