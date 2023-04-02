@@ -86,7 +86,8 @@ def extract_condition(condition_token: Token) -> Condition:
 
     is_none_phrases = [
         "is none",
-        "is also none" "is not set",
+        "is also none",
+        "is not set",
         "is not specified",
         "is not none",
         "if none",
