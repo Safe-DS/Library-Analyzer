@@ -165,7 +165,7 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
 )
 def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
     if expected is ValueError:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="is not a valid mode for the open function"):
             determine_open_mode(args)
     else:
         result = determine_open_mode(args)
@@ -362,7 +362,7 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
 # TODO: test for wrong arguments and Errors
 def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
     if expected is ValueError:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="is not a valid mode for the open function"):
             infer_purity(code)
     elif expected is TypeError:
         with pytest.raises(TypeError):
