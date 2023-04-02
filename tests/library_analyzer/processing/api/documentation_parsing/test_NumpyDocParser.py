@@ -9,12 +9,11 @@ from library_analyzer.processing.api.model import (
 )
 
 
-@pytest.fixture
+@pytest.fixture()
 def numpydoc_parser() -> NumpyDocParser:
     return NumpyDocParser()
 
 
-# language=python
 class_with_documentation = '''
 class C:
     """
@@ -26,7 +25,6 @@ class C:
     """
 '''
 
-# language=python
 class_without_documentation = """
 class C:
     pass
@@ -34,7 +32,7 @@ class C:
 
 
 @pytest.mark.parametrize(
-    "python_code, expected_class_documentation",
+    ("python_code", "expected_class_documentation"),
     [
         (
             class_with_documentation,
@@ -64,7 +62,6 @@ def test_get_class_documentation(
     assert numpydoc_parser.get_class_documentation(node) == expected_class_documentation
 
 
-# language=python
 function_with_documentation = '''
 def f():
     """
@@ -78,7 +75,6 @@ def f():
     pass
 '''
 
-# language=python
 function_without_documentation = """
 def f():
     pass
@@ -86,7 +82,7 @@ def f():
 
 
 @pytest.mark.parametrize(
-    "python_code, expected_function_documentation",
+    ("python_code", "expected_function_documentation"),
     [
         (
             function_with_documentation,
@@ -113,13 +109,9 @@ def test_get_function_documentation(
     node = astroid.extract_node(python_code)
 
     assert isinstance(node, astroid.FunctionDef)
-    assert (
-        numpydoc_parser.get_function_documentation(node)
-        == expected_function_documentation
-    )
+    assert numpydoc_parser.get_function_documentation(node) == expected_function_documentation
 
 
-# language=python
 class_with_parameters = '''
 # noinspection PyUnresolvedReferences,PyIncorrectDocstring
 class C:
@@ -138,7 +130,6 @@ class C:
         pass
 '''
 
-# language=python
 function_with_parameters = '''
 # noinspection PyUnresolvedReferences,PyIncorrectDocstring
 def f():
@@ -176,7 +167,7 @@ def f():
 
 
 @pytest.mark.parametrize(
-    "python_code, parameter_name, parameter_assigned_by, expected_parameter_documentation",
+    ("python_code", "parameter_name", "parameter_assigned_by", "expected_parameter_documentation"),
     [
         (
             class_with_parameters,
@@ -242,17 +233,13 @@ def f():
             function_with_parameters,
             "with_default_syntax_2",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
-                type="int", default_value="2", description="foo: with_default_syntax_2"
-            ),
+            ParameterDocumentation(type="int", default_value="2", description="foo: with_default_syntax_2"),
         ),
         (
             function_with_parameters,
             "with_default_syntax_3",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
-                type="int", default_value="3", description="foo: with_default_syntax_3"
-            ),
+            ParameterDocumentation(type="int", default_value="3", description="foo: with_default_syntax_3"),
         ),
         (
             function_with_parameters,
@@ -325,7 +312,7 @@ def test_get_parameter_documentation(
     expected_parameter_documentation: ParameterDocumentation,
 ) -> None:
     node = astroid.extract_node(python_code)
-    assert isinstance(node, (astroid.ClassDef, astroid.FunctionDef))
+    assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
 
     # Find the constructor
     if isinstance(node, astroid.ClassDef):
@@ -335,8 +322,6 @@ def test_get_parameter_documentation(
 
     assert isinstance(node, astroid.FunctionDef)
     assert (
-        numpydoc_parser.get_parameter_documentation(
-            node, parameter_name, parameter_assigned_by
-        )
+        numpydoc_parser.get_parameter_documentation(node, parameter_name, parameter_assigned_by)
         == expected_parameter_documentation
     )

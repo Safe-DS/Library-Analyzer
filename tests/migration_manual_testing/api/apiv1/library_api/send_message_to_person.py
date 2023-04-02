@@ -2,7 +2,7 @@
 
 
 def send_message_to_person(name: str, address: str, message: str) -> None:
-    """Sends a message to a person
+    """Sends a message to a person.
 
     Parameters
     ----------

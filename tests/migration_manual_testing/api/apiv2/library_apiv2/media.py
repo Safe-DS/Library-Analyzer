@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional
 
 from .persons import LibraryMember
 from .position import Position
@@ -8,7 +7,7 @@ from .position import Position
 
 
 class Media:
-    """A Class for all types of Media
+    """A Class for all types of Media.
 
     Parameters
     ----------
@@ -25,8 +24,8 @@ class Media:
 
     def __init__(
         self,
-        borrow_until: Optional[date],
-        borrow_by: Optional[LibraryMember],
+        borrow_until: date | None,
+        borrow_by: LibraryMember | None,
         author: str,
         release_date: date,
         position: Position,
@@ -37,15 +36,13 @@ class Media:
         self.borrow_by = borrow_by
         self.author = author
         self.release_date = release_date
-        self.number_of_times_this_book_was_borrowed = (
-            number_of_times_this_book_was_borrowed
-        )
+        self.number_of_times_this_book_was_borrowed = number_of_times_this_book_was_borrowed
         self.FEE_PER_DAY = fee_per_day
         self.position = position
 
 
 class Book(Media):
-    """A Class for Books
+    """A Class for Books.
 
     Parameters
     ----------
@@ -62,8 +59,8 @@ class Book(Media):
 
     def __init__(
         self,
-        borrow_until: Optional[date],
-        borrow_by: Optional[LibraryMember],
+        borrow_until: date | None,
+        borrow_by: LibraryMember | None,
         genre: str,
         author: str,
         release_date: date,
@@ -95,7 +92,7 @@ class Book(Media):
 
 
 class CD(Media):
-    """A Class for CD
+    """A Class for CD.
 
     Parameters
     ----------
@@ -110,8 +107,8 @@ class CD(Media):
 
     def __init__(
         self,
-        borrow_until: Optional[date],
-        borrow_by: Optional[LibraryMember],
+        borrow_until: date | None,
+        borrow_by: LibraryMember | None,
         author: str,
         release_date: date,
         position: Position,
@@ -129,7 +126,7 @@ class CD(Media):
 
 
 class DVD(Media):
-    """A Class for all types of Media
+    """A Class for all types of Media.
 
     Parameters
     ----------
@@ -144,8 +141,8 @@ class DVD(Media):
 
     def __init__(
         self,
-        borrow_until: Optional[date],
-        borrow_by: Optional[LibraryMember],
+        borrow_until: date | None,
+        borrow_by: LibraryMember | None,
         author: str,
         release_date: date,
         position: Position,

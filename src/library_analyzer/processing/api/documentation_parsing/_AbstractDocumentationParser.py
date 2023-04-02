@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 import astroid
+
 from library_analyzer.processing.api.model import (
     ClassDocumentation,
     FunctionDocumentation,
@@ -13,15 +14,11 @@ from library_analyzer.processing.api.model import (
 
 class AbstractDocumentationParser(ABC):
     @abstractmethod
-    def get_class_documentation(
-        self, class_node: astroid.ClassDef
-    ) -> ClassDocumentation:
+    def get_class_documentation(self, class_node: astroid.ClassDef) -> ClassDocumentation:
         pass
 
     @abstractmethod
-    def get_function_documentation(
-        self, function_node: astroid.FunctionDef
-    ) -> FunctionDocumentation:
+    def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocumentation:
         pass
 
     @abstractmethod

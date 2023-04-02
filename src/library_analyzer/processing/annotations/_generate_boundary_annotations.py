@@ -1,4 +1,3 @@
-from typing import Optional
 
 from library_analyzer.processing.annotations.model import (
     AnnotationStore,
@@ -16,23 +15,22 @@ def _generate_boundary_annotations(api: API, annotations: AnnotationStore) -> No
     """
     Annotates all parameters which are a boundary.
     :param api: Description of the API
-    :param annotations: AnnotationStore, that holds all annotations
+    :param annotations: AnnotationStore, that holds all annotations.
     """
     for _, parameter in api.parameters().items():
-
         # Don't add boundary annotation to constant parameters
-        if parameter.id in set(
+        if parameter.id in {
             annotation.target
             for annotation in annotations.valueAnnotations
             if annotation.variant == ValueAnnotation.Variant.CONSTANT
-        ):
+        }:
             continue
 
         parameter_type = parameter.type
         if parameter_type is None:
             continue
 
-        boundary_type: Optional[BoundaryType] = None
+        boundary_type: BoundaryType | None = None
 
         if isinstance(parameter_type, UnionType):
             for type_in_union in parameter_type.types:

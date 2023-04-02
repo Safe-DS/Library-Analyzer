@@ -1,5 +1,5 @@
 """Iterate over the `json` files inside the `sklearn` folder
-and concatenate them to form `ground_truth.json`
+and concatenate them to form `ground_truth.json`.
 
 Usage:
 ------
@@ -12,7 +12,7 @@ import json
 def sync():
     ground_truth = {}
     for filepath in glob.glob("sklearn/**/*json", recursive=True):
-        with open(filepath, "r") as fin:
+        with open(filepath) as fin:
             json_file = json.load(fin)
         ground_truth.update(json_file)
 
@@ -27,7 +27,7 @@ def get_class_name(filepath: str) -> str:
 
 
 def get_ground_truth() -> dict:
-    with open("ground_truth.json", "r") as fin:
+    with open("ground_truth.json") as fin:
         ground_truth = json.load(fin)
     return ground_truth
 
@@ -51,7 +51,7 @@ def get_boundaries():
 
 
 def stats():
-    with open("ground_truth.json", "r") as fin:
+    with open("ground_truth.json") as fin:
         ground_truth = json.load(fin)
 
     num_classes = len(ground_truth)
@@ -63,5 +63,4 @@ def stats():
 
 if __name__ == "__main__":
     sync()
-    # stats()
     get_boundaries()

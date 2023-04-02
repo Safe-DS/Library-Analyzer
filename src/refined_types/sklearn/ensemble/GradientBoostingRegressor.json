@@ -3,12 +3,7 @@
         "loss": {
             "refined_type": {
                 "kind": "EnumType",
-                "values": [
-                    "quantile",
-                    "huber",
-                    "absolute_error",
-                    "squared_error"
-                ]
+                "values": ["quantile", "huber", "absolute_error", "squared_error"]
             },
             "docstring": {
                 "type": "{'squared_error', 'absolute_error', 'huber', 'quantile'},             default='squared_error'",

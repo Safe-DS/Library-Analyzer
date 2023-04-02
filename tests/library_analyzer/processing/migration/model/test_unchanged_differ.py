@@ -24,7 +24,7 @@ def test_similarity() -> None:
     code_a = cleandoc(
         """
     class Test:
-        pass"""
+        pass""",
     )
     class_id_a = "test/test/Test"
     attribute_a = Attribute("new_test_string", NamedType("str"), class_id=class_id_a)
@@ -43,7 +43,7 @@ def test_similarity() -> None:
     code_b = cleandoc(
         """
     class newTest:
-        pass"""
+        pass""",
     )
     class_id_b = "test/test/NewTest"
     attribute_b = Attribute("test_string", NamedType("str"), class_id=class_id_b)
@@ -79,7 +79,7 @@ def test_similarity() -> None:
         This test function is a work
         \"\"\"
         return "test"
-    """
+    """,
     )
     function_a = Function(
         function_id_a,
@@ -103,7 +103,7 @@ def test_similarity() -> None:
         This test function is a concept.
         \"\"\"
         return "test"
-    """
+    """,
     )
     parameter_b = Parameter(
         function_id_b + "/test_parameter",

@@ -18,32 +18,26 @@ from ._get_annotated_api_element import get_annotated_api_element
 from ._get_migration_text import get_migration_text
 
 
-def migrate_expert_annotation(
-    expert_annotation: ExpertAnnotation, mapping: Mapping
-) -> list[AbstractAnnotation]:
+def migrate_expert_annotation(expert_annotation: ExpertAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
     expert_annotation = deepcopy(expert_annotation)
     authors = expert_annotation.authors
     authors.append(migration_author)
     expert_annotation.authors = authors
 
-    if isinstance(mapping, (ManyToOneMapping, OneToOneMapping)):
+    if isinstance(mapping, ManyToOneMapping | OneToOneMapping):
         element = mapping.get_apiv2_elements()[0]
-        if isinstance(element, (Attribute, Result)):
+        if isinstance(element, Attribute | Result):
             return []
         expert_annotation.target = element.id
         return [expert_annotation]
 
-    annotated_apiv1_element = get_annotated_api_element(
-        expert_annotation, mapping.get_apiv1_elements()
-    )
+    annotated_apiv1_element = get_annotated_api_element(expert_annotation, mapping.get_apiv1_elements())
     if annotated_apiv1_element is None:
         return []
 
     expert_annotations: list[AbstractAnnotation] = []
     for element in mapping.get_apiv2_elements():
-        if isinstance(element, type(annotated_apiv1_element)) and not isinstance(
-            element, (Attribute, Result)
-        ):
+        if isinstance(element, type(annotated_apiv1_element)) and not isinstance(element, Attribute | Result):
             expert_annotations.append(
                 ExpertAnnotation(
                     element.id,
@@ -51,9 +45,9 @@ def migrate_expert_annotation(
                     expert_annotation.reviewers,
                     expert_annotation.comment,
                     EnumReviewResult.NONE,
-                )
+                ),
             )
-        elif not isinstance(element, (Attribute, Result)):
+        elif not isinstance(element, Attribute | Result):
             expert_annotations.append(
                 TodoAnnotation(
                     element.id,
@@ -61,9 +55,7 @@ def migrate_expert_annotation(
                     expert_annotation.reviewers,
                     expert_annotation.comment,
                     EnumReviewResult.NONE,
-                    get_migration_text(
-                        expert_annotation, mapping, for_todo_annotation=True
-                    ),
-                )
+                    get_migration_text(expert_annotation, mapping, for_todo_annotation=True),
+                ),
             )
     return expert_annotations

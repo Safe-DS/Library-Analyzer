@@ -4,7 +4,7 @@ from .persons import Person
 
 
 def send_message_to_person(person: Person, message: str) -> None:
-    """Sends a message to a person
+    """Sends a message to a person.
 
     Parameters
     ----------

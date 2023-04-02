@@ -16,7 +16,6 @@ def _add_unused_api_elements(usages: UsageCountStore, api: API) -> None:
     :param usages: Usage store
     :param api: Description of the API
     """
-
     for class_id in api.classes:
         usages.add_class_usages(class_id, 0)
 
@@ -36,7 +35,6 @@ def _add_implicit_usages_of_default_value(usages: UsageCountStore, api: API) -> 
     :param usages: Usage store
     :param api: Description of the API
     """
-
     for parameter_id, parameter_usage_count in list(usages.parameter_usages.items()):
         default_value = api.get_default_value(parameter_id)
         if default_value is None:
@@ -45,9 +43,7 @@ def _add_implicit_usages_of_default_value(usages: UsageCountStore, api: API) -> 
         function_id = parent_id(parameter_id)
         function_usage_count = usages.n_function_usages(function_id)
 
-        n_locations_of_implicit_usages_of_default_value = (
-            function_usage_count - parameter_usage_count
-        )
+        n_locations_of_implicit_usages_of_default_value = function_usage_count - parameter_usage_count
         usages.add_value_usages(
             parameter_id,
             default_value,

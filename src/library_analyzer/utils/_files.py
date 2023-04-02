@@ -9,7 +9,6 @@ def list_files(root_dir: Path, extension: str = "") -> list[str]:
     :param extension: The extension the files should have.
     :return: A list with absolute paths to the files.
     """
-
     result: list[str] = []
 
     for root, _, files in os.walk(root_dir):
@@ -26,7 +25,6 @@ def ensure_file_exists(file: Path) -> None:
 
     :param file: The file path.
     """
-
     file.parent.mkdir(parents=True, exist_ok=True)
     file.touch(exist_ok=True)
 

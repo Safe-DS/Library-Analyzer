@@ -2,7 +2,7 @@
 
 
 class Position:
-    """The position is used to point to where a book should be placed
+    """The position is used to point to where a book should be placed.
 
     Parameters
     ----------

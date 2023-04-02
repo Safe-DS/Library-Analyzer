@@ -1,4 +1,3 @@
-from typing import Tuple
 
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
@@ -24,7 +23,7 @@ from library_analyzer.processing.migration.model import (
 
 
 def migrate_boundary_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -84,7 +83,7 @@ def migrate_boundary_annotation_data_one_to_one_mapping() -> (
 
 
 def migrate_boundary_annotation_data_one_to_one_mapping_int_to_float() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -106,9 +105,7 @@ def migrate_boundary_annotation_data_one_to_one_mapping_int_to_float() -> (
         default_value="1.0",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation(
-            "float", "1.0", "float in the range of [1.0, 9.0]"
-        ),
+        documentation=ParameterDocumentation("float", "1.0", "float in the range of [1.0, 9.0]"),
     )
 
     mapping = OneToOneMapping(1.0, parameterv1, parameterv2)
@@ -150,7 +147,7 @@ def migrate_boundary_annotation_data_one_to_one_mapping_int_to_float() -> (
 
 
 def migrate_boundary_annotation_data_one_to_one_mapping_float_to_int() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -163,9 +160,7 @@ def migrate_boundary_annotation_data_one_to_one_mapping_float_to_int() -> (
         default_value="1.0",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation(
-            "float", "1.0", "float in the range of [0.5, 9.5]"
-        ),
+        documentation=ParameterDocumentation("float", "1.0", "float in the range of [0.5, 9.5]"),
     )
     parameterv2 = Parameter(
         id_="test/test.boundary.test3.testB",
@@ -215,7 +210,7 @@ def migrate_boundary_annotation_data_one_to_one_mapping_float_to_int() -> (
 
 
 def migrate_boundary_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -246,9 +241,7 @@ def migrate_boundary_annotation_data_one_to_many_mapping() -> (
         default_value="1.0",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation(
-            "float", "1.0", "float in the range of (0.0, 10.0)"
-        ),
+        documentation=ParameterDocumentation("float", "1.0", "float in the range of (0.0, 10.0)"),
     )
     parameterv2_c = Parameter(
         id_="test/test.boundary.test4.testC",
@@ -260,9 +253,7 @@ def migrate_boundary_annotation_data_one_to_many_mapping() -> (
         documentation=ParameterDocumentation("", "", ""),
     )
 
-    mapping = OneToManyMapping(
-        1.0, parameterv1, [parameterv2_a, parameterv2_b, parameterv2_c]
-    )
+    mapping = OneToManyMapping(1.0, parameterv1, [parameterv2_a, parameterv2_b, parameterv2_c])
 
     boundary_annotation = BoundaryAnnotation(
         target="test/test.boundary.test4.testv1",
@@ -332,7 +323,7 @@ def migrate_boundary_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_boundary_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],

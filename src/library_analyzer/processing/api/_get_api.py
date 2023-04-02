@@ -1,8 +1,8 @@
 import logging
 from pathlib import Path
-from typing import Optional
 
 import astroid
+
 from library_analyzer.processing.api.model import API
 from library_analyzer.utils import ASTWalker
 
@@ -17,7 +17,7 @@ from ._package_metadata import (
 from .documentation_parsing import NumpyDocParser
 
 
-def get_api(package_name: str, root: Optional[Path] = None) -> API:
+def get_api(package_name: str, root: Path | None = None) -> API:
     if root is None:
         root = package_root(package_name)
     dist = distribution(package_name) or ""
@@ -37,13 +37,9 @@ def get_api(package_name: str, root: Optional[Path] = None) -> API:
             logging.info("Skipping test file")
             continue
 
-        with open(file, "r", encoding="utf-8") as f:
+        with open(file, encoding="utf-8") as f:
             source = f.read()
-            walker.walk(
-                astroid.parse(
-                    source, module_name=__module_name(root, Path(file)), path=file
-                )
-            )
+            walker.walk(astroid.parse(source, module_name=__module_name(root, Path(file)), path=file))
 
     return callable_visitor.api
 

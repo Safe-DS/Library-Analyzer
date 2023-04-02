@@ -60,7 +60,7 @@ def test_class_similarity(differ: AbstractDiffer) -> None:
     code_a = cleandoc(
         """
     class Test:
-        pass"""
+        pass""",
     )
     class_a = Class(
         "test/test.Test",
@@ -78,7 +78,7 @@ def test_class_similarity(differ: AbstractDiffer) -> None:
     code_b = cleandoc(
         """
     class newTest:
-        pass"""
+        pass""",
     )
     class_b = Class(
         "test/test.newTest",
@@ -108,7 +108,7 @@ def test_function_similarity(differ: AbstractDiffer) -> None:
             ParameterAssignment.POSITION_OR_NAME,
             True,
             ParameterDocumentation("'test_str'", "", ""),
-        )
+        ),
     ]
     results: list[Result] = []
     code_a = cleandoc(
@@ -118,7 +118,7 @@ def test_function_similarity(differ: AbstractDiffer) -> None:
         This test function is a work
         \"\"\"
         return "test"
-    """
+    """,
     )
     function_a = Function(
         "test/test.Test/test",
@@ -143,7 +143,7 @@ def test_function_similarity(differ: AbstractDiffer) -> None:
         This test function is a concept.
         \"\"\"
         return "test"
-    """
+    """,
     )
     parameters = [
         Parameter(
@@ -154,7 +154,7 @@ def test_function_similarity(differ: AbstractDiffer) -> None:
             ParameterAssignment.POSITION_OR_NAME,
             True,
             ParameterDocumentation("'test_str'", "", ""),
-        )
+        ),
     ]
     function_b = Function(
         "test/test.Test/test_method",
@@ -252,16 +252,15 @@ def test_weighted_levenshtein_distance() -> None:
         return (max_iteration - iteration + 1) / max_iteration
 
     cost, max_iteration = differ.distance_elements_with_cost_function(
-        ["a", "b", "c"], ["x", "b", "c"], cost_function=cost_function
+        ["a", "b", "c"], ["x", "b", "c"], cost_function=cost_function,
     )
-    assert cost == 1 and max_iteration == 3
+    assert cost == 1
+    assert max_iteration == 3
 
     cost, max_iteration = differ.distance_elements_with_cost_function(
-        ["a", "b", "c"], ["a", "b", "z"], cost_function=cost_function
+        ["a", "b", "c"], ["a", "b", "z"], cost_function=cost_function,
     )
-    assert cost == 1 / 3 and max_iteration == 3
+    assert cost == 1 / 3
+    assert max_iteration == 3
 
-    assert (
-        differ._compute_id_similarity("api/test.test.text/a", "api/tests.tests.texts/b")
-        < 0.1e-10
-    )
+    assert differ._compute_id_similarity("api/test.test.text/a", "api/tests.tests.texts/b") < 0.1e-10

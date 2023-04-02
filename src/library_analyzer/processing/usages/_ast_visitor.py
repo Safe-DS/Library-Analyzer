@@ -1,9 +1,9 @@
 import re
-from typing import Optional, Union
 
 import astroid
 from astroid.arguments import CallSite
 from astroid.helpers import safe_infer
+
 from library_analyzer.processing.usages.model import UsageCountStore
 from library_analyzer.utils import parent_id
 
@@ -19,15 +19,13 @@ class _UsageFinder:
             return
         called, function_id, parameters, n_implicit_parameters = called_tuple
 
-        bound_parameters = _bound_parameters(
-            parameters, CallSite.from_call(node), n_implicit_parameters
-        )
+        bound_parameters = _bound_parameters(parameters, CallSite.from_call(node), n_implicit_parameters)
         if bound_parameters is None:
             return
 
         # Add class usage
         if (
-            isinstance(called, (astroid.BoundMethod, astroid.UnboundMethod))
+            isinstance(called, astroid.BoundMethod | astroid.UnboundMethod)
             or isinstance(called, astroid.FunctionDef)
             and called.is_method()
         ):
@@ -46,13 +44,12 @@ class _UsageFinder:
 
 
 def _analyze_declaration_called_by(
-    node: astroid.Call, package_name: str
-) -> Optional[tuple[astroid.NodeNG, str, astroid.Arguments, int]]:
+    node: astroid.Call, package_name: str,
+) -> tuple[astroid.NodeNG, str, astroid.Arguments, int] | None:
     """
     Returns None if the called declaration could not be determined or if it is not relevant for us. Otherwise, it
     returns a tuple with the form (called, qualified_name, parameters, n_implicit_parameters).
     """
-
     called = safe_infer(node.func)
     if called is None or not __is_relevant_qualified_name(package_name, called.qname()):
         return None
@@ -64,20 +61,16 @@ def _analyze_declaration_called_by(
         if called is None:
             return None
 
-    if isinstance(
-        called, (astroid.BoundMethod, astroid.UnboundMethod, astroid.FunctionDef)
-    ):
+    if isinstance(called, astroid.BoundMethod | astroid.UnboundMethod | astroid.FunctionDef):
         return called, _id(package_name, called), called.args, n_implicit_parameters
     else:
         return None
 
 
-def _id(
-    package_name: str, called: Union[astroid.UnboundMethod, astroid.FunctionDef]
-) -> str:
+def _id(package_name: str, called: astroid.UnboundMethod | astroid.FunctionDef) -> str:
     path = _path(package_name, called)
 
-    decorators: Optional[astroid.Decorators] = called.decorators
+    decorators: astroid.Decorators | None = called.decorators
     if decorators is not None:
         decorator_names = [decorator.as_string() for decorator in decorators.nodes]
     else:
@@ -87,18 +80,10 @@ def _id(
         return "property" in decorator_names
 
     def is_setter() -> bool:
-        for decorator in decorator_names:
-            if re.search(r"^[^.]*.setter$", decorator):
-                return True
-
-        return False
+        return any(re.search("^[^.]*.setter$", decorator) for decorator in decorator_names)
 
     def is_deleter() -> bool:
-        for decorator in decorator_names:
-            if re.search(r"^[^.]*.deleter$", decorator):
-                return True
-
-        return False
+        return any(re.search("^[^.]*.deleter$", decorator) for decorator in decorator_names)
 
     result = "/".join(path)
 
@@ -119,7 +104,7 @@ def _path(package_name: str, current: astroid.NodeNG) -> list[str]:
     if isinstance(current, astroid.Module):
         return [package_name, current.name]
     elif hasattr(current, "name"):
-        return _path(package_name, current.parent) + [current.name]
+        return [*_path(package_name, current.parent), current.name]
     else:
         return _path(package_name, current.parent)
 
@@ -132,7 +117,7 @@ def __n_implicit_parameters(called: astroid.NodeNG) -> int:
     return called.implicit_parameters() if hasattr(called, "implicit_parameters") else 0
 
 
-def __called_constructor(class_def: astroid.ClassDef) -> Optional[astroid.FunctionDef]:
+def __called_constructor(class_def: astroid.ClassDef) -> astroid.FunctionDef | None:
     try:
         # Use last __init__
         constructor = class_def.local_attr("__init__")[-1]
@@ -150,21 +135,15 @@ def _stringify_value(value: astroid.NodeNG):
 
 
 def _bound_parameters(
-    parameters: astroid.Arguments, arguments: CallSite, n_implicit_parameters: int
-) -> Optional[dict[str, astroid.NodeNG]]:
+    parameters: astroid.Arguments, arguments: CallSite, n_implicit_parameters: int,
+) -> dict[str, astroid.NodeNG] | None:
     # Improper call
-    if (
-        parameters.args is None
-        or arguments.has_invalid_arguments()
-        or arguments.has_invalid_keywords()
-    ):
+    if parameters.args is None or arguments.has_invalid_arguments() or arguments.has_invalid_keywords():
         return None
 
     result: dict[str, astroid.NodeNG] = arguments.keyword_arguments.copy()
 
-    positional_parameter_names = [
-        it.name for it in (parameters.posonlyargs + parameters.args)
-    ][n_implicit_parameters:]
+    positional_parameter_names = [it.name for it in (parameters.posonlyargs + parameters.args)][n_implicit_parameters:]
 
     for index, arg in enumerate(arguments.positional_arguments):
         if index >= len(positional_parameter_names):

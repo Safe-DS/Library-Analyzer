@@ -1,8 +1,6 @@
 import importlib
-
 from importlib.metadata import packages_distributions, version  # type: ignore
 from pathlib import Path
-from typing import Optional
 
 from library_analyzer.utils import list_files
 
@@ -34,7 +32,7 @@ def __move_init_files_to_front(files: list[str]) -> list[str]:
     return init_files + other_files
 
 
-def distribution(package_name: str) -> Optional[str]:
+def distribution(package_name: str) -> str | None:
     dist = packages_distributions().get(package_name)
     if dist is None or len(dist) == 0:
         return None
@@ -42,7 +40,7 @@ def distribution(package_name: str) -> Optional[str]:
     return dist[0]
 
 
-def distribution_version(dist: Optional[str]) -> Optional[str]:
+def distribution_version(dist: str | None) -> str | None:
     if dist is None or len(dist) == 0:
         return None
 

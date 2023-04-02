@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from library_analyzer.processing.migration import APIMapping, Migration
 from library_analyzer.processing.migration.model import (
@@ -33,7 +33,7 @@ def _run_migrate_command(
     api_mapping = APIMapping(apiv1, apiv2, unchanged_differ)
     unchanged_mappings: list[Mapping] = api_mapping.map_api()
     previous_mappings = unchanged_mappings
-    previous_base_differ: Optional[AbstractDiffer] = unchanged_differ
+    previous_base_differ: AbstractDiffer | None = unchanged_differ
 
     differ_init_list: list[tuple[type[AbstractDiffer], dict[str, Any]]] = [
         (SimpleDiffer, {}),
@@ -43,38 +43,20 @@ def _run_migrate_command(
 
     for differ_init in differ_init_list:
         differ_class, additional_parameters = differ_init
-        differ = differ_class(
-            previous_base_differ,
-            previous_mappings,
-            apiv1,
-            apiv2,
-            **additional_parameters
-        )
+        differ = differ_class(previous_base_differ, previous_mappings, apiv1, apiv2, **additional_parameters)
         api_mapping = APIMapping(apiv1, apiv2, differ)
         mappings = api_mapping.map_api()
 
         previous_mappings = mappings
-        previous_base_differ = (
-            differ if differ.is_base_differ() else differ.previous_base_differ
-        )
+        previous_base_differ = differ if differ.is_base_differ() else differ.previous_base_differ
 
     if previous_mappings is not None:
         migration = Migration(annotationsv1, previous_mappings)
         migration.migrate_annotations()
         migration.print(apiv1, apiv2)
-        migrated_annotations_file = Path(
-            os.path.join(
-                out_dir_path, "migrated_annotationsv" + apiv2.version + ".json"
-            )
-        )
+        migrated_annotations_file = Path(os.path.join(out_dir_path, "migrated_annotationsv" + apiv2.version + ".json"))
         unsure_migrated_annotations_file = Path(
-            os.path.join(
-                out_dir_path, "unsure_migrated_annotationsv" + apiv2.version + ".json"
-            )
+            os.path.join(out_dir_path, "unsure_migrated_annotationsv" + apiv2.version + ".json"),
         )
-        _write_annotations_file(
-            migration.migrated_annotation_store, migrated_annotations_file
-        )
-        _write_annotations_file(
-            migration.unsure_migrated_annotation_store, unsure_migrated_annotations_file
-        )
+        _write_annotations_file(migration.migrated_annotation_store, migrated_annotations_file)
+        _write_annotations_file(migration.unsure_migrated_annotation_store, unsure_migrated_annotations_file)

@@ -1,4 +1,3 @@
-from typing import Tuple
 
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
@@ -24,7 +23,7 @@ from library_analyzer.processing.migration.model import (
 
 
 def migrate_enum_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -71,7 +70,7 @@ def migrate_enum_annotation_data_one_to_one_mapping() -> (
 
 
 def migrate_enum_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -140,7 +139,7 @@ def migrate_enum_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_enum_annotation_data_one_to_many_mapping__only_one_relevant_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -182,9 +181,7 @@ def migrate_enum_annotation_data_one_to_many_mapping__only_one_relevant_mapping(
         is_public=True,
         documentation=ParameterDocumentation("int", "0", "docstring"),
     )
-    mapping = OneToManyMapping(
-        1.0, parameterv1, [parameterv2_a, parameterv2_b, parameterv2_c]
-    )
+    mapping = OneToManyMapping(1.0, parameterv1, [parameterv2_a, parameterv2_b, parameterv2_c])
     enum_annotation = EnumAnnotation(
         target="test/test.enum.test3.Test",
         authors=["testauthor"],
@@ -220,7 +217,7 @@ def migrate_enum_annotation_data_one_to_many_mapping__only_one_relevant_mapping(
 
 
 def migrate_enum_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],

@@ -1,11 +1,11 @@
 import logging
 import re
-from typing import Optional, Union
 
 import astroid
 from astroid import NodeNG
 from astroid.context import InferenceContext
 from astroid.helpers import safe_infer
+
 from library_analyzer.processing.api.model import (
     API,
     Class,
@@ -22,9 +22,7 @@ from ._get_parameter_list import get_parameter_list
 from .documentation_parsing import AbstractDocumentationParser
 
 
-def trim_code(
-    code: Optional[str], from_line_no: int, to_line_no: int, encoding: str
-) -> str:
+def trim_code(code: str | None, from_line_no: int, to_line_no: int, encoding: str) -> str:
     if code is None:
         return ""
     if isinstance(code, bytes):
@@ -34,13 +32,11 @@ def trim_code(
 
 
 class _AstVisitor:
-    def __init__(
-        self, documentation_parser: AbstractDocumentationParser, api: API
-    ) -> None:
+    def __init__(self, documentation_parser: AbstractDocumentationParser, api: API) -> None:
         self.documentation_parser: AbstractDocumentationParser = documentation_parser
         self.reexported: dict[str, list[str]] = {}
         self.api: API = api
-        self.__declaration_stack: list[Union[Module, Class, Function]] = []
+        self.__declaration_stack: list[Module | Class | Function] = []
 
     def __get_id(self, name: str) -> str:
         segments = [self.api.package]
@@ -54,18 +50,10 @@ class _AstVisitor:
             return "property" in decorators
 
         def is_setter() -> bool:
-            for decorator in decorators:
-                if re.search(r"^[^.]*.setter$", decorator):
-                    return True
-
-            return False
+            return any(re.search("^[^.]*.setter$", decorator) for decorator in decorators)
 
         def is_deleter() -> bool:
-            for decorator in decorators:
-                if re.search(r"^[^.]*.deleter$", decorator):
-                    return True
-
-            return False
+            return any(re.search("^[^.]*.deleter$", decorator) for decorator in decorators)
 
         result = self.__get_id(name)
 
@@ -92,33 +80,25 @@ class _AstVisitor:
                 continue
             visited_global_nodes.add(global_node)
 
-            # import X as Y
             if isinstance(global_node, astroid.Import):
                 for name, alias in global_node.names:
                     imports.append(Import(name, alias))
 
-            # from X import a as b
             if isinstance(global_node, astroid.ImportFrom):
-                base_import_path = module_node.relative_to_absolute_name(
-                    global_node.modname, global_node.level
-                )
+                base_import_path = module_node.relative_to_absolute_name(global_node.modname, global_node.level)
 
                 for name, alias in global_node.names:
                     from_imports.append(FromImport(base_import_path, name, alias))
 
                 # Find re-exported declarations in __init__.py files
-                if _is_init_file(module_node.file) and is_public_module(
-                    module_node.qname()
-                ):
+                if _is_init_file(module_node.file) and is_public_module(module_node.qname()):
                     for declaration, _ in global_node.names:
                         context = InferenceContext()
                         context.lookupname = declaration
                         node = safe_infer(global_node, context)
 
                         if node is None:
-                            logging.warning(
-                                f"Could not resolve 'from {global_node.modname} import {declaration}"
-                            )
+                            logging.warning(f"Could not resolve 'from {global_node.modname} import {declaration}")
                             continue
 
                         reexported_name = node.qname()
@@ -148,7 +128,7 @@ class _AstVisitor:
         qname = class_node.qname()
         instance_attributes = get_instance_attributes(class_node)
 
-        decorators: Optional[astroid.Decorators] = class_node.decorators
+        decorators: astroid.Decorators | None = class_node.decorators
         if decorators is not None:
             decorator_names = [decorator.as_string() for decorator in decorators.nodes]
         else:
@@ -186,7 +166,7 @@ class _AstVisitor:
     def enter_functiondef(self, function_node: astroid.FunctionDef) -> None:
         qname = function_node.qname()
 
-        decorators: Optional[astroid.Decorators] = function_node.decorators
+        decorators: astroid.Decorators | None = function_node.decorators
         if decorators is not None:
             decorator_names = [decorator.as_string() for decorator in decorators.nodes]
         else:
@@ -211,16 +191,12 @@ class _AstVisitor:
             results=[],  # TODO: results
             is_public=is_public,
             reexported_by=self.reexported.get(qname, []),
-            documentation=self.documentation_parser.get_function_documentation(
-                function_node
-            ),
+            documentation=self.documentation_parser.get_function_documentation(function_node),
             code=code,
         )
         self.__declaration_stack.append(function)
 
-    def get_code(
-        self, function_node: Union[astroid.FunctionDef, astroid.ClassDef]
-    ) -> str:
+    def get_code(self, function_node: astroid.FunctionDef | astroid.ClassDef) -> str:
         code = ""
         node: NodeNG = function_node
         while node.parent is not None:
@@ -259,10 +235,7 @@ class _AstVisitor:
             return True
 
         # Containing class is re-exported (always false if the current API element is not a method)
-        if (
-            isinstance(self.__declaration_stack[-1], Class)
-            and parent_qualified_name(qualified_name) in self.reexported
-        ):
+        if isinstance(self.__declaration_stack[-1], Class) and parent_qualified_name(qualified_name) in self.reexported:
             return True
 
         # The slicing is necessary so __init__ functions are not excluded (already handled in the first condition).

@@ -1,5 +1,4 @@
 import json
-import typing
 
 from astroid import nodes as Astroid
 from astroid import parse
@@ -440,7 +439,7 @@ class KMeans(TransformerMixin, ClusterMixin, BaseEstimator):
                 ),
             },
         }
-'''
+''',
 )
 
 module = parse(
@@ -471,7 +470,7 @@ def f(pA):
     a.a = 7
 
 f(aObj)
-"""
+""",
 )
 
 """List to store references to function nodes in which we already traversed (either completely because they lie within
@@ -481,67 +480,59 @@ visit it anyway. In these cases, the parser does not need to investigate these a
 list_of_traversed_functions = []
 
 """ Lists to store function properties while traversing the ast """
-call_prop_list: typing.List[typing.Dict[str, str]] = []
-state_read_prop_list: typing.List[typing.Dict[str, str]] = []
-state_write_prop_list: typing.List[typing.Dict[str, str]] = []
-input_read_prop_list: typing.List[typing.Dict[str, str]] = []
-output_write_prop_list: typing.List[typing.Dict[str, str]] = []
-error_prop_list: typing.List[typing.Dict[str, str]] = []
-random_prop_list: typing.List[typing.Dict[str, str]] = []
+call_prop_list: list[dict[str, str]] = []
+state_read_prop_list: list[dict[str, str]] = []
+state_write_prop_list: list[dict[str, str]] = []
+input_read_prop_list: list[dict[str, str]] = []
+output_write_prop_list: list[dict[str, str]] = []
+error_prop_list: list[dict[str, str]] = []
+random_prop_list: list[dict[str, str]] = []
 
 
 def create_call_prop(fnc: str, callee: str):
-    """Save entry in list for the case where a function calls another function"""
-
+    """Save entry in list for the case where a function calls another function."""
     new_prop = {"function": fnc, "callee": callee}
     call_prop_list.append(new_prop)
 
 
 def create_state_read_prop(fnc: str, attr: str, obj: str):
-    """Save entry in list for the case where a function reads from a state"""
-
+    """Save entry in list for the case where a function reads from a state."""
     new_prop = {"function": fnc, "attribute": attr, "object": obj}
     state_read_prop_list.append(new_prop)
 
 
 def create_state_write_prop(fnc: str, attr: str, obj: str, value: str):
-    """Save entry in list for the case where a function write to the state of an object"""
-
+    """Save entry in list for the case where a function write to the state of an object."""
     new_prop = {"function": fnc, "attribute": attr, "object": obj, "value": value}
     state_write_prop_list.append(new_prop)
 
 
 def create_input_read_prop(fnc: str, source: str):
-    """Save entry in list for the case where a function reads input from file or console"""
-
+    """Save entry in list for the case where a function reads input from file or console."""
     new_prop = {"function": fnc, "source": source}
     input_read_prop_list.append(new_prop)
 
 
 def create_output_write_prop(fnc: str, target: str, text: str):
-    """Save entry in list for the case where a function writes to the file or console"""
-
+    """Save entry in list for the case where a function writes to the file or console."""
     new_prop = {"function": fnc, "target": target, "text": text}
     output_write_prop_list.append(new_prop)
 
 
 def create_error_prop(fnc: str, cond: str, error: str, msg: str):
-    """Save entry in list for the case where a function raises an exception"""
-
+    """Save entry in list for the case where a function raises an exception."""
     new_prop = {"function": fnc, "condition": cond, "error": error, "message": msg}
     error_prop_list.append(new_prop)
 
 
 def create_random_prop(fnc: str, source: str):
-    """Save entry in list for the case where a function uses randomness"""
-
+    """Save entry in list for the case where a function uses randomness."""
     new_prop = {"function": fnc, "source": source}
     random_prop_list.append(new_prop)
 
 
 def serialize_lists():
-    """Serialize all lists"""
-
+    """Serialize all lists."""
     file = open("parsed_data.json", "w")
     file.write(json.dumps(call_prop_list))
     file.write(json.dumps(state_read_prop_list))
@@ -554,56 +545,49 @@ def serialize_lists():
 
 
 def print_lists():
-    """Print all lists"""
-
+    """Print all lists."""
     for e in call_prop_list:
         print(
-            f'\033[93mFunction "{e.get("function")}" references other function "{e.get("callee")}", inheriting all its properties\033[0m'
+            f'\033[93mFunction "{e.get("function")}" references other function "{e.get("callee")}", inheriting all its properties\033[0m',
         )
 
     for e in state_read_prop_list:
         print(
-            f'\033[92mUnpure function "{e.get("function")}" due to state read: uses "{e.get("attribute")}" of "{e.get("object")}"\033[0m'
+            f'\033[92mUnpure function "{e.get("function")}" due to state read: uses "{e.get("attribute")}" of "{e.get("object")}"\033[0m',
         )
 
     for e in state_write_prop_list:
         print(
-            f'\033[92mFunction "{e.get("function")}" has state side effect: writes to "{e.get("attribute")}" of "{e.get("object")}"\033[0m'
+            f'\033[92mFunction "{e.get("function")}" has state side effect: writes to "{e.get("attribute")}" of "{e.get("object")}"\033[0m',
         )
 
     for e in input_read_prop_list:
-        print(
-            f'\033[96mUnpure function "{e.get("function")}" due to read from "{e.get("target")}"\033[0m'
-        )
+        print(f'\033[96mUnpure function "{e.get("function")}" due to read from "{e.get("target")}"\033[0m')
 
     for e in output_write_prop_list:
         print(
-            f'\033[96mFunction "{e.get("function")}" has output side effect: prints "{e.get("text")}" to {e.get("target")}\033[0m'
+            f'\033[96mFunction "{e.get("function")}" has output side effect: prints "{e.get("text")}" to {e.get("target")}\033[0m',
         )
 
     for e in error_prop_list:
         print(
-            f'\033[95mFunction "{e.get("function")}" may terminate abnormally: raises "{e.get("error")}" under condition "{e.get("condition")}" and prints "{e.get("message")}" to console\033[0m'
+            f'\033[95mFunction "{e.get("function")}" may terminate abnormally: raises "{e.get("error")}" under condition "{e.get("condition")}" and prints "{e.get("message")}" to console\033[0m',
         )
 
     for e in random_prop_list:
-        print(
-            f'\033[94mUnpure function "{e.get("function")}" due to randomness read: uses "{e.get("source")}"\033[0m'
-        )
+        print(f'\033[94mUnpure function "{e.get("function")}" due to randomness read: uses "{e.get("source")}"\033[0m')
 
 
 def visit_ast(ast):
     """This is the main part of the parser which visits recursively all nodes in the
-    ast and performs adequate queries on them."""
-
+    ast and performs adequate queries on them.
+    """
     if isinstance(ast, Astroid.Module):
         # handle module
         for i in range(len(ast.body)):
             visit_ast(ast.body[i])
 
-    if isinstance(ast, Astroid.FunctionDef) or isinstance(
-        ast, Astroid.AsyncFunctionDef
-    ):
+    if isinstance(ast, Astroid.FunctionDef | Astroid.AsyncFunctionDef):
         # handle function
         for i in range(len(ast.body)):
             visit_ast(ast.body[i])
@@ -642,11 +626,7 @@ def visit_ast(ast):
         for i in range(len(ast.ops)):
             visit_ast(ast.ops[i])
 
-    if (
-        isinstance(ast, tuple)
-        and isinstance(ast[0], str)
-        and isinstance(ast[1], Astroid.NodeNG)
-    ):
+    if isinstance(ast, tuple) and isinstance(ast[0], str) and isinstance(ast[1], Astroid.NodeNG):
         # handle operand
         visit_ast(ast[1])
 
@@ -667,16 +647,10 @@ def visit_ast(ast):
     if isinstance(ast, Astroid.Raise):
         # handle raise
         # if isinstance(ast.exc.args[0], Astroid.JoinedStr):
-        #     string = ""
         #     for i in range(len(ast.exc.args[0].values)):
         #         if isinstance(ast.exc.args[0].values[i], Astroid.Const):
-        #             string += " " + ast.exc.args[0].values[i].value
-        #         elif isinstance(ast.exc.args[0].values[i], str):
-        #             string += " " + ast.exc.args[0].values[i]
-        # else:
-        #     string = ast.exc.args[0].value
         create_error_prop(
-            infer_function(ast), "", ast.exc.func.name, concat_args(ast.exc.args)
+            infer_function(ast), "", ast.exc.func.name, concat_args(ast.exc.args),
         )  # TODO infer condition under which exception is raised
 
     if isinstance(ast, Astroid.Const):
@@ -688,10 +662,7 @@ def visit_ast(ast):
         enclosing = infer_function(ast)
         global list_of_traversed_functions
 
-        if isinstance(ast.func, Astroid.FunctionDef) or isinstance(
-            ast.func, Astroid.AsyncFunctionDef
-        ):
-
+        if isinstance(ast.func, Astroid.FunctionDef) or isinstance(ast.func, Astroid.AsyncFunctionDef):
             if ast.func.name == "print":
                 create_output_write_prop(enclosing, "console", concat_args(ast.args))
             elif ast.func.name == "input":
@@ -710,19 +681,17 @@ def visit_ast(ast):
                     for i in range(1, len(ast.args)):
                         argsJoined += " " + ast.args[i].value
                     argsJoined = argsJoined.strip()
-                    create_output_write_prop(
-                        enclosing, str(ast.args[0].value), argsJoined
-                    )
+                    create_output_write_prop(enclosing, str(ast.args[0].value), argsJoined)
             elif enclosing is not None and ast.func not in list_of_traversed_functions:
                 list_of_traversed_functions.append(ast.func)
                 create_call_prop(enclosing, ast.func.name)
                 # TODO: also check if function in parameter place or inner function can be a problem (they are not necessary executed)!!
             else:
-                print(f"\033[93mUnknown!!\033[0m")
+                print("\033[93mUnknown!!\033[0m")
         elif isinstance(ast.func, Astroid.Attribute) and ast.func.attrname == "warn":
             string = ast.args[0] if len(ast.args) > 0 else ""
             create_output_write_prop(
-                enclosing, "console", string
+                enclosing, "console", string,
             )  # TODO: is warn really an output or are they just collected??
 
         # this is mostly for built-in functions that somehow sometimes only appear as a Astroid.Name...
@@ -754,25 +723,19 @@ def visit_ast(ast):
         # handle attribute assignment
         visit_ast(ast.expr)
         create_state_write_prop(
-            infer_function(ast), ast.attrname, ast.expr.name, ast.expr
+            infer_function(ast), ast.attrname, ast.expr.name, ast.expr,
         )  # TODO: replace last arg with value
 
-    if isinstance(
-        ast, Astroid.AssignName
-    ):  # TODO: is this a state side effect? Seems to not be the case...
+    if isinstance(ast, Astroid.AssignName):  # TODO: is this a state side effect? Seems to not be the case...
         # handle module
         visit_ast(ast.name)
 
     if isinstance(ast, Astroid.DelAttr):
         # handle module
         visit_ast(ast.expr)
-        create_state_write_prop(
-            infer_function(ast), ast.attrname, ast.expr.name, "$DELETE"
-        )
+        create_state_write_prop(infer_function(ast), ast.attrname, ast.expr.name, "$DELETE")
 
-    if isinstance(
-        ast, Astroid.Delete
-    ):  # TODO: depending on the expression of the delete statement, this can be a
+    if isinstance(ast, Astroid.Delete):  # TODO: depending on the expression of the delete statement, this can be a
         # state side effect or not. E.g. deleting an attribute object.x is a state
         # side effect, whereas deleting a local variable is not
         for i in range(len(ast.targets)):
@@ -781,11 +744,11 @@ def visit_ast(ast):
     if isinstance(ast, Astroid.Attribute):
         # handle attribute read
         if isinstance(ast.expr, Astroid.Name):
-            name = ast.expr.name
+            pass
         elif isinstance(ast.expr, Astroid.Call):
-            name = ast.expr.func
+            pass
         else:
-            name = "NONAME"
+            pass
         create_state_read_prop(
             infer_function(ast),
             ast.attrname,
@@ -801,7 +764,7 @@ def visit_ast(ast):
         # visitAst(ast.arg) TODO is this necessary? since we can only set the parameters...?
         visit_ast(ast.value)
 
-    if isinstance(ast, Astroid.For) or isinstance(ast, Astroid.AsyncFor):
+    if isinstance(ast, Astroid.For | Astroid.AsyncFor):
         # handle for
         visit_ast(ast.iter)
         visit_ast(ast.target)
@@ -1057,7 +1020,7 @@ def visit_ast(ast):
         for i in range(len(ast.orelse)):
             visit_ast(ast.orelse[i])
 
-    if isinstance(ast, Astroid.With) or isinstance(ast, Astroid.AsyncWith):
+    if isinstance(ast, Astroid.With | Astroid.AsyncWith):
         # handle module
         visit_ast(ast.type_annotation)
         for i in range(len(ast.items)):
@@ -1077,7 +1040,8 @@ def visit_ast(ast):
 
 def infer_function(ast):
     """Function to find the function node in which the currently visited node is contained (is a (transitive) subnode
-    of)"""
+    of).
+    """
     if ast is None:
         return None
     if isinstance(ast, Astroid.FunctionDef):
@@ -1088,7 +1052,8 @@ def infer_function(ast):
 
 def infer_class(ast):
     """Function to find the class node in which the currently visited node is contained (is a (transitive) subnode
-    of)"""
+    of).
+    """
     if ast is None:
         return None
     if isinstance(ast, Astroid.ClassDef):
@@ -1099,7 +1064,8 @@ def infer_class(ast):
 
 def concat_joined_str(strings):
     """Functions to concatenate the arguments of a function, e.g. useful to store what a print(...) is printing to
-    console. May be replaced by one or removed completely in future work"""
+    console. May be replaced by one or removed completely in future work.
+    """
     if strings is Astroid.JoinedStr:
         strings = strings.values
         string = ""
@@ -1121,9 +1087,6 @@ def concat_args(strings):
     string = ""
     for i in range(len(strings)):
         # if isinstance(strings[i], Astroid.JoinedStr):
-        #     string += " " + _concatJoinedString(strings[i])
-        # elif isinstance(strings[i], Astroid.Const):
-        #     string += " " + strings[i].value
 
         string += " " + strings[i].as_string()
     return string.strip()

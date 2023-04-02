@@ -1,4 +1,3 @@
-from typing import Tuple
 
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
@@ -30,7 +29,7 @@ from library_analyzer.processing.migration.model import (
 
 
 def migrate_constant_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -77,7 +76,7 @@ def migrate_constant_annotation_data_one_to_one_mapping() -> (
 
 
 def migrate_omitted_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -119,7 +118,7 @@ def migrate_omitted_annotation_data_one_to_one_mapping() -> (
 
 
 def migrate_optional_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -165,7 +164,7 @@ def migrate_optional_annotation_data_one_to_one_mapping() -> (
 
 
 def migrate_required_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -207,7 +206,7 @@ def migrate_required_annotation_data_one_to_one_mapping() -> (
 
 
 def migrate_constant_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -318,7 +317,7 @@ def migrate_constant_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_optional_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -371,9 +370,7 @@ def migrate_optional_annotation_data_one_to_many_mapping() -> (
         documentation=ParameterDocumentation("int", "5", "int in the range of (0, 10)"),
     )
 
-    mapping = OneToManyMapping(
-        1.0, parameterv1, [parameterv2_a, parameterv2_b, parameterv2_c, parameterv2_d]
-    )
+    mapping = OneToManyMapping(1.0, parameterv1, [parameterv2_a, parameterv2_b, parameterv2_c, parameterv2_d])
 
     annotation = OptionalAnnotation(
         target="test/test.value.test6.test",
@@ -427,7 +424,7 @@ def migrate_optional_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_required_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -582,7 +579,7 @@ def migrate_required_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_omitted_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -712,7 +709,7 @@ def migrate_omitted_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_constant_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],
@@ -777,7 +774,7 @@ def migrate_constant_annotation_data_duplicated() -> (
 
 
 def migrate_omitted_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],
@@ -839,7 +836,7 @@ def migrate_omitted_annotation_data_duplicated() -> (
 
 
 def migrate_optional_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],
@@ -907,7 +904,7 @@ def migrate_optional_annotation_data_duplicated() -> (
 
 
 def migrate_required_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],

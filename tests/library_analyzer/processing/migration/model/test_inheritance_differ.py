@@ -1,5 +1,4 @@
 from inspect import cleandoc
-from typing import Tuple, Union
 
 import pytest
 from library_analyzer.processing.api.model import (
@@ -27,19 +26,15 @@ from library_analyzer.processing.migration.model import (
 from .test_differ import differ_list
 
 
-def create_api_super() -> (
-    Tuple[API, Class, Class, Attribute, Function, Parameter, Result]
-):
+def create_api_super() -> tuple[API, Class, Class, Attribute, Function, Parameter, Result]:
     apiv1 = API("test-distribution", "test-package-super", "1.0")
     code_a = cleandoc(
         """
     class SuperTest:
-        pass"""
+        pass""",
     )
     class_id_super = "test/test/SuperTest"
-    attribute_super = Attribute(
-        "new_test_int", NamedType("int"), class_id=class_id_super
-    )
+    attribute_super = Attribute("new_test_int", NamedType("int"), class_id=class_id_super)
     class_super = Class(
         class_id_super,
         "test.SuperTest",
@@ -72,9 +67,7 @@ def create_api_super() -> (
         True,
         ParameterDocumentation("'test_str_a'", "", ""),
     )
-    result_super = Result(
-        "config", ResultDocstring("dict", ""), function_id=function_id_super
-    )
+    result_super = Result("config", ResultDocstring("dict", ""), function_id=function_id_super)
     code_function_a = cleandoc(
         """
     def test_function_super(test_parameter: str):
@@ -82,7 +75,7 @@ def create_api_super() -> (
         This test function is a work
         \"\"\"
         return "test"
-    """
+    """,
     )
     function_super = Function(
         function_id_super,
@@ -112,14 +105,12 @@ def create_api_super() -> (
     )
 
 
-def create_api_sub() -> (
-    Tuple[API, Class, Class, Attribute, Function, Parameter, Result]
-):
+def create_api_sub() -> tuple[API, Class, Class, Attribute, Function, Parameter, Result]:
     apiv1 = API("test-distribution", "test-package-sub", "1.0")
     code_a = cleandoc(
         """
     class SubTest:
-        pass"""
+        pass""",
     )
     class_id_sub = "test/test/SubTest"
     attribute_sub = Attribute("new_test_int", NamedType("int"), class_id=class_id_sub)
@@ -155,9 +146,7 @@ def create_api_sub() -> (
         True,
         ParameterDocumentation("'test_str_a'", "", ""),
     )
-    result_sub = Result(
-        "config", ResultDocstring("dict", ""), function_id=function_id_sub
-    )
+    result_sub = Result("config", ResultDocstring("dict", ""), function_id=function_id_sub)
     code_function_a = cleandoc(
         """
     def test_function_sub(test_parameter: str):
@@ -165,7 +154,7 @@ def create_api_sub() -> (
         This test function is a work
         \"\"\"
         return "test"
-    """
+    """,
     )
     function_sub = Function(
         function_id_sub,
@@ -226,27 +215,27 @@ def test_inheritance_differ(differ: AbstractDiffer) -> None:
             assert len(idiffer.inheritance.values()) == 2
             for inheritance_list in idiffer.inheritance.values():
                 assert len(inheritance_list) == 2
-            assert idiffer.compute_class_similarity(
-                superclass, superclassv2
-            ) == differ.compute_class_similarity(superclass, superclassv2)
-            assert idiffer.compute_class_similarity(
-                subclass, subclassv2
-            ) == differ.compute_class_similarity(subclass, subclassv2)
+            assert idiffer.compute_class_similarity(superclass, superclassv2) == differ.compute_class_similarity(
+                superclass, superclassv2,
+            )
+            assert idiffer.compute_class_similarity(subclass, subclassv2) == differ.compute_class_similarity(
+                subclass, subclassv2,
+            )
             assert idiffer.compute_attribute_similarity(
-                attributev2, attributev2
+                attributev2, attributev2,
             ) == differ.compute_attribute_similarity(attribute, attributev2)
-            assert idiffer.compute_function_similarity(
-                function, functionv2
-            ) == differ.compute_function_similarity(function, functionv2)
+            assert idiffer.compute_function_similarity(function, functionv2) == differ.compute_function_similarity(
+                function, functionv2,
+            )
             assert idiffer.compute_parameter_similarity(parameter, parameterv2) == 0.0
             assert idiffer.compute_result_similarity(result, resultv2) == 0.0
             idiffer.notify_new_mapping([OneToOneMapping(1.0, function, functionv2)])
-            assert idiffer.compute_parameter_similarity(
-                parameter, parameterv2
-            ) == differ.compute_parameter_similarity(parameter, parameterv2)
-            assert idiffer.compute_result_similarity(
-                result, resultv2
-            ) == differ.compute_result_similarity(result, resultv2)
+            assert idiffer.compute_parameter_similarity(parameter, parameterv2) == differ.compute_parameter_similarity(
+                parameter, parameterv2,
+            )
+            assert idiffer.compute_result_similarity(result, resultv2) == differ.compute_result_similarity(
+                result, resultv2,
+            )
             idiffer = InheritanceDiffer(
                 differ,
                 [
@@ -266,22 +255,11 @@ def test_inheritance_differ(differ: AbstractDiffer) -> None:
             idiffer.notify_new_mapping([OneToOneMapping(1.0, function, functionv2)])
             assert idiffer.compute_parameter_similarity(parameter, parameterv2) == 1
             assert idiffer.compute_result_similarity(result, resultv2) == 1
-            previous_mapping: list[Mapping] = [
-                ManyToManyMapping(-1.0, [result], [resultv2])
-            ]
-            assert (
-                InheritanceDiffer(
-                    differ, previous_mapping, api, api
-                ).get_additional_mappings()
-                == previous_mapping
-            )
-            related_mappings = InheritanceDiffer(
-                differ, [], api, apiv2
-            ).get_related_mappings()
+            previous_mapping: list[Mapping] = [ManyToManyMapping(-1.0, [result], [resultv2])]
+            assert InheritanceDiffer(differ, previous_mapping, api, api).get_additional_mappings() == previous_mapping
+            related_mappings = InheritanceDiffer(differ, [], api, apiv2).get_related_mappings()
             expected_related_mappings = [
-                ManyToManyMapping(
-                    -1.0, [superclass, subclass], [superclassv2, subclassv2]
-                ),
+                ManyToManyMapping(-1.0, [superclass, subclass], [superclassv2, subclassv2]),
                 ManyToManyMapping(-1.0, [function], [functionv2]),
                 ManyToManyMapping(-1.0, [attribute], [attributev2]),
                 ManyToManyMapping(-1.0, [parameter], [parameterv2]),
@@ -290,9 +268,7 @@ def test_inheritance_differ(differ: AbstractDiffer) -> None:
             assert related_mappings is not None
             assert len(related_mappings) == 5
 
-            def print_api_element(
-                api_element: Union[Attribute, Class, Function, Parameter, Result]
-            ) -> str:
+            def print_api_element(api_element: Attribute | Class | Function | Parameter | Result) -> str:
                 if isinstance(api_element, Result):
                     assert api_element.function_id is not None
                     return api_element.function_id + "/" + api_element.name
@@ -302,15 +278,11 @@ def test_inheritance_differ(differ: AbstractDiffer) -> None:
 
             for i in range(5):
                 related_mapping = related_mappings[i]
-                assert sorted(
-                    related_mapping.get_apiv1_elements(), key=print_api_element
-                ) == sorted(
+                assert sorted(related_mapping.get_apiv1_elements(), key=print_api_element) == sorted(
                     expected_related_mappings[i].get_apiv1_elements(),
                     key=print_api_element,
                 )
-                assert sorted(
-                    related_mapping.get_apiv2_elements(), key=print_api_element
-                ) == sorted(
+                assert sorted(related_mapping.get_apiv2_elements(), key=print_api_element) == sorted(
                     expected_related_mappings[i].get_apiv2_elements(),
                     key=print_api_element,
                 )

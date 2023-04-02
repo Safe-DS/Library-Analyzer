@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from dataclasses import asdict, dataclass
 from enum import Enum
-from typing import Any, Union
+from typing import Any
 
 ANNOTATION_SCHEMA_VERSION = 2
 
@@ -64,9 +64,9 @@ class RemoveAnnotation(AbstractAnnotation):
 @dataclass
 class Interval:
     isDiscrete: bool
-    lowerIntervalLimit: Union[int, float, str]
+    lowerIntervalLimit: int | float | str
     lowerLimitType: int
-    upperIntervalLimit: Union[int, float, str]
+    upperIntervalLimit: int | float | str
     upperLimitType: int
 
     def to_json(self) -> dict:
@@ -311,9 +311,7 @@ class ParameterInfo:
     value: str
     value_type: str
 
-    def __init__(
-        self, parameter_type: ParameterType, value: str = "", value_type: str = ""
-    ) -> None:
+    def __init__(self, parameter_type: ParameterType, value: str = "", value_type: str = "") -> None:
         self.type = parameter_type
         self.value = value
         self.value_type = value_type

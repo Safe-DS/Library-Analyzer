@@ -15,9 +15,7 @@ def _read_annotations_file(annotations_file_path: Path) -> AnnotationStore:
     return AnnotationStore.from_json(annotations_json)
 
 
-def _write_annotations_file(
-    annotations: AnnotationStore, annotations_file_path: Path
-) -> None:
+def _write_annotations_file(annotations: AnnotationStore, annotations_file_path: Path) -> None:
     ensure_file_exists(annotations_file_path)
     with annotations_file_path.open("w", encoding="utf-8") as f:
         json.dump(annotations.to_json(), f, indent=2)

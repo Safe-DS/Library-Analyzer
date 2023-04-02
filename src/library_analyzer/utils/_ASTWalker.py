@@ -1,10 +1,11 @@
-from typing import Any, Callable, Optional, Type
+from collections.abc import Callable
+from typing import Any
 
 import astroid
 
 _EnterAndLeaveFunctions = tuple[
-    Optional[Callable[[astroid.NodeNG], None]],
-    Optional[Callable[[astroid.NodeNG], None]],
+    Callable[[astroid.NodeNG], None] | None,
+    Callable[[astroid.NodeNG], None] | None,
 ]
 
 
@@ -20,7 +21,7 @@ class ASTWalker:
 
     def __init__(self, handler: Any) -> None:
         self._handler = handler
-        self._cache: dict[Type, _EnterAndLeaveFunctions] = {}
+        self._cache: dict[type, _EnterAndLeaveFunctions] = {}
 
     def walk(self, node: astroid.NodeNG) -> None:
         self.__walk(node, set())
@@ -29,7 +30,6 @@ class ASTWalker:
         if node in visited_nodes:
             raise AssertionError("Node visited twice")
         visited_nodes.add(node)
-        # print(f"{node}\n")
 
         self.__enter(node)
         for child_node in node.get_children():

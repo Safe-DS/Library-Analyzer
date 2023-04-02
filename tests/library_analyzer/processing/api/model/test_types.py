@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from library_analyzer.processing.api.model import (
@@ -15,7 +15,7 @@ from library_analyzer.processing.api.model import (
 
 
 @pytest.mark.parametrize(
-    "docstring_type,expected",
+    ("docstring_type", "expected"),
     [
         ("", {}),
         (
@@ -71,8 +71,7 @@ from library_analyzer.processing.api.model import (
                     {"kind": "NamedType", "name": "array-like"},
                     {
                         "kind": "NamedType",
-                        "name": "shape (n_samples, n_classes) or (n_samples, 1) when "
-                        "binary.",
+                        "name": "shape (n_samples, n_classes) or (n_samples, 1) when " "binary.",
                     },
                 ],
             },
@@ -88,7 +87,7 @@ def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> Non
 
 
 @pytest.mark.parametrize(
-    "description,expected",
+    ("description", "expected"),
     [
         (
             "Scale factor between inner and outer circle in the range `[0, 1)`",
@@ -124,7 +123,7 @@ def test_boundary_from_string(description: str, expected: dict[str, Any]) -> Non
 
 
 @pytest.mark.parametrize(
-    "docstring_type,docstring_description,expected",
+    ("docstring_type", "docstring_description", "expected"),
     [
         (
             "int or 'Auto', or {'today', 'yesterday'}",
@@ -149,12 +148,10 @@ def test_boundary_from_string(description: str, expected: dict[str, Any]) -> Non
     ],
 )  # type: ignore
 def test_boundary_and_union_from_string(
-    docstring_type: str, docstring_description: str, expected: dict[str, Any]
+    docstring_type: str, docstring_description: str, expected: dict[str, Any],
 ) -> None:
     result = create_type(
-        ParameterDocumentation(
-            type=docstring_type, default_value="", description=docstring_description
-        )
+        ParameterDocumentation(type=docstring_type, default_value="", description=docstring_description),
     )
 
     if result is None:
@@ -192,7 +189,7 @@ def test_correct_hash() -> None:
 
 
 @pytest.mark.parametrize(
-    "string,expected",
+    ("string", "expected"),
     [
         (
             "float, default=0.0 Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [0.0, infinity).\n\n.. versionadded:: 0.18.0",
@@ -237,7 +234,7 @@ def test_boundaries_from_string(string: str, expected: BoundaryType) -> None:
 
 
 @pytest.mark.parametrize(
-    "docstring_type,expected",
+    ("docstring_type", "expected"),
     [
         ('{"frobenius", "spectral"}, default="frobenius"', {"frobenius", "spectral"}),
         (
@@ -265,7 +262,7 @@ def test_boundaries_from_string(string: str, expected: BoundaryType) -> None:
         ("""{'best\\', \\'random'}""", {"best', 'random"}),
     ],
 )
-def test_enum_from_string(docstring_type: str, expected: Optional[set[str]]) -> None:
+def test_enum_from_string(docstring_type: str, expected: set[str] | None) -> None:
     result = EnumType.from_string(docstring_type)
     if result is not None:
         assert result.values == expected

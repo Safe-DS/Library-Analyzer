@@ -6,7 +6,7 @@ from .send_message_to_person import send_message_to_person
 
 
 class Library:
-    """The Library
+    """The Library.
 
     Parameters
     ----------
@@ -48,7 +48,7 @@ class Library:
         self.is_open = False
 
     def return_book(self, book: Book, user: LibraryUser) -> None:
-        """Return a book
+        """Return a book.
 
         Parameters
         ----------
@@ -56,30 +56,22 @@ class Library:
         user : LibraryUser
         """
         if (
-            book.borrow_by is not None
-            and book.borrow_until is not None
-            and book.borrow_by == user
+            book.borrow_by is not None and book.borrow_until is not None and book.borrow_by == user
         ):  # apiv2: check if book is in borrowed book list
             late_fee = 0.0
             today = datetime.today().date()
-            if book.borrow_until > today or (
-                book.borrow_by == today and not self.is_open
-            ):
+            if book.borrow_until > today or (book.borrow_by == today and not self.is_open):
                 late_fee = (today - book.borrow_until).days * book.FEE_PER_DAY
                 if not self.is_open:
                     late_fee += 1.0
             user.give_back(late_fee)  # apiv2: rename function
-            send_message_to_person(
-                user.get_name(), user.address, "You need to pay your late fee."
-            )
+            send_message_to_person(user.get_name(), user.address, "You need to pay your late fee.")
             book.borrow_by = None
             book.borrow_until = None
             self.borrowed_books.remove(book)
 
-    def borrow(
-        self, book: Book, user: LibraryUser
-    ) -> None:  # apiv2: check if pending_fees are not above 5
-        """borrow
+    def borrow(self, book: Book, user: LibraryUser) -> None:  # apiv2: check if pending_fees are not above 5
+        """borrow.
 
         Parameters
         ----------
@@ -90,10 +82,8 @@ class Library:
             book.borrow_by = user
             book.borrow_until = datetime.today() + timedelta(days=1)
 
-    def add_new_book(
-        self, book: Book
-    ) -> None:  # apiv2: check if book is not duplicated, rename to add_new_media
-        """add a new book
+    def add_new_book(self, book: Book) -> None:  # apiv2: check if book is not duplicated, rename to add_new_media
+        """Add a new book.
 
         Parameters
         ----------
@@ -111,7 +101,7 @@ class Library:
     ) -> (
         float
     ):  # apiv2: remove rented_date, move to new subclass OurLibrary with additional attributes owner and address
-        """rent the seminar room of the library after it closed
+        """Rent the seminar room of the library after it closed.
 
         Parameters
         ----------
@@ -138,7 +128,7 @@ class Library:
 
 
 class City:  # apiv2: remove this class
-    """A City class
+    """A City class.
 
     Parameters
     ----------
@@ -151,9 +141,7 @@ class City:  # apiv2: remove this class
     number_of_inhabitants: int
     libraries: list[Library]
 
-    def __init__(
-        self, name: str, number_of_inhabitants: int, libraries: list[Library]
-    ) -> None:
+    def __init__(self, name: str, number_of_inhabitants: int, libraries: list[Library]) -> None:
         self.name = name
         self.number_of_inhabitants = number_of_inhabitants
         self.libraries = libraries

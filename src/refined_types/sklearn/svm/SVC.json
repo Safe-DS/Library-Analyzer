@@ -20,13 +20,7 @@
                 "types": [
                     {
                         "kind": "EnumType",
-                        "values": [
-                            "linear",
-                            "poly",
-                            "rbf",
-                            "sigmoid",
-                            "precomputed"
-                        ]
+                        "values": ["linear", "poly", "rbf", "sigmoid", "precomputed"]
                     },
                     {
                         "kind": "NamedType",

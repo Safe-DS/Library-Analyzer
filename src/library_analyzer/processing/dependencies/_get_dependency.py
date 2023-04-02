@@ -1,11 +1,11 @@
-from typing import Dict, List, Tuple, Union
 
 import spacy
-from library_analyzer.processing.api.model import API, Parameter
 from spacy.matcher import DependencyMatcher
 from spacy.tokens import Token
 from spacy.tokens.doc import Doc
 from spacy.tokens.span import Span
+
+from library_analyzer.processing.api.model import API, Parameter
 
 from ._dependency_patterns import dependency_matcher_patterns
 from ._parameter_dependencies import (
@@ -23,10 +23,8 @@ from ._preprocess_docstring import preprocess_docstring
 PIPELINE = "en_core_web_sm"
 
 
-def extract_lefts_and_rights(curr_token: Token, extracted: Union[List, None] = None):
-    """
-    Given a spaCy token, extract recursively all tokens in its dependency subtree in inorder traversal.
-    """
+def extract_lefts_and_rights(curr_token: Token, extracted: list | None = None):
+    """Given a spaCy token, extract recursively all tokens in its dependency subtree in inorder traversal."""
     if extracted is None:
         extracted = []
 
@@ -82,9 +80,7 @@ def extract_action(action_token: Token, condition_token: Token) -> Action:
 
 
 def extract_condition(condition_token: Token) -> Condition:
-    """
-    Create condition object given head token of condition phrase in docstring.
-    """
+    """Create condition object given head token of condition phrase in docstring."""
     condition_token_subtree = list(condition_token.subtree)
     condition_text = " ".join([token.text for token in condition_token_subtree])
 
@@ -113,23 +109,19 @@ def extract_condition(condition_token: Token) -> Condition:
 
 
 class DependencyExtractor:
-    """
-    Functions to extract each type of pattern in _dependency_patterns
-    """
+    """Functions to extract each type of pattern in _dependency_patterns."""
 
     @staticmethod
     def extract_pattern_parameter_adverbial_clause(
         dependent_param: Parameter,
-        func_parameters: List[Parameter],
-        match: Tuple,
+        func_parameters: list[Parameter],
+        match: tuple,
         param_docstring: Doc,
-    ) -> Union[Dependency, None]:
+    ) -> Dependency | None:
         is_depending_on_param_index = match[1][2]
         is_depending_on_param_name = param_docstring[is_depending_on_param_index].text
         is_depending_on_param = next(
-            filter(
-                lambda param: param.name == is_depending_on_param_name, func_parameters
-            ),
+            filter(lambda param: param.name == is_depending_on_param_name, func_parameters),
             None,
         )
         if is_depending_on_param is None:
@@ -152,24 +144,20 @@ class DependencyExtractor:
 
 def extract_dependencies_from_docstring(
     parameter: Parameter,
-    func_parameters: List[Parameter],
+    func_parameters: list[Parameter],
     param_docstring: Span,
-    matches: List,
-    spacy_id_to_pattern_id_mapping: Dict,
-) -> List[Dependency]:
+    matches: list,
+    spacy_id_to_pattern_id_mapping: dict,
+) -> list[Dependency]:
     """
     Extract readable dependencies in a Docstring from pattern matches.
     Function fetched from class DependencyExtractor, when 'extract_' + pattern name match function name in the class.
     """
-    dependencies = list()
+    dependencies = []
     for match in matches:
         pattern_id = spacy_id_to_pattern_id_mapping[match[0]]
-        extract_dependency_method = getattr(
-            DependencyExtractor, f"extract_{pattern_id}"
-        )
-        dependency = extract_dependency_method(
-            parameter, func_parameters, match, param_docstring
-        )
+        extract_dependency_method = getattr(DependencyExtractor, f"extract_{pattern_id}")
+        dependency = extract_dependency_method(parameter, func_parameters, match, param_docstring)
         if dependency is not None:
             dependencies.append(dependency)
     return dependencies
@@ -179,16 +167,16 @@ def get_dependencies(api: API) -> APIDependencies:
     """
     Loop through all functions in the API
     Parse and preprocess each doc string from every function
-    Extract and return all dependencies as a dict with function and parameter names as keys
+    Extract and return all dependencies as a dict with function and parameter names as keys.
     """
     nlp = spacy.load(PIPELINE)
 
     matcher = DependencyMatcher(nlp.vocab)
-    spacy_id_to_pattern_id_mapping: Dict = dict()
+    spacy_id_to_pattern_id_mapping: dict = {}
     for pattern_id, pattern in dependency_matcher_patterns.items():
         matcher.add(pattern_id, [pattern])
         spacy_id_to_pattern_id_mapping[nlp.vocab.strings[pattern_id]] = pattern_id
-    all_dependencies: Dict = dict()
+    all_dependencies: dict = {}
     endpoint_functions = api.functions
 
     for function_name, function in endpoint_functions.items():

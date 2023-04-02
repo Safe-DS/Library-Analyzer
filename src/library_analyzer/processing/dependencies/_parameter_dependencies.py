@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
 from library_analyzer.processing.api.model import Parameter
 
@@ -12,7 +12,7 @@ class Action:
     def from_json(cls, json: Any):
         return cls(json["action"])
 
-    def to_json(self) -> Dict:
+    def to_json(self) -> dict:
         return {"action": self.action}
 
 
@@ -44,7 +44,7 @@ class Condition:
     def from_json(cls, json: Any):
         return cls(json["condition"])
 
-    def to_json(self) -> Dict:
+    def to_json(self) -> dict:
         return {"condition": self.condition}
 
 
@@ -95,9 +95,9 @@ class Dependency:
 
 @dataclass
 class APIDependencies:
-    dependencies: Dict
+    dependencies: dict
 
-    def to_json(self) -> Dict:
+    def to_json(self) -> dict:
         return {
             function_name: {
                 parameter_name: [dependency.to_json() for dependency in dependencies]

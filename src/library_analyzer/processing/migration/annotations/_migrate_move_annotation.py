@@ -1,5 +1,4 @@
 from copy import deepcopy
-from typing import Optional
 
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
@@ -26,7 +25,7 @@ from ._get_migration_text import get_migration_text
 
 
 def is_moveable(element: Attribute | Class | Function | Parameter | Result) -> bool:
-    if isinstance(element, (Attribute, Result)):
+    if isinstance(element, Attribute | Result):
         return False
     if isinstance(element, Function):
         # check for global function
@@ -36,14 +35,14 @@ def is_moveable(element: Attribute | Class | Function | Parameter | Result) -> b
 
 
 def _was_moved(
-    elementv1: Optional[Attribute | Class | Function | Parameter | Result],
-    elementv2: Optional[Attribute | Class | Function | Parameter | Result],
+    elementv1: Attribute | Class | Function | Parameter | Result | None,
+    elementv2: Attribute | Class | Function | Parameter | Result | None,
     move_annotation: MoveAnnotation,
 ) -> bool:
     if (
-        not isinstance(elementv1, (Class, Function))
+        not isinstance(elementv1, Class | Function)
         or elementv1 is None
-        or not isinstance(elementv2, (Class, Function))
+        or not isinstance(elementv2, Class | Function)
         or elementv2 is None
     ):
         return True
@@ -53,17 +52,15 @@ def _was_moved(
     )
 
 
-def migrate_move_annotation(
-    move_annotation: MoveAnnotation, mapping: Mapping
-) -> list[AbstractAnnotation]:
+def migrate_move_annotation(move_annotation: MoveAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
     move_annotation = deepcopy(move_annotation)
     authors = move_annotation.authors
     authors.append(migration_author)
     move_annotation.authors = authors
 
-    if isinstance(mapping, (ManyToOneMapping, OneToOneMapping)):
+    if isinstance(mapping, ManyToOneMapping | OneToOneMapping):
         element = mapping.get_apiv2_elements()[0]
-        if isinstance(element, (Attribute, Result)):
+        if isinstance(element, Attribute | Result):
             return []
         if not is_moveable(element):
             return [
@@ -73,10 +70,8 @@ def migrate_move_annotation(
                     move_annotation.reviewers,
                     move_annotation.comment,
                     EnumReviewResult.NONE,
-                    get_migration_text(
-                        move_annotation, mapping, for_todo_annotation=True
-                    ),
-                )
+                    get_migration_text(move_annotation, mapping, for_todo_annotation=True),
+                ),
             ]
         if _was_moved(
             get_annotated_api_element(move_annotation, mapping.get_apiv1_elements()),
@@ -87,9 +82,7 @@ def migrate_move_annotation(
         move_annotation.target = element.id
         return [move_annotation]
 
-    annotated_apiv1_element = get_annotated_api_element(
-        move_annotation, mapping.get_apiv1_elements()
-    )
+    annotated_apiv1_element = get_annotated_api_element(move_annotation, mapping.get_apiv1_elements())
     if annotated_apiv1_element is None:
         return []
 
@@ -98,14 +91,12 @@ def migrate_move_annotation(
         if (
             isinstance(element, type(annotated_apiv1_element))
             and is_moveable(element)
-            and not isinstance(element, (Attribute, Result))
+            and not isinstance(element, Attribute | Result)
         ):
             review_result = (
                 EnumReviewResult.UNSURE
                 if _was_moved(
-                    get_annotated_api_element(
-                        move_annotation, mapping.get_apiv1_elements()
-                    ),
+                    get_annotated_api_element(move_annotation, mapping.get_apiv1_elements()),
                     element,
                     move_annotation,
                 )
@@ -119,9 +110,9 @@ def migrate_move_annotation(
                     move_annotation.comment,
                     review_result,
                     move_annotation.destination,
-                )
+                ),
             )
-        elif not isinstance(element, (Attribute, Result)):
+        elif not isinstance(element, Attribute | Result):
             move_annotations.append(
                 TodoAnnotation(
                     element.id,
@@ -129,9 +120,7 @@ def migrate_move_annotation(
                     move_annotation.reviewers,
                     move_annotation.comment,
                     EnumReviewResult.NONE,
-                    get_migration_text(
-                        move_annotation, mapping, for_todo_annotation=True
-                    ),
-                )
+                    get_migration_text(move_annotation, mapping, for_todo_annotation=True),
+                ),
             )
     return move_annotations

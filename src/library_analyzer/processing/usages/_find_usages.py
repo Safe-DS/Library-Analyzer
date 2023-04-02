@@ -6,24 +6,21 @@ from typing import TypeVar
 
 import astroid
 from astroid.builder import AstroidBuilder
+
 from library_analyzer.processing.usages.model import UsageCountStore
 from library_analyzer.utils import ASTWalker, list_files, parse_python_code
 
 from ._ast_visitor import _UsageFinder
 
 
-def find_usages(
-    package_name: str, src_dir: Path, n_processes: int, batch_size: int
-) -> UsageCountStore:
+def find_usages(package_name: str, src_dir: Path, n_processes: int, batch_size: int) -> UsageCountStore:
     python_files = list_files(src_dir, ".py")
     python_file_batches = _split_into_batches(python_files, batch_size)
 
     aggregated_counts = UsageCountStore()
 
     for batch_index in range(0, len(python_file_batches), n_processes):
-        python_file_batches_slice = python_file_batches[
-            batch_index : batch_index + n_processes
-        ]
+        python_file_batches_slice = python_file_batches[batch_index : batch_index + n_processes]
         n_process_to_spawn = min(n_processes, len(python_file_batches_slice))
 
         with Pool(
@@ -46,10 +43,7 @@ T = TypeVar("T")
 
 
 def _split_into_batches(list_: list[T], batch_size: int) -> list[list[T]]:
-    """
-    Splits a list into batches of size batch_size.
-    """
-
+    """Splits a list into batches of size batch_size."""
     batches = []
     batch = []
 
@@ -66,17 +60,12 @@ def _split_into_batches(list_: list[T], batch_size: int) -> list[list[T]]:
 
 
 def _initializer(log_level: int) -> None:
-    """
-    Ignore CTRL+C in the worker process.
-    """
-
+    """Ignore CTRL+C in the worker process."""
     logging.basicConfig(level=log_level)
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
-def _find_usages_in_batch(
-    package_name: str, python_files: list[str]
-) -> UsageCountStore:
+def _find_usages_in_batch(package_name: str, python_files: list[str]) -> UsageCountStore:
     ast_builder = AstroidBuilder()
     usage_finder = _UsageFinder(package_name)
     ast_walker = ASTWalker(usage_finder)
@@ -97,7 +86,7 @@ def _find_usages_in_single_file(
 
     # noinspection PyBroadException
     try:
-        with open(python_file, "r", encoding="UTF-8") as f:
+        with open(python_file, encoding="UTF-8") as f:
             source = f.read()
 
         if __is_relevant_python_file(package_name, source):

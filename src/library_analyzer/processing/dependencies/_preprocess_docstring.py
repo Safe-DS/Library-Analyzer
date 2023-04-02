@@ -8,7 +8,6 @@ def preprocess_docstring(docstring: str) -> str:
     3. Handle cases of step two where the signs are not separate tokens, e.g. "a=b".
     Note ordered dict since "=" is a substring of the other symbols.
     """
-
     docstring = re.sub(r'["“”`]', "", docstring)
     docstring = re.sub(r"'", "", docstring)
     docstring = re.sub(r"!=", " does not equal ", docstring)

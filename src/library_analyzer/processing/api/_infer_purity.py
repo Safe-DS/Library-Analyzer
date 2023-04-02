@@ -3,9 +3,9 @@ from __future__ import annotations
 from abc import ABC
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Optional
 
 import astroid
+
 from library_analyzer.processing.api.model import (
     BuiltInFunction,
     Call,
@@ -29,13 +29,13 @@ BUILTIN_FUNCTIONS = {
     "read": BuiltInFunction(Reference("read"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
     "write": BuiltInFunction(Reference("write"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
     "readline": BuiltInFunction(
-        Reference("readline"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE
+        Reference("readline"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE,
     ),
     "readlines": BuiltInFunction(
-        Reference("readlines"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE
+        Reference("readlines"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE,
     ),
     "writelines": BuiltInFunction(
-        Reference("writelines"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE
+        Reference("writelines"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE,
     ),
     "close": BuiltInFunction(Reference("close"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_PURE),
 }
@@ -67,7 +67,6 @@ class MaybeImpure(PurityResult):
     reasons: list[ImpurityIndicator]
 
     # def __hash__(self) -> int:
-    #     return hash(tuple(self.reasons))
 
 
 @dataclass
@@ -75,22 +74,17 @@ class DefinitelyImpure(PurityResult):
     reasons: list[ImpurityIndicator]
 
     # def __hash__(self) -> int:
-    #     return hash(tuple(self.reasons))
 
 
 @dataclass
 class PurityInformation:
     id: FunctionID
-    # purity: PurityResult
     reasons: list[ImpurityIndicator]
 
     # def __hash__(self) -> int:
-    #     return hash((self.id, self.reasons))
 
     # def __eq__(self, other: object) -> bool:
     #     if not isinstance(other, PurityInformation):
-    #         return NotImplemented
-    #     return self.id == other.id and self.reasons == other.reasons
 
 
 class PurityHandler:
@@ -102,12 +96,10 @@ class PurityHandler:
             self.purity_reason.append(r)
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
-        # print(f"Enter functionDef node: {node.as_string()}")
         # Handle the FunctionDef node here
         pass  # Are we analyzing function defs within function defs? Yes, we are.
 
     def enter_assign(self, node: astroid.Assign) -> None:
-        # print(f"Entering Assign node {node}")
         # Handle the Assign node here
         if isinstance(node.value, astroid.Call):
             pass
@@ -118,31 +110,27 @@ class PurityHandler:
         # TODO: Assign node needs further analysis to determine if it is pure or impure
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
-        # print(f"Entering AssignAttr node {node.as_string()}")
         # Handle the AssignAtr node here
         self.append_reason([VariableWrite(Reference(node.as_string()))])
         # TODO: AssignAttr node needs further analysis to determine if it is pure or impure
 
     def enter_call(self, node: astroid.Call) -> None:
-        # print(f"Entering Call node {node.as_string()}")
         # Handle the Call node here
         if isinstance(node.func, astroid.Attribute):
             pass
-        elif isinstance(node.func, astroid.Name):
-            if node.func.name in BUILTIN_FUNCTIONS:
-                value = node.args[0]
-                if isinstance(value, astroid.Name):
-                    impurity_indicator = check_builtin_function(node, node.func.name, value.name, True)
-                    self.append_reason(impurity_indicator)
-                else:
-                    impurity_indicator = check_builtin_function(node, node.func.name, value.value)
-                    self.append_reason(impurity_indicator)
+        elif isinstance(node.func, astroid.Name) and node.func.name in BUILTIN_FUNCTIONS:
+            value = node.args[0]
+            if isinstance(value, astroid.Name):
+                impurity_indicator = check_builtin_function(node, node.func.name, value.name, True)
+                self.append_reason(impurity_indicator)
+            else:
+                impurity_indicator = check_builtin_function(node, node.func.name, value.value)
+                self.append_reason(impurity_indicator)
 
         self.append_reason([Call(Reference(node.as_string()))])
         # TODO: Call node needs further analysis to determine if it is pure or impure
 
     def enter_attribute(self, node: astroid.Attribute) -> None:
-        # print(f"Entering Attribute node {node.as_string()}")
         # Handle the Attribute node here
         if isinstance(node.expr, astroid.Name):
             if node.attrname in BUILTIN_FUNCTIONS:
@@ -152,33 +140,26 @@ class PurityHandler:
             self.append_reason([Call(Reference(node.as_string()))])
 
     def enter_arguments(self, node: astroid.Arguments) -> None:
-        # print(f"Entering Arguments node {node.as_string()}")
         # Handle the Arguments node here
         pass
 
     def enter_expr(self, node: astroid.Expr) -> None:
-        # print(f"Entering Expr node {node.as_string()}")
-        # print(node.value)
         # Handle the Expr node here
         pass
 
     def enter_name(self, node: astroid.Name) -> None:
-        # print(f"Entering Name node {node.as_string()}")
         # Handle the Name node here
         pass
 
     def enter_const(self, node: astroid.Const) -> None:
-        # print(f"Entering Const node {node.as_string()}")
         # Handle the Const node here
         pass
 
     def enter_assignname(self, node: astroid.AssignName) -> None:
-        # print(f"Entering AssignName node {node.as_string()}")
         # Handle the AssignName node here
         pass
 
     def enter_with(self, node: astroid.With) -> None:
-        # print(f"Entering With node {node.as_string()}")
         # Handle the With node here
         pass
 
@@ -236,7 +217,7 @@ def determine_open_mode(args: list[str]) -> OpenMode:
 
 
 def check_builtin_function(
-    node: astroid.NodeNG, key: str, value: Optional[str] = None, is_var: bool = False
+    node: astroid.NodeNG, key: str, value: str | None = None, is_var: bool = False,
 ) -> list[ImpurityIndicator]:
     if is_var:
         if key == "open":
@@ -278,14 +259,9 @@ def infer_purity(code: str) -> list[PurityInformation]:
     functions = get_function_defs(code)
     result = []
     for function in functions:
-        # print(function)
-        # print(f"Analyse {function.name}:")
         walker.walk(function)
         purity_result = determine_purity(purity_handler.purity_reason)
-        # print(f"Result: {purity_result.__class__.__name__}")
         # if not isinstance(purity_result, DefinitelyPure):
-        #    print(f"Reasons: {purity_result.reasons}")
-        # print(f"Function {function.name} is done. \n")
         result.append(generate_purity_information(function, purity_result))
         purity_handler.purity_reason = []
     return result
@@ -299,15 +275,8 @@ def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
 
     return MaybeImpure(reasons=indicators)
 
-    # print(f"Maybe check {(any(purity_reason.is_reason_for_impurity() for purity_reason in purity_reasons))}")
     # if any(reason.is_reason_for_impurity() for reason in purity_reasons):
-    #     # print(f"Definitely check {any(isinstance(reason, Call) for reason in purity_reasons)}")
-    #     result = MaybeImpure(reasons=purity_reasons)
     #     if any(isinstance(reason, Call) for reason in purity_reasons):
-    #         return DefinitelyImpure(reasons=purity_reasons)
-    #     return result
-    # else:
-    #     return DefinitelyPure()
 
 
 def get_function_defs(code: str) -> list[astroid.FunctionDef]:
@@ -341,9 +310,7 @@ def calc_function_id(node: astroid.NodeNG) -> FunctionID:
     if not isinstance(node, astroid.FunctionDef):
         raise TypeError("Node is not a function")
     module = node.root().name
-    # module = "_infer_purity.py"
     # if module.endswith(".py"):
-    #    module = module[:-3]
     name = node.name
     line = node.position.lineno
     col = node.position.col_offset

@@ -34,7 +34,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
     code_a = cleandoc(
         """
     class Test:
-        pass"""
+        pass""",
     )
     class_id_a = "test/test/Test"
     attribute_a = Attribute("new_test_string", NamedType("str"), class_id=class_id_a)
@@ -53,7 +53,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
     code_b = cleandoc(
         """
     class newTest:
-        pass"""
+        pass""",
     )
     class_id_b = "test/test/NewTest"
     attribute_b = Attribute("test_string", NamedType("str"), class_id=class_id_b)
@@ -89,7 +89,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
         This test function is a work
         \"\"\"
         return "test"
-    """
+    """,
     )
     function_a = Function(
         function_id_a,
@@ -113,7 +113,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
         This test function is a concept.
         \"\"\"
         return "test"
-    """
+    """,
     )
     parameter_b = Parameter(
         function_id_b + "/test_parameter",
@@ -178,16 +178,8 @@ def test_similarity(differ: AbstractDiffer) -> None:
     )
     assert strict_differ_notify_all.compute_class_similarity(class_a, class_b) > 0
     strict_differ_notify_all.notify_new_mapping([class_mapping])
-    assert (
-        strict_differ_notify_all.compute_attribute_similarity(attribute_a, attribute_b)
-        > 0
-    )
-    assert (
-        strict_differ_notify_all.compute_function_similarity(function_a, function_b) > 0
-    )
+    assert strict_differ_notify_all.compute_attribute_similarity(attribute_a, attribute_b) > 0
+    assert strict_differ_notify_all.compute_function_similarity(function_a, function_b) > 0
     strict_differ_notify_all.notify_new_mapping([function_mapping])
-    assert (
-        strict_differ_notify_all.compute_parameter_similarity(parameter_a, parameter_b)
-        > 0
-    )
+    assert strict_differ_notify_all.compute_parameter_similarity(parameter_a, parameter_b) > 0
     assert strict_differ_notify_all.compute_result_similarity(result_a, result_b) > 0

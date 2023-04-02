@@ -1,5 +1,4 @@
 from inspect import cleandoc
-from typing import Union
 
 import astroid
 import pytest
@@ -13,7 +12,7 @@ from library_analyzer.processing.api.model import (
 
 
 @pytest.mark.parametrize(
-    "code_to_parse,expected_code",
+    ("code_to_parse", "expected_code"),
     [
         (
             """
@@ -32,7 +31,7 @@ from library_analyzer.processing.api.model import (
                 if i == 0:
                     i = i + 1
                 pass
-            """
+            """,
             ),
         ),
         (
@@ -50,7 +49,7 @@ from library_analyzer.processing.api.model import (
             def test():
                 # do nothing
                 pass
-            """
+            """,
             ),
         ),
         (
@@ -75,7 +74,7 @@ from library_analyzer.processing.api.model import (
                     pass
                 def test2() -> int:
                     return 42
-            """
+            """,
             ),
         ),
     ],
@@ -95,7 +94,7 @@ def test_trim_code(code_to_parse: str, expected_code: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "code,expected_code",
+    ("code", "expected_code"),
     [
         (
             cleandoc(
@@ -107,7 +106,7 @@ def test_trim_code(code_to_parse: str, expected_code: str) -> None:
                         i = i + 1
                     pass
 
-                """
+                """,
             ),
             cleandoc(
                 """
@@ -116,7 +115,7 @@ def test_trim_code(code_to_parse: str, expected_code: str) -> None:
                     if i == 0:
                         i = i + 1
                     pass
-                """
+                """,
             ),
         ),
         (
@@ -132,14 +131,14 @@ def test_trim_code(code_to_parse: str, expected_code: str) -> None:
                     \"\"\"
                     pass
 
-                """
+                """,
             ),
             cleandoc(
                 """
                 # blank line
                 def test():
                     pass
-                """
+                """,
             ),
         ),
         (
@@ -152,13 +151,13 @@ def test_trim_code(code_to_parse: str, expected_code: str) -> None:
                     \"\"\"
                     pass
 
-                """
+                """,
             ),
             cleandoc(
                 """
                 def test():
                     pass
-                """
+                """,
             ),
         ),
         (
@@ -168,13 +167,13 @@ def test_trim_code(code_to_parse: str, expected_code: str) -> None:
                     \"\"\"test doumentation\"\"\"
                     pass
 
-                """
+                """,
             ),
             cleandoc(
                 """
             def test():
                 pass
-            """
+            """,
             ),
         ),
         (
@@ -191,7 +190,7 @@ def test_trim_code(code_to_parse: str, expected_code: str) -> None:
                   dfhkdsklfh
                   \"\"\"
                   e: str
-              """
+              """,
             ),
             cleandoc(
                 """
@@ -201,7 +200,7 @@ def test_trim_code(code_to_parse: str, expected_code: str) -> None:
               @dataclass()
               class D:
                   e: str
-              """
+              """,
             ),
         ),
     ],
@@ -209,7 +208,7 @@ def test_trim_code(code_to_parse: str, expected_code: str) -> None:
 def test_cut_documentation_from_code(code: str, expected_code: str) -> None:
     is_class = "\nclass" in code
     if is_class:
-        api_element: Union[Class, Function] = Class(
+        api_element: Class | Function = Class(
             "test/test.test/Test",
             "test.test.Test",
             [],
@@ -235,6 +234,4 @@ def test_cut_documentation_from_code(code: str, expected_code: str) -> None:
             FunctionDocumentation("", ""),
             code,
         )
-    assert (
-        api_element.get_formatted_code(cut_documentation=True) == expected_code + "\n"
-    )
+    assert api_element.get_formatted_code(cut_documentation=True) == expected_code + "\n"

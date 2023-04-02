@@ -41,9 +41,7 @@ class AnnotationStore:
     @staticmethod
     def from_json(json: Any) -> AnnotationStore:
         if json["schemaVersion"] == 1:
-            raise Exception(
-                "Incompatible Annotation File: This file is not compatible with the current version."
-            )
+            raise Exception("Incompatible Annotation File: This file is not compatible with the current version.")
 
         boundaryAnnotations = []
         for annotation in json["boundaryAnnotations"].values():
@@ -144,56 +142,21 @@ class AnnotationStore:
     def to_json(self) -> dict:
         return {
             "schemaVersion": ANNOTATION_SCHEMA_VERSION,
-            "boundaryAnnotations": {
-                annotation.target: annotation.to_json()
-                for annotation in self.boundaryAnnotations
-            },
+            "boundaryAnnotations": {annotation.target: annotation.to_json() for annotation in self.boundaryAnnotations},
             "calledAfterAnnotations": {
-                annotation.target: annotation.to_json()
-                for annotation in self.calledAfterAnnotations
+                annotation.target: annotation.to_json() for annotation in self.calledAfterAnnotations
             },
-            "completeAnnotations": {
-                annotation.target: annotation.to_json()
-                for annotation in self.completeAnnotations
-            },
+            "completeAnnotations": {annotation.target: annotation.to_json() for annotation in self.completeAnnotations},
             "descriptionAnnotations": {
-                annotation.target: annotation.to_json()
-                for annotation in self.descriptionAnnotations
+                annotation.target: annotation.to_json() for annotation in self.descriptionAnnotations
             },
-            "enumAnnotations": {
-                annotation.target: annotation.to_json()
-                for annotation in self.enumAnnotations
-            },
-            "expertAnnotations": {
-                annotation.target: annotation.to_json()
-                for annotation in self.expertAnnotations
-            },
-            "groupAnnotations": {
-                annotation.target: annotation.to_json()
-                for annotation in self.groupAnnotations
-            },
-            "moveAnnotations": {
-                annotation.target: annotation.to_json()
-                for annotation in self.moveAnnotations
-            },
-            "pureAnnotations": {
-                annotation.target: annotation.to_json()
-                for annotation in self.pureAnnotations
-            },
-            "renameAnnotations": {
-                annotation.target: annotation.to_json()
-                for annotation in self.renameAnnotations
-            },
-            "removeAnnotations": {
-                annotation.target: annotation.to_json()
-                for annotation in self.removeAnnotations
-            },
-            "todoAnnotations": {
-                annotation.target: annotation.to_json()
-                for annotation in self.todoAnnotations
-            },
-            "valueAnnotations": {
-                annotation.target: annotation.to_json()
-                for annotation in self.valueAnnotations
-            },
+            "enumAnnotations": {annotation.target: annotation.to_json() for annotation in self.enumAnnotations},
+            "expertAnnotations": {annotation.target: annotation.to_json() for annotation in self.expertAnnotations},
+            "groupAnnotations": {annotation.target: annotation.to_json() for annotation in self.groupAnnotations},
+            "moveAnnotations": {annotation.target: annotation.to_json() for annotation in self.moveAnnotations},
+            "pureAnnotations": {annotation.target: annotation.to_json() for annotation in self.pureAnnotations},
+            "renameAnnotations": {annotation.target: annotation.to_json() for annotation in self.renameAnnotations},
+            "removeAnnotations": {annotation.target: annotation.to_json() for annotation in self.removeAnnotations},
+            "todoAnnotations": {annotation.target: annotation.to_json() for annotation in self.todoAnnotations},
+            "valueAnnotations": {annotation.target: annotation.to_json() for annotation in self.valueAnnotations},
         }

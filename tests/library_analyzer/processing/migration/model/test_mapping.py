@@ -123,9 +123,7 @@ def test_too_different_mapping() -> None:
         [],
         True,
         [],
-        ClassDocumentation(
-            "not similar to the other class", "not similar to the other class"
-        ),
+        ClassDocumentation("not similar to the other class", "not similar to the other class"),
         cleandoc(
             """
 
@@ -140,7 +138,7 @@ def test_too_different_mapping() -> None:
 
             pass
 
-        """
+        """,
         ),
         [],
     )
@@ -154,8 +152,7 @@ def test_too_different_mapping() -> None:
     api_mapping = APIMapping(apiv1, apiv2, differ)
     mappings = api_mapping.map_api()
     assert (
-        differ.compute_class_similarity(class_1, class_2)
-        < api_mapping.threshold_of_similarity_for_creation_of_mappings
+        differ.compute_class_similarity(class_1, class_2) < api_mapping.threshold_of_similarity_for_creation_of_mappings
     )
     assert len(mappings) == 0
 

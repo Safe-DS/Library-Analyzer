@@ -10,25 +10,21 @@ from library_analyzer.processing.api.model import (
     ParameterDocumentation,
 )
 
-# language=Python
 global_function_empty_parameter_list = """
 def f():
     pass
 """
 
-# language=Python
 global_function_full_parameter_list = """
 def f(position_only, /, position_or_name, *, name_only = 0):
     pass
 """
 
-# language=Python
 global_function_parameter_list_with_positional_vararg = """
 def f(*args, name_only = 0):
     pass
 """
 
-# language=Python
 global_function_parameter_list_with_named_vararg = """
 def f(**kwargs):
     pass
@@ -36,7 +32,7 @@ def f(**kwargs):
 
 
 @pytest.mark.parametrize(
-    "python_code, expected_parameter_list",
+    ("python_code", "expected_parameter_list"),
     [
         (global_function_empty_parameter_list, []),
         (
@@ -105,7 +101,7 @@ def f(**kwargs):
                     assigned_by=ParameterAssignment.NAMED_VARARG,
                     is_public=True,
                     documentation=ParameterDocumentation(),
-                )
+                ),
             ],
         ),
     ],
@@ -116,15 +112,12 @@ def f(**kwargs):
         "parameter list with named vararg",
     ],
 )
-def test_get_parameter_list_on_global_functions(
-    python_code: str, expected_parameter_list: list
-) -> None:
+def test_get_parameter_list_on_global_functions(python_code: str, expected_parameter_list: list) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.FunctionDef)
 
     actual_parameter_list = [
-        it.to_json()
-        for it in get_parameter_list(DefaultDocumentationParser(), node, "f", "f", True)
+        it.to_json() for it in get_parameter_list(DefaultDocumentationParser(), node, "f", "f", True)
     ]
 
     expected_parameter_list = [it.to_json() for it in expected_parameter_list]
@@ -132,14 +125,12 @@ def test_get_parameter_list_on_global_functions(
     assert actual_parameter_list == expected_parameter_list
 
 
-# language=Python
 instance_method_parameter_list = """
 class C:
     def f(self, p):
         pass
 """
 
-# language=Python
 static_method_parameter_list = """
 class C:
     @staticmethod
@@ -147,7 +138,6 @@ class C:
         pass
 """
 
-# language=Python
 class_method_parameter_list = """
 class C:
     @classmethod
@@ -155,7 +145,6 @@ class C:
         pass
 """
 
-# language=Python
 instance_method_with_variadic_first_parameter = """
 class C:
     def f(*self):
@@ -164,7 +153,7 @@ class C:
 
 
 @pytest.mark.parametrize(
-    "python_code, expected_parameter_list",
+    ("python_code", "expected_parameter_list"),
     [
         (
             instance_method_parameter_list,
@@ -248,9 +237,7 @@ class C:
         "instance method with variadic first parameter",
     ],
 )
-def test_get_parameter_list_on_method(
-    python_code: str, expected_parameter_list: list
-) -> None:
+def test_get_parameter_list_on_method(python_code: str, expected_parameter_list: list) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.ClassDef)
 
@@ -261,10 +248,7 @@ def test_get_parameter_list_on_method(
     assert isinstance(node, astroid.FunctionDef)
 
     actual_parameter_list = [
-        it.to_json()
-        for it in get_parameter_list(
-            DefaultDocumentationParser(), node, "C/f", "C.f", True
-        )
+        it.to_json() for it in get_parameter_list(DefaultDocumentationParser(), node, "C/f", "C.f", True)
     ]
 
     expected_parameter_list = [it.to_json() for it in expected_parameter_list]

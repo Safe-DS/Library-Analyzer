@@ -1,4 +1,3 @@
-from typing import Tuple
 
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
@@ -25,7 +24,7 @@ from library_analyzer.processing.migration.model import (
 
 
 def migrate_remove_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -75,7 +74,7 @@ def migrate_remove_annotation_data_one_to_one_mapping() -> (
 
 
 def migrate_remove_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -161,7 +160,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_remove_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],
