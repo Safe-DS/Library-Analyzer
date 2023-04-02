@@ -72,10 +72,10 @@ class ParameterIsNone(StaticCondition):
 
 @dataclass
 class Dependency:
-    hasDependentParameter: Parameter
-    isDependingOn: Parameter
-    hasCondition: Condition
-    hasAction: Action
+    hasDependentParameter: Parameter  # noqa: N815
+    isDependingOn: Parameter  # noqa: N815
+    hasCondition: Condition  # noqa: N815
+    hasAction: Action  # noqa: N815
 
     @classmethod
     def from_json(cls, json: Any) -> Dependency:

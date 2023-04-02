@@ -24,19 +24,19 @@ from ._annotations import (
 
 @dataclass
 class AnnotationStore:
-    boundaryAnnotations: list[BoundaryAnnotation] = field(default_factory=list)
-    calledAfterAnnotations: list[CalledAfterAnnotation] = field(default_factory=list)
-    completeAnnotations: list[CompleteAnnotation] = field(default_factory=list)
-    descriptionAnnotations: list[DescriptionAnnotation] = field(default_factory=list)
-    enumAnnotations: list[EnumAnnotation] = field(default_factory=list)
-    expertAnnotations: list[ExpertAnnotation] = field(default_factory=list)
-    groupAnnotations: list[GroupAnnotation] = field(default_factory=list)
-    moveAnnotations: list[MoveAnnotation] = field(default_factory=list)
-    pureAnnotations: list[PureAnnotation] = field(default_factory=list)
-    removeAnnotations: list[RemoveAnnotation] = field(default_factory=list)
-    renameAnnotations: list[RenameAnnotation] = field(default_factory=list)
-    todoAnnotations: list[TodoAnnotation] = field(default_factory=list)
-    valueAnnotations: list[ValueAnnotation] = field(default_factory=list)
+    boundaryAnnotations: list[BoundaryAnnotation] = field(default_factory=list)  # noqa: N815
+    calledAfterAnnotations: list[CalledAfterAnnotation] = field(default_factory=list)  # noqa: N815
+    completeAnnotations: list[CompleteAnnotation] = field(default_factory=list)  # noqa: N815
+    descriptionAnnotations: list[DescriptionAnnotation] = field(default_factory=list)  # noqa: N815
+    enumAnnotations: list[EnumAnnotation] = field(default_factory=list)  # noqa: N815
+    expertAnnotations: list[ExpertAnnotation] = field(default_factory=list)  # noqa: N815
+    groupAnnotations: list[GroupAnnotation] = field(default_factory=list)  # noqa: N815
+    moveAnnotations: list[MoveAnnotation] = field(default_factory=list)  # noqa: N815
+    pureAnnotations: list[PureAnnotation] = field(default_factory=list)  # noqa: N815
+    removeAnnotations: list[RemoveAnnotation] = field(default_factory=list)  # noqa: N815
+    renameAnnotations: list[RenameAnnotation] = field(default_factory=list)  # noqa: N815
+    todoAnnotations: list[TodoAnnotation] = field(default_factory=list)  # noqa: N815
+    valueAnnotations: list[ValueAnnotation] = field(default_factory=list)  # noqa: N815
 
     @staticmethod
     def from_json(json: Any) -> AnnotationStore:
