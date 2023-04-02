@@ -28,7 +28,7 @@ def trim_code(code: str | None, from_line_no: int, to_line_no: int, encoding: st
     if isinstance(code, bytes):
         code = code.decode(encoding)
     lines = code.split("\n")
-    return "\n".join(lines[from_line_no - 1: to_line_no])
+    return "\n".join(lines[from_line_no - 1 : to_line_no])
 
 
 class _AstVisitor:

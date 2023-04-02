@@ -76,7 +76,7 @@ class UnchangedDiffer(AbstractDiffer):
         """
         return 0.0
 
-    def compute_class_similarity(self, classv1: Class, classv2: Class) -> float: # noqa: ARG002
+    def compute_class_similarity(self, classv1: Class, classv2: Class) -> float:  # noqa: ARG002
         """
         Compute the similarity between classes from apiv1 and apiv2.
 
@@ -94,7 +94,7 @@ class UnchangedDiffer(AbstractDiffer):
         """
         return 0.0
 
-    def compute_function_similarity(self, functionv1: Function, functionv2: Function) -> float: # noqa: ARG002
+    def compute_function_similarity(self, functionv1: Function, functionv2: Function) -> float:  # noqa: ARG002
         """
         Compute the similarity between functions from apiv1 and apiv2.
 
@@ -112,7 +112,7 @@ class UnchangedDiffer(AbstractDiffer):
         """
         return 0.0
 
-    def compute_parameter_similarity(self, parameterv1: Parameter, parameterv2: Parameter) -> float: # noqa: ARG002
+    def compute_parameter_similarity(self, parameterv1: Parameter, parameterv2: Parameter) -> float:  # noqa: ARG002
         """
         Compute similarity between parameters from apiv1 and apiv2.
 
@@ -130,7 +130,7 @@ class UnchangedDiffer(AbstractDiffer):
         """
         return 0.0
 
-    def compute_result_similarity(self, resultv1: Result, resultv2: Result) -> float: # noqa: ARG002
+    def compute_result_similarity(self, resultv1: Result, resultv2: Result) -> float:  # noqa: ARG002
         """
         Compute similarity between results from apiv1 and apiv2.
 

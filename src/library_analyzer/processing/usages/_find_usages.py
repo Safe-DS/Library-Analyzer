@@ -20,7 +20,7 @@ def find_usages(package_name: str, src_dir: Path, n_processes: int, batch_size: 
     aggregated_counts = UsageCountStore()
 
     for batch_index in range(0, len(python_file_batches), n_processes):
-        python_file_batches_slice = python_file_batches[batch_index: batch_index + n_processes]
+        python_file_batches_slice = python_file_batches[batch_index : batch_index + n_processes]
         n_process_to_spawn = min(n_processes, len(python_file_batches_slice))
 
         with Pool(
