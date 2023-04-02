@@ -1075,6 +1075,7 @@ def concat_joined_str(strings):
         return string.strip()
     elif strings is Astroid.Const:
         return strings.value
+    return None
 
 
 def _concat_joined_string(strings):
