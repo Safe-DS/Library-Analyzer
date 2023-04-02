@@ -8,16 +8,17 @@ python sync.py
 
 import glob
 import json
+from pathlib import Path
 
 
 def sync() -> None:
     ground_truth = {}
     for filepath in glob.glob("sklearn/**/*json", recursive=True):
-        with open(filepath) as fin:
+        with Path(filepath).open() as fin:
             json_file = json.load(fin)
         ground_truth.update(json_file)
 
-    with open("ground_truth.json", "w") as fout:
+    with Path("ground_truth.json").open("w") as fout:
         json.dump(ground_truth, fout, indent=4)
 
 
@@ -28,7 +29,7 @@ def get_class_name(filepath: str) -> str:
 
 
 def get_ground_truth() -> dict:
-    with open("ground_truth.json") as fin:
+    with Path("ground_truth.json").open() as fin:
         return json.load(fin)
 
 
@@ -46,12 +47,12 @@ def get_boundaries() -> None:
                     if type_["kind"] == "BoundaryType":
                         key = f"{cls}.{prop_name}"
                         boundaries[key] = prop_body
-    with open("boundaries.json", "w") as fout:
+    with Path("boundaries.json").open("w") as fout:
         json.dump(boundaries, fout, indent=4)
 
 
 def stats() -> None:
-    with open("ground_truth.json") as fin:
+    with Path("ground_truth.json").open() as fin:
         ground_truth = json.load(fin)
 
     num_classes = len(ground_truth)

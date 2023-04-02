@@ -40,7 +40,7 @@ def get_api(package_name: str, root: Path | None = None) -> API:
             logging.info("Skipping test file")
             continue
 
-        with open(file, encoding="utf-8") as f:
+        with Path(file).open(encoding="utf-8") as f:
             source = f.read()
             walker.walk(astroid.parse(source, module_name=__module_name(root, Path(file)), path=file))
 

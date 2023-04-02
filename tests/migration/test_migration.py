@@ -2,6 +2,7 @@ import json
 import os
 from collections.abc import Sequence
 from copy import deepcopy
+from pathlib import Path
 
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
@@ -221,16 +222,12 @@ def test_migrate_command_and_both_annotation_stores() -> None:
     annotationsv1_json_path = os.path.join(data_path, "migration", "annotationv1.json")
     annotationsv2_json_path = os.path.join(data_path, "migration", "annotationv2.json")
     unsure_annotationsv2_json_path = os.path.join(data_path, "migration", "unsure_annotationv2.json")
-    with open(apiv1_json_path, encoding="utf-8") as apiv1_file, open(
-        apiv2_json_path,
-        encoding="utf-8",
-    ) as apiv2_file, open(annotationsv1_json_path, encoding="utf-8") as annotationsv1_file, open(
-        annotationsv2_json_path,
-        encoding="utf-8",
-    ) as annotationsv2_file, open(
-        unsure_annotationsv2_json_path,
-        encoding="utf-8",
-    ) as unsure_annotationsv2_file:
+    with Path(apiv1_json_path).open(encoding="utf-8") as apiv1_file, \
+        Path(apiv2_json_path).open(encoding="utf-8") as apiv2_file, \
+        Path(annotationsv1_json_path).open(encoding="utf-8") as annotationsv1_file, \
+        Path(annotationsv2_json_path).open(encoding="utf-8") as annotationsv2_file, \
+        Path(unsure_annotationsv2_json_path).open(encoding="utf-8" ) as unsure_annotationsv2_file:
+
         apiv1_json = json.load(apiv1_file)
         apiv1 = API.from_json(apiv1_json)
         apiv2_json = json.load(apiv2_file)
@@ -370,10 +367,10 @@ def test_handle_duplicates() -> None:
     assert todo_annotations[classv2.id] == {
         "authors": ["", "migration"],
         "comment": "Conflicting Attribute during migration: {'newTodo': '"
-        + todo_values[0]
-        + "'}, {'newTodo': '"
-        + todo_values[1]
-        + "'}",
+                   + todo_values[0]
+                   + "'}, {'newTodo': '"
+                   + todo_values[1]
+                   + "'}",
         "reviewResult": "unsure",
         "reviewers": [""],
         "target": "test/test.duplicate/TestClass",

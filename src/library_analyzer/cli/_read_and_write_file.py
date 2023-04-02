@@ -10,7 +10,7 @@ from library_analyzer.utils import ensure_file_exists
 
 
 def _read_annotations_file(annotations_file_path: Path) -> AnnotationStore:
-    with open(annotations_file_path, encoding="utf-8") as annotations_file:
+    with annotations_file_path.open(encoding="utf-8") as annotations_file:
         annotations_json = json.load(annotations_file)
 
     return AnnotationStore.from_json(annotations_json)
@@ -23,14 +23,14 @@ def _write_annotations_file(annotations: AnnotationStore, annotations_file_path:
 
 
 def _read_api_file(api_file_path: Path) -> API:
-    with open(api_file_path, encoding="utf-8") as api_file:
+    with api_file_path.open(encoding="utf-8") as api_file:
         api_json = json.load(api_file)
 
     return API.from_json(api_json)
 
 
 def _read_usages_file(usages_file_path: Path) -> UsageCountStore:
-    with open(usages_file_path, encoding="utf-8") as usages_file:
+    with usages_file_path.open(encoding="utf-8") as usages_file:
         usages_json = json.load(usages_file)
 
     return UsageCountStore.from_json(usages_json)

@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 import pytest
 from library_analyzer.processing.annotations import generate_annotations
@@ -32,15 +33,15 @@ def read_test_data(subfolder: str) -> tuple[UsageCountStore, API, dict]:
     usages_json_path = os.path.join(data_path, "usage_data.json")
     annotations_json_path = os.path.join(data_path, "annotation_data.json")
 
-    with open(api_json_path, encoding="utf-8") as api_file:
+    with Path(api_json_path).open(encoding="utf-8") as api_file:
         api_json = json.load(api_file)
         api = API.from_json(api_json)
 
-    with open(usages_json_path, encoding="utf-8") as usages_file:
+    with Path(usages_json_path).open(encoding="utf-8") as usages_file:
         usages_json = json.load(usages_file)
         usages = UsageCountStore.from_json(usages_json)
 
-    with open(annotations_json_path, encoding="utf-8") as annotations_file:
+    with Path(annotations_json_path).open(encoding="utf-8") as annotations_file:
         annotations_json = json.load(annotations_file)
 
     return usages, api, annotations_json

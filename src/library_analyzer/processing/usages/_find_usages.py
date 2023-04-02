@@ -89,7 +89,7 @@ def _find_usages_in_single_file(
 
     # noinspection PyBroadException
     try:
-        with open(python_file, encoding="UTF-8") as f:
+        with Path(python_file).open(encoding="UTF-8") as f:
             source = f.read()
 
         if __is_relevant_python_file(package_name, source):
