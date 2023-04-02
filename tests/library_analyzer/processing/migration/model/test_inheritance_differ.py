@@ -36,36 +36,36 @@ def create_api_super() -> tuple[API, Class, Class, Attribute, Function, Paramete
     class_id_super = "test/test/SuperTest"
     attribute_super = Attribute("new_test_int", NamedType("int"), class_id=class_id_super)
     class_super = Class(
-        class_id_super,
-        "test.SuperTest",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("This is a test", "This is a test"),
-        code_a,
-        [attribute_super],
+        id=class_id_super,
+        qname="test.SuperTest",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("This is a test", "This is a test"),
+        code=code_a,
+        instance_attributes=[attribute_super],
     )
     class_sub = Class(
-        "test/test/SubTest",
-        "test.SubTest",
-        [],
-        ["SuperTest"],
-        True,
-        [],
-        ClassDocumentation("This is a test", "This is a test"),
-        "",
-        [],
+        id="test/test/SubTest",
+        qname="test.SubTest",
+        decorators=[],
+        superclasses=["SuperTest"],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("This is a test", "This is a test"),
+        code="",
+        instance_attributes=[],
     )
     function_id_super = class_id_super + "/test_function_super"
     parameter_super = Parameter(
-        function_id_super + "/super_test_parameter",
-        "test_parameter",
-        "test.SuperTest.test_function_super.super_test_parameter",
-        "'test_str_a'",
-        ParameterAssignment.POSITION_OR_NAME,
-        True,
-        ParameterDocumentation("'test_str_a'", "", ""),
+        id_=function_id_super + "/super_test_parameter",
+        name="test_parameter",
+        qname="test.SuperTest.test_function_super.super_test_parameter",
+        default_value="'test_str_a'",
+        assigned_by=ParameterAssignment.POSITION_OR_NAME,
+        is_public=True,
+        documentation=ParameterDocumentation("'test_str_a'", "", ""),
     )
     result_super = Result("config", ResultDocstring("dict", ""), function_id=function_id_super)
     code_function_a = cleandoc(
@@ -78,18 +78,18 @@ def create_api_super() -> tuple[API, Class, Class, Attribute, Function, Paramete
     """,
     )
     function_super = Function(
-        function_id_super,
-        "test.SuperTest.test_function_super",
-        [],
-        [parameter_super],
-        [result_super],
-        True,
-        [],
-        FunctionDocumentation(
+        id=function_id_super,
+        qname="test.SuperTest.test_function_super",
+        decorators=[],
+        parameters=[parameter_super],
+        results=[result_super],
+        is_public=True,
+        reexported_by=[],
+        documentation=FunctionDocumentation(
             "This is a test function",
             "This is a test function",
         ),
-        code_function_a,
+        code=code_function_a,
     )
     apiv1.add_class(class_super)
     apiv1.add_class(class_sub)
@@ -115,36 +115,36 @@ def create_api_sub() -> tuple[API, Class, Class, Attribute, Function, Parameter,
     class_id_sub = "test/test/SubTest"
     attribute_sub = Attribute("new_test_int", NamedType("int"), class_id=class_id_sub)
     class_sub = Class(
-        class_id_sub,
-        "test.SubTest",
-        [],
-        ["SuperTest"],
-        True,
-        [],
-        ClassDocumentation("This is a test", "This is a test"),
-        code_a,
-        [attribute_sub],
+        id=class_id_sub,
+        qname="test.SubTest",
+        decorators=[],
+        superclasses=["SuperTest"],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("This is a test", "This is a test"),
+        code=code_a,
+        instance_attributes=[attribute_sub],
     )
     class_super = Class(
-        "test/test/SuperTest",
-        "test.SuperTest",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("This is a test", "This is a test"),
-        "",
-        [],
+        id="test/test/SuperTest",
+        qname="test.SuperTest",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("This is a test", "This is a test"),
+        code="",
+        instance_attributes=[],
     )
     function_id_sub = class_id_sub + "/test_function_sub"
     parameter_sub = Parameter(
-        function_id_sub + "/sub_test_parameter",
-        "test_parameter",
-        "test.SubTest.test_function_sub.super_test_parameter",
-        "'test_str_a'",
-        ParameterAssignment.POSITION_OR_NAME,
-        True,
-        ParameterDocumentation("'test_str_a'", "", ""),
+        id_=function_id_sub + "/sub_test_parameter",
+        name="test_parameter",
+        qname="test.SubTest.test_function_sub.super_test_parameter",
+        default_value="'test_str_a'",
+        assigned_by=ParameterAssignment.POSITION_OR_NAME,
+        is_public=True,
+        documentation=ParameterDocumentation("'test_str_a'", "", ""),
     )
     result_sub = Result("config", ResultDocstring("dict", ""), function_id=function_id_sub)
     code_function_a = cleandoc(
@@ -157,18 +157,18 @@ def create_api_sub() -> tuple[API, Class, Class, Attribute, Function, Parameter,
     """,
     )
     function_sub = Function(
-        function_id_sub,
-        "test.SubTest.test_function_sub",
-        [],
-        [parameter_sub],
-        [result_sub],
-        True,
-        [],
-        FunctionDocumentation(
+        id=function_id_sub,
+        qname="test.SubTest.test_function_sub",
+        decorators=[],
+        parameters=[parameter_sub],
+        results=[result_sub],
+        is_public=True,
+        reexported_by=[],
+        documentation=FunctionDocumentation(
             "This test function is only for testing",
             "This test function is only for testing",
         ),
-        code_function_a,
+        code=code_function_a,
     )
     apiv1.add_class(class_sub)
     apiv1.add_class(class_super)

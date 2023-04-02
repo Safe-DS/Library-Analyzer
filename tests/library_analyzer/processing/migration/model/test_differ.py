@@ -39,7 +39,7 @@ differ_list = [
 @pytest.mark.parametrize(
     "differ",
     differ_list,
-)  # type: ignore
+)
 def test_attribute_similarity(differ: AbstractDiffer) -> None:
     attribute_a = Attribute("test_string", NamedType("str"))
     assert differ.compute_attribute_similarity(attribute_a, attribute_a) == 1
@@ -55,7 +55,7 @@ def test_attribute_similarity(differ: AbstractDiffer) -> None:
 @pytest.mark.parametrize(
     "differ",
     differ_list,
-)  # type: ignore
+)
 def test_class_similarity(differ: AbstractDiffer) -> None:
     code_a = cleandoc(
         """
@@ -63,15 +63,15 @@ def test_class_similarity(differ: AbstractDiffer) -> None:
         pass""",
     )
     class_a = Class(
-        "test/test.Test",
-        "Test",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("This is a test", "This is a test"),
-        code_a,
-        [],
+        id="test/test.Test",
+        qname="Test",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("This is a test", "This is a test"),
+        code=code_a,
+        instance_attributes=[],
     )
     assert differ.compute_class_similarity(class_a, class_a) == 1
 
@@ -81,15 +81,15 @@ def test_class_similarity(differ: AbstractDiffer) -> None:
         pass""",
     )
     class_b = Class(
-        "test/test.newTest",
-        "newTest",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("This is a new test", "This is a new test"),
-        code_b,
-        [],
+        id="test/test.newTest",
+        qname="newTest",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("This is a new test", "This is a new test"),
+        code=code_b,
+        instance_attributes=[],
     )
     assert differ.compute_class_similarity(class_a, class_b) > 0.6
 
@@ -97,17 +97,17 @@ def test_class_similarity(differ: AbstractDiffer) -> None:
 @pytest.mark.parametrize(
     "differ",
     differ_list,
-)  # type: ignore
+)
 def test_function_similarity(differ: AbstractDiffer) -> None:
     parameters = [
         Parameter(
-            "test/test.Test/test/test_parameter",
-            "test_parameter",
-            "test.Test.test.test_parameter",
-            "'test_str'",
-            ParameterAssignment.POSITION_OR_NAME,
-            True,
-            ParameterDocumentation("'test_str'", "", ""),
+            id_="test/test.Test/test/test_parameter",
+            name="test_parameter",
+            qname="test.Test.test.test_parameter",
+            default_value="'test_str'",
+            assigned_by=ParameterAssignment.POSITION_OR_NAME,
+            is_public=True,
+            documentation=ParameterDocumentation("'test_str'", "", ""),
         ),
     ]
     results: list[Result] = []
@@ -121,18 +121,18 @@ def test_function_similarity(differ: AbstractDiffer) -> None:
     """,
     )
     function_a = Function(
-        "test/test.Test/test",
-        "test.Test.test",
-        [],
-        parameters,
-        results,
-        True,
-        [],
-        FunctionDocumentation(
+        id="test/test.Test/test",
+        qname="test.Test.test",
+        decorators=[],
+        parameters=parameters,
+        results=results,
+        is_public=True,
+        reexported_by=[],
+        documentation=FunctionDocumentation(
             "This test function is a proof of work",
             "This test function is a proof of work",
         ),
-        code_a,
+        code=code_a,
     )
     assert differ.compute_function_similarity(function_a, function_a) == 1
 
@@ -147,28 +147,28 @@ def test_function_similarity(differ: AbstractDiffer) -> None:
     )
     parameters = [
         Parameter(
-            "test/test.Test/test_method/test_parameter",
-            "test_parameter",
-            "test.Test.test_method.test_parameter",
-            "'test_str'",
-            ParameterAssignment.POSITION_OR_NAME,
-            True,
-            ParameterDocumentation("'test_str'", "", ""),
+            id_="test/test.Test/test_method/test_parameter",
+            name="test_parameter",
+            qname="test.Test.test_method.test_parameter",
+            default_value="'test_str'",
+            assigned_by=ParameterAssignment.POSITION_OR_NAME,
+            is_public=True,
+            documentation=ParameterDocumentation("'test_str'", "", ""),
         ),
     ]
     function_b = Function(
-        "test/test.Test/test_method",
-        "test.Test.test_method",
-        [],
-        parameters,
-        results,
-        True,
-        [],
-        FunctionDocumentation(
+        id="test/test.Test/test_method",
+        qname="test.Test.test_method",
+        decorators=[],
+        parameters=parameters,
+        results=results,
+        is_public=True,
+        reexported_by=[],
+        documentation=FunctionDocumentation(
             "This test function is a proof of concept.",
             "This test function is a proof of concept.",
         ),
-        code_b,
+        code=code_b,
     )
     assert differ.compute_function_similarity(function_a, function_b) > 0.5
 
@@ -176,36 +176,36 @@ def test_function_similarity(differ: AbstractDiffer) -> None:
 @pytest.mark.parametrize(
     "differ",
     differ_list,
-)  # type: ignore
+)
 def test_parameter_similarity(differ: AbstractDiffer) -> None:
     parameter_a = Parameter(
-        "test/test.Test/test_method/test_parameter",
-        "test_parameter",
-        "test.Test.test_method.test_parameter",
-        "'str'",
-        ParameterAssignment.POSITION_OR_NAME,
-        True,
-        ParameterDocumentation("'str'", "", ""),
+        id_="test/test.Test/test_method/test_parameter",
+        name="test_parameter",
+        qname="test.Test.test_method.test_parameter",
+        default_value="'str'",
+        assigned_by=ParameterAssignment.POSITION_OR_NAME,
+        is_public=True,
+        documentation=ParameterDocumentation("'str'", "", ""),
     )
     parameter_b = Parameter(
-        "test/test.Test/test_method/test_parameter",
-        "test_parameter",
-        "test.Test.test_method.test_parameter",
-        "5",
-        ParameterAssignment.POSITION_OR_NAME,
-        True,
-        ParameterDocumentation("int", "", ""),
+        id_="test/test.Test/test_method/test_parameter",
+        name="test_parameter",
+        qname="test.Test.test_method.test_parameter",
+        default_value="5",
+        assigned_by=ParameterAssignment.POSITION_OR_NAME,
+        is_public=True,
+        documentation=ParameterDocumentation("int", "", ""),
     )
     assert 0.45 < differ.compute_parameter_similarity(parameter_a, parameter_b) < 0.7
 
     parameter_a = Parameter(
-        "test/test.Test/test_method/test_parameter_new_name",
-        "test_parameter_new_name",
-        "test.Test.test_method.test_parameter_new_name",
-        "9",
-        ParameterAssignment.POSITION_OR_NAME,
-        True,
-        ParameterDocumentation("int", "", ""),
+        id_="test/test.Test/test_method/test_parameter_new_name",
+        name="test_parameter_new_name",
+        qname="test.Test.test_method.test_parameter_new_name",
+        default_value="9",
+        assigned_by=ParameterAssignment.POSITION_OR_NAME,
+        is_public=True,
+        documentation=ParameterDocumentation("int", "", ""),
     )
     assert 0.75 < differ.compute_parameter_similarity(parameter_a, parameter_b) < 0.9
 
@@ -213,7 +213,7 @@ def test_parameter_similarity(differ: AbstractDiffer) -> None:
 @pytest.mark.parametrize(
     "differ",
     differ_list,
-)  # type: ignore
+)
 def test_result_similarity(differ: AbstractDiffer) -> None:
     result_a = Result("config", ResultDocstring("dict", ""))
     assert differ.compute_result_similarity(result_a, result_a) == 1

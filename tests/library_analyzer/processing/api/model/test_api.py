@@ -204,34 +204,34 @@ def test_trim_code(code_to_parse: str, expected_code: str) -> None:
             ),
         ),
     ],
-)  # type: ignore
+)
 def test_cut_documentation_from_code(code: str, expected_code: str) -> None:
     is_class = "\nclass" in code
     if is_class:
         api_element: Class | Function = Class(
-            "test/test.test/Test",
-            "test.test.Test",
-            [],
-            [],
-            True,
-            [],
-            ClassDocumentation(
+            id="test/test.test/Test",
+            qname="test.test.Test",
+            decorators=[],
+            superclasses=[],
+            is_public=True,
+            reexported_by=[],
+            documentation=ClassDocumentation(
                 "this documentation string cannot be used",
                 " because indentation was removed",
             ),
-            code,
-            [],
+            code=code,
+            instance_attributes=[],
         )
     else:
         api_element = Function(
-            "test/test.test/Test.test",
-            "test.test.Test.test",
-            [],
-            [],
-            [],
-            True,
-            [],
-            FunctionDocumentation("", ""),
-            code,
+            id="test/test.test/Test.test",
+            qname="test.test.Test.test",
+            decorators=[],
+            parameters=[],
+            results=[],
+            is_public=True,
+            reexported_by=[],
+            documentation=FunctionDocumentation("", ""),
+            code=code,
         )
     assert api_element.get_formatted_code(cut_documentation=True) == expected_code + "\n"

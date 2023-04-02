@@ -54,11 +54,11 @@ def migrate_boundary_annotation_data_one_to_one_mapping() -> (
         comment="",
         reviewResult=EnumReviewResult.NONE,
         interval=Interval(
-            isDiscrete=True,
             lowerIntervalLimit=0,
             lowerLimitType=1,
             upperIntervalLimit=10,
             upperLimitType=1,
+            isDiscrete=True,
         ),
     )
     migrated_boundary_annotation = BoundaryAnnotation(
@@ -68,11 +68,11 @@ def migrate_boundary_annotation_data_one_to_one_mapping() -> (
         comment="",
         reviewResult=EnumReviewResult.NONE,
         interval=Interval(
-            isDiscrete=True,
             lowerIntervalLimit=0,
             lowerLimitType=1,
             upperIntervalLimit=10,
             upperLimitType=1,
+            isDiscrete=True,
         ),
     )
     return (
@@ -117,11 +117,11 @@ def migrate_boundary_annotation_data_one_to_one_mapping_int_to_float() -> (
         comment="",
         reviewResult=EnumReviewResult.NONE,
         interval=Interval(
-            isDiscrete=True,
             lowerIntervalLimit=0,
             lowerLimitType=0,
             upperIntervalLimit=10,
             upperLimitType=0,
+            isDiscrete=True,
         ),
     )
     migrated_boundary_annotation = BoundaryAnnotation(
@@ -131,11 +131,11 @@ def migrate_boundary_annotation_data_one_to_one_mapping_int_to_float() -> (
         comment=get_migration_text(boundary_annotation, mapping),
         reviewResult=EnumReviewResult.UNSURE,
         interval=Interval(
-            isDiscrete=False,
             lowerIntervalLimit=0.0,
             lowerLimitType=0,
             upperIntervalLimit=10.0,
             upperLimitType=0,
+            isDiscrete=False,
         ),
     )
 
@@ -181,11 +181,11 @@ def migrate_boundary_annotation_data_one_to_one_mapping_float_to_int() -> (
         comment="",
         reviewResult=EnumReviewResult.NONE,
         interval=Interval(
-            isDiscrete=False,
             lowerIntervalLimit=0.5,
             lowerLimitType=0,
             upperIntervalLimit=9.5,
             upperLimitType=0,
+            isDiscrete=False,
         ),
     )
     migrated_boundary_annotation = BoundaryAnnotation(
@@ -195,11 +195,11 @@ def migrate_boundary_annotation_data_one_to_one_mapping_float_to_int() -> (
         comment=get_migration_text(boundary_annotation, mapping),
         reviewResult=EnumReviewResult.UNSURE,
         interval=Interval(
-            isDiscrete=True,
             lowerIntervalLimit=1,
             lowerLimitType=1,
             upperIntervalLimit=9,
             upperLimitType=1,
+            isDiscrete=True,
         ),
     )
     return (
@@ -262,11 +262,11 @@ def migrate_boundary_annotation_data_one_to_many_mapping() -> (
         comment="",
         reviewResult=EnumReviewResult.NONE,
         interval=Interval(
-            isDiscrete=True,
             lowerIntervalLimit=0,
             lowerLimitType=1,
             upperIntervalLimit=10,
             upperLimitType=1,
+            isDiscrete=True,
         ),
     )
     migrated_boundary_annotation_a = BoundaryAnnotation(
@@ -276,11 +276,11 @@ def migrate_boundary_annotation_data_one_to_many_mapping() -> (
         comment="",
         reviewResult=EnumReviewResult.NONE,
         interval=Interval(
-            isDiscrete=True,
             lowerIntervalLimit=0,
             lowerLimitType=1,
             upperIntervalLimit=10,
             upperLimitType=1,
+            isDiscrete=True,
         ),
     )
     migrated_boundary_annotation_b = BoundaryAnnotation(
@@ -290,11 +290,11 @@ def migrate_boundary_annotation_data_one_to_many_mapping() -> (
         comment=get_migration_text(boundary_annotation, mapping),
         reviewResult=EnumReviewResult.UNSURE,
         interval=Interval(
-            isDiscrete=False,
             lowerIntervalLimit=0.0,
             lowerLimitType=1,
             upperIntervalLimit=10.0,
             upperLimitType=1,
+            isDiscrete=False,
         ),
     )
     migrated_boundary_annotation_c = BoundaryAnnotation(
@@ -304,11 +304,11 @@ def migrate_boundary_annotation_data_one_to_many_mapping() -> (
         comment=get_migration_text(boundary_annotation, mapping),
         reviewResult=EnumReviewResult.UNSURE,
         interval=Interval(
-            isDiscrete=True,
             lowerIntervalLimit=0,
             lowerLimitType=1,
             upperIntervalLimit=10,
             upperLimitType=1,
+            isDiscrete=True,
         ),
     )
     return (
@@ -363,11 +363,11 @@ def migrate_boundary_annotation_data_duplicated() -> (
         comment="",
         reviewResult=EnumReviewResult.NONE,
         interval=Interval(
-            isDiscrete=True,
             lowerIntervalLimit=0,
             lowerLimitType=1,
             upperIntervalLimit=10,
             upperLimitType=1,
+            isDiscrete=True,
         ),
     )
     boundary_annotation_2 = BoundaryAnnotation(
@@ -377,11 +377,11 @@ def migrate_boundary_annotation_data_duplicated() -> (
         comment="",
         reviewResult=EnumReviewResult.NONE,
         interval=Interval(
-            isDiscrete=True,
             lowerIntervalLimit=0,
             lowerLimitType=1,
             upperIntervalLimit=10,
             upperLimitType=1,
+            isDiscrete=True,
         ),
     )
     migrated_boundary_annotation = BoundaryAnnotation(
@@ -391,11 +391,11 @@ def migrate_boundary_annotation_data_duplicated() -> (
         comment="",
         reviewResult=EnumReviewResult.NONE,
         interval=Interval(
-            isDiscrete=True,
             lowerIntervalLimit=0,
             lowerLimitType=1,
             upperIntervalLimit=10,
             upperLimitType=1,
+            isDiscrete=True,
         ),
     )
     return (

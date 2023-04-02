@@ -63,11 +63,11 @@ class RemoveAnnotation(AbstractAnnotation):
 
 @dataclass
 class Interval:
-    isDiscrete: bool
     lowerIntervalLimit: int | float | str
     lowerLimitType: int
     upperIntervalLimit: int | float | str
     upperLimitType: int
+    isDiscrete: bool
 
     def to_json(self) -> dict:
         return asdict(self)
@@ -75,11 +75,11 @@ class Interval:
     @staticmethod
     def from_json(json: Any) -> Interval:
         return Interval(
-            json["isDiscrete"],
             json["lowerIntervalLimit"],
             json["lowerLimitType"],
             json["upperIntervalLimit"],
             json["upperLimitType"],
+            json["isDiscrete"],
         )
 
 

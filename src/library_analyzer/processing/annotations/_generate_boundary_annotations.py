@@ -60,11 +60,11 @@ def _generate_boundary_annotations(api: API, annotations: AnnotationStore) -> No
                 max_limit_type = 2
 
             interval = Interval(
-                isDiscrete=is_discrete,
                 lowerIntervalLimit=min_value,
                 upperIntervalLimit=max_value,
                 lowerLimitType=min_limit_type,
                 upperLimitType=max_limit_type,
+                isDiscrete=is_discrete,
             )
             boundary = BoundaryAnnotation(
                 target=parameter.id,

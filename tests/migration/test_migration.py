@@ -294,15 +294,15 @@ def _assert_annotation_stores_are_equal(
 
 def test_handle_duplicates() -> None:
     classv1_a = Class(
-        "test/test.duplicate/TestClass",
-        "Test",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("", ""),
-        "",
-        [],
+        id="test/test.duplicate/TestClass",
+        qname="Test",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("", ""),
+        code="",
+        instance_attributes=[],
     )
     classv1_b = deepcopy(classv1_a)
     classv1_b.id = "test/test.duplicate/TestClass2"

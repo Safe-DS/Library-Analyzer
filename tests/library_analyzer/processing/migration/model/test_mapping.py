@@ -15,15 +15,15 @@ def test_one_to_one_mapping() -> None:
     apiv1 = API("test", "test", "1.0")
     apiv2 = API("test", "test", "2.0")
     class_1 = Class(
-        "test/test.Test",
-        "Test",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("This is a test", "This is a test"),
-        "",
-        [],
+        id="test/test.Test",
+        qname="Test",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("This is a test", "This is a test"),
+        code="",
+        instance_attributes=[],
     )
     apiv1.add_class(class_1)
     apiv2.add_class(class_1)
@@ -75,15 +75,15 @@ def test_one_to_many_and_many_to_one_mappings() -> None:
 def test_many_to_many_mapping() -> None:
     apiv1, apiv2, class_1, class_2, class_3 = create_apis()
     class_4 = Class(
-        "test/test.TestC",
-        "TestC",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("This is a test", "This is a test"),
-        "",
-        [],
+        id="test/test.TestC",
+        qname="TestC",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("This is a test", "This is a test"),
+        code="",
+        instance_attributes=[],
     )
     apiv1.add_class(class_4)
     differ = SimpleDiffer(
@@ -104,27 +104,27 @@ def test_many_to_many_mapping() -> None:
 def test_too_different_mapping() -> None:
     apiv1 = API("test", "test", "1.0")
     class_1 = Class(
-        "test/test/Test",
-        "Test",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("This is a test", "This is a test"),
-        "",
-        [],
+        id="test/test/Test",
+        qname="Test",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("This is a test", "This is a test"),
+        code="",
+        instance_attributes=[],
     )
     apiv1.add_class(class_1)
     apiv2 = API("test", "test", "2.0")
     class_2 = Class(
-        "test/package/NotSimilarClass_",
-        "NotSimilarClass_",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("not similar to the other class", "not similar to the other class"),
-        cleandoc(
+        id="test/package/NotSimilarClass_",
+        qname="NotSimilarClass_",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("not similar to the other class", "not similar to the other class"),
+        code=cleandoc(
             """
 
         class NotSimilarClass:
@@ -140,7 +140,7 @@ def test_too_different_mapping() -> None:
 
         """,
         ),
-        [],
+        instance_attributes=[],
     )
     apiv2.add_class(class_2)
     differ = SimpleDiffer(
@@ -159,39 +159,39 @@ def test_too_different_mapping() -> None:
 
 def create_apis() -> tuple[API, API, Class, Class, Class]:
     class_1 = Class(
-        "test/test.Test",
-        "Test",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("This is a test", "This is a test"),
-        "",
-        [],
+        id="test/test.Test",
+        qname="Test",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("This is a test", "This is a test"),
+        code="",
+        instance_attributes=[],
     )
     apiv1 = API("test", "test", "1.0")
     apiv1.add_class(class_1)
     class_2 = Class(
-        "test/test.TestA",
-        "TestA",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("This is a test", "This is a test"),
-        "",
-        [],
+        id="test/test.TestA",
+        qname="TestA",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("This is a test", "This is a test"),
+        code="",
+        instance_attributes=[],
     )
     class_3 = Class(
-        "test/test.TestB",
-        "TestB",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("This is a test", "This is a test"),
-        "",
-        [],
+        id="test/test.TestB",
+        qname="TestB",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("This is a test", "This is a test"),
+        code="",
+        instance_attributes=[],
     )
     apiv2 = API("test", "test", "2.0")
     apiv2.add_class(class_2)

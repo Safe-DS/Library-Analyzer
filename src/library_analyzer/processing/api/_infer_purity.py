@@ -121,7 +121,7 @@ class PurityHandler:
         elif isinstance(node.func, astroid.Name) and node.func.name in BUILTIN_FUNCTIONS:
             value = node.args[0]
             if isinstance(value, astroid.Name):
-                impurity_indicator = check_builtin_function(node, node.func.name, value.name, True)
+                impurity_indicator = check_builtin_function(node, node.func.name, value.name, is_var=True)
                 self.append_reason(impurity_indicator)
             else:
                 impurity_indicator = check_builtin_function(node, node.func.name, value.value)
