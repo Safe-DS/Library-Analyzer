@@ -43,8 +43,8 @@ def get_boundaries() -> None:
                 key = f"{cls}.{prop_name}"
                 boundaries[key] = prop_body
             if ref_type["kind"] == "UnionType":
-                for type in ref_type["types"]:
-                    if type["kind"] == "BoundaryType":
+                for type_ in ref_type["types"]:
+                    if type_["kind"] == "BoundaryType":
                         key = f"{cls}.{prop_name}"
                         boundaries[key] = prop_body
     with open("boundaries.json", "w") as fout:
