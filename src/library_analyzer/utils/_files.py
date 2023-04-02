@@ -24,7 +24,7 @@ def list_files(root_dir: Path, extension: str = "") -> list[str]:
     for root, _, files in os.walk(root_dir):
         for filename in files:
             if filename.endswith(extension):
-                result.append(str(os.path.join(root, filename)))
+                result.append(str(Path(root) / filename))
 
     return result
 

@@ -1,5 +1,4 @@
 import json
-import os
 from collections.abc import Sequence
 from copy import deepcopy
 from pathlib import Path
@@ -217,16 +216,16 @@ def test_migrate_all_annotations() -> None:
 def test_migrate_command_and_both_annotation_stores() -> None:
     data_path = Path(__file__).parent / ".." / "data"
 
-    apiv1_json_path = os.path.join(data_path, "migration", "apiv1_data.json")
-    apiv2_json_path = os.path.join(data_path, "migration", "apiv2_data.json")
-    annotationsv1_json_path = os.path.join(data_path, "migration", "annotationv1.json")
-    annotationsv2_json_path = os.path.join(data_path, "migration", "annotationv2.json")
-    unsure_annotationsv2_json_path = os.path.join(data_path, "migration", "unsure_annotationv2.json")
-    with Path(apiv1_json_path).open(encoding="utf-8") as apiv1_file, \
-        Path(apiv2_json_path).open(encoding="utf-8") as apiv2_file, \
-        Path(annotationsv1_json_path).open(encoding="utf-8") as annotationsv1_file, \
-        Path(annotationsv2_json_path).open(encoding="utf-8") as annotationsv2_file, \
-        Path(unsure_annotationsv2_json_path).open(encoding="utf-8" ) as unsure_annotationsv2_file:
+    apiv1_json_path = data_path / "migration" / "apiv1_data.json"
+    apiv2_json_path = data_path / "migration" / "apiv2_data.json"
+    annotationsv1_json_path = data_path / "migration" / "annotationv1.json"
+    annotationsv2_json_path = data_path / "migration" / "annotationv2.json"
+    unsure_annotationsv2_json_path = data_path / "migration" / "unsure_annotationv2.json"
+    with apiv1_json_path.open(encoding="utf-8") as apiv1_file, \
+        apiv2_json_path.open(encoding="utf-8") as apiv2_file, \
+        annotationsv1_json_path.open(encoding="utf-8") as annotationsv1_file, \
+        annotationsv2_json_path.open(encoding="utf-8") as annotationsv2_file, \
+        unsure_annotationsv2_json_path.open(encoding="utf-8") as unsure_annotationsv2_file:
 
         apiv1_json = json.load(apiv1_file)
         apiv1 = API.from_json(apiv1_json)

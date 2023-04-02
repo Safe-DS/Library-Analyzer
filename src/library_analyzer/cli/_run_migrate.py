@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Any
 
@@ -55,9 +54,7 @@ def _run_migrate_command(
         migration = Migration(annotationsv1, previous_mappings)
         migration.migrate_annotations()
         migration.print(apiv1, apiv2)
-        migrated_annotations_file = Path(os.path.join(out_dir_path, "migrated_annotationsv" + apiv2.version + ".json"))
-        unsure_migrated_annotations_file = Path(
-            os.path.join(out_dir_path, "unsure_migrated_annotationsv" + apiv2.version + ".json"),
-        )
+        migrated_annotations_file = out_dir_path / f"migrated_annotationsv{apiv2.version}.json"
+        unsure_migrated_annotations_file = out_dir_path / f"unsure_migrated_annotationsv{apiv2.version}.json"
         _write_annotations_file(migration.migrated_annotation_store, migrated_annotations_file)
         _write_annotations_file(migration.unsure_migrated_annotation_store, unsure_migrated_annotations_file)
