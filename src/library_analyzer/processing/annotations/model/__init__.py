@@ -1,3 +1,5 @@
+"""Model classes for annotations."""
+
 from ._annotation_store import AnnotationStore
 from ._annotations import (
     ANNOTATION_SCHEMA_VERSION,

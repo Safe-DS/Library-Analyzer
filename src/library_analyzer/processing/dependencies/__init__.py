@@ -1,3 +1,5 @@
+"""Analysis of dependencies between parameters of a function."""
+
 from ._get_dependency import (
     DependencyExtractor,
     extract_action,

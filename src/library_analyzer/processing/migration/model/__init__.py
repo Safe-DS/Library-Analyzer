@@ -1,3 +1,5 @@
+"""Model classes to store migration information."""
+
 from ._api_mapping import APIMapping
 from ._differ import AbstractDiffer, SimpleDiffer
 from ._inheritance_differ import InheritanceDiffer

@@ -1,3 +1,5 @@
+"""Model classes to store API information."""
+
 from ._api import (
     API,
     API_SCHEMA_VERSION,
