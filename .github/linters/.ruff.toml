@@ -38,11 +38,9 @@ select = [
     "ARG",
     "PTH",
     "ERA",
-    "PD",
     "PGH",
     "PL",
     "TRY",
-    "NPY",
     "RUF"
 ]
 ignore = [
