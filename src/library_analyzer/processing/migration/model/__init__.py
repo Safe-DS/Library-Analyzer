@@ -11,3 +11,18 @@ from ._mapping import (
 )
 from ._strict_differ import StrictDiffer
 from ._unchanged_differ import UnchangedDiffer
+
+__all__ = [
+    "APIMapping",
+    "AbstractDiffer",
+    "InheritanceDiffer",
+    "ManyToManyMapping",
+    "ManyToOneMapping",
+    "Mapping",
+    "OneToManyMapping",
+    "OneToOneMapping",
+    "SimpleDiffer",
+    "StrictDiffer",
+    "UnchangedDiffer",
+    "merge_mappings",
+]
