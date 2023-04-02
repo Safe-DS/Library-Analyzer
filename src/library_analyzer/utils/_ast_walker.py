@@ -10,13 +10,12 @@ _EnterAndLeaveFunctions = tuple[
 
 
 class ASTWalker:
-    """A walker visiting a tree in preorder, calling on the handler:
+    """A walker visiting an abstract syntax tree in preorder.
 
-    * enter_<class_name> on entering a node, where class name is the class of
-    the node in lower case.
+    The following methods get called:
 
-    * leave_<class_name> on leaving a node, where class name is the class of
-    the node in lower case.
+    * enter_<class_name> on entering a node, where class name is the class of the node in lower case.
+    * leave_<class_name> on leaving a node, where class name is the class of the node in lower case.
     """
 
     def __init__(self, handler: Any) -> None:
