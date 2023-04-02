@@ -1,9 +1,12 @@
+"""The entrypoint to the program."""
+
 import time
 
 from library_analyzer.cli import cli
 
 
 def main() -> None:
+    """The entrypoint to the program."""
     start_time = time.time()
 
     cli()
