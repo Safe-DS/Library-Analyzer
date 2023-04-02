@@ -668,7 +668,7 @@ def visit_ast(ast: Astroid.NodeNG) -> None:
         enclosing = infer_function(ast)
         global list_of_traversed_functions
 
-        if isinstance(ast.func, (Astroid.FunctionDef, Astroid.AsyncFunctionDef)):
+        if isinstance(ast.func, Astroid.FunctionDef | Astroid.AsyncFunctionDef):
             if ast.func.name == "print":
                 create_output_write_prop(enclosing, "console", concat_args(ast.args))
             elif ast.func.name == "input":
