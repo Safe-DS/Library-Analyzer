@@ -14,19 +14,18 @@ from ._constants import autogen_author
 
 def _generate_enum_annotations(api: API, annotations: AnnotationStore) -> None:
     """
-    Returns all parameters that are never used.
-    :param api: API object for usages
-    :param annotations: AnnotationStore object
-    """
-    # pylint: disable=duplicate-code
-    for _, parameter in api.parameters().items():
+    Return all parameters that are never used.
 
+    :param api: API object for usages
+    :param annotations: AnnotationStore object.
+    """
+    for _, parameter in api.parameters().items():
         # Don't add enum annotation to constant parameters
-        if parameter.id in set(
+        if parameter.id in {
             annotation.target
             for annotation in annotations.valueAnnotations
             if annotation.variant == ValueAnnotation.Variant.CONSTANT
-        ):
+        }:
             continue
 
         parameter_type = parameter.type
@@ -50,7 +49,7 @@ def _generate_enum_annotations(api: API, annotations: AnnotationStore) -> None:
                     enumName=enum_name,
                     pairs=pairs,
                     reviewResult=EnumReviewResult.NONE,
-                )
+                ),
             )
 
 
@@ -63,7 +62,7 @@ def _enum_name(parameter_name: str) -> str:
 def _enum_pairs(enum_type: EnumType) -> list[EnumPair]:
     result = []
 
-    sorted_values = sorted(list(enum_type.values))
+    sorted_values = sorted(enum_type.values)
     for string_value in sorted_values:
         instance_name = _enum_instance_name(string_value)
         result.append(EnumPair(stringValue=string_value, instanceName=instance_name))
@@ -74,11 +73,7 @@ def _enum_pairs(enum_type: EnumType) -> list[EnumPair]:
 def _enum_instance_name(string_value: str) -> str:
     segments = re.split(r"[_\-.]", string_value)
 
-    result = "_".join(
-        re.sub(r"\W", "", segment).upper()
-        for segment in segments
-        if re.sub(r"\W", "", segment) != ""
-    )
+    result = "_".join(re.sub(r"\W", "", segment).upper() for segment in segments if re.sub(r"\W", "", segment) != "")
 
     if len(result) == 0 or result[0].isdigit():
         result = "_" + result

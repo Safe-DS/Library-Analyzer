@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-from typing import Optional
 
 from library_analyzer.cli._shared_constants import _USAGES_KEY
 from library_analyzer.processing.usages import find_usages
@@ -13,7 +12,7 @@ def _run_usages_command(
     out_dir_path: Path,
     n_processes: int,
     batch_size: int,
-    result_dict: Optional[dict] = None,
+    result_dict: dict | None = None,
 ) -> None:
     usages = find_usages(package, client_dir_path, n_processes, batch_size)
 

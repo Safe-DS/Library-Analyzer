@@ -27,7 +27,7 @@ from library_analyzer.processing.api.model import (
 
 
 @pytest.mark.parametrize(
-    "code, expected",
+    ("code", "expected"),
     [
         (
             """
@@ -68,7 +68,7 @@ def test_calc_function_id(code: str, expected: str) -> None:
 
 # since we only look at FunctionDefs we can not use other types of CodeSnippets
 @pytest.mark.parametrize(
-    "purity_result, expected",
+    ("purity_result", "expected"),
     [
         (DefinitelyPure(), []),
         (
@@ -100,7 +100,7 @@ def test_generate_purity_information(purity_result: PurityResult, expected: list
 
 
 @pytest.mark.parametrize(
-    "purity_reasons, expected",
+    ("purity_reasons", "expected"),
     [
         ([], DefinitelyPure()),
         (
@@ -108,9 +108,6 @@ def test_generate_purity_information(purity_result: PurityResult, expected: list
             DefinitelyImpure(reasons=[Call(expression=AttributeAccess(name="impure_call"))]),
         ),
         # TODO: improve analysis so this test does not fail:
-        # (
-        #    [Call(expression=AttributeAccess(name="pure_call"))],
-        #    DefinitelyPure()
         # ),
         (
             [FileRead(source=StringLiteral(value="read_path"))],
@@ -136,7 +133,7 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
 
 
 @pytest.mark.parametrize(
-    "args, expected",
+    ("args", "expected"),
     [
         (["test"], OpenMode.READ),
         (["test", "r"], OpenMode.READ),
@@ -168,7 +165,7 @@ def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: Pur
 )
 def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
     if expected is ValueError:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="is not a valid mode for the open function"):
             determine_open_mode(args)
     else:
         result = determine_open_mode(args)
@@ -176,7 +173,7 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
 
 
 @pytest.mark.parametrize(
-    "code, expected",
+    ("code", "expected"),
     [
         (
             """
@@ -365,7 +362,7 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
 # TODO: test for wrong arguments and Errors
 def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
     if expected is ValueError:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="is not a valid mode for the open function"):
             infer_purity(code)
     elif expected is TypeError:
         with pytest.raises(TypeError):
@@ -377,99 +374,56 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
 
 # @pytest.mark.parametrize(
 #     "code, expected",
-#     [
-#         (
 #             """
 #                 def impure_fun(a):
-#                     impure_call(a) # call => impure
-#                     impure_call(a) # call => impure - check if the analysis is correct for multiple calls - done
-#                     return a
 #             """,
 #             [Call(expression=Reference(name='impure_call(a)')),
 #              Call(expression=Reference(name='impure_call(a)'))],
 #         ),
-#         (
 #             """
 #                 def pure_fun(a):
-#                     a += 1
-#                     return a
 #             """,
-#             [],
 #         ),
-#         (
 #             """
 #                 class A:
 #                     def __init__(self):
-#                         self.value = 42
 #
-#                 a = A()
 #
 #                 def instance(a):
-#                     res = a.value # InstanceAccess => pure??
-#                     return res
 #             """,
 #             [VariableWrite(expression=InstanceAccess(
-#                 receiver=Reference(name='a'),
-#                 target=Reference(name='a.value')
 #             ))],  # TODO: is this correct?
 #         ),
-#         (
 #             """
 #                 class B:
-#                     name = "test"
 #
-#                 b = B()
 #
 #                 def attribute(b):
-#                     res = b.name # AttributeAccess => maybe impure
-#                     return res
 #             """,
-#             [VariableWrite(expression=AttributeAccess(name='res = b.name'))],  # TODO: is this correct?
 #         ),
-#         (
 #             """
-#                 global_var = 17
 #                 def global_access():
-#                     res = global_var # GlobalAccess => impure
-#                     return res
 #             """,
-#             [VariableWrite(expression=GlobalAccess(name='res = global_var'))],  # TODO: is this correct?
 #         ),
-#         (
 #             """
 #                 def parameter_access(a):
-#                     res = a # ParameterAccess => pure
-#                     return res
 #             """,
 #             [Call(expression=ParameterAccess(
-#                 name="a",
 #                 function="parameter_access"),
 #             )],  # TODO: is this correct?
 #         ),
-#         (
 #             """
-#                 glob = g(1)  # TODO: This will get filtered out because it is not a function call, but a variable assignment with a
 #                 # function call and therefore further analysis is needed
 #             """,
 #             [VariableWrite(expression=Reference(name='b = g(a)')),
 #              Call(expression=Reference(name="g(1)"))],  # TODO: is this correct?
 #         ),
-#         (
 #             """
 #                 def fun(a):
-#                     h(a)
-#                     b =  g(a) # call => impure
-#                     b += 1
-#                     return b
 #             """,
 #             [Call(expression=Reference(name='h(a)')),
-#              VariableWrite(expression=Reference(name='b = g(a)')),
 #              Call(expression=Reference(name='g(a)'))],  # TODO: is this correct?
 #         ),
 #
-#     ]
 #
-# )
 # def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> None:
-#     result_list = infer_purity(code)
-#     assert result_list[0].reasons == expected

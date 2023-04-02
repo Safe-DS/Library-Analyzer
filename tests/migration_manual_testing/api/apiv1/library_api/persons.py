@@ -5,11 +5,10 @@ import datetime
 
 
 class LibraryUser:
-    """LibraryUser
+    """LibraryUser.
 
     Parameters
     ----------
-
     first_name : str
     last_name : str
     id_number : str
@@ -42,7 +41,7 @@ class LibraryUser:
         self.member_until = member_until
 
     def give_back(self, late_fee: float) -> None:
-        """Gives book back and add late_fee is it is too late
+        """Give book back and add late_fee if it is too late.
 
         Parameters
         ----------
@@ -52,13 +51,13 @@ class LibraryUser:
         self.pending_fees = self.pending_fees + late_fee
 
     def extend_membership(self) -> None:
-        """Extend membership by one year"""
+        """Extend membership by one year."""
         self.member_until = self.member_until + datetime.timedelta(
-            days=365
+            days=365,
         )  # apiv2: change to self.member_until.replace(year=self.member_until.year+1)
 
     def get_name(self) -> str:
-        """get full name of LibraryUser
+        """Get full name of LibraryUser.
 
         Returns
         -------
@@ -67,7 +66,7 @@ class LibraryUser:
         return self.first_name + " " + self.last_name
 
     def pay(self, money: float) -> float:
-        """pay the library
+        """Pay the library.
 
         Parameters
         ----------
@@ -81,7 +80,7 @@ class LibraryUser:
 
 
 class Employee:
-    """An Employee of the Library
+    """An Employee of the Library.
 
     Parameters
     ----------
@@ -96,16 +95,14 @@ class Employee:
     address: str
     wage: float
 
-    def __init__(
-        self, first_name: str, last_name: str, address: str, wage: float
-    ) -> None:
+    def __init__(self, first_name: str, last_name: str, address: str, wage: float) -> None:
         self.first_name = first_name
         self.last_name = last_name
         self.address = address
         self.wage = wage
 
     def get_name(self) -> str:
-        """get full name of Employee
+        """Get full name of Employee.
 
         Returns
         -------

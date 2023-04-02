@@ -1,9 +1,8 @@
-# pylint: disable=duplicate-code
 # apiv2: merge Bookshelf and Room to one class Position (without max_number_of_items)
 
 
 class Position:
-    """The position is used to point to where a book should be placed
+    """The position is used to point to where a book should be placed.
 
     Parameters
     ----------

@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
     EnumReviewResult,
@@ -26,7 +24,7 @@ from library_analyzer.processing.migration.model import (
 
 
 def migrate_rename_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -70,9 +68,8 @@ def migrate_rename_annotation_data_one_to_one_mapping() -> (
     return mappings, annotationv1, [annotationv2]
 
 
-# pylint: disable=duplicate-code
 def migrate_rename_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -116,9 +113,7 @@ def migrate_rename_annotation_data_one_to_many_mapping() -> (
         code="class NewClass:\n    pass",
         instance_attributes=[],
     )
-    mappings = OneToManyMapping(
-        1.0, parameterv1, [parameterv2_a, parameterv2_b, classv2]
-    )
+    mappings = OneToManyMapping(1.0, parameterv1, [parameterv2_a, parameterv2_b, classv2])
     annotationv1 = RenameAnnotation(
         target="test/test.rename.test3.Test",
         authors=["testauthor"],
@@ -159,7 +154,7 @@ def migrate_rename_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_rename_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],

@@ -1,7 +1,7 @@
-import os
 import subprocess
+from pathlib import Path
 
-_project_root = os.path.join(os.path.dirname(__file__), "..", "..", "..")
+_project_root = Path(__file__).parent / ".." / ".." / ".."
 
 
 def test_cli_api() -> None:

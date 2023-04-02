@@ -80,11 +80,10 @@ class ManyToManyMapping(Mapping):
 
 def merge_mappings(mapping_a: Mapping, mapping_b: Mapping) -> Mapping:
     similarity = (mapping_a.similarity + mapping_b.similarity) / 2
-    codomain = merge_api_elements_and_remove_duplicates(
-        mapping_a.get_apiv2_elements(), mapping_b.get_apiv2_elements()
-    )
+    codomain = merge_api_elements_and_remove_duplicates(mapping_a.get_apiv2_elements(), mapping_b.get_apiv2_elements())
     domain: list[api_element] = merge_api_elements_and_remove_duplicates(
-        mapping_a.get_apiv1_elements(), mapping_b.get_apiv1_elements()
+        mapping_a.get_apiv1_elements(),
+        mapping_b.get_apiv1_elements(),
     )
     if len(domain) == 1 and len(codomain) == 1:
         return OneToOneMapping(similarity, domain[0], codomain[0])
@@ -95,9 +94,7 @@ def merge_mappings(mapping_a: Mapping, mapping_b: Mapping) -> Mapping:
     return ManyToManyMapping(similarity, domain, codomain)
 
 
-def merge_api_elements_and_remove_duplicates(
-    list_a: list[api_element], list_b: list[api_element]
-) -> list[api_element]:
+def merge_api_elements_and_remove_duplicates(list_a: list[api_element], list_b: list[api_element]) -> list[api_element]:
     api_elements: list[api_element] = []
     api_elements.extend(list_a)
     api_elements.extend(list_b)
@@ -105,7 +102,7 @@ def merge_api_elements_and_remove_duplicates(
     merged_list: list[api_element] = []
     for element in api_elements:
         element_id = ""
-        if isinstance(element, (Class, Function, Parameter)):
+        if isinstance(element, Class | Function | Parameter):
             element_id = element.id
         elif isinstance(element, Attribute):
             element_id = str(element.class_id) + "/" + element.name

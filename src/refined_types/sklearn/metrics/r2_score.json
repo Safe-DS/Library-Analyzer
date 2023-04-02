@@ -6,11 +6,7 @@
                 "types": [
                     {
                         "kind": "EnumType",
-                        "values": [
-                            "raw_values",
-                            "uniform_average",
-                            "variance_weighted"
-                        ]
+                        "values": ["raw_values", "uniform_average", "variance_weighted"]
                     },
                     {
                         "kind": "NamedType",

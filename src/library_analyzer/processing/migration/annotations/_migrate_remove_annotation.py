@@ -25,20 +25,18 @@ from ._get_migration_text import get_migration_text
 
 
 def is_removeable(element: Attribute | Class | Function | Parameter | Result) -> bool:
-    return isinstance(element, (Class, Function))
+    return isinstance(element, Class | Function)
 
 
-def migrate_remove_annotation(
-    remove_annotation: RemoveAnnotation, mapping: Mapping
-) -> list[AbstractAnnotation]:
+def migrate_remove_annotation(remove_annotation: RemoveAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
     remove_annotation = deepcopy(remove_annotation)
     authors = remove_annotation.authors
     authors.append(migration_author)
     remove_annotation.authors = authors
 
-    if isinstance(mapping, (ManyToOneMapping, OneToOneMapping)):
+    if isinstance(mapping, ManyToOneMapping | OneToOneMapping):
         element = mapping.get_apiv2_elements()[0]
-        if isinstance(element, (Attribute, Result)):
+        if isinstance(element, Attribute | Result):
             return []
         if not is_removeable(element):
             return [
@@ -48,17 +46,13 @@ def migrate_remove_annotation(
                     remove_annotation.reviewers,
                     remove_annotation.comment,
                     EnumReviewResult.NONE,
-                    get_migration_text(
-                        remove_annotation, mapping, for_todo_annotation=True
-                    ),
-                )
+                    get_migration_text(remove_annotation, mapping, for_todo_annotation=True),
+                ),
             ]
         remove_annotation.target = element.id
         return [remove_annotation]
 
-    annotated_apiv1_element = get_annotated_api_element(
-        remove_annotation, mapping.get_apiv1_elements()
-    )
+    annotated_apiv1_element = get_annotated_api_element(remove_annotation, mapping.get_apiv1_elements())
     if annotated_apiv1_element is None:
         return []
 
@@ -67,7 +61,7 @@ def migrate_remove_annotation(
         if (
             isinstance(element, type(annotated_apiv1_element))
             and is_removeable(element)
-            and not isinstance(element, (Attribute, Result))
+            and not isinstance(element, Attribute | Result)
         ):
             remove_annotations.append(
                 RemoveAnnotation(
@@ -76,9 +70,9 @@ def migrate_remove_annotation(
                     remove_annotation.reviewers,
                     remove_annotation.comment,
                     EnumReviewResult.NONE,
-                )
+                ),
             )
-        elif not isinstance(element, (Attribute, Result)):
+        elif not isinstance(element, Attribute | Result):
             remove_annotations.append(
                 TodoAnnotation(
                     element.id,
@@ -86,9 +80,7 @@ def migrate_remove_annotation(
                     remove_annotation.reviewers,
                     remove_annotation.comment,
                     EnumReviewResult.NONE,
-                    get_migration_text(
-                        remove_annotation, mapping, for_todo_annotation=True
-                    ),
-                )
+                    get_migration_text(remove_annotation, mapping, for_todo_annotation=True),
+                ),
             )
     return remove_annotations

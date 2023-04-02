@@ -1,5 +1,4 @@
 from copy import deepcopy
-from typing import List, Optional
 
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
@@ -39,44 +38,29 @@ def _contains_string(type_: AbstractType) -> bool:
     return False
 
 
-def _default_value_is_in_instance_values_or_is_empty(
-    default_value: Optional[str], pairs: List[EnumPair]
-) -> bool:
-    return (
-        default_value is None
-        or default_value in map(lambda pair: pair.stringValue, pairs)
-        or len(default_value) == 0
-    )
+def _default_value_is_in_instance_values_or_is_empty(default_value: str | None, pairs: list[EnumPair]) -> bool:
+    return default_value is None or default_value in (pair.stringValue for pair in pairs) or len(default_value) == 0
 
 
-# pylint: disable=duplicate-code
-def migrate_enum_annotation(
-    enum_annotation: EnumAnnotation, mapping: Mapping
-) -> list[AbstractAnnotation]:
+def migrate_enum_annotation(enum_annotation: EnumAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
     enum_annotation = deepcopy(enum_annotation)
     authors = enum_annotation.authors
     authors.append(migration_author)
     enum_annotation.authors = authors
 
-    annotated_apiv1_element = get_annotated_api_element(
-        enum_annotation, mapping.get_apiv1_elements()
-    )
-    if annotated_apiv1_element is None or not isinstance(
-        annotated_apiv1_element, Parameter
-    ):
+    annotated_apiv1_element = get_annotated_api_element(enum_annotation, mapping.get_apiv1_elements())
+    if annotated_apiv1_element is None or not isinstance(annotated_apiv1_element, Parameter):
         return []
 
-    if isinstance(mapping, (OneToOneMapping, ManyToOneMapping)):
+    if isinstance(mapping, OneToOneMapping | ManyToOneMapping):
         parameter = mapping.get_apiv2_elements()[0]
-        if isinstance(parameter, (Attribute, Result)):
+        if isinstance(parameter, Attribute | Result):
             return []
         if isinstance(parameter, Parameter):
             if (
                 parameter.type is not None
                 and _contains_string(parameter.type)
-                and _default_value_is_in_instance_values_or_is_empty(
-                    parameter.default_value, enum_annotation.pairs
-                )
+                and _default_value_is_in_instance_values_or_is_empty(parameter.default_value, enum_annotation.pairs)
             ) or (parameter.type is None and annotated_apiv1_element.type is None):
                 enum_annotation.target = parameter.id
                 return [enum_annotation]
@@ -96,19 +80,17 @@ def migrate_enum_annotation(
                 enum_annotation.comment,
                 EnumReviewResult.NONE,
                 get_migration_text(enum_annotation, mapping, for_todo_annotation=True),
-            )
+            ),
         ]
 
     migrated_annotations: list[AbstractAnnotation] = []
-    if isinstance(mapping, (OneToManyMapping, ManyToManyMapping)):
+    if isinstance(mapping, OneToManyMapping | ManyToManyMapping):
         for parameter in mapping.get_apiv2_elements():
             if isinstance(parameter, Parameter):
                 if (
                     parameter.type is not None
                     and _contains_string(parameter.type)
-                    and _default_value_is_in_instance_values_or_is_empty(
-                        parameter.default_value, enum_annotation.pairs
-                    )
+                    and _default_value_is_in_instance_values_or_is_empty(parameter.default_value, enum_annotation.pairs)
                 ) or (parameter.type is None and annotated_apiv1_element.type is None):
                     migrated_annotations.append(
                         EnumAnnotation(
@@ -119,7 +101,7 @@ def migrate_enum_annotation(
                             EnumReviewResult.NONE,
                             enum_annotation.enumName,
                             enum_annotation.pairs,
-                        )
+                        ),
                     )
                     continue
                 if isinstance(parameter.type, NamedType):
@@ -133,9 +115,9 @@ def migrate_enum_annotation(
                         EnumReviewResult.UNSURE,
                         enum_annotation.enumName,
                         enum_annotation.pairs,
-                    )
+                    ),
                 )
-            elif not isinstance(parameter, (Attribute, Result)):
+            elif not isinstance(parameter, Attribute | Result):
                 migrated_annotations.append(
                     TodoAnnotation(
                         parameter.id,
@@ -143,9 +125,7 @@ def migrate_enum_annotation(
                         enum_annotation.reviewers,
                         enum_annotation.comment,
                         EnumReviewResult.NONE,
-                        get_migration_text(
-                            enum_annotation, mapping, for_todo_annotation=True
-                        ),
-                    )
+                        get_migration_text(enum_annotation, mapping, for_todo_annotation=True),
+                    ),
                 )
     return migrated_annotations

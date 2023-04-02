@@ -24,52 +24,52 @@ def test_similarity() -> None:
     code_a = cleandoc(
         """
     class Test:
-        pass"""
+        pass""",
     )
     class_id_a = "test/test/Test"
     attribute_a = Attribute("new_test_string", NamedType("str"), class_id=class_id_a)
     class_a = Class(
-        class_id_a,
-        "test.Test",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("This is a test", "This is a test"),
-        code_a,
-        [attribute_a],
+        id=class_id_a,
+        qname="test.Test",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("This is a test", "This is a test"),
+        code=code_a,
+        instance_attributes=[attribute_a],
     )
 
     code_b = cleandoc(
         """
     class newTest:
-        pass"""
+        pass""",
     )
     class_id_b = "test/test/NewTest"
     attribute_b = Attribute("test_string", NamedType("str"), class_id=class_id_b)
     class_b = Class(
-        class_id_b,
-        "test.newTest",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("This is a new test", "This is a new test"),
-        code_b,
-        [attribute_b],
+        id=class_id_b,
+        qname="test.newTest",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        documentation=ClassDocumentation("This is a new test", "This is a new test"),
+        code=code_b,
+        instance_attributes=[attribute_b],
     )
     apiv1.add_class(class_a)
     apiv2.add_class(class_b)
 
     function_id_a = class_id_a + "/test_function"
     parameter_a = Parameter(
-        function_id_a + "/test_parameter",
-        "test_parameter",
-        "test.Test.test_function.test_parameter",
-        "'test_str_a'",
-        ParameterAssignment.POSITION_OR_NAME,
-        True,
-        ParameterDocumentation("'test_str_a'", "", ""),
+        id_=function_id_a + "/test_parameter",
+        name="test_parameter",
+        qname="test.Test.test_function.test_parameter",
+        default_value="'test_str_a'",
+        assigned_by=ParameterAssignment.POSITION_OR_NAME,
+        is_public=True,
+        documentation=ParameterDocumentation("'test_str_a'", "", ""),
     )
     result_a = Result("config", ResultDocstring("dict", ""), function_id=function_id_a)
     code_function_a = cleandoc(
@@ -79,21 +79,21 @@ def test_similarity() -> None:
         This test function is a work
         \"\"\"
         return "test"
-    """
+    """,
     )
     function_a = Function(
-        function_id_a,
-        "test.Test.test",
-        [],
-        [parameter_a],
-        [result_a],
-        True,
-        [],
-        FunctionDocumentation(
+        id=function_id_a,
+        qname="test.Test.test",
+        decorators=[],
+        parameters=[parameter_a],
+        results=[result_a],
+        is_public=True,
+        reexported_by=[],
+        documentation=FunctionDocumentation(
             "This test function is a for testing",
             "This test function is a for testing",
         ),
-        code_function_a,
+        code=code_function_a,
     )
     function_id_b = class_id_b + "/test_method"
     code_b = cleandoc(
@@ -103,16 +103,16 @@ def test_similarity() -> None:
         This test function is a concept.
         \"\"\"
         return "test"
-    """
+    """,
     )
     parameter_b = Parameter(
-        function_id_b + "/test_parameter",
-        "test_parameter",
-        "test.Test.test_method.test_parameter",
-        "'test_str_b'",
-        ParameterAssignment.POSITION_OR_NAME,
-        True,
-        ParameterDocumentation("'test_str_b'", "", ""),
+        id_=function_id_b + "/test_parameter",
+        name="test_parameter",
+        qname="test.Test.test_method.test_parameter",
+        default_value="'test_str_b'",
+        assigned_by=ParameterAssignment.POSITION_OR_NAME,
+        is_public=True,
+        documentation=ParameterDocumentation("'test_str_b'", "", ""),
     )
     result_b = Result(
         "new_config",
@@ -120,18 +120,18 @@ def test_similarity() -> None:
         function_id=function_id_b,
     )
     function_b = Function(
-        function_id_b,
-        "test.Test.test_method",
-        [],
-        [parameter_b],
-        [result_b],
-        True,
-        [],
-        FunctionDocumentation(
+        id=function_id_b,
+        qname="test.Test.test_method",
+        decorators=[],
+        parameters=[parameter_b],
+        results=[result_b],
+        is_public=True,
+        reexported_by=[],
+        documentation=FunctionDocumentation(
             "This test function is a test",
             "This test function is a test",
         ),
-        code_b,
+        code=code_b,
     )
     apiv1.add_function(function_a)
     apiv2.add_function(function_b)

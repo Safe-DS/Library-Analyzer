@@ -17,45 +17,41 @@ class Expression(astroid.NodeNG, ABC):
 
 @dataclass
 class AttributeAccess(Expression):
-    """Class for class attribute access"""
+    """Class for class attribute access."""
 
     name: str
 
     # def __hash__(self) -> int:
-    #    return hash(self.name)
 
 
 @dataclass
 class GlobalAccess(Expression):
-    """Class for global variable access"""
+    """Class for global variable access."""
 
     name: str
     module: str = "None"
 
     # def __hash__(self) -> int:
-    #    return hash(self.name)
 
 
 @dataclass
 class ParameterAccess(Expression):
-    """Class for function parameter access"""
+    """Class for function parameter access."""
 
     name: str
     function: str
 
     # def __hash__(self) -> int:
-    #    return hash(self.name)
 
 
 @dataclass
 class InstanceAccess(Expression):
-    """Class for field access of an instance attribute (receiver.target)"""
+    """Class for field access of an instance attribute (receiver.target)."""
 
     receiver: Expression
     target: Expression
 
     # def __hash__(self) -> int:
-    #   return hash((self.receiver, self.target))
 
 
 @dataclass
@@ -63,7 +59,6 @@ class StringLiteral(Expression):
     value: str
 
     # def __hash__(self) -> int:
-    #    return hash(self.value)
 
 
 @dataclass
@@ -71,7 +66,6 @@ class Reference(Expression):
     name: str
 
     # def __hash__(self) -> int:
-    #     return hash(self.name)
 
 
 class ImpurityCertainty(Enum):
@@ -96,7 +90,6 @@ class ImpurityIndicator(ABC):
 @dataclass
 class ConcreteImpurityIndicator(ImpurityIndicator):
     # def __hash__(self) -> int:
-    #     return hash(self.certainty)
 
     def is_side_effect(self) -> bool:
         return False
@@ -108,7 +101,6 @@ class VariableRead(ImpurityIndicator):
     certainty = ImpurityCertainty.MAYBE_IMPURE
 
     # def __hash__(self) -> int:
-    #     return hash(self.expression)
 
     def is_side_effect(self) -> bool:
         return False
@@ -120,7 +112,6 @@ class VariableWrite(ImpurityIndicator):
     certainty = ImpurityCertainty.MAYBE_IMPURE
 
     # def __hash__(self) -> int:
-    #     return hash(self.expression)
 
     def is_side_effect(self) -> bool:
         return True
@@ -132,7 +123,6 @@ class FileRead(ImpurityIndicator):
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
     # def __hash__(self) -> int:
-    #     return hash(self.source)
 
     def is_side_effect(self) -> bool:
         return False
@@ -144,7 +134,6 @@ class FileWrite(ImpurityIndicator):
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
     # def __hash__(self) -> int:
-    #     return hash(self.source)
 
     def is_side_effect(self) -> bool:
         return True
@@ -156,7 +145,6 @@ class UnknownCallTarget(ImpurityIndicator):
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
     # def __hash__(self) -> int:
-    #     return hash(self.expression)
 
     def is_side_effect(self) -> bool:
         return True  # TODO: improve this to make analysis more precise
@@ -168,7 +156,6 @@ class Call(ImpurityIndicator):
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
     # def __hash__(self) -> int:
-    #     return hash(self.expression)
 
     def is_side_effect(self) -> bool:
         return True  # TODO: improve this to make analysis more precise
@@ -179,7 +166,6 @@ class SystemInteraction(ImpurityIndicator):
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
     # def __hash__(self) -> int:
-    #     return hash("SystemInteraction")
 
     def is_side_effect(self) -> bool:
         return True
@@ -187,14 +173,13 @@ class SystemInteraction(ImpurityIndicator):
 
 @dataclass
 class BuiltInFunction(ImpurityIndicator):
-    """Class for built-in functions"""
+    """Class for built-in functions."""
 
     expression: Expression
     indicator: ImpurityIndicator  # this should be a list to handle multiple reasons
     certainty: ImpurityCertainty
 
     # def __hash__(self) -> int:
-    #     return hash(self.indicator)
 
     def is_side_effect(self) -> bool:
         return False

@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 from library_analyzer.processing.api import get_api
 from library_analyzer.processing.dependencies import get_dependencies
@@ -12,7 +11,7 @@ def _run_api_command(
     package: str,
     src_dir_path: Path,
     out_dir_path: Path,
-    result_dict: Optional[dict] = None,
+    result_dict: dict | None = None,
 ) -> None:
     api = get_api(package, src_dir_path)
     api_dependencies = get_dependencies(api)

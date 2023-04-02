@@ -1,4 +1,5 @@
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
@@ -31,17 +32,13 @@ from library_analyzer.processing.migration.model import Mapping
 def _get_further_information(annotation: AbstractAnnotation) -> str:
     if isinstance(
         annotation,
-        (CompleteAnnotation, ExpertAnnotation, PureAnnotation, RemoveAnnotation),
+        CompleteAnnotation | ExpertAnnotation | PureAnnotation | RemoveAnnotation,
     ):
         return ""
     if isinstance(annotation, BoundaryAnnotation):
         return " with the interval '" + str(annotation.interval.to_json()) + "'"
     if isinstance(annotation, CalledAfterAnnotation):
-        return (
-            " with the method '"
-            + annotation.calledAfterName
-            + "' that should be called before"
-        )
+        return " with the method '" + annotation.calledAfterName + "' that should be called before"
     if isinstance(annotation, DescriptionAnnotation):
         return " with the new description '" + annotation.newDescription + "'"
     if isinstance(annotation, EnumAnnotation):
@@ -49,14 +46,7 @@ def _get_further_information(annotation: AbstractAnnotation) -> str:
             " with the new enum '"
             + annotation.enumName
             + " ("
-            + ", ".join(
-                map(
-                    lambda enum_pair: enum_pair.stringValue
-                    + ", "
-                    + enum_pair.instanceName,
-                    annotation.pairs,
-                )
-            )
+            + ", ".join(enum_pair.stringValue + ", " + enum_pair.instanceName for enum_pair in annotation.pairs)
             + ")'"
         )
     if isinstance(annotation, GroupAnnotation):
@@ -75,7 +65,7 @@ def _get_further_information(annotation: AbstractAnnotation) -> str:
         return " with the todo '" + annotation.newTodo + "'"
     if isinstance(annotation, ValueAnnotation):
         value = " with the variant '" + annotation.variant.value
-        if isinstance(annotation, (ConstantAnnotation, OptionalAnnotation)):
+        if isinstance(annotation, ConstantAnnotation | OptionalAnnotation):
             value += (
                 "' and the default Value '"
                 + str(annotation.defaultValue)
@@ -99,9 +89,7 @@ def get_migration_text(
         class_name = class_name[:-10]
     if issubclass(type(annotation), ValueAnnotation):
         class_name = "Value"
-    migrate_text = (
-        "The @" + class_name + " Annotation" + _get_further_information(annotation)
-    )
+    migrate_text = "The @" + class_name + " Annotation" + _get_further_information(annotation)
     migrate_text += (
         " from the previous version was at '"
         + annotation.target
@@ -109,27 +97,13 @@ def get_migration_text(
         + _list_api_elements(mapping.get_apiv2_elements())
     )
     if additional_information is not None and isinstance(additional_information, list):
-        functions = [
-            function
-            for function in additional_information
-            if isinstance(function, Function)
-        ]
+        functions = [function for function in additional_information if isinstance(function, Function)]
         if len(functions) > 0:
-            migrate_text += (
-                " and the possible replacements (" + _list_api_elements(functions) + ")"
-            )
+            migrate_text += " and the possible replacements (" + _list_api_elements(functions) + ")"
 
-        parameters = [
-            parameter
-            for parameter in additional_information
-            if isinstance(parameter, Parameter)
-        ]
+        parameters = [parameter for parameter in additional_information if isinstance(parameter, Parameter)]
         if len(parameters) > 0:
-            migrate_text += (
-                " and the possible replacements ("
-                + _list_api_elements(parameters)
-                + ")"
-            )
+            migrate_text += " and the possible replacements (" + _list_api_elements(parameters) + ")"
     migration_text = migrate_text
     if for_todo_annotation:
         return migration_text
@@ -141,11 +115,4 @@ def get_migration_text(
 def _list_api_elements(
     api_elements: Sequence[Attribute | Class | Function | Parameter | Result],
 ) -> str:
-    return ", ".join(
-        map(
-            lambda api_element: api_element.id
-            if hasattr(api_element, "id")
-            else api_element.name,
-            api_elements,
-        )
-    )
+    return ", ".join(api_element.id if hasattr(api_element, "id") else api_element.name for api_element in api_elements)

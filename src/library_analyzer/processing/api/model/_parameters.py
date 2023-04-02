@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from ._documentation import ParameterDocumentation
 from ._types import AbstractType, create_type
@@ -30,7 +30,7 @@ class Parameter:
                 self.assigned_by,
                 self.is_public,
                 self.documentation,
-            )
+            ),
         )
 
     def __eq__(self, other: object) -> bool:
@@ -51,7 +51,7 @@ class Parameter:
         id_: str,
         name: str,
         qname: str,
-        default_value: Optional[str],
+        default_value: str | None,
         assigned_by: ParameterAssignment,
         is_public: bool,
         documentation: ParameterDocumentation,
@@ -59,11 +59,11 @@ class Parameter:
         self.id: str = id_
         self.name: str = name
         self.qname: str = qname
-        self.default_value: Optional[str] = default_value
+        self.default_value: str | None = default_value
         self.assigned_by: ParameterAssignment = assigned_by
         self.is_public: bool = is_public
         self.documentation = documentation
-        self.type: Optional[AbstractType] = create_type(documentation)
+        self.type: AbstractType | None = create_type(documentation)
 
     def is_optional(self) -> bool:
         return self.default_value is not None

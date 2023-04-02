@@ -1,8 +1,9 @@
-from typing import Any, Optional
+from typing import Any
 
 import astroid
 from astroid.context import InferenceContext
 from astroid.nodes import Name, Subscript
+
 from library_analyzer.processing.api.model import Attribute, NamedType, UnionType
 
 
@@ -24,12 +25,8 @@ def get_instance_attributes(class_node: astroid.ClassDef) -> list[Attribute]:
             except astroid.InferenceError:
                 pass
 
-            if isinstance(assignment, astroid.AssignAttr) and isinstance(
-                assignment.parent, astroid.Assign
-            ):
-                attribute_type = _get_type_of_attribute(
-                    next(astroid.inference.infer_attribute(self=assignment))
-                )
+            if isinstance(assignment, astroid.AssignAttr) and isinstance(assignment.parent, astroid.Assign):
+                attribute_type = _get_type_of_attribute(next(astroid.inference.infer_attribute(self=assignment)))
                 if attribute_type is not None:
                     types.add(attribute_type)
                 elif (
@@ -44,7 +41,7 @@ def get_instance_attributes(class_node: astroid.ClassDef) -> list[Attribute]:
                         if (
                             isinstance(
                                 init_function.args.args[i],
-                                (astroid.nodes.node_classes.AssignName, Name),
+                                astroid.nodes.node_classes.AssignName | Name,
                             )
                             and init_function.args.args[i].name == parameter_name
                         ):
@@ -84,15 +81,13 @@ def get_instance_attributes(class_node: astroid.ClassDef) -> list[Attribute]:
         if len(types) == 1:
             attributes.append(Attribute(name, NamedType(types.pop())))
         elif len(types) > 1:
-            attributes.append(
-                Attribute(name, UnionType([NamedType(type_) for type_ in types]))
-            )
+            attributes.append(Attribute(name, UnionType([NamedType(type_) for type_ in types])))
         else:
             attributes.append(Attribute(name, None))
     return attributes
 
 
-def _get_type_of_attribute(infered_value: Any) -> Optional[str]:
+def _get_type_of_attribute(infered_value: Any) -> str | None:
     if infered_value == astroid.Uninferable:
         return None
     if isinstance(infered_value, astroid.Const) and infered_value.value is None:
@@ -105,7 +100,7 @@ def _get_type_of_attribute(infered_value: Any) -> Optional[str]:
         return "type"
     if isinstance(infered_value, astroid.Tuple):
         return "tuple"
-    if isinstance(infered_value, (astroid.FunctionDef, astroid.Lambda)):
+    if isinstance(infered_value, astroid.FunctionDef | astroid.Lambda):
         return "Callable"
     if isinstance(infered_value, astroid.Const):
         return infered_value.value.__class__.__name__
