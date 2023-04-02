@@ -43,72 +43,72 @@ class AnnotationStore:
         if json["schemaVersion"] == 1:
             raise Exception("Incompatible Annotation File: This file is not compatible with the current version.")
 
-        boundaryAnnotations = []
+        boundary_annotations = []
         for annotation in json["boundaryAnnotations"].values():
-            boundaryAnnotations.append(BoundaryAnnotation.from_json(annotation))
+            boundary_annotations.append(BoundaryAnnotation.from_json(annotation))
 
-        calledAfterAnnotations = []
+        called_after_annotations = []
         for annotation in json["calledAfterAnnotations"].values():
-            calledAfterAnnotations.append(CalledAfterAnnotation.from_json(annotation))
+            called_after_annotations.append(CalledAfterAnnotation.from_json(annotation))
 
-        completeAnnotations = []
+        complete_annotations = []
         for annotation in json["completeAnnotations"].values():
-            completeAnnotations.append(CompleteAnnotation.from_json(annotation))
+            complete_annotations.append(CompleteAnnotation.from_json(annotation))
 
-        descriptionAnnotations = []
+        description_annotations = []
         for annotation in json["descriptionAnnotations"].values():
-            descriptionAnnotations.append(DescriptionAnnotation.from_json(annotation))
+            description_annotations.append(DescriptionAnnotation.from_json(annotation))
 
-        enumAnnotations = []
+        enum_annotations = []
         for annotation in json["enumAnnotations"].values():
-            enumAnnotations.append(EnumAnnotation.from_json(annotation))
+            enum_annotations.append(EnumAnnotation.from_json(annotation))
 
-        expertAnnotations = []
+        expert_annotations = []
         for annotation in json["expertAnnotations"].values():
-            expertAnnotations.append(ExpertAnnotation.from_json(annotation))
+            expert_annotations.append(ExpertAnnotation.from_json(annotation))
 
-        groupAnnotations = []
+        group_annotations = []
         for annotation in json["groupAnnotations"].values():
-            groupAnnotations.append(GroupAnnotation.from_json(annotation))
+            group_annotations.append(GroupAnnotation.from_json(annotation))
 
-        moveAnnotations = []
+        move_annotations = []
         for annotation in json["moveAnnotations"].values():
-            moveAnnotations.append(MoveAnnotation.from_json(annotation))
+            move_annotations.append(MoveAnnotation.from_json(annotation))
 
-        pureAnnotations = []
+        pure_annotations = []
         for annotation in json["pureAnnotations"].values():
-            pureAnnotations.append(PureAnnotation.from_json(annotation))
+            pure_annotations.append(PureAnnotation.from_json(annotation))
 
-        removeAnnotations = []
+        remove_annotations = []
         for annotation in json["removeAnnotations"].values():
-            removeAnnotations.append(RemoveAnnotation.from_json(annotation))
+            remove_annotations.append(RemoveAnnotation.from_json(annotation))
 
-        renameAnnotations = []
+        rename_annotations = []
         for annotation in json["renameAnnotations"].values():
-            renameAnnotations.append(RenameAnnotation.from_json(annotation))
+            rename_annotations.append(RenameAnnotation.from_json(annotation))
 
-        todoAnnotations = []
+        todo_annotations = []
         for annotation in json["todoAnnotations"].values():
-            todoAnnotations.append(TodoAnnotation.from_json(annotation))
+            todo_annotations.append(TodoAnnotation.from_json(annotation))
 
-        valueAnnotations = []
+        value_annotations = []
         for annotation in json["valueAnnotations"].values():
-            valueAnnotations.append(ValueAnnotation.from_json(annotation))
+            value_annotations.append(ValueAnnotation.from_json(annotation))
 
         return AnnotationStore(
-            boundaryAnnotations,
-            calledAfterAnnotations,
-            completeAnnotations,
-            descriptionAnnotations,
-            enumAnnotations,
-            expertAnnotations,
-            groupAnnotations,
-            moveAnnotations,
-            pureAnnotations,
-            removeAnnotations,
-            renameAnnotations,
-            todoAnnotations,
-            valueAnnotations,
+            boundary_annotations,
+            called_after_annotations,
+            complete_annotations,
+            description_annotations,
+            enum_annotations,
+            expert_annotations,
+            group_annotations,
+            move_annotations,
+            pure_annotations,
+            remove_annotations,
+            rename_annotations,
+            todo_annotations,
+            value_annotations,
         )
 
     def add_annotation(self, annotation: AbstractAnnotation) -> None:

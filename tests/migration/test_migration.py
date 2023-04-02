@@ -337,16 +337,16 @@ def test_handle_duplicates() -> None:
         ),
     )
     migrated_annotation_store = migration.migrated_annotation_store.to_json()
-    todoAnnotations = migrated_annotation_store.pop("todoAnnotations")
+    todo_annotations = migrated_annotation_store.pop("todoAnnotations")
     migrated_annotation_store["todoAnnotations"] = {}
     assert (
         migrated_annotation_store == migration.unsure_migrated_annotation_store.to_json() == AnnotationStore().to_json()
     )
-    assert len(todoAnnotations) == 1
+    assert len(todo_annotations) == 1
     todo_values = ["darkage", "lightbringer", "todo"]
-    assert todoAnnotations[classv2.id]["newTodo"] in todo_values
-    todo_values.remove(todoAnnotations[classv2.id].pop("newTodo"))
-    assert todoAnnotations[classv2.id] == {
+    assert todo_annotations[classv2.id]["newTodo"] in todo_values
+    todo_values.remove(todo_annotations[classv2.id].pop("newTodo"))
+    assert todo_annotations[classv2.id] == {
         "authors": ["", "migration"],
         "comment": "Conflicting Attribute during migration: {'newTodo': '"
         + todo_values[0]

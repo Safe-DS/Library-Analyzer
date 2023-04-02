@@ -670,20 +670,20 @@ def visit_ast(ast):
             elif ast.func.name == "input":
                 create_input_read_prop(enclosing, "console")
                 if len(ast.args) > 0:
-                    argsJoined = ""
+                    args_joined = ""
                     for i in range(len(ast.args)):
-                        argsJoined += " " + ast.args[i].value
-                    argsJoined = argsJoined.strip()
-                    create_output_write_prop(enclosing, "console", argsJoined)
+                        args_joined += " " + ast.args[i].value
+                    args_joined = args_joined.strip()
+                    create_output_write_prop(enclosing, "console", args_joined)
             elif ast.func.name == "open":
                 if ast.args[1].value == "r":
                     create_input_read_prop(enclosing, str(ast.args[0].value))
                 if ast.args[1].value in "axw":
-                    argsJoined = ""
+                    args_joined = ""
                     for i in range(1, len(ast.args)):
-                        argsJoined += " " + ast.args[i].value
-                    argsJoined = argsJoined.strip()
-                    create_output_write_prop(enclosing, str(ast.args[0].value), argsJoined)
+                        args_joined += " " + ast.args[i].value
+                    args_joined = args_joined.strip()
+                    create_output_write_prop(enclosing, str(ast.args[0].value), args_joined)
             elif enclosing is not None and ast.func not in list_of_traversed_functions:
                 list_of_traversed_functions.append(ast.func)
                 create_call_prop(enclosing, ast.func.name)
