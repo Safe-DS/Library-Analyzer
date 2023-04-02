@@ -11,4 +11,4 @@ def send_message_to_person(person: Person, message: str) -> None:
     person : Person
     message : str
     """
-    print("To: " + person.get_name() + "\n" + person.address + "\n" + message)
+    print("To: " + person.get_name() + "\n" + person.address + "\n" + message)  # noqa: T201

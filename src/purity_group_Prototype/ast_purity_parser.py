@@ -547,35 +547,39 @@ def serialize_lists():
 def print_lists():
     """Print all lists."""
     for e in call_prop_list:
-        print(
+        print(  # noqa: T201
             f'\033[93mFunction "{e.get("function")}" references other function "{e.get("callee")}", inheriting all its properties\033[0m',
         )
 
     for e in state_read_prop_list:
-        print(
-            f'\033[92mUnpure function "{e.get("function")}" due to state read: uses "{e.get("attribute")}" of "{e.get("object")}"\033[0m',
+        print(  # noqa: T201
+            f'\033[92mImpure function "{e.get("function")}" due to state read: uses "{e.get("attribute")}" of "{e.get("object")}"\033[0m',
         )
 
     for e in state_write_prop_list:
-        print(
+        print(  # noqa: T201
             f'\033[92mFunction "{e.get("function")}" has state side effect: writes to "{e.get("attribute")}" of "{e.get("object")}"\033[0m',
         )
 
     for e in input_read_prop_list:
-        print(f'\033[96mUnpure function "{e.get("function")}" due to read from "{e.get("target")}"\033[0m')
+        print(  # noqa: T201
+            f'\033[96mImpure function "{e.get("function")}" due to read from "{e.get("target")}"\033[0m',
+        )
 
     for e in output_write_prop_list:
-        print(
+        print(  # noqa: T201
             f'\033[96mFunction "{e.get("function")}" has output side effect: prints "{e.get("text")}" to {e.get("target")}\033[0m',
         )
 
     for e in error_prop_list:
-        print(
+        print(  # noqa: T201
             f'\033[95mFunction "{e.get("function")}" may terminate abnormally: raises "{e.get("error")}" under condition "{e.get("condition")}" and prints "{e.get("message")}" to console\033[0m',
         )
 
     for e in random_prop_list:
-        print(f'\033[94mUnpure function "{e.get("function")}" due to randomness read: uses "{e.get("source")}"\033[0m')
+        print(  # noqa: T201
+            f'\033[94mImpure function "{e.get("function")}" due to randomness read: uses "{e.get("source")}"\033[0m',
+        )
 
 
 def visit_ast(ast):
@@ -685,7 +689,7 @@ def visit_ast(ast):
                 create_call_prop(enclosing, ast.func.name)
                 # TODO: also check if function in parameter place or inner function can be a problem (they are not necessary executed)!!
             else:
-                print("\033[93mUnknown!!\033[0m")
+                print("\033[93mUnknown!!\033[0m")  # noqa: T201
         elif isinstance(ast.func, Astroid.Attribute) and ast.func.attrname == "warn":
             string = ast.args[0] if len(ast.args) > 0 else ""
             create_output_write_prop(

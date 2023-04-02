@@ -8,5 +8,5 @@ def main() -> None:
 
     cli()
 
-    print("\n============================================================")
-    print(f"Program ran in {time.time() - start_time}s")
+    print("\n============================================================")  # noqa: T201
+    print(f"Program ran in {time.time() - start_time}s")  # noqa: T201
