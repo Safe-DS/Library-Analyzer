@@ -31,7 +31,10 @@ def get_api(package_name: str, root: Path | None = None) -> API:
 
     for file in files:
         posix_path = Path(file).as_posix()
-        logging.info(f"Working on file {posix_path}")
+        logging.info(
+            "Working on file {posix_path}",
+            extra={"posix_path": posix_path},
+        )
 
         if _is_test_file(posix_path):
             logging.info("Skipping test file")

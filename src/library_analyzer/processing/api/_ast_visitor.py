@@ -98,7 +98,13 @@ class _AstVisitor:
                         node = safe_infer(global_node, context)
 
                         if node is None:
-                            logging.warning(f"Could not resolve 'from {global_node.modname} import {declaration}")
+                            logging.warning(
+                                "Could not resolve 'from {modname} import {declaration}",
+                                extra={
+                                    "modname": global_node.modname,
+                                    "declaration": declaration,
+                                },
+                            )
                             continue
 
                         reexported_name = node.qname()

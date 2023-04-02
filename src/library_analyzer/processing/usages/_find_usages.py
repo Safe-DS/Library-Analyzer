@@ -20,7 +20,7 @@ def find_usages(package_name: str, src_dir: Path, n_processes: int, batch_size: 
     aggregated_counts = UsageCountStore()
 
     for batch_index in range(0, len(python_file_batches), n_processes):
-        python_file_batches_slice = python_file_batches[batch_index : batch_index + n_processes]
+        python_file_batches_slice = python_file_batches[batch_index: batch_index + n_processes]
         n_process_to_spawn = min(n_processes, len(python_file_batches_slice))
 
         with Pool(
@@ -82,7 +82,10 @@ def _find_usages_in_single_file(
     ast_builder: AstroidBuilder,
     ast_walker: ASTWalker,
 ) -> None:
-    logging.info(f"Working on {python_file}")
+    logging.info(
+        "Working on {python_file}",
+        extra={"python_file": python_file},
+    )
 
     # noinspection PyBroadException
     try:
@@ -93,16 +96,31 @@ def _find_usages_in_single_file(
             module = parse_python_code(source, ast_builder=ast_builder)
             ast_walker.walk(module)
         else:
-            logging.info(f"Skipping {python_file} (irrelevant file)")
+            logging.info(
+                "Skipping {python_file} (irrelevant file)",
+                extra={"python_file": python_file},
+            )
 
     except UnicodeError:
-        logging.warning(f"Skipping {python_file} (broken encoding)")
+        logging.warning(
+            "Skipping {python_file} (broken encoding)",
+            extra={"python_file": python_file},
+        )
     except astroid.exceptions.AstroidSyntaxError:
-        logging.warning(f"Skipping {python_file} (invalid syntax)")
+        logging.warning(
+            "Skipping {python_file} (invalid syntax)",
+            extra={"python_file": python_file},
+        )
     except RecursionError:
-        logging.warning(f"Skipping {python_file} (infinite recursion)")
-    except Exception as e:
-        logging.error(f"Skipping {python_file} (unknown error: {e})")
+        logging.warning(
+            "Skipping {python_file} (infinite recursion)",
+            extra={"python_file": python_file},
+        )
+    except Exception as err:
+        logging.error(
+            "Skipping {python_file} (unknown error: {err})",
+            extra={"python_file": python_file, "err": err},
+        )
 
 
 def __is_relevant_python_file(package_name: str, source_code: str) -> bool:
