@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 import astroid
@@ -532,19 +531,6 @@ def create_random_prop(fnc: str | None, source: str) -> None:
     random_prop_list.append(new_prop)
 
 
-def serialize_lists() -> None:
-    """Serialize all lists."""
-    file = open("parsed_data.json", "w")
-    file.write(json.dumps(call_prop_list))
-    file.write(json.dumps(state_read_prop_list))
-    file.write(json.dumps(state_write_prop_list))
-    file.write(json.dumps(input_read_prop_list))
-    file.write(json.dumps(output_write_prop_list))
-    file.write(json.dumps(error_prop_list))
-    file.write(json.dumps(random_prop_list))
-    file.close()
-
-
 def print_lists() -> None:
     """Print all lists."""
     for e in call_prop_list:
@@ -753,7 +739,7 @@ def visit_ast(ast: astroid.NodeNG) -> None:
 
     if isinstance(ast, astroid.Attribute):
         # handle attribute read
-        if isinstance(ast.expr, astroid.Name):
+        if isinstance(ast.expr, astroid.Name):  # noqa: SIM114
             pass
         elif isinstance(ast.expr, astroid.Call):
             pass

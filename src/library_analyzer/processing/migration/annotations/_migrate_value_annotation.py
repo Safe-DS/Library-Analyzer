@@ -1,3 +1,4 @@
+import contextlib
 from copy import deepcopy
 
 from library_analyzer.processing.annotations.model import (
@@ -290,10 +291,8 @@ def migrate_optional_annotation(
         )
     have_implicit_same_value = False
     if parameterv1.default_value is not None and parameterv2.default_value is not None:
-        try:
+        with contextlib.suppress(ValueError):
             have_implicit_same_value = float(parameterv1.default_value) == float(parameterv2.default_value)
-        except ValueError:
-            pass
     if (
         _have_same_type(parameterv1.type, parameterv2.type)
         or ((parameterv1.default_value is None) is not (parameterv2.default_value is None))
