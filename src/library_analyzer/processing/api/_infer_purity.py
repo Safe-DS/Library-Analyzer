@@ -58,7 +58,7 @@ class FunctionID:
         return f"{self.module}.{self.name}.{self.line}.{self.col}"
 
 
-class PurityResult(ABC):
+class PurityResult(ABC):  # noqa: B024
     def __init__(self) -> None:
         self.reasons: list[ImpurityIndicator] = []
 
