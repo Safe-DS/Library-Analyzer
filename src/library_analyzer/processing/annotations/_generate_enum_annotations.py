@@ -14,7 +14,8 @@ from ._constants import autogen_author
 
 def _generate_enum_annotations(api: API, annotations: AnnotationStore) -> None:
     """
-    Returns all parameters that are never used.
+    Return all parameters that are never used.
+
     :param api: API object for usages
     :param annotations: AnnotationStore object.
     """

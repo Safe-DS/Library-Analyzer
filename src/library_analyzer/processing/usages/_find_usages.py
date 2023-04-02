@@ -43,7 +43,7 @@ T = TypeVar("T")
 
 
 def _split_into_batches(list_: list[T], batch_size: int) -> list[list[T]]:
-    """Splits a list into batches of size batch_size."""
+    """Split a list into batches of size `batch_size`."""
     batches = []
     batch = []
 

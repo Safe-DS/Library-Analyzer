@@ -10,8 +10,9 @@ def _preprocess_usages(usages: UsageCountStore, api: API) -> None:
 
 def _add_unused_api_elements(usages: UsageCountStore, api: API) -> None:
     """
-    Adds unused API elements to the UsageStore. When a class, function or parameter is not used, it is not content of
-    the UsageStore, so we need to add it.
+    Add unused API elements to the UsageStore.
+
+    When a class, function or parameter is not used, it is not content of the UsageStore, so we need to add it.
 
     :param usages: Usage store
     :param api: Description of the API
@@ -29,11 +30,17 @@ def _add_unused_api_elements(usages: UsageCountStore, api: API) -> None:
 
 def _add_implicit_usages_of_default_value(usages: UsageCountStore, api: API) -> None:
     """
-    Adds the implicit usages of a parameters default value. When a function is called and a parameter is used with its
-    default value, that usage of a value is not part of the UsageStore, so  we need to add it.
+    Add the implicit usages of a parameters default value.
 
-    :param usages: Usage store
-    :param api: Description of the API
+    When a function is called and a parameter is used with its default value, that usage of a value is not part of the
+    UsageStore, so  we need to add it.
+
+    Parameters
+    ----------
+    usages : UsageCountStore
+        Usage store
+    api : API
+        Description of the API
     """
     for parameter_id, parameter_usage_count in list(usages.parameter_usages.items()):
         default_value = api.get_default_value(parameter_id)

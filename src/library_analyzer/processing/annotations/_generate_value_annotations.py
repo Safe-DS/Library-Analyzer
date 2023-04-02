@@ -51,7 +51,8 @@ def _generate_constant_annotation(
                 target=parameter.id,
                 authors=[autogen_author],
                 reviewers=[],
-                comment=f"I omitted this parameter because it is always set to the original default value ({parameter.default_value}).",
+                comment="I omitted this parameter because it is always set to the original default value "
+                        f"({parameter.default_value}).",
                 reviewResult=EnumReviewResult.NONE,
             ),
         )
@@ -64,7 +65,8 @@ def _generate_constant_annotation(
                 target=parameter.id,
                 authors=[autogen_author],
                 reviewers=[],
-                comment=f"I replaced this parameter with a constant because it is always set to the same literal value ({sole_stringified_value}).",
+                comment="I replaced this parameter with a constant because it is always set to the same literal value "
+                        f"({sole_stringified_value}).",
                 reviewResult=EnumReviewResult.NONE,
                 defaultValueType=default_value_type,
                 defaultValue=default_value,
@@ -76,7 +78,8 @@ def _generate_constant_annotation(
                 target=parameter.id,
                 authors=[autogen_author],
                 reviewers=[],
-                comment=f"I made this parameter required because, even though it is always set to the same value ({sole_stringified_value}), that value is not a literal.",
+                comment="I made this parameter required because, even though it is always set to the same value "
+                        f"({sole_stringified_value}), that value is not a literal.",
                 reviewResult=EnumReviewResult.NONE,
             ),
         )
@@ -96,7 +99,8 @@ def _generate_required_or_optional_annotation(
                 target=parameter.id,
                 authors=[autogen_author],
                 reviewers=[],
-                comment=f"I made this parameter required because the most common value ({most_common_values[0]}) is not a literal.",
+                comment=f"I made this parameter required because the most common value ({most_common_values[0]}) is "
+                        "not a literal.",
                 reviewResult=EnumReviewResult.NONE,
             ),
         )
@@ -149,17 +153,32 @@ def _should_be_required(
     second_most_common_value_count: int,
 ) -> tuple[bool, str]:
     """
-    This function determines how to differentiate between an optional and a required parameter
-    :param most_common_value_count: How often the most common value is used
-    :param second_most_common_value_count: How often the second most common value is used
-    :return: True means the parameter should be required, False means it should be optional. The second result is an
-    explanation.
+    Determine whether the parameter should be required or optional.
+
+    Parameters
+    ----------
+    most_common_value: int
+        The most common value
+    most_common_value_count: int
+        How often the most common value is used
+    second_most_common_value: int
+        The second most common value
+    second_most_common_value_count: int
+        How often the second most common value is used
+
+    Returns
+    -------
+    should_be_required: bool
+        True means the parameter should be required, False means it should be optional.
+    explanation: str
+        An explanation why the parameter should be required or optional.
     """
     # Shortcut to speed up the check
     if most_common_value_count == second_most_common_value_count:
         return (
             True,
-            f"I made this parameter required because there is no single most common value ({most_common_value} and {second_most_common_value} are both used {pluralize(most_common_value_count, 'time')}).",
+            f"I made this parameter required because there is no single most common value ({most_common_value} and "
+            f"{second_most_common_value} are both used {pluralize(most_common_value_count, 'time')}).",
         )
 
     # Precaution to ensure proper order of most_common_value_count and second_most_common_value_count
@@ -181,11 +200,13 @@ def _should_be_required(
     if p_value <= significance_level:
         return (
             False,
-            f"I made this parameter optional because there is a statistically significant most common value (p-value {p_value:.2%} <= significance level {significance_level:.0%}).",
+            "I made this parameter optional because there is a statistically significant most common value (p-value "
+            f"{p_value:.2%} <= significance level {significance_level:.0%}).",
         )
     return (
         True,
-        f"I made this parameter required because there is no statistically significant most common value (p-value ({p_value:.2%}) > significance level ({significance_level:.0%}).",
+        "I made this parameter required because there is no statistically significant most common value (p-value "
+        f"({p_value:.2%}) > significance level ({significance_level:.0%}).",
     )
 
 

@@ -58,11 +58,20 @@ class InheritanceDiffer(AbstractDiffer):
 
     def compute_attribute_similarity(self, attributev1: Attribute, attributev2: Attribute) -> float:
         """
-        Computes similarity between attributes from apiv1 and apiv2.
-        :param attributev1: attribute from apiv1
-        :param attributev2: attribute from apiv2
-        :return: if the parent of the attributes are mapped onto each other
-         or onto a super- or subclass, the normalized similarity of the previous differ plus boost_value, or else 0.
+        Compute the similarity between attributes from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        attributev1 : Attribute
+            attribute from apiv1
+        attributev2 : Attribute
+            attribute from apiv2
+
+        Returns
+        -------
+        similarity : float
+            if the parent of the attributes are mapped onto each other or onto a super- or subclass, the normalized
+            similarity of the previous differ plus boost_value, or else 0.
         """
         if attributev2.class_id in self.inheritance and attributev1.class_id in self.inheritance[attributev2.class_id]:
             return (
@@ -72,11 +81,20 @@ class InheritanceDiffer(AbstractDiffer):
 
     def compute_class_similarity(self, classv1: Class, classv2: Class) -> float:
         """
-        Computes similarity between classes from apiv1 and apiv2
-        :param classv1: class from apiv1
-        :param classv2: class from apiv2
-        :return: if the classes are mapped onto each other or onto a super- or subclass,
-        the normalized similarity of the previous differ plus boost_value, or else 0.
+        Compute the similarity between classes from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        classv1 : Class
+            class from apiv1
+        classv2 : Class
+            class from apiv2
+
+        Returns
+        -------
+        similarity : float
+            if the classes are mapped onto each other or onto a super- or subclass, the normalized similarity of the
+            previous differ plus boost_value, or else 0.
         """
         if classv2.id in self.inheritance:
             for mapping in self.previous_mappings:
@@ -89,11 +107,20 @@ class InheritanceDiffer(AbstractDiffer):
 
     def compute_function_similarity(self, functionv1: Function, functionv2: Function) -> float:
         """
-        Computes similarity between functions from apiv1 and apiv2.
-        :param functionv1: function from apiv1
-        :param functionv2: function from apiv2
-        :return: if functions are not global functions and its parent are mapped onto each other
-         or onto a super- or subclass, the normalized similarity of the previous differ plus boost_value, or else 0.
+        Compute the similarity between functions from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        functionv1 : Function
+            function from apiv1
+        functionv2 : Function
+            function from apiv2
+
+        Returns
+        -------
+        similarity : float
+            if functions are not global functions and its parent are mapped onto each other or onto a super- or
+            subclass, the normalized similarity of the previous differ plus boost_value, or else 0.
         """
         functionv1_is_global = len(functionv1.id.split("/")) == 3
         functionv2_is_global = len(functionv2.id.split("/")) == 3
@@ -108,11 +135,20 @@ class InheritanceDiffer(AbstractDiffer):
 
     def compute_parameter_similarity(self, parameterv1: Parameter, parameterv2: Parameter) -> float:
         """
-        Computes similarity between parameters from apiv1 and apiv2.
-        :param parameterv1: parameter from apiv1
-        :param parameterv2: parameter from apiv2
-        :return: if their parents are mapped together, the normalized similarity of the previous differ plus boost_value,
-        or else 0.
+        Compute similarity between parameters from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        parameterv1 : Parameter
+            parameter from apiv1
+        parameterv2 : Parameter
+            parameter from apiv2
+
+        Returns
+        -------
+        similarity : float
+            if their parents are mapped together, the normalized similarity of the previous differ plus boost_value,
+            or else 0.
         """
         parameterv2_id_splitted = parameterv2.id.split("/")
         if "/".join(parameterv2_id_splitted[:-2]) in self.inheritance:
@@ -133,11 +169,20 @@ class InheritanceDiffer(AbstractDiffer):
 
     def compute_result_similarity(self, resultv1: Result, resultv2: Result) -> float:
         """
-        Computes similarity between results from apiv1 and apiv2
-        :param resultv1: result from apiv1
-        :param resultv2: result from apiv2
-        :return: if their parents are mapped together,
-        the normalized similarity of the previous differ plus boost_value, or else 0.
+        Compute similarity between results from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        resultv1 : Result
+            result from apiv1
+        resultv2 : Result
+            result from apiv2
+
+        Returns
+        -------
+        similarity : float
+            if their parents are mapped together, the normalized similarity of the previous differ plus boost_value,
+            or else 0.
         """
         if resultv2.function_id is not None and "/".join(resultv2.function_id.split("/")[:-1]) in self.inheritance:
             for mapping in self.new_mappings:
@@ -152,14 +197,35 @@ class InheritanceDiffer(AbstractDiffer):
 
     def get_related_mappings(self) -> list[Mapping] | None:
         """
-        Indicates whether all api elements should be compared with each other
-        or just the ones that are mapped to each other.
-        :return: a list of Mappings by type whose elements are not already mapped.
+        Whether all api elements should be compared to each other or just the ones that are mapped to each other.
+
+        Returns
+        -------
+        mappings : list[Mapping] | None
+            a list of Mappings if only previously mapped api elements should be mapped to each other or else None.
         """
         return self.related_mappings
 
     def notify_new_mapping(self, mappings: list[Mapping]) -> None:
+        """
+        If previous mappings return None, the differ will be notified about a new mapping.
+
+        Thereby the differ can calculate the similarity with more information.
+
+        Parameters
+        ----------
+        mappings : list[Mapping]
+            a list of mappings new appended mappings.
+        """
         self.new_mappings.extend(mappings)
 
     def get_additional_mappings(self) -> list[Mapping]:
+        """
+        Allow the differ to add further mappings from previous differs.
+
+        Returns
+        -------
+        mappings : list[Mapping]
+            additional mappings that should be included in the result of the differentiation.
+        """
         return self.previous_mappings

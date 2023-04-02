@@ -17,11 +17,12 @@ from library_analyzer.processing.api.model import (
     Function,
     FunctionDocumentation,
 )
-from library_analyzer.processing.migration import APIMapping, Migration
+from library_analyzer.processing.migration import Migration
 from library_analyzer.processing.migration.annotations._migrate_move_annotation import (
     _was_moved,
 )
 from library_analyzer.processing.migration.model import (
+    APIMapping,
     ManyToOneMapping,
     Mapping,
     SimpleDiffer,

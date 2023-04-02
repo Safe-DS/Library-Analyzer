@@ -59,25 +59,125 @@ class UnchangedDiffer(AbstractDiffer):
         return api_elementv1 == api_elementv2
 
     def compute_attribute_similarity(self, attributev1: Attribute, attributev2: Attribute) -> float:
+        """
+        Compute the similarity between attributes from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        attributev1 : Attribute
+            attribute from apiv1
+        attributev2 : Attribute
+            attribute from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
+        """
         return 0.0
 
     def compute_class_similarity(self, classv1: Class, classv2: Class) -> float:
+        """
+        Compute the similarity between classes from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        classv1 : Class
+            class from apiv1
+        classv2 : Class
+            class from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
+        """
         return 0.0
 
     def compute_function_similarity(self, functionv1: Function, functionv2: Function) -> float:
+        """
+        Compute the similarity between functions from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        functionv1 : Function
+            function from apiv1
+        functionv2 : Function
+            function from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
+        """
         return 0.0
 
     def compute_parameter_similarity(self, parameterv1: Parameter, parameterv2: Parameter) -> float:
+        """
+        Compute similarity between parameters from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        parameterv1 : Parameter
+            parameter from apiv1
+        parameterv2 : Parameter
+            parameter from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
+        """
         return 0.0
 
     def compute_result_similarity(self, resultv1: Result, resultv2: Result) -> float:
+        """
+        Compute similarity between results from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        resultv1 : Result
+            result from apiv1
+        resultv2 : Result
+            result from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
+        """
         return 0.0
 
     def get_related_mappings(self) -> list[Mapping] | None:
+        """
+        Whether all api elements should be compared to each other or just the ones that are mapped to each other.
+
+        Returns
+        -------
+        mappings : list[Mapping] | None
+            a list of Mappings if only previously mapped api elements should be mapped to each other or else None.
+        """
         return []
 
     def notify_new_mapping(self, mappings: list[Mapping]) -> None:
-        pass
+        """
+        If previous mappings return None, the differ will be notified about a new mapping.
+
+        Thereby the differ can calculate the similarity with more information.
+
+        Parameters
+        ----------
+        mappings : list[Mapping]
+            a list of mappings new appended mappings.
+        """
 
     def get_additional_mappings(self) -> list[Mapping]:
+        """
+        Allow the differ to add further mappings from previous differs.
+
+        Returns
+        -------
+        mappings : list[Mapping]
+            additional mappings that should be included in the result of the differentiation.
+        """
         return self.unchanged_api_mappings

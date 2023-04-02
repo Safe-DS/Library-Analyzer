@@ -79,12 +79,12 @@ class NumpyDocParser(AbstractDocumentationParser):
         self, function_node: astroid.FunctionDef, docstring: str,
     ) -> NumpyDocString:
         """
-        Returns the NumpyDocString for the given function node. It is only recomputed when the function node differs
-        from the previous one that was passed to this function. This avoids reparsing the docstring for the function
-        itself and all of its parameters.
+        Return the NumpyDocString for the given function node.
 
-        On Lars's system this caused a significant performance improvement: Previously, 8.382s were spent inside the
-        function get_parameter_documentation when parsing sklearn. Afterwards, it was only 2.113s.
+        It is only recomputed when the function node differs from the previous one that was passed to this function.
+        This avoids reparsing the docstring for the function itself and all of its parameters. On Lars's system this
+        caused a significant performance improvement: Previously, 8.382s were spent inside the function
+        `get_parameter_documentation` when parsing sklearn. Afterwards, it was only 2.113s.
         """
         if self.__cached_function_node is not function_node:
             self.__cached_function_node = function_node
@@ -95,8 +95,9 @@ class NumpyDocParser(AbstractDocumentationParser):
 
 def _get_description(numpydoc_string: NumpyDocString) -> str:
     """
-    Returns the concatenated summary and extended summary parts of the given docstring or an empty string if these parts
-    are blank.
+    Return the concatenated summary and extended summary parts of the given docstring.
+
+    If these parts are blank, an empty string is returned.
     """
     summary: list[str] = numpydoc_string.get("Summary", [])
     extended_summary: list[str] = numpydoc_string.get("Extended Summary", [])
@@ -113,7 +114,7 @@ def _is_matching_parameter_numpydoc(
     parameter_name: str,
     parameter_assigned_by: ParameterAssignment,
 ) -> bool:
-    """Returns whether the given NumpyDoc applied to the parameter with the given name."""
+    """Return whether the given NumpyDoc applied to the parameter with the given name."""
     if parameter_assigned_by == ParameterAssignment.POSITIONAL_VARARG:
         lookup_name = f"*{parameter_name}"
     elif parameter_assigned_by == ParameterAssignment.NAMED_VARARG:
@@ -129,7 +130,7 @@ def _is_matching_parameter_numpydoc(
 def _get_type_and_default_value(
     parameter_numpydoc: numpydoc.docscrape.Parameter,
 ) -> tuple[str, str]:
-    """Returns the type and default value for the given NumpyDoc."""
+    """Return the type and default value for the given NumpyDoc."""
     type_ = parameter_numpydoc.type
     parts = re.split(r",\s*optional|,\s*default\s*[:=]?", type_)
 

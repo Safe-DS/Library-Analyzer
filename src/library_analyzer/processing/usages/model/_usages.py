@@ -12,11 +12,11 @@ StringifiedValue = str
 
 
 class UsageCountStore:
-    """Counts how often classes, functions, parameters, and parameter values are used."""
+    """Count how often classes, functions, parameters, and parameter values are used."""
 
     @staticmethod
     def from_json(json: Any) -> UsageCountStore:
-        """Creates an instance of this class from a dictionary."""
+        """Create an instance of this class from a dictionary."""
         result = UsageCountStore()
 
         # Revive class counts
@@ -63,11 +63,11 @@ class UsageCountStore:
         return hash(tuple(sorted(self.__dict__.items())))
 
     def add_class_usages(self, class_id: ClassId, count: int = 1) -> None:
-        """Increases the usage count of the class with the given name by the given count."""
+        """Increase the usage count of the class with the given name by the given count."""
         self.class_usages[class_id] += count
 
     def remove_class(self, class_id: ClassId) -> None:
-        """Removes all usages of classes with the given name and usages of their methods."""
+        """Remove all usages of classes with the given name and usages of their methods."""
         if class_id in self.class_usages:
             del self.class_usages[class_id]
 
@@ -76,11 +76,11 @@ class UsageCountStore:
                 self.remove_function(function_id)
 
     def add_function_usages(self, function_id: FunctionId, count: int = 1) -> None:
-        """Increases the usage count of the function with the given name by the given count."""
+        """Increase the usage count of the function with the given name by the given count."""
         self.function_usages[function_id] += count
 
     def remove_function(self, function_id: FunctionId) -> None:
-        """Removes all usages of functions with the given name and usages of their parameters."""
+        """Remove all usages of functions with the given name and usages of their parameters."""
         if function_id in self.function_usages:
             del self.function_usages[function_id]
 
@@ -89,11 +89,11 @@ class UsageCountStore:
                 self.remove_parameter(parameter_id)
 
     def add_parameter_usages(self, parameter_id: ParameterId, count: int = 1) -> None:
-        """Increases the usage count of the parameter with the given name by the given count."""
+        """Increase the usage count of the parameter with the given name by the given count."""
         self.parameter_usages[parameter_id] += count
 
     def remove_parameter(self, parameter_id: ParameterId) -> None:
-        """Removes all parameter and value usages of parameters with the given name."""
+        """Remove all parameter and value usages of parameters with the given name."""
         if parameter_id in self.parameter_usages:
             del self.parameter_usages[parameter_id]
 
@@ -101,36 +101,39 @@ class UsageCountStore:
             del self.value_usages[parameter_id]
 
     def add_value_usages(self, parameter_id: ParameterId, value: StringifiedValue, count: int = 1) -> None:
-        """Increases the usage count of the given value for the parameter with the given name by the given count."""
+        """Increase the usage count of the given value for the parameter with the given name by the given count."""
         self.init_value(parameter_id)
         self.value_usages[parameter_id][value] += count
 
     def init_value(self, parameter_id: ParameterId) -> None:
-        """Ensures the dictionary for the value counts has the given parameter name as a key."""
+        """Ensure the dictionary for the value counts has the given parameter name as a key."""
         if parameter_id not in self.value_usages:
             self.value_usages[parameter_id] = Counter()
 
     def n_class_usages(self, class_id: ClassId) -> int:
-        """Returns how often the class is used, i.e. how often any of its methods are called."""
+        """Return how often the class is used, i.e. how often any of its methods are called."""
         return self.class_usages[class_id]
 
     def n_function_usages(self, function_id: FunctionId) -> int:
-        """Returns how often the function is called."""
+        """Return how often the function is called."""
         return self.function_usages[function_id]
 
     def n_parameter_usages(self, parameter_id: ParameterId) -> int:
-        """Returns how often the parameter is set."""
+        """Return how often the parameter is set."""
         return self.parameter_usages[parameter_id]
 
     def n_value_usages(self, parameter_id: ParameterId, value: str) -> int:
-        """Returns how often the parameter with the given name is set to the given value."""
+        """Return how often the parameter with the given name is set to the given value."""
         if parameter_id in self.value_usages:
             return self.value_usages[parameter_id][value]
 
         return 0
 
     def most_common_parameter_values(self, parameter_id: ParameterId) -> list[str]:
-        """Returns all values that have been set for the parameter with the given name sorted by their count in descending order."""
+        """
+        Return all values that have been set for the parameter with the given name sorted by their count in descending
+        order.
+        """
         if parameter_id in self.value_usages:
             return [value for value, count in self.value_usages[parameter_id].most_common() if count > 0]
 
@@ -138,10 +141,17 @@ class UsageCountStore:
 
     def merge_other_into_self(self, other_usage_store: UsageCountStore) -> UsageCountStore:
         """
-        Merges the other usage store into this one **in-place** and returns this store.
+        Merge the other usage store into this one **in-place** and returns this store.
 
-        :param other_usage_store: The usage store to merge into this one.
-        :return: This usage store.
+        Parameters
+        ----------
+        other_usage_store: UsageCountStore
+            The usage store to merge into this one.
+
+        Returns
+        -------
+        merge_usage_store: UsageCountStore
+            This usage store.
         """
         # Merge class usages
         self.class_usages += other_usage_store.class_usages
@@ -160,7 +170,7 @@ class UsageCountStore:
         return self
 
     def to_json(self) -> Any:
-        """Converts this class to a dictionary, which can later be serialized as JSON."""
+        """Convert this class to a dictionary, which can later be serialized as JSON."""
         return {
             "schemaVersion": USAGES_SCHEMA_VERSION,
             "class_counts": dict(self.class_usages.most_common()),

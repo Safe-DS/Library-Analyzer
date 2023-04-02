@@ -20,6 +20,7 @@ API_ELEMENTS = TypeVar("API_ELEMENTS", Attribute, Class, Function, Parameter, Re
 class APIMapping:
     threshold_of_similarity_between_mappings: float
     threshold_of_similarity_for_creation_of_mappings: float
+    threshold_of_merging_mappings: float
     apiv1: API
     apiv2: API
     differ: AbstractDiffer
@@ -31,12 +32,14 @@ class APIMapping:
         differ: AbstractDiffer,
         threshold_of_similarity_for_creation_of_mappings: float = 0.5,
         threshold_of_similarity_between_mappings: float = 0.05,
+        threshold_of_merging_mappings: float = 0.3,
     ) -> None:
         self.apiv1 = apiv1
         self.apiv2 = apiv2
         self.differ = differ
         self.threshold_of_similarity_for_creation_of_mappings = threshold_of_similarity_for_creation_of_mappings
         self.threshold_of_similarity_between_mappings = threshold_of_similarity_between_mappings
+        self.threshold_of_merging_mappings = threshold_of_merging_mappings
 
     def _get_mappings_for_api_elements(
         self,
@@ -46,22 +49,22 @@ class APIMapping:
     ) -> list[Mapping]:
         element_mappings: list[Mapping] = []
         for api_elementv1 in api_elementv1_list:
-            mapping_for_class_1: list[Mapping] = []
+            mapping_for_api_elementv1: list[Mapping] = []
             for api_elementv2 in api_elementv2_list:
                 similarity = compute_similarity(api_elementv1, api_elementv2)
                 if similarity >= self.threshold_of_similarity_for_creation_of_mappings:
-                    mapping_for_class_1.append(OneToOneMapping(similarity, api_elementv1, api_elementv2))
-            mapping_for_class_1.sort(key=Mapping.get_similarity, reverse=True)
-            new_mapping = self._merge_similar_mappings(mapping_for_class_1)
+                    mapping_for_api_elementv1.append(OneToOneMapping(similarity, api_elementv1, api_elementv2))
+            mapping_for_api_elementv1.sort(key=Mapping.get_similarity, reverse=True)
+            new_mapping = self._merge_similar_mappings(mapping_for_api_elementv1)
             if new_mapping is not None:
                 self._merge_mappings_with_same_elements(new_mapping, element_mappings)
         return element_mappings
 
     def map_api(self) -> list[Mapping]:
         mappings: list[Mapping] = []
-        previous_mappings = self.differ.get_related_mappings()
-        if previous_mappings is not None:
-            for mapping in previous_mappings:
+        related_mappings = self.differ.get_related_mappings()
+        if related_mappings is not None:
+            for mapping in related_mappings:
                 new_mapping = None
                 if isinstance(mapping.get_apiv1_elements()[0], Attribute) and isinstance(
                     mapping.get_apiv2_elements()[0], Attribute,
@@ -108,7 +111,7 @@ class APIMapping:
                         self.differ.compute_result_similarity,
                     )
                     mappings.extend(new_mapping)
-                if new_mapping is not None:
+                if new_mapping is not None and len(new_mapping) > 0:
                     self.differ.notify_new_mapping(new_mapping)
         else:
             mappings.extend(
@@ -148,7 +151,7 @@ class APIMapping:
                     self.differ.compute_result_similarity,
                 ),
             )
-
+        mappings.extend(self.differ.get_additional_mappings())
         mappings.sort(key=Mapping.get_similarity, reverse=True)
         return mappings
 
@@ -165,20 +168,26 @@ class APIMapping:
             return None
         if len(mappings) == 1:
             return mappings[0]
-        if mappings[0].similarity - mappings[1].similarity < self.threshold_of_similarity_between_mappings:
+        while (len(mappings) > 1) and (
+            (mappings[0].similarity - mappings[1].similarity) < self.threshold_of_similarity_between_mappings
+        ):
             mappings[0] = merge_mappings(mappings[0], mappings[1])
             mappings.pop(1)
-            return self._merge_similar_mappings(mappings)
         return mappings[0]
 
     def _merge_mappings_with_same_elements(self, mapping_to_be_appended: Mapping, mappings: list[Mapping]) -> None:
         """
-        This method prevents that an element in a mapping appears multiple times in a list of mappings
-        by merging the affected mappings and include the result in the list. If there is no such element,
-        the mapping will be included without any merge.
+        Prevent that an element in a mapping appears multiple times in a list of mappings.
 
-        :param mapping_to_be_appended: the mapping that should be included in mappings
-        :param mappings: the list, in which mapping_to_be_appended should be appended
+        Affected mappings are merged and the results included in the list. If there is no such element, the mapping will
+        be included without any merge.
+
+        Parameters
+        ----------
+        mapping_to_be_appended : Mapping
+            the mapping that should be included in mappings
+        mappings : list[Mapping]
+            the list, in which mapping_to_be_appended should be appended
         """
         duplicated: list[Mapping] = []
         for mapping in mappings:

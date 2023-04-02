@@ -47,8 +47,10 @@ def _analyze_declaration_called_by(
     node: astroid.Call, package_name: str,
 ) -> tuple[astroid.NodeNG, str, astroid.Arguments, int] | None:
     """
-    Returns None if the called declaration could not be determined or if it is not relevant for us. Otherwise, it
-    returns a tuple with the form (called, qualified_name, parameters, n_implicit_parameters).
+    Try to determine the declaration that is called by the given call node.
+
+    Return None if the called declaration could not be determined or if it is not relevant for us. Otherwise, return a
+    tuple with the form (called, qualified_name, parameters, n_implicit_parameters).
     """
     called = safe_infer(node.func)
     if called is None or not __is_relevant_qualified_name(package_name, called.qname()):

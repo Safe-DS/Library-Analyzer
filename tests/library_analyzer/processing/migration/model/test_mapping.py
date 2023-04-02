@@ -1,8 +1,8 @@
 from inspect import cleandoc
 
 from library_analyzer.processing.api.model import API, Class, ClassDocumentation
-from library_analyzer.processing.migration import APIMapping
 from library_analyzer.processing.migration.model import (
+    APIMapping,
     ManyToManyMapping,
     ManyToOneMapping,
     OneToManyMapping,

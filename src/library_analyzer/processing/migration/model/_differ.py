@@ -43,46 +43,91 @@ class AbstractDiffer(ABC):
         attributev2: Attribute,
     ) -> float:
         """
-        Computes similarity between attributes from apiv1 and apiv2.
-        :param attributev1: attribute from apiv1
-        :param attributev2: attribute from apiv2
-        :return: value between 0 and 1, where 1 means that the elements are equal.
+        Compute the similarity between attributes from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        attributev1 : Attribute
+            attribute from apiv1
+        attributev2 : Attribute
+            attribute from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
         """
 
     @abstractmethod
     def compute_class_similarity(self, classv1: Class, classv2: Class) -> float:
         """
-        Computes similarity between classes from apiv1 and apiv2.
-        :param classv1: class from apiv1
-        :param classv2: class from apiv2
-        :return: value between 0 and 1, where 1 means that the elements are equal.
+        Compute the similarity between classes from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        classv1 : Class
+            class from apiv1
+        classv2 : Class
+            class from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
         """
 
     @abstractmethod
     def compute_function_similarity(self, functionv1: Function, functionv2: Function) -> float:
         """
-        Computes similarity between functions from apiv1 and apiv2.
-        :param functionv1: function from apiv1
-        :param functionv2: function from apiv2
-        :return: value between 0 and 1, where 1 means that the elements are equal.
+        Compute the similarity between functions from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        functionv1 : Function
+            function from apiv1
+        functionv2 : Function
+            function from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
         """
 
     @abstractmethod
     def compute_parameter_similarity(self, parameterv1: Parameter, parameterv2: Parameter) -> float:
         """
-        Computes similarity between parameters from apiv1 and apiv2.
-        :param parameterv1: parameter from apiv1
-        :param parameterv2: parameter from apiv2
-        :return: value between 0 and 1, where 1 means that the elements are equal.
+        Compute similarity between parameters from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        parameterv1 : Parameter
+            parameter from apiv1
+        parameterv2 : Parameter
+            parameter from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
         """
 
     @abstractmethod
     def compute_result_similarity(self, resultv1: Result, resultv2: Result) -> float:
         """
-        Computes similarity between results from apiv1 and apiv2.
-        :param resultv1: result from apiv1
-        :param resultv2: result from apiv2
-        :return: value between 0 and 1, where 1 means that the elements are equal.
+        Compute similarity between results from apiv1 and apiv2.
+
+        Parameters
+        ----------
+        resultv1 : Result
+            result from apiv1
+        resultv2 : Result
+            result from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
         """
 
     @abstractmethod
@@ -90,24 +135,36 @@ class AbstractDiffer(ABC):
         self,
     ) -> list[Mapping] | None:
         """
-        Indicates whether all api elements should be compared with each other
-        or just the ones that are mapped to each other.
-        :return: a list of Mappings if only previously mapped api elements should be mapped to each other or else None.
+        Whether all api elements should be compared to each other or just the ones that are mapped to each other.
+
+        Returns
+        -------
+        mappings : list[Mapping] | None
+            a list of Mappings if only previously mapped api elements should be mapped to each other or else None.
         """
 
     @abstractmethod
     def notify_new_mapping(self, mappings: list[Mapping]) -> None:
         """
-        If previous mappings returns None, the differ will be notified about a new mapping.
+        If previous mappings return None, the differ will be notified about a new mapping.
+
         Thereby the differ can calculate the similarity with more information.
-        :param mappings: a list of mappings new appended mappings.
+
+        Parameters
+        ----------
+        mappings : list[Mapping]
+            a list of mappings new appended mappings.
         """
 
     @abstractmethod
     def get_additional_mappings(self) -> list[Mapping]:
         """
-        This method allows the differ to add further mappings from previous differs
-        :return: additional mappings that should be included in the result of the differentiation.
+        Allow the differ to add further mappings from previous differs.
+
+        Returns
+        -------
+        mappings : list[Mapping]
+            additional mappings that should be included in the result of the differentiation.
         """
 
     def is_base_differ(self) -> bool:
@@ -127,16 +184,37 @@ class SimpleDiffer(AbstractDiffer):
         self,
     ) -> list[Mapping] | None:
         """
-        Indicates whether all api elements should be compared with each other
-        or just the ones that are mapped to each other.
-        :return: a list of Mappings by type whose elements are not already mapped.
+        Whether all api elements should be compared to each other or just the ones that are mapped to each other.
+
+        Returns
+        -------
+        mappings : list[Mapping] | None
+            a list of Mappings if only previously mapped api elements should be mapped to each other or else None.
         """
         return self.related_mappings
 
     def notify_new_mapping(self, mappings: list[Mapping]) -> None:
+        """
+        If previous mappings return None, the differ will be notified about a new mapping.
+
+        Thereby the differ can calculate the similarity with more information.
+
+        Parameters
+        ----------
+        mappings : list[Mapping]
+            a list of mappings new appended mappings.
+        """
         return
 
     def get_additional_mappings(self) -> list[Mapping]:
+        """
+        Allow the differ to add further mappings from previous differs.
+
+        Returns
+        -------
+        mappings : list[Mapping]
+            additional mappings that should be included in the result of the differentiation.
+        """
         return self.previous_mappings
 
     def __init__(
@@ -232,10 +310,21 @@ class SimpleDiffer(AbstractDiffer):
 
     def compute_class_similarity(self, classv1: Class, classv2: Class) -> float:
         """
-        Computes similarity between classes from apiv1 and apiv2 with the respect to their name, id, code, and attributes.
-        :param classv1: attribute from apiv1
-        :param classv2: attribute from apiv2
-        :return: value between 0 and 1, where 1 means that the elements are equal.
+        Compute the similarity between classes from apiv1 and apiv2.
+
+        Similarity is computed with respect to their name, id, code, and attributes.
+
+        Parameters
+        ----------
+        classv1 : Class
+            class from apiv1
+        classv2 : Class
+            class from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
         """
         normalize_similarity = 6
 
@@ -280,10 +369,21 @@ class SimpleDiffer(AbstractDiffer):
         attributev2: Attribute,
     ) -> float:
         """
-        Computes similarity between attributes from apiv1 and apiv2 with the respect to their name and type.
-        :param attributev1: attribute from apiv1
-        :param attributev2: attribute from apiv2
-        :return: value between 0 and 1, where 1 means that the elements are equal.
+        Compute the similarity between attributes from apiv1 and apiv2.
+
+        Similarity is computed with respect to their name and type.
+
+        Parameters
+        ----------
+        attributev1 : Attribute
+            attribute from apiv1
+        attributev2 : Attribute
+            attribute from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
         """
         name_similarity = self._compute_name_similarity(attributev1.name, attributev2.name)
         type_listv1 = self._create_list_from_type(attributev1.types)
@@ -294,10 +394,21 @@ class SimpleDiffer(AbstractDiffer):
 
     def compute_function_similarity(self, functionv1: Function, functionv2: Function) -> float:
         """
-        Computes similarity between functions from apiv1 and apiv2 with the respect to their code, name, id, and parameters.
-        :param functionv1: attribute from apiv1
-        :param functionv2: attribute from apiv2
-        :return: value between 0 and 1, where 1 means that the elements are equal.
+        Compute the similarity between functions from apiv1 and apiv2.
+
+        Similarity is computed with respect to their code, name, id, and parameters.
+
+        Parameters
+        ----------
+        functionv1 : Function
+            function from apiv1
+        functionv2 : Function
+            function from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
         """
         if (
             functionv1.id in self.previous_function_similarity
@@ -358,10 +469,21 @@ class SimpleDiffer(AbstractDiffer):
 
     def compute_parameter_similarity(self, parameterv1: Parameter, parameterv2: Parameter) -> float:
         """
-        Computes similarity between parameters from apiv1 and apiv2 with the respect to their name, type, assignment, default value, documentation, and id.
-        :param parameterv1: attribute from apiv1
-        :param parameterv2: attribute from apiv2
-        :return: value between 0 and 1, where 1 means that the elements are equal.
+        Compute similarity between parameters from apiv1 and apiv2.
+
+        The similarity is computed with respect to their name, type, assignment, default value, documentation, and id.
+
+        Parameters
+        ----------
+        parameterv1 : Parameter
+            parameter from apiv1
+        parameterv2 : Parameter
+            parameter from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
         """
         if (
             parameterv1.id in self.previous_parameter_similarity
@@ -431,10 +553,19 @@ class SimpleDiffer(AbstractDiffer):
 
     def compute_result_similarity(self, resultv1: Result, resultv2: Result) -> float:
         """
-        Computes similarity between results from apiv1 and apiv2 with the respect to their name.
-        :param resultv1: attribute from apiv1
-        :param resultv2: attribute from apiv2
-        :return: value between 0 and 1, where 1 means that the elements are equal.
+        Compute similarity between results from apiv1 and apiv2 with the respect to their name.
+
+        Parameters
+        ----------
+        resultv1 : Result
+            result from apiv1
+        resultv2 : Result
+            result from apiv2
+
+        Returns
+        -------
+        similarity : float
+            value between 0 and 1, where 1 means that the elements are equal.
         """
         return self._compute_name_similarity(resultv1.name, resultv2.name)
 

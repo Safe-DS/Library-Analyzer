@@ -5,9 +5,19 @@ from typing import TextIO
 
 def list_files(root_dir: Path, extension: str = "") -> list[str]:
     """
-    :param root_dir: The directory containing the files.
-    :param extension: The extension the files should have.
-    :return: A list with absolute paths to the files.
+    List all files in a directory and its subdirectories.
+
+    Parameters
+    ----------
+    root_dir: Path
+        The directory containing the files.
+    extension: str
+        The extension the files should have.
+
+    Returns
+    -------
+    files: list[str]
+        A list with absolute paths to the files.
     """
     result: list[str] = []
 
@@ -21,9 +31,12 @@ def list_files(root_dir: Path, extension: str = "") -> list[str]:
 
 def ensure_file_exists(file: Path) -> None:
     """
-    Creates a file and all parent directories if they don't exist already.
+    Create a file and all parent directories if they don't exist already.
 
-    :param file: The file path.
+    Parameters
+    ----------
+    file: Path
+        The file path.
     """
     file.parent.mkdir(parents=True, exist_ok=True)
     file.touch(exist_ok=True)

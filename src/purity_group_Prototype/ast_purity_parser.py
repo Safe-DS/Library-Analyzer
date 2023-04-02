@@ -579,9 +579,7 @@ def print_lists():
 
 
 def visit_ast(ast):
-    """This is the main part of the parser which visits recursively all nodes in the
-    ast and performs adequate queries on them.
-    """
+    """Visit nodes of the AST recursively and perform adequate queries on them."""
     if isinstance(ast, Astroid.Module):
         # handle module
         for i in range(len(ast.body)):
@@ -1039,9 +1037,7 @@ def visit_ast(ast):
 
 
 def infer_function(ast):
-    """Function to find the function node in which the currently visited node is contained (is a (transitive) subnode
-    of).
-    """
+    """Find the closest function node in which the currently visited node is contained."""
     if ast is None:
         return None
     if isinstance(ast, Astroid.FunctionDef):
@@ -1051,9 +1047,7 @@ def infer_function(ast):
 
 
 def infer_class(ast):
-    """Function to find the class node in which the currently visited node is contained (is a (transitive) subnode
-    of).
-    """
+    """Find the closest class node in which the currently visited node is contained."""
     if ast is None:
         return None
     if isinstance(ast, Astroid.ClassDef):
@@ -1063,8 +1057,11 @@ def infer_class(ast):
 
 
 def concat_joined_str(strings):
-    """Functions to concatenate the arguments of a function, e.g. useful to store what a print(...) is printing to
-    console. May be replaced by one or removed completely in future work.
+    """
+    Concatenate the arguments of a function.
+
+    For example useful to store what a print(...) is printing to console. May be replaced by one or removed completely
+    in future work.
     """
     if strings is Astroid.JoinedStr:
         strings = strings.values

@@ -68,7 +68,7 @@ class LibraryMember(Person):
         self.member_until = member_until
 
     def give_back(self, late_fee: float) -> None:
-        """Gives book back and add late_fee is it is too late.
+        """Give book back and add late_fee is it is too late.
 
         Parameters
         ----------

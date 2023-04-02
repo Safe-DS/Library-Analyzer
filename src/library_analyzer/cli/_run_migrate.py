@@ -2,9 +2,10 @@ import os
 from pathlib import Path
 from typing import Any
 
-from library_analyzer.processing.migration import APIMapping, Migration
+from library_analyzer.processing.migration import Migration
 from library_analyzer.processing.migration.model import (
     AbstractDiffer,
+    APIMapping,
     InheritanceDiffer,
     Mapping,
     SimpleDiffer,
