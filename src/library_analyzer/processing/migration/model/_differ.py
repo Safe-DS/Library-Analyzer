@@ -592,15 +592,10 @@ class SimpleDiffer(AbstractDiffer):
         try:
             intv1_value = int(default_valuev1)
             intv2_value = int(default_valuev2)
-            if intv1_value == intv2_value:
-                return 1.0
-            return 0.5
         except ValueError:
             try:
                 floatv1_value = float(default_valuev1)
                 floatv2_value = float(default_valuev2)
-                if floatv1_value == floatv2_value:
-                    return 1.0
             except ValueError:
                 try:
                     if float(int(default_valuev1)) == float(default_valuev2):
@@ -611,6 +606,14 @@ class SimpleDiffer(AbstractDiffer):
                             return 0.75
                     except ValueError:
                         pass
+            else:
+                if floatv1_value == floatv2_value:
+                    return 1.0
+        else:
+            if intv1_value == intv2_value:
+                return 1.0
+            return 0.5
+
         if default_valuev1 in (
             "True",
             "False",

@@ -41,7 +41,7 @@ class AnnotationStore:
     @staticmethod
     def from_json(json: Any) -> AnnotationStore:
         if json["schemaVersion"] == 1:
-            raise Exception("Incompatible Annotation File: This file is not compatible with the current version.")
+            raise ValueError("Incompatible Annotation File: This file is not compatible with the current version.")
 
         boundary_annotations = []
         for annotation in json["boundaryAnnotations"].values():

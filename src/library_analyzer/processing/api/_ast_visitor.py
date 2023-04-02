@@ -28,7 +28,7 @@ def trim_code(code: str | None, from_line_no: int, to_line_no: int, encoding: st
     if isinstance(code, bytes):
         code = code.decode(encoding)
     lines = code.split("\n")
-    return "\n".join(lines[from_line_no - 1 : to_line_no])
+    return "\n".join(lines[from_line_no - 1: to_line_no])
 
 
 class _AstVisitor:
@@ -126,7 +126,7 @@ class _AstVisitor:
     def leave_module(self, _: astroid.Module) -> None:
         module = self.__declaration_stack.pop()
         if not isinstance(module, Module):
-            raise AssertionError("Imbalanced push/pop on stack")
+            raise AssertionError("Imbalanced push/pop on stack")  # noqa: TRY004
 
         self.api.add_module(module)
 
@@ -159,7 +159,7 @@ class _AstVisitor:
     def leave_classdef(self, _: astroid.ClassDef) -> None:
         class_ = self.__declaration_stack.pop()
         if not isinstance(class_, Class):
-            raise AssertionError("Imbalanced push/pop on stack")
+            raise AssertionError("Imbalanced push/pop on stack")  # noqa: TRY004
 
         if len(self.__declaration_stack) > 0:
             parent = self.__declaration_stack[-1]
@@ -220,7 +220,7 @@ class _AstVisitor:
     def leave_functiondef(self, _: astroid.FunctionDef) -> None:
         function = self.__declaration_stack.pop()
         if not isinstance(function, Function):
-            raise AssertionError("Imbalanced push/pop on stack")
+            raise AssertionError("Imbalanced push/pop on stack")  # noqa: TRY004
 
         if len(self.__declaration_stack) > 0:
             parent = self.__declaration_stack[-1]

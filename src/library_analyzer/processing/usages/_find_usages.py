@@ -117,7 +117,7 @@ def _find_usages_in_single_file(
             extra={"python_file": python_file},
         )
     except Exception as err:
-        logging.error(
+        logging.exception(
             "Skipping {python_file} (unknown error: {err})",
             extra={"python_file": python_file, "err": err},
         )

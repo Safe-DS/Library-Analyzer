@@ -164,24 +164,28 @@ def _have_same_value(parameterv1_default_value: str | None, parameterv2_default_
     try:
         intv1_value = int(parameterv1_default_value)
         intv2_value = int(parameterv2_default_value)
-        return intv1_value == intv2_value
     except ValueError:
         try:
             floatv1_value = float(parameterv1_default_value)
             floatv2_value = float(parameterv2_default_value)
-            return floatv1_value == floatv2_value
         except ValueError:
             try:
                 int(parameterv1_default_value)
                 float(parameterv2_default_value)
-                return False
             except ValueError:
                 try:
                     int(parameterv2_default_value)
                     float(parameterv1_default_value)
-                    return False
                 except ValueError:
                     pass
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return floatv1_value == floatv2_value
+    else:
+        return intv1_value == intv2_value
     if parameterv1_default_value in (
         "True",
         "False",

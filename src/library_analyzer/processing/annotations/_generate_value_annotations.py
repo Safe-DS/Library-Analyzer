@@ -242,6 +242,7 @@ def _get_type_and_value_for_stringified_value(
 def _is_float(stringified_value: str) -> bool:
     try:
         float(stringified_value)
-        return True
     except ValueError:
         return False
+    else:
+        return True

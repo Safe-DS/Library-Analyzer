@@ -6,7 +6,7 @@ from library_analyzer.cli import cli
 
 
 def main() -> None:
-    """The entrypoint to the program."""
+    """Launch the program."""
     start_time = time.time()
 
     cli()
