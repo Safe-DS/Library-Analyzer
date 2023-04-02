@@ -100,7 +100,7 @@ def _add_usages_subparser(subparsers: _SubParsersAction) -> None:
         type=int,
         required=False,
         default=4,
-    ),
+    )
     usages_parser.add_argument(
         "--batchsize",
         help="How many files to process in one go. Higher values lead to higher memory usage but better performance.",
