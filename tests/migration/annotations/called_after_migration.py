@@ -19,7 +19,6 @@ from library_analyzer.processing.migration.model import (
 )
 
 
-# pylint: disable=duplicate-code
 def migrate_called_after_annotation_data_one_to_one_mapping() -> (
     Tuple[
         list[Mapping],

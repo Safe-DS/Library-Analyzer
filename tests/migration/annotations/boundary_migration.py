@@ -214,7 +214,6 @@ def migrate_boundary_annotation_data_one_to_one_mapping_float_to_int() -> (
     )
 
 
-# pylint: disable=duplicate-code
 def migrate_boundary_annotation_data_one_to_many_mapping() -> (
     Tuple[
         Mapping,

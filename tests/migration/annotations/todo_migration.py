@@ -167,7 +167,6 @@ def migrate_todo_annotation_data_many_to_many_mapping() -> (
         is_public=True,
         documentation=ParameterDocumentation("str", "", ""),
     )
-    # pylint: disable=duplicate-code
     classv2 = Class(
         id="test/test.todo.test3.TestTodoClass",
         qname="test.todo.test3.TestTodoClass",

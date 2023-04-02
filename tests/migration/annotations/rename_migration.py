@@ -70,7 +70,6 @@ def migrate_rename_annotation_data_one_to_one_mapping() -> (
     return mappings, annotationv1, [annotationv2]
 
 
-# pylint: disable=duplicate-code
 def migrate_rename_annotation_data_one_to_many_mapping() -> (
     Tuple[
         Mapping,

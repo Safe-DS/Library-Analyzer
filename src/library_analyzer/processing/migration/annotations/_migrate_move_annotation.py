@@ -53,7 +53,6 @@ def _was_moved(
     )
 
 
-# pylint: disable=duplicate-code
 def migrate_move_annotation(
     move_annotation: MoveAnnotation, mapping: Mapping
 ) -> list[AbstractAnnotation]:

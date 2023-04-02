@@ -73,7 +73,6 @@ def _contains_number_and_is_discrete(
     return False, False
 
 
-# pylint: disable=duplicate-code
 def migrate_boundary_annotation(
     boundary_annotation: BoundaryAnnotation, mapping: Mapping
 ) -> list[AbstractAnnotation]:

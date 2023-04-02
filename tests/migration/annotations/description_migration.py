@@ -27,7 +27,6 @@ from library_analyzer.processing.migration.model import (
 )
 
 
-# pylint: disable=duplicate-code
 def migrate_description_annotation_data_one_to_one_mapping__function() -> (
     Tuple[
         Mapping,
@@ -80,7 +79,6 @@ def migrate_description_annotation_data_one_to_one_mapping__function() -> (
     return mapping, annotationv1, [annotationv2]
 
 
-# pylint: disable=duplicate-code
 def migrate_description_annotation_data_one_to_many_mapping__class() -> (
     Tuple[
         Mapping,

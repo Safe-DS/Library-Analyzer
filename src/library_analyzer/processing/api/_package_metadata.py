@@ -1,6 +1,5 @@
 import importlib
 
-# pylint: disable=no-name-in-module
 from importlib.metadata import packages_distributions, version  # type: ignore
 from pathlib import Path
 from typing import Optional

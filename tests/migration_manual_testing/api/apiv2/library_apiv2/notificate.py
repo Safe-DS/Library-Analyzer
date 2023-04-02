@@ -1,4 +1,3 @@
-# pylint: disable=duplicate-code
 from .persons import Person
 
 # apiv2: rename package to notification and use person instead of name and address

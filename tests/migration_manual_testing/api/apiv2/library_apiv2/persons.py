@@ -1,4 +1,3 @@
-# pylint: disable=duplicate-code
 import datetime
 
 # apiv2: introduce superclass person with first_name, last_name and address, and get_name(), and participate()

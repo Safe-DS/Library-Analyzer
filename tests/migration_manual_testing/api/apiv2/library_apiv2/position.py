@@ -1,4 +1,3 @@
-# pylint: disable=duplicate-code
 # apiv2: merge Bookshelf and Room to one class Position (without max_number_of_items)
 
 

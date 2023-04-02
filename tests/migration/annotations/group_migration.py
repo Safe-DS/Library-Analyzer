@@ -28,7 +28,6 @@ from library_analyzer.processing.migration.model import (
 )
 
 
-# pylint: disable=duplicate-code
 def migrate_group_annotation_data_one_to_many_mapping() -> (
     Tuple[
         list[Mapping],

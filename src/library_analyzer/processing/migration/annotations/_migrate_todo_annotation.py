@@ -17,7 +17,6 @@ from ._get_annotated_api_element import get_annotated_api_element
 from ._get_migration_text import get_migration_text
 
 
-# pylint: disable=duplicate-code
 def migrate_todo_annotation(
     todo_annotation: TodoAnnotation, mapping: Mapping
 ) -> list[AbstractAnnotation]:
