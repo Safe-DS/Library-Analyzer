@@ -27,7 +27,7 @@ def test_generate_annotations(
 
 
 def read_test_data(subfolder: str) -> tuple[UsageCountStore, API, dict]:
-    data_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", subfolder)
+    data_path = Path(__file__).parent / ".." / ".." / ".." / "data" / subfolder
 
     api_json_path = os.path.join(data_path, "api_data.json")
     usages_json_path = os.path.join(data_path, "usage_data.json")

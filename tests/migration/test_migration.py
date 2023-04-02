@@ -215,7 +215,7 @@ def test_migrate_all_annotations() -> None:
 
 
 def test_migrate_command_and_both_annotation_stores() -> None:
-    data_path = os.path.join(os.path.dirname(__file__), "..", "data")
+    data_path = Path(__file__).parent / ".." / "data"
 
     apiv1_json_path = os.path.join(data_path, "migration", "apiv1_data.json")
     apiv2_json_path = os.path.join(data_path, "migration", "apiv2_data.json")
