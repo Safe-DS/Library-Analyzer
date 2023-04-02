@@ -683,7 +683,7 @@ def test_annotation_store() -> None:
         "test import and export of rename annotation",
         "test import and export of todo annotation",
     ],
-)  # type: ignore
+)
 def test_conversion_between_json_and_annotation(annotation: AbstractAnnotation, json: dict) -> None:
     assert annotation.to_json() == json
     assert type(annotation).from_json(json) == annotation

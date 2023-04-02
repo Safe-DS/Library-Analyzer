@@ -78,7 +78,7 @@ from library_analyzer.processing.api.model import (
             ),
         ),
     ],
-)  # type: ignore
+)
 def test_trim_code(code_to_parse: str, expected_code: str) -> None:
     module = astroid.parse(code_to_parse)
     assert len(module.body) != 0

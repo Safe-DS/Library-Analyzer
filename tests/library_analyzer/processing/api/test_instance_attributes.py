@@ -69,7 +69,7 @@ from library_analyzer.processing.api.model import Attribute, NamedType
             ],
         ),
     ],
-)  # type: ignore
+)
 def test_instance_attributes(class_code: str, expected_attributes: list[Attribute]) -> None:
     module = astroid.parse(class_code)
     classes = [class_ for class_ in module.body if isinstance(class_, astroid.ClassDef)]

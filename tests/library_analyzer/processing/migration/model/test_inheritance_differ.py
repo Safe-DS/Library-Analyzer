@@ -187,7 +187,7 @@ def create_api_sub() -> tuple[API, Class, Class, Attribute, Function, Parameter,
 @pytest.mark.parametrize(
     "differ",
     differ_list,
-)  # type: ignore
+)
 def test_inheritance_differ(differ: AbstractDiffer) -> None:
     for api, superclass, subclass, attribute, function, parameter, result in [
         create_api_super(),

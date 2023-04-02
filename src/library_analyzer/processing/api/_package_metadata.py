@@ -1,5 +1,5 @@
 import importlib
-from importlib.metadata import packages_distributions, version  # type: ignore
+from importlib.metadata import packages_distributions, version
 from pathlib import Path
 
 from library_analyzer.utils import list_files

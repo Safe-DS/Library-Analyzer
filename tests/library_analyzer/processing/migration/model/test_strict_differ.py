@@ -27,7 +27,7 @@ from .test_differ import differ_list
 @pytest.mark.parametrize(
     "differ",
     differ_list,
-)  # type: ignore
+)
 def test_similarity(differ: AbstractDiffer) -> None:
     apiv1 = API("test-distribution", "test-package", "1.0")
     apiv2 = API("test-distribution", "test-package", "2.0")

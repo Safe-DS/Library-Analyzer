@@ -77,7 +77,7 @@ from library_analyzer.processing.api.model import (
             },
         ),
     ],
-)  # type: ignore
+)
 def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> None:
     result = create_type(ParameterDocumentation(docstring_type, "", ""))
     if result is None:
@@ -113,7 +113,7 @@ def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> Non
         ),
         ("", {}),
     ],
-)  # type: ignore
+)
 def test_boundary_from_string(description: str, expected: dict[str, Any]) -> None:
     result = create_type(ParameterDocumentation("", "", description))
     if result is None:
@@ -146,7 +146,7 @@ def test_boundary_from_string(description: str, expected: dict[str, Any]) -> Non
             },
         ),
     ],
-)  # type: ignore
+)
 def test_boundary_and_union_from_string(
     docstring_type: str,
     docstring_description: str,

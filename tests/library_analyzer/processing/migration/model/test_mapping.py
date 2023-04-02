@@ -68,7 +68,7 @@ def test_one_to_many_and_many_to_one_mappings() -> None:
     assert len(mappings) == 1
     assert isinstance(mappings[0], ManyToOneMapping)
     assert len(mappings[0].get_apiv1_elements()) == 2
-    assert sorted(mappings[0].get_apiv1_elements(), key=lambda class_: class_.id) == [class_2, class_3]  # type: ignore
+    assert sorted(mappings[0].get_apiv1_elements(), key=lambda class_: getattr(class_, "id", "")) == [class_2, class_3]
     assert mappings[0].get_apiv2_elements()[0] == class_1
 
 
@@ -97,7 +97,7 @@ def test_many_to_many_mapping() -> None:
     assert isinstance(mappings[0], ManyToManyMapping)
     assert len(mappings[0].get_apiv1_elements()) == 2
     assert len(mappings[0].get_apiv2_elements()) == 2
-    assert sorted(mappings[0].get_apiv1_elements(), key=lambda class_: class_.id) == [class_1, class_4]  # type: ignore
+    assert sorted(mappings[0].get_apiv1_elements(), key=lambda class_: getattr(class_, "id", "")) == [class_1, class_4]
     assert mappings[0].get_apiv2_elements() == [class_2, class_3]
 
 
