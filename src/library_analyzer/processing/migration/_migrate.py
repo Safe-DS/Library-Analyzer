@@ -169,9 +169,14 @@ class Migration:
                         if isinstance(api_element, Result) and isinstance(element, Result):
                             if element.name == api_element.name and element.docstring == api_element.docstring:
                                 return True
-                        if not isinstance(api_element, Attribute | Result) and not isinstance(
-                            element, Attribute | Result,
-                        ) and element.id == api_element.id:
+                        if (
+                            not isinstance(api_element, Attribute | Result)
+                            and not isinstance(
+                                element,
+                                Attribute | Result,
+                            )
+                            and element.id == api_element.id
+                        ):
                             return True
                 return False
             for mapping in self.mappings:
@@ -182,9 +187,14 @@ class Migration:
                     if isinstance(api_element, Result) and isinstance(element, Result):
                         if element.name == api_element.name and element.docstring == api_element.docstring:
                             return True
-                    if not isinstance(api_element, Attribute | Result) and not isinstance(
-                        element, Attribute | Result,
-                    ) and element.id == api_element.id:
+                    if (
+                        not isinstance(api_element, Attribute | Result)
+                        and not isinstance(
+                            element,
+                            Attribute | Result,
+                        )
+                        and element.id == api_element.id
+                    ):
                         return True
             return False
 

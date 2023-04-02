@@ -29,13 +29,19 @@ BUILTIN_FUNCTIONS = {
     "read": BuiltInFunction(Reference("read"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
     "write": BuiltInFunction(Reference("write"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
     "readline": BuiltInFunction(
-        Reference("readline"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE,
+        Reference("readline"),
+        ConcreteImpurityIndicator(),
+        ImpurityCertainty.DEFINITELY_IMPURE,
     ),
     "readlines": BuiltInFunction(
-        Reference("readlines"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE,
+        Reference("readlines"),
+        ConcreteImpurityIndicator(),
+        ImpurityCertainty.DEFINITELY_IMPURE,
     ),
     "writelines": BuiltInFunction(
-        Reference("writelines"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE,
+        Reference("writelines"),
+        ConcreteImpurityIndicator(),
+        ImpurityCertainty.DEFINITELY_IMPURE,
     ),
     "close": BuiltInFunction(Reference("close"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_PURE),
 }
@@ -217,7 +223,10 @@ def determine_open_mode(args: list[str]) -> OpenMode:
 
 
 def check_builtin_function(
-    node: astroid.NodeNG, key: str, value: str | None = None, is_var: bool = False,
+    node: astroid.NodeNG,
+    key: str,
+    value: str | None = None,
+    is_var: bool = False,
 ) -> list[ImpurityIndicator]:
     if is_var:
         if key == "open":

@@ -150,7 +150,9 @@ def test_get_parameter_documentation(
     assert isinstance(node, astroid.FunctionDef)
     assert (
         default_documentation_parser.get_parameter_documentation(
-            node, parameter_name, ParameterAssignment.POSITION_OR_NAME,
+            node,
+            parameter_name,
+            ParameterAssignment.POSITION_OR_NAME,
         )
         == expected_parameter_documentation
     )

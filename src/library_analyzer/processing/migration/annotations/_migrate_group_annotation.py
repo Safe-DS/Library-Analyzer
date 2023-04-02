@@ -14,7 +14,9 @@ from ._get_migration_text import get_migration_text
 
 
 def migrate_group_annotation(
-    annotation: GroupAnnotation, mapping: Mapping, mappings: list[Mapping],
+    annotation: GroupAnnotation,
+    mapping: Mapping,
+    mappings: list[Mapping],
 ) -> list[AbstractAnnotation]:
     group_annotation = deepcopy(annotation)
     authors = group_annotation.authors
@@ -109,7 +111,9 @@ def migrate_group_annotation(
 
 
 def _get_mappings_for_grouped_parameters(
-    group_annotation: GroupAnnotation, mappings: list[Mapping], functionv2: Function,
+    group_annotation: GroupAnnotation,
+    mappings: list[Mapping],
+    functionv2: Function,
 ) -> list[list[Parameter]]:
     parameter_ids = [group_annotation.target + "/" + parameter_name for parameter_name in group_annotation.parameters]
 

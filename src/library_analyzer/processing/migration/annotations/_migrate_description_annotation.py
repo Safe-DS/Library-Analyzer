@@ -19,7 +19,8 @@ from ._get_migration_text import get_migration_text
 
 
 def migrate_description_annotation(
-    description_annotation: DescriptionAnnotation, mapping: Mapping,
+    description_annotation: DescriptionAnnotation,
+    mapping: Mapping,
 ) -> list[AbstractAnnotation]:
     description_annotation = deepcopy(description_annotation)
     authors = description_annotation.authors

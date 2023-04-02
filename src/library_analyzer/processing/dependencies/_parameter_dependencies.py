@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any
 
@@ -9,7 +11,7 @@ class Action:
     action: str
 
     @classmethod
-    def from_json(cls, json: Any):
+    def from_json(cls, json: Any) -> Action:
         return cls(json["action"])
 
     def to_json(self) -> dict:
@@ -41,7 +43,7 @@ class Condition:
     condition: str
 
     @classmethod
-    def from_json(cls, json: Any):
+    def from_json(cls, json: Any) -> Condition:
         return cls(json["condition"])
 
     def to_json(self) -> dict:
@@ -76,7 +78,7 @@ class Dependency:
     hasAction: Action
 
     @classmethod
-    def from_json(cls, json: Any):
+    def from_json(cls, json: Any) -> Dependency:
         return cls(
             Parameter.from_json(json["hasDependentParameter"]),
             Parameter.from_json(json["isDependingOn"]),

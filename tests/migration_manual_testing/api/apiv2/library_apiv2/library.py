@@ -127,7 +127,10 @@ class OurLibrary(Library):
         self.address = address
 
     def let_seminar_room(
-        self, money: float, person: Person, renting_date: date,
+        self,
+        money: float,
+        person: Person,
+        renting_date: date,
     ) -> (
         float
     ):  # apiv2: remove rented_date, move to new subclass OurLibrary with additional attributes owner and address

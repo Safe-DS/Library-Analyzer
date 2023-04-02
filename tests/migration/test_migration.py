@@ -222,11 +222,14 @@ def test_migrate_command_and_both_annotation_stores() -> None:
     annotationsv2_json_path = os.path.join(data_path, "migration", "annotationv2.json")
     unsure_annotationsv2_json_path = os.path.join(data_path, "migration", "unsure_annotationv2.json")
     with open(apiv1_json_path, encoding="utf-8") as apiv1_file, open(
-        apiv2_json_path, encoding="utf-8",
+        apiv2_json_path,
+        encoding="utf-8",
     ) as apiv2_file, open(annotationsv1_json_path, encoding="utf-8") as annotationsv1_file, open(
-        annotationsv2_json_path, encoding="utf-8",
+        annotationsv2_json_path,
+        encoding="utf-8",
     ) as annotationsv2_file, open(
-        unsure_annotationsv2_json_path, encoding="utf-8",
+        unsure_annotationsv2_json_path,
+        encoding="utf-8",
     ) as unsure_annotationsv2_file:
         apiv1_json = json.load(apiv1_file)
         apiv1 = API.from_json(apiv1_json)
@@ -250,46 +253,59 @@ def test_migrate_command_and_both_annotation_stores() -> None:
 
 
 def _assert_annotation_stores_are_equal(
-    actual_annotations: AnnotationStore, expected_annotation_store: AnnotationStore,
+    actual_annotations: AnnotationStore,
+    expected_annotation_store: AnnotationStore,
 ) -> None:
     def get_key(annotation: AbstractAnnotation) -> str:
         return annotation.target
 
     assert sorted(actual_annotations.boundaryAnnotations, key=get_key) == sorted(
-        expected_annotation_store.boundaryAnnotations, key=get_key,
+        expected_annotation_store.boundaryAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.calledAfterAnnotations, key=get_key) == sorted(
-        expected_annotation_store.calledAfterAnnotations, key=get_key,
+        expected_annotation_store.calledAfterAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.completeAnnotations, key=get_key) == sorted(
-        expected_annotation_store.completeAnnotations, key=get_key,
+        expected_annotation_store.completeAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.descriptionAnnotations, key=get_key) == sorted(
-        expected_annotation_store.descriptionAnnotations, key=get_key,
+        expected_annotation_store.descriptionAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.enumAnnotations, key=get_key) == sorted(
-        expected_annotation_store.enumAnnotations, key=get_key,
+        expected_annotation_store.enumAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.groupAnnotations, key=get_key) == sorted(
-        expected_annotation_store.groupAnnotations, key=get_key,
+        expected_annotation_store.groupAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.moveAnnotations, key=get_key) == sorted(
-        expected_annotation_store.moveAnnotations, key=get_key,
+        expected_annotation_store.moveAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.pureAnnotations, key=get_key) == sorted(
-        expected_annotation_store.pureAnnotations, key=get_key,
+        expected_annotation_store.pureAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.removeAnnotations, key=get_key) == sorted(
-        expected_annotation_store.removeAnnotations, key=get_key,
+        expected_annotation_store.removeAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.renameAnnotations, key=get_key) == sorted(
-        expected_annotation_store.renameAnnotations, key=get_key,
+        expected_annotation_store.renameAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.todoAnnotations, key=get_key) == sorted(
-        expected_annotation_store.todoAnnotations, key=get_key,
+        expected_annotation_store.todoAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.valueAnnotations, key=get_key) == sorted(
-        expected_annotation_store.valueAnnotations, key=get_key,
+        expected_annotation_store.valueAnnotations,
+        key=get_key,
     )
 
 
@@ -312,7 +328,12 @@ def test_handle_duplicates() -> None:
     duplicate_in_apiv2 = TodoAnnotation(classv1_b.id, [""], [""], "", EnumReviewResult.NONE, "todo")
     same_target_and_type_in_apiv2 = TodoAnnotation(classv1_b.id, [""], [""], "", EnumReviewResult.NONE, "lightbringer")
     same_target_and_type_in_both_api_versions = TodoAnnotation(
-        classv1_a.id, [""], [""], "", EnumReviewResult.NONE, "darkage",
+        classv1_a.id,
+        [""],
+        [""],
+        "",
+        EnumReviewResult.NONE,
+        "darkage",
     )
     annotation_store = AnnotationStore()
     annotation_store.todoAnnotations = [

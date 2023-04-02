@@ -4,6 +4,7 @@ from pathlib import Path
 from library_analyzer.cli._json_encoder import CustomEncoder
 from library_analyzer.processing.annotations.model import AnnotationStore
 from library_analyzer.processing.api.model import API
+from library_analyzer.processing.dependencies._parameter_dependencies import APIDependencies
 from library_analyzer.processing.usages.model import UsageCountStore
 from library_analyzer.utils import ensure_file_exists
 
@@ -43,7 +44,7 @@ def _write_api_file(api: API, out_dir_path: Path) -> Path:
     return out_file_api
 
 
-def _write_api_dependency_file(api: API, api_dependencies, out):
+def _write_api_dependency_file(api: API, api_dependencies: APIDependencies, out: Path) -> None:
     out_file_api_dependencies = out.joinpath(f"{api.package}__api_dependencies.json")
     ensure_file_exists(out_file_api_dependencies)
     with out_file_api_dependencies.open("w") as f:

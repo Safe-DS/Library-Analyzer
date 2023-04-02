@@ -82,7 +82,8 @@ def merge_mappings(mapping_a: Mapping, mapping_b: Mapping) -> Mapping:
     similarity = (mapping_a.similarity + mapping_b.similarity) / 2
     codomain = merge_api_elements_and_remove_duplicates(mapping_a.get_apiv2_elements(), mapping_b.get_apiv2_elements())
     domain: list[api_element] = merge_api_elements_and_remove_duplicates(
-        mapping_a.get_apiv1_elements(), mapping_b.get_apiv1_elements(),
+        mapping_a.get_apiv1_elements(),
+        mapping_b.get_apiv1_elements(),
     )
     if len(domain) == 1 and len(codomain) == 1:
         return OneToOneMapping(similarity, domain[0], codomain[0])

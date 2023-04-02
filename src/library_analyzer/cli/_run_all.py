@@ -1,4 +1,5 @@
 import multiprocessing
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
 
@@ -28,12 +29,12 @@ def _run_all_command(
             batch_size,
         ),
     )
-    _run_annotations(results[_API_KEY], results[_USAGES_KEY], out_file_annotations)
+    _run_annotations(Path(results[_API_KEY]), Path(results[_USAGES_KEY]), out_file_annotations)
 
 
-def _run_in_parallel(*fns) -> dict:
+def _run_in_parallel(*fns: Callable) -> dict[str, str]:
     manager = multiprocessing.Manager()
-    return_dict: dict[str, str] = manager.dict()
+    return_dict = manager.dict()
     proc = []
     for fn in fns:
         p = multiprocessing.Process(target=fn, args=(return_dict,))
@@ -43,4 +44,4 @@ def _run_in_parallel(*fns) -> dict:
     for p in proc:
         p.join()
 
-    return return_dict
+    return dict(return_dict)

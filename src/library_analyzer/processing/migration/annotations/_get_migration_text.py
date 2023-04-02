@@ -46,9 +46,7 @@ def _get_further_information(annotation: AbstractAnnotation) -> str:
             " with the new enum '"
             + annotation.enumName
             + " ("
-            + ", ".join(
-                enum_pair.stringValue + ", " + enum_pair.instanceName for enum_pair in annotation.pairs
-            )
+            + ", ".join(enum_pair.stringValue + ", " + enum_pair.instanceName for enum_pair in annotation.pairs)
             + ")'"
         )
     if isinstance(annotation, GroupAnnotation):
@@ -117,6 +115,4 @@ def get_migration_text(
 def _list_api_elements(
     api_elements: Sequence[Attribute | Class | Function | Parameter | Result],
 ) -> str:
-    return ", ".join(
-        api_element.id if hasattr(api_element, "id") else api_element.name for api_element in api_elements
-    )
+    return ", ".join(api_element.id if hasattr(api_element, "id") else api_element.name for api_element in api_elements)

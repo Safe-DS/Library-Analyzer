@@ -10,7 +10,7 @@ import glob
 import json
 
 
-def sync():
+def sync() -> None:
     ground_truth = {}
     for filepath in glob.glob("sklearn/**/*json", recursive=True):
         with open(filepath) as fin:
@@ -33,7 +33,7 @@ def get_ground_truth() -> dict:
     return ground_truth
 
 
-def get_boundaries():
+def get_boundaries() -> None:
     ground_truth = get_ground_truth()
     boundaries = {}
     for cls, props in ground_truth.items():
@@ -51,7 +51,7 @@ def get_boundaries():
         json.dump(boundaries, fout, indent=4)
 
 
-def stats():
+def stats() -> None:
     with open("ground_truth.json") as fin:
         ground_truth = json.load(fin)
 

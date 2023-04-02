@@ -102,7 +102,8 @@ def migrate_boundary_annotation(boundary_annotation: BoundaryAnnotation, mapping
                     boundary_annotation.comment = get_migration_text(boundary_annotation, mapping)
                     if parameter_expects_number:
                         boundary_annotation.interval = migrate_interval_to_fit_parameter_type(
-                            boundary_annotation.interval, parameter_type_is_discrete,
+                            boundary_annotation.interval,
+                            parameter_type_is_discrete,
                         )
                 boundary_annotation.target = parameter.id
                 return [boundary_annotation]

@@ -39,9 +39,7 @@ def _contains_string(type_: AbstractType) -> bool:
 
 
 def _default_value_is_in_instance_values_or_is_empty(default_value: str | None, pairs: list[EnumPair]) -> bool:
-    return (
-        default_value is None or default_value in (pair.stringValue for pair in pairs) or len(default_value) == 0
-    )
+    return default_value is None or default_value in (pair.stringValue for pair in pairs) or len(default_value) == 0
 
 
 def migrate_enum_annotation(enum_annotation: EnumAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:

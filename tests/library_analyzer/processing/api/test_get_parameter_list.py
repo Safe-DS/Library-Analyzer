@@ -117,7 +117,8 @@ def test_get_parameter_list_on_global_functions(python_code: str, expected_param
     assert isinstance(node, astroid.FunctionDef)
 
     actual_parameter_list = [
-        it.to_json() for it in get_parameter_list(
+        it.to_json()
+        for it in get_parameter_list(
             documentation_parser=DefaultDocumentationParser(),
             function_node=node,
             function_id="f",
@@ -254,7 +255,8 @@ def test_get_parameter_list_on_method(python_code: str, expected_parameter_list:
     assert isinstance(node, astroid.FunctionDef)
 
     actual_parameter_list = [
-        it.to_json() for it in get_parameter_list(
+        it.to_json()
+        for it in get_parameter_list(
             documentation_parser=DefaultDocumentationParser(),
             function_node=node,
             function_id="C/f",

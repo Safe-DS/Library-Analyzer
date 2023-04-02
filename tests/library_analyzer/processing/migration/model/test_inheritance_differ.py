@@ -216,25 +216,31 @@ def test_inheritance_differ(differ: AbstractDiffer) -> None:
             for inheritance_list in idiffer.inheritance.values():
                 assert len(inheritance_list) == 2
             assert idiffer.compute_class_similarity(superclass, superclassv2) == differ.compute_class_similarity(
-                superclass, superclassv2,
+                superclass,
+                superclassv2,
             )
             assert idiffer.compute_class_similarity(subclass, subclassv2) == differ.compute_class_similarity(
-                subclass, subclassv2,
+                subclass,
+                subclassv2,
             )
             assert idiffer.compute_attribute_similarity(
-                attributev2, attributev2,
+                attributev2,
+                attributev2,
             ) == differ.compute_attribute_similarity(attribute, attributev2)
             assert idiffer.compute_function_similarity(function, functionv2) == differ.compute_function_similarity(
-                function, functionv2,
+                function,
+                functionv2,
             )
             assert idiffer.compute_parameter_similarity(parameter, parameterv2) == 0.0
             assert idiffer.compute_result_similarity(result, resultv2) == 0.0
             idiffer.notify_new_mapping([OneToOneMapping(1.0, function, functionv2)])
             assert idiffer.compute_parameter_similarity(parameter, parameterv2) == differ.compute_parameter_similarity(
-                parameter, parameterv2,
+                parameter,
+                parameterv2,
             )
             assert idiffer.compute_result_similarity(result, resultv2) == differ.compute_result_similarity(
-                result, resultv2,
+                result,
+                resultv2,
             )
             idiffer = InheritanceDiffer(
                 differ,

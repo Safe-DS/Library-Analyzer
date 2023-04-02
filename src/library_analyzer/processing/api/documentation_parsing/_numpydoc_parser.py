@@ -28,7 +28,7 @@ class NumpyDocParser(AbstractDocumentationParser):
     .. [1] https://numpydoc.readthedocs.io/en/latest/format.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.__cached_function_node: astroid.FunctionDef | None = None
         self.__cached_numpydoc_string: NumpyDocString | None = None
 
@@ -81,7 +81,9 @@ class NumpyDocParser(AbstractDocumentationParser):
         )
 
     def __get_cached_function_numpydoc_string(
-        self, function_node: astroid.FunctionDef, docstring: str,
+        self,
+        function_node: astroid.FunctionDef,
+        docstring: str,
     ) -> NumpyDocString:
         """
         Return the NumpyDocString for the given function node.

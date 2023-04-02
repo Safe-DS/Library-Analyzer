@@ -1,4 +1,3 @@
-
 import spacy
 from spacy.matcher import DependencyMatcher
 from spacy.tokens import Token
@@ -23,7 +22,7 @@ from ._preprocess_docstring import preprocess_docstring
 PIPELINE = "en_core_web_sm"
 
 
-def extract_lefts_and_rights(curr_token: Token, extracted: list | None = None):
+def extract_lefts_and_rights(curr_token: Token, extracted: list | None = None) -> list:
     """Given a spaCy token, extract recursively all tokens in its dependency subtree in inorder traversal."""
     if extracted is None:
         extracted = []

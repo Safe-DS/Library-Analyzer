@@ -70,7 +70,7 @@ def _add_api_subparser(subparsers: _SubParsersAction) -> None:
         "-s",
         "--src",
         help="Directory containing the Python code of the package. If this is omitted, we try to locate the package "
-        "with the given name in the current Python interpreter.",
+             "with the given name in the current Python interpreter.",
         type=Path,
         required=False,
         default=None,
@@ -111,7 +111,7 @@ def _add_usages_subparser(subparsers: _SubParsersAction) -> None:
     usages_parser.add_argument("-o", "--out", help="Output directory.", type=Path, required=True)
 
 
-def _add_annotations_subparser(subparsers) -> None:
+def _add_annotations_subparser(subparsers: _SubParsersAction) -> None:
     generate_parser = subparsers.add_parser(_ANNOTATIONS_COMMAND, help="Generate Annotations automatically.")
     generate_parser.add_argument(
         "-a",
@@ -146,7 +146,7 @@ def _add_all_subparser(subparsers: _SubParsersAction) -> None:
         "-s",
         "--src",
         help="Directory containing the Python code of the package. If this is omitted, we try to locate the package "
-        "with the given name in the current Python interpreter.",
+             "with the given name in the current Python interpreter.",
         type=Path,
         required=False,
         default=None,
@@ -175,7 +175,7 @@ def _add_all_subparser(subparsers: _SubParsersAction) -> None:
     )
 
 
-def _add_migrate_subparser(subparsers) -> None:
+def _add_migrate_subparser(subparsers: _SubParsersAction) -> None:
     generate_parser = subparsers.add_parser(
         _MIGRATE_COMMAND,
         help="Migrate Annotations for the new version based on the previous version.",

@@ -1,4 +1,3 @@
-
 import astroid
 
 from library_analyzer.processing.api.documentation_parsing import (
@@ -29,7 +28,9 @@ def get_parameter_list(
                 assigned_by=parameter_assigned_by,
                 is_public=function_is_public,
                 documentation=documentation_parser.get_parameter_documentation(
-                    function_node, parameter_name, parameter_assigned_by,
+                    function_node,
+                    parameter_name,
+                    parameter_assigned_by,
                 ),
             ),
         )
@@ -67,7 +68,7 @@ def _get_parameters_assigned_by(
     return result
 
 
-def _get_stringified_default_value(function_node: astroid.FunctionDef, parameter_name) -> str | None:
+def _get_stringified_default_value(function_node: astroid.FunctionDef, parameter_name: str) -> str | None:
     try:
         default_value = function_node.args.default_value(parameter_name)
         if default_value is None:

@@ -36,7 +36,9 @@ def _generate_value_annotations(api: API, usages: UsageCountStore, annotations: 
 
 
 def _generate_constant_annotation(
-    parameter: Parameter, sole_stringified_value: str, annotations: AnnotationStore,
+    parameter: Parameter,
+    sole_stringified_value: str,
+    annotations: AnnotationStore,
 ) -> None:
     """
     Collect all parameters that are only ever assigned a single value.
@@ -58,7 +60,7 @@ def _generate_constant_annotation(
                 authors=[autogen_author],
                 reviewers=[],
                 comment="I omitted this parameter because it is always set to the original default value "
-                        f"({parameter.default_value}).",
+                f"({parameter.default_value}).",
                 reviewResult=EnumReviewResult.NONE,
             ),
         )
@@ -72,7 +74,7 @@ def _generate_constant_annotation(
                 authors=[autogen_author],
                 reviewers=[],
                 comment="I replaced this parameter with a constant because it is always set to the same literal value "
-                        f"({sole_stringified_value}).",
+                f"({sole_stringified_value}).",
                 reviewResult=EnumReviewResult.NONE,
                 defaultValueType=default_value_type,
                 defaultValue=default_value,
@@ -85,14 +87,16 @@ def _generate_constant_annotation(
                 authors=[autogen_author],
                 reviewers=[],
                 comment="I made this parameter required because, even though it is always set to the same value "
-                        f"({sole_stringified_value}), that value is not a literal.",
+                f"({sole_stringified_value}), that value is not a literal.",
                 reviewResult=EnumReviewResult.NONE,
             ),
         )
 
 
 def _generate_required_or_optional_annotation(
-    parameter: Parameter, usages: UsageCountStore, annotations: AnnotationStore,
+    parameter: Parameter,
+    usages: UsageCountStore,
+    annotations: AnnotationStore,
 ) -> None:
     most_common_values = usages.most_common_parameter_values(parameter.id)
     if len(most_common_values) < 2:
@@ -106,7 +110,7 @@ def _generate_required_or_optional_annotation(
                 authors=[autogen_author],
                 reviewers=[],
                 comment=f"I made this parameter required because the most common value ({most_common_values[0]}) is "
-                        "not a literal.",
+                "not a literal.",
                 reviewResult=EnumReviewResult.NONE,
             ),
         )

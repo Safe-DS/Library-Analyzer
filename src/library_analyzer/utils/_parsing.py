@@ -7,7 +7,7 @@ from astroid.builder import AstroidBuilder
 def parse_python_code(
     code: str,
     module_name: str = "",
-    path: str = None,
+    path: str | None = None,
     ast_builder: AstroidBuilder = None,
 ) -> astroid.Module:
     """Parse a source string in order to obtain an astroid AST from it.
@@ -18,7 +18,7 @@ def parse_python_code(
         The code for the module.
     module_name : str
         The name for the module, if any
-    path : str
+    path : str | None
         The path for the module
     ast_builder : AstroidBuilder
         The Astroid builder to use

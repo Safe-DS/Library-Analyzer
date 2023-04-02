@@ -174,7 +174,6 @@ class UsageCountStore:
             "function_counts": dict(self.function_usages.most_common()),
             "parameter_counts": dict(self.parameter_usages.most_common()),
             "value_counts": {
-                parameter_id: dict(values.most_common())
-                for parameter_id, values in self.value_usages.items()
+                parameter_id: dict(values.most_common()) for parameter_id, values in self.value_usages.items()
             },
         }

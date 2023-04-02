@@ -252,13 +252,17 @@ def test_weighted_levenshtein_distance() -> None:
         return (max_iteration - iteration + 1) / max_iteration
 
     cost, max_iteration = differ.distance_elements_with_cost_function(
-        ["a", "b", "c"], ["x", "b", "c"], cost_function=cost_function,
+        ["a", "b", "c"],
+        ["x", "b", "c"],
+        cost_function=cost_function,
     )
     assert cost == 1
     assert max_iteration == 3
 
     cost, max_iteration = differ.distance_elements_with_cost_function(
-        ["a", "b", "c"], ["a", "b", "z"], cost_function=cost_function,
+        ["a", "b", "c"],
+        ["a", "b", "z"],
+        cost_function=cost_function,
     )
     assert cost == 1 / 3
     assert max_iteration == 3

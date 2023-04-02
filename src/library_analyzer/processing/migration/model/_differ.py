@@ -430,7 +430,8 @@ class SimpleDiffer(AbstractDiffer):
         id_similarity = self._compute_id_similarity(functionv1.id, functionv2.id)
 
         documentation_similarity = self._compute_documentation_similarity(
-            functionv1.documentation, functionv2.documentation,
+            functionv1.documentation,
+            functionv2.documentation,
         )
         if documentation_similarity < 0:
             documentation_similarity = 0
@@ -495,19 +496,22 @@ class SimpleDiffer(AbstractDiffer):
         parameter_name_similarity = self._compute_name_similarity(parameterv1.name, parameterv2.name)
         parameter_type_similarity = self._compute_type_similarity(parameterv1.type, parameterv2.type)
         parameter_assignment_similarity = self._compute_assignment_similarity(
-            parameterv1.assigned_by, parameterv2.assigned_by,
+            parameterv1.assigned_by,
+            parameterv2.assigned_by,
         )
         if parameter_assignment_similarity < 0:
             parameter_assignment_similarity = 0
             normalize_similarity -= 1
         parameter_default_value_similarity = self._compute_default_value_similarity(
-            parameterv1.default_value, parameterv2.default_value,
+            parameterv1.default_value,
+            parameterv2.default_value,
         )
         if parameter_default_value_similarity < 0:
             parameter_default_value_similarity = 0
             normalize_similarity -= 1
         parameter_documentation_similarity = self._compute_documentation_similarity(
-            parameterv1.documentation, parameterv2.documentation,
+            parameterv1.documentation,
+            parameterv2.documentation,
         )
         if parameter_documentation_similarity < 0:
             parameter_documentation_similarity = 0
@@ -547,7 +551,9 @@ class SimpleDiffer(AbstractDiffer):
         return [abstract_type]
 
     def _compute_assignment_similarity(
-        self, assigned_byv1: ParameterAssignment, assigned_byv2: ParameterAssignment,
+        self,
+        assigned_byv1: ParameterAssignment,
+        assigned_byv2: ParameterAssignment,
     ) -> float:
         return self.assigned_by_look_up_similarity[assigned_byv1][assigned_byv2]
 
@@ -570,7 +576,9 @@ class SimpleDiffer(AbstractDiffer):
         return self._compute_name_similarity(resultv1.name, resultv2.name)
 
     def _compute_default_value_similarity(
-        self, default_valuev1: str | None, default_valuev2: str | None,
+        self,
+        default_valuev1: str | None,
+        default_valuev2: str | None,
     ) -> float:
         if default_valuev1 is None and default_valuev2 is None:
             return -1.0
@@ -630,7 +638,9 @@ class SimpleDiffer(AbstractDiffer):
         descriptionv2 = re.split("[\n ]", documentationv2.description)
 
         documentation_similarity = distance(descriptionv1, descriptionv2) / max(
-            len(descriptionv1), len(descriptionv2), 1,
+            len(descriptionv1),
+            len(descriptionv2),
+            1,
         )
         return 1 - documentation_similarity
 
@@ -648,7 +658,9 @@ class SimpleDiffer(AbstractDiffer):
             return (max_iteration - iteration + 1) / max_iteration
 
         total_costs, max_iterations = self.distance_elements_with_cost_function(
-            module_pathv1, module_pathv2, cost_function,
+            module_pathv1,
+            module_pathv2,
+            cost_function,
         )
         return 1 - (total_costs / (sum(range(1, max_iterations + 1)) / max_iterations))
 

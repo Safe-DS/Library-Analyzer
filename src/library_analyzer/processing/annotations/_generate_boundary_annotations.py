@@ -1,4 +1,3 @@
-
 from library_analyzer.processing.annotations.model import (
     AnnotationStore,
     BoundaryAnnotation,

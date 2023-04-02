@@ -13,7 +13,7 @@ class _UsageFinder:
         self.package_name: str = package_name
         self.usages: UsageCountStore = UsageCountStore()
 
-    def enter_call(self, node: astroid.Call):
+    def enter_call(self, node: astroid.Call) -> None:
         called_tuple = _analyze_declaration_called_by(node, self.package_name)
         if called_tuple is None:
             return
@@ -44,7 +44,8 @@ class _UsageFinder:
 
 
 def _analyze_declaration_called_by(
-    node: astroid.Call, package_name: str,
+    node: astroid.Call,
+    package_name: str,
 ) -> tuple[astroid.NodeNG, str, astroid.Arguments, int] | None:
     """
     Try to determine the declaration that is called by the given call node.
@@ -132,12 +133,14 @@ def __called_constructor(class_def: astroid.ClassDef) -> astroid.FunctionDef | N
         return None
 
 
-def _stringify_value(value: astroid.NodeNG):
+def _stringify_value(value: astroid.NodeNG) -> str:
     return value.as_string()
 
 
 def _bound_parameters(
-    parameters: astroid.Arguments, arguments: CallSite, n_implicit_parameters: int,
+    parameters: astroid.Arguments,
+    arguments: CallSite,
+    n_implicit_parameters: int,
 ) -> dict[str, astroid.NodeNG] | None:
     # Improper call
     if parameters.args is None or arguments.has_invalid_arguments() or arguments.has_invalid_keywords():

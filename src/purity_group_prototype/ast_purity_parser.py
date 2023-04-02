@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 from astroid import nodes as Astroid
 from astroid import parse
@@ -480,58 +481,58 @@ visit it anyway. In these cases, the parser does not need to investigate these a
 list_of_traversed_functions = []
 
 """ Lists to store function properties while traversing the ast """
-call_prop_list: list[dict[str, str]] = []
-state_read_prop_list: list[dict[str, str]] = []
-state_write_prop_list: list[dict[str, str]] = []
-input_read_prop_list: list[dict[str, str]] = []
-output_write_prop_list: list[dict[str, str]] = []
-error_prop_list: list[dict[str, str]] = []
-random_prop_list: list[dict[str, str]] = []
+call_prop_list: list[dict[str, str | None]] = []
+state_read_prop_list: list[dict[str, str | None]] = []
+state_write_prop_list: list[dict[str, str | None]] = []
+input_read_prop_list: list[dict[str, str | None]] = []
+output_write_prop_list: list[dict[str, str | None]] = []
+error_prop_list: list[dict[str, str | None]] = []
+random_prop_list: list[dict[str, str | None]] = []
 
 
-def create_call_prop(fnc: str, callee: str):
+def create_call_prop(fnc: str | None, callee: str) -> None:
     """Save entry in list for the case where a function calls another function."""
     new_prop = {"function": fnc, "callee": callee}
     call_prop_list.append(new_prop)
 
 
-def create_state_read_prop(fnc: str, attr: str, obj: str):
+def create_state_read_prop(fnc: str | None, attr: str, obj: str) -> None:
     """Save entry in list for the case where a function reads from a state."""
     new_prop = {"function": fnc, "attribute": attr, "object": obj}
     state_read_prop_list.append(new_prop)
 
 
-def create_state_write_prop(fnc: str, attr: str, obj: str, value: str):
+def create_state_write_prop(fnc: str | None, attr: str, obj: str, value: str) -> None:
     """Save entry in list for the case where a function write to the state of an object."""
     new_prop = {"function": fnc, "attribute": attr, "object": obj, "value": value}
     state_write_prop_list.append(new_prop)
 
 
-def create_input_read_prop(fnc: str, source: str):
+def create_input_read_prop(fnc: str | None, source: str) -> None:
     """Save entry in list for the case where a function reads input from file or console."""
     new_prop = {"function": fnc, "source": source}
     input_read_prop_list.append(new_prop)
 
 
-def create_output_write_prop(fnc: str, target: str, text: str):
+def create_output_write_prop(fnc: str | None, target: str, text: str) -> None:
     """Save entry in list for the case where a function writes to the file or console."""
     new_prop = {"function": fnc, "target": target, "text": text}
     output_write_prop_list.append(new_prop)
 
 
-def create_error_prop(fnc: str, cond: str, error: str, msg: str):
+def create_error_prop(fnc: str | None, cond: str, error: str, msg: str) -> None:
     """Save entry in list for the case where a function raises an exception."""
     new_prop = {"function": fnc, "condition": cond, "error": error, "message": msg}
     error_prop_list.append(new_prop)
 
 
-def create_random_prop(fnc: str, source: str):
+def create_random_prop(fnc: str | None, source: str) -> None:
     """Save entry in list for the case where a function uses randomness."""
     new_prop = {"function": fnc, "source": source}
     random_prop_list.append(new_prop)
 
 
-def serialize_lists():
+def serialize_lists() -> None:
     """Serialize all lists."""
     file = open("parsed_data.json", "w")
     file.write(json.dumps(call_prop_list))
@@ -544,7 +545,7 @@ def serialize_lists():
     file.close()
 
 
-def print_lists():
+def print_lists() -> None:
     """Print all lists."""
     for e in call_prop_list:
         print(  # noqa: T201
@@ -582,7 +583,7 @@ def print_lists():
         )
 
 
-def visit_ast(ast):
+def visit_ast(ast: Astroid.NodeNG) -> None:
     """Visit nodes of the AST recursively and perform adequate queries on them."""
     if isinstance(ast, Astroid.Module):
         # handle module
@@ -652,7 +653,10 @@ def visit_ast(ast):
         #     for i in range(len(ast.exc.args[0].values)):
         #         if isinstance(ast.exc.args[0].values[i], Astroid.Const):
         create_error_prop(
-            infer_function(ast), "", ast.exc.func.name, concat_args(ast.exc.args),
+            infer_function(ast),
+            "",
+            ast.exc.func.name,
+            concat_args(ast.exc.args),
         )  # TODO infer condition under which exception is raised
 
     if isinstance(ast, Astroid.Const):
@@ -693,7 +697,9 @@ def visit_ast(ast):
         elif isinstance(ast.func, Astroid.Attribute) and ast.func.attrname == "warn":
             string = ast.args[0] if len(ast.args) > 0 else ""
             create_output_write_prop(
-                enclosing, "console", string,
+                enclosing,
+                "console",
+                string,
             )  # TODO: is warn really an output or are they just collected??
 
         # this is mostly for built-in functions that somehow sometimes only appear as a Astroid.Name...
@@ -725,7 +731,10 @@ def visit_ast(ast):
         # handle attribute assignment
         visit_ast(ast.expr)
         create_state_write_prop(
-            infer_function(ast), ast.attrname, ast.expr.name, ast.expr,
+            infer_function(ast),
+            ast.attrname,
+            ast.expr.name,
+            ast.expr,
         )  # TODO: replace last arg with value
 
     if isinstance(ast, Astroid.AssignName):  # TODO: is this a state side effect? Seems to not be the case...
@@ -1040,7 +1049,7 @@ def visit_ast(ast):
         create_random_prop(infer_function(ast), ast.name)
 
 
-def infer_function(ast):
+def infer_function(ast: Astroid.NodeNG | None) -> str | None:
     """Find the closest function node in which the currently visited node is contained."""
     if ast is None:
         return None
@@ -1050,7 +1059,7 @@ def infer_function(ast):
         return infer_function(ast.parent)
 
 
-def infer_class(ast):
+def infer_class(ast: Astroid.NodeNG | None) -> str | None:
     """Find the closest class node in which the currently visited node is contained."""
     if ast is None:
         return None
@@ -1060,32 +1069,32 @@ def infer_class(ast):
         return infer_class(ast.parent)
 
 
-def concat_joined_str(strings):
+def concat_joined_str(strings: Astroid.NodeNG | None) -> str | None:
     """
     Concatenate the arguments of a function.
 
     For example useful to store what a print(...) is printing to console. May be replaced by one or removed completely
     in future work.
     """
-    if strings is Astroid.JoinedStr:
+    if isinstance(strings, Astroid.JoinedStr):
         strings = strings.values
         string = ""
         for i in range(len(strings)):
             string += strings[i]
         return string.strip()
-    elif strings is Astroid.Const:
+    elif isinstance(strings, Astroid.Const):
         return strings.value
     return None
 
 
-def _concat_joined_string(strings):
+def _concat_joined_string(strings: Any) -> str:
     string = ""
     for i in range(len(strings.values)):
         string += strings.values[i].as_string()
     return string.strip()
 
 
-def concat_args(strings):
+def concat_args(strings: Any) -> str:
     string = ""
     for i in range(len(strings)):
         # if isinstance(strings[i], Astroid.JoinedStr):

@@ -67,7 +67,8 @@ class APIMapping:
             for mapping in related_mappings:
                 new_mapping = None
                 if isinstance(mapping.get_apiv1_elements()[0], Attribute) and isinstance(
-                    mapping.get_apiv2_elements()[0], Attribute,
+                    mapping.get_apiv2_elements()[0],
+                    Attribute,
                 ):
                     new_mapping = self._get_mappings_for_api_elements(
                         [element for element in mapping.get_apiv1_elements() if isinstance(element, Attribute)],
@@ -76,7 +77,8 @@ class APIMapping:
                     )
                     mappings.extend(new_mapping)
                 elif isinstance(mapping.get_apiv1_elements()[0], Class) and isinstance(
-                    mapping.get_apiv2_elements()[0], Class,
+                    mapping.get_apiv2_elements()[0],
+                    Class,
                 ):
                     new_mapping = self._get_mappings_for_api_elements(
                         [element for element in mapping.get_apiv1_elements() if isinstance(element, Class)],
@@ -85,7 +87,8 @@ class APIMapping:
                     )
                     mappings.extend(new_mapping)
                 elif isinstance(mapping.get_apiv1_elements()[0], Function) and isinstance(
-                    mapping.get_apiv2_elements()[0], Function,
+                    mapping.get_apiv2_elements()[0],
+                    Function,
                 ):
                     new_mapping = self._get_mappings_for_api_elements(
                         [element for element in mapping.get_apiv1_elements() if isinstance(element, Function)],
@@ -94,7 +97,8 @@ class APIMapping:
                     )
                     mappings.extend(new_mapping)
                 elif isinstance(mapping.get_apiv1_elements()[0], Parameter) and isinstance(
-                    mapping.get_apiv2_elements()[0], Parameter,
+                    mapping.get_apiv2_elements()[0],
+                    Parameter,
                 ):
                     new_mapping = self._get_mappings_for_api_elements(
                         [element for element in mapping.get_apiv1_elements() if isinstance(element, Parameter)],
@@ -103,7 +107,8 @@ class APIMapping:
                     )
                     mappings.extend(new_mapping)
                 elif isinstance(mapping.get_apiv1_elements()[0], Result) and isinstance(
-                    mapping.get_apiv2_elements()[0], Result,
+                    mapping.get_apiv2_elements()[0],
+                    Result,
                 ):
                     new_mapping = self._get_mappings_for_api_elements(
                         [element for element in mapping.get_apiv1_elements() if isinstance(element, Result)],
