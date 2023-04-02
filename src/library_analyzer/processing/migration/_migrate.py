@@ -163,9 +163,19 @@ class Migration:
             if not print_for_apiv2:
                 for mapping in self.mappings:
                     for element in mapping.get_apiv1_elements():
-                        if isinstance(api_element, Attribute) and isinstance(element, Attribute) and element.name == api_element.name and isinstance(element.types, type(api_element.types)):
+                        if (
+                            isinstance(api_element, Attribute)
+                            and isinstance(element, Attribute)
+                            and element.name == api_element.name
+                            and isinstance(element.types, type(api_element.types))
+                        ):
                             return True
-                        if isinstance(api_element, Result) and isinstance(element, Result) and element.name == api_element.name and element.docstring == api_element.docstring:
+                        if (
+                            isinstance(api_element, Result)
+                            and isinstance(element, Result)
+                            and element.name == api_element.name
+                            and element.docstring == api_element.docstring
+                        ):
                             return True
                         if (
                             not isinstance(api_element, Attribute | Result)
@@ -179,9 +189,19 @@ class Migration:
                 return False
             for mapping in self.mappings:
                 for element in mapping.get_apiv2_elements():
-                    if isinstance(api_element, Attribute) and isinstance(element, Attribute) and element.name == api_element.name and isinstance(element.types, type(api_element.types)):
+                    if (
+                        isinstance(api_element, Attribute)
+                        and isinstance(element, Attribute)
+                        and element.name == api_element.name
+                        and isinstance(element.types, type(api_element.types))
+                    ):
                         return True
-                    if isinstance(api_element, Result) and isinstance(element, Result) and element.name == api_element.name and element.docstring == api_element.docstring:
+                    if (
+                        isinstance(api_element, Result)
+                        and isinstance(element, Result)
+                        and element.name == api_element.name
+                        and element.docstring == api_element.docstring
+                    ):
                         return True
                     if (
                         not isinstance(api_element, Attribute | Result)
@@ -204,16 +224,12 @@ class Migration:
             if not is_included(parameter):
                 not_mapped_api_elements.append(parameter.id)
         for attribute, class_ in [
-            (attribute, class_1)
-            for class_1 in api.classes.values()
-            for attribute in class_1.instance_attributes
+            (attribute, class_1) for class_1 in api.classes.values() for attribute in class_1.instance_attributes
         ]:
             if not is_included(attribute):
                 not_mapped_api_elements.append(class_.id + "/" + attribute.name)
         for result, function in [
-            (result, function_1)
-            for function_1 in api.functions.values()
-            for result in function_1.results
+            (result, function_1) for function_1 in api.functions.values() for result in function_1.results
         ]:
             if not is_included(result):
                 not_mapped_api_elements.append(function.id + "/" + result.name)

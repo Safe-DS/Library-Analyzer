@@ -221,12 +221,13 @@ def test_migrate_command_and_both_annotation_stores() -> None:
     annotationsv1_json_path = data_path / "migration" / "annotationv1.json"
     annotationsv2_json_path = data_path / "migration" / "annotationv2.json"
     unsure_annotationsv2_json_path = data_path / "migration" / "unsure_annotationv2.json"
-    with apiv1_json_path.open(encoding="utf-8") as apiv1_file, \
-        apiv2_json_path.open(encoding="utf-8") as apiv2_file, \
-        annotationsv1_json_path.open(encoding="utf-8") as annotationsv1_file, \
-        annotationsv2_json_path.open(encoding="utf-8") as annotationsv2_file, \
-        unsure_annotationsv2_json_path.open(encoding="utf-8") as unsure_annotationsv2_file:
-
+    with apiv1_json_path.open(encoding="utf-8") as apiv1_file, apiv2_json_path.open(
+        encoding="utf-8",
+    ) as apiv2_file, annotationsv1_json_path.open(encoding="utf-8") as annotationsv1_file, annotationsv2_json_path.open(
+        encoding="utf-8",
+    ) as annotationsv2_file, unsure_annotationsv2_json_path.open(
+        encoding="utf-8",
+    ) as unsure_annotationsv2_file:
         apiv1_json = json.load(apiv1_file)
         apiv1 = API.from_json(apiv1_json)
         apiv2_json = json.load(apiv2_file)
@@ -366,10 +367,10 @@ def test_handle_duplicates() -> None:
     assert todo_annotations[classv2.id] == {
         "authors": ["", "migration"],
         "comment": "Conflicting Attribute during migration: {'newTodo': '"
-                   + todo_values[0]
-                   + "'}, {'newTodo': '"
-                   + todo_values[1]
-                   + "'}",
+        + todo_values[0]
+        + "'}, {'newTodo': '"
+        + todo_values[1]
+        + "'}",
         "reviewResult": "unsure",
         "reviewers": [""],
         "target": "test/test.duplicate/TestClass",
