@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from .book import Book
 from .persons import Employee, LibraryUser
@@ -59,7 +59,7 @@ class Library:
             book.borrow_by is not None and book.borrow_until is not None and book.borrow_by == user
         ):  # apiv2: check if book is in borrowed book list
             late_fee = 0.0
-            today = datetime.today().date()
+            today = datetime.now(tz=timezone.utc).date()
             if book.borrow_until > today or (book.borrow_by == today and not self.is_open):
                 late_fee = (today - book.borrow_until).days * book.FEE_PER_DAY
                 if not self.is_open:
@@ -80,7 +80,7 @@ class Library:
         """
         if book in self.books and book not in self.borrowed_books:
             book.borrow_by = user
-            book.borrow_until = datetime.today() + timedelta(days=1)
+            book.borrow_until = datetime.now(tz=timezone.utc) + timedelta(days=1)
 
     def add_new_book(self, book: Book) -> None:  # apiv2: check if book is not duplicated, rename to add_new_media
         """Add a new book.

@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from .media import Book, Media
 from .notificate import send_message_to_person
@@ -50,7 +50,7 @@ class Library:
             media.borrow_by is not None and media.borrow_until is not None and media.borrow_by == user
         ):  # apiv2: check if Media is in borrowed Media list
             late_fee = 0.0
-            today = datetime.today().date()
+            today = datetime.now(tz=timezone.utc).date()
             if media.borrow_until > today:
                 late_fee = (today - media.borrow_until).days * media.FEE_PER_DAY
             user.give_back(late_fee)  # apiv2: rename function
@@ -69,7 +69,7 @@ class Library:
         """
         if media in self.media and media not in self.borrowed_media and user.pending_fees <= 5.0:
             media.borrow_by = user
-            media.borrow_until = datetime.today() + timedelta(days=1)
+            media.borrow_until = datetime.now(tz=timezone.utc) + timedelta(days=1)
 
     def add_new_media(self, media: Media) -> None:
         """Add a new media.
