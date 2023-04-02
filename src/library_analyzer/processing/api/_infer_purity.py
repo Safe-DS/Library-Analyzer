@@ -311,8 +311,7 @@ def extract_impurity_reasons(purity: PurityResult) -> list[ImpurityIndicator]:
 def generate_purity_information(function: astroid.FunctionDef, purity_result: PurityResult) -> PurityInformation:
     function_id = calc_function_id(function)
     reasons = extract_impurity_reasons(purity_result)
-    purity_info = PurityInformation(function_id, reasons)
-    return purity_info
+    return PurityInformation(function_id, reasons)
 
 
 def calc_function_id(node: astroid.NodeNG) -> FunctionID:

@@ -29,8 +29,7 @@ def get_class_name(filepath: str) -> str:
 
 def get_ground_truth() -> dict:
     with open("ground_truth.json") as fin:
-        ground_truth = json.load(fin)
-    return ground_truth
+        return json.load(fin)
 
 
 def get_boundaries() -> None:
