@@ -55,7 +55,6 @@ def extract_valid_literals(param_description: str, param_type: str) -> set[str]:
     set[str]
         A set of valid, extracted values of the parameter to be examined.
     """
-
     description_config: DescriptionStringConfiguration = DescriptionStringConfiguration()
     type_config: TypeStringConfiguration = TypeStringConfiguration()
     none_and_bool = {"False", "None", "True"}
@@ -97,7 +96,6 @@ def _extract_from_type_curly_enum(type_string: str) -> set[str]:
     set[str]
         A set of valid values from the parameter description to be examined.
     """
-
     matches = re.findall(r"\{(.*?)}", type_string)
     extracted = []
 
@@ -122,7 +120,6 @@ def _extract_from_type_listing(type_string: str) -> set[str]:
     set[str]
         A set of valid values from the parameter description to be examined.
     """
-
     # Multiple values seperated by ',', 'and' or 'or' with single# quotes
     single_and_or_pattern = r"('[^']*'|bool|str)\s*(?:and|or|,)?"
     # Multiple values seperated by ',', 'and' or'or' with double quotes
@@ -159,7 +156,6 @@ def _extract_from_description_if_listing(description: str) -> set[str]:
     set[str]
         A set of valid values from the parameter description to be examined.
     """
-
     pattern = r"[-\+\*]?\s*If\s*('[^']*'|\"[^\"]*\"|True|False|None)"
     matches = re.findall(pattern, description)
     return set(matches)
@@ -182,7 +178,6 @@ def _extract_from_description_indented_listing(description: str) -> set[str]:
     set[str]
         A set of valid values from the parameter description to be examined.
     """
-
     pattern = r"[-\+\*]?\s+(\"[^\"]*\"|'[^']*'|None|True|False):"
     matches = re.findall(pattern, description)
     return set(matches)
@@ -203,7 +198,6 @@ def _extract_from_description_when_set_to(description: str) -> set[str]:
     set[str]
         A set of valid literals from the parameter description to be examined.
     """
-
     pattern = r"When set to (\"[^\"]*\"|'[^']*'|None|True|False)"
     matches = re.findall(pattern, description, re.IGNORECASE)
     return set(matches)
