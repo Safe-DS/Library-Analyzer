@@ -38,7 +38,24 @@ class TypeStringConfiguration(Configuration):
 
 
 def extract_valid_literals(param_description: str, param_type: str) -> set[str]:
-    # Function that extracts all valid literals from the type and description string.
+    """
+    Function that extracts all valid literals from the type and description string.
+
+    Parameters
+    ----------
+    param_description: str
+        Description string of the parameter to be examined.
+
+    param_type: str
+        Type string of the parameter to be examined.
+
+
+    Returns
+    -------
+    set[str]
+        A set of valid, extracted values of the parameter to be examined.
+    """
+
     description_config: DescriptionStringConfiguration = DescriptionStringConfiguration()
     type_config: TypeStringConfiguration = TypeStringConfiguration()
     none_and_bool = {"False", "None", "True"}
@@ -67,6 +84,20 @@ def extract_valid_literals(param_description: str, param_type: str) -> set[str]:
 
 
 def _extract_from_type_curly_enum(type_string: str) -> set[str]:
+    """
+    Extraction of valid values of the parameter type string to be examined, enclosed in curly brackets.
+
+    Parameters
+    ----------
+    type_string: str
+        Type string of the parameter to be examined.
+
+    Returns
+    -------
+    set[str]
+        A set of valid values from the parameter description to be examined.
+    """
+
     matches = re.findall(r"\{(.*?)}", type_string)
     extracted = []
 
@@ -78,6 +109,20 @@ def _extract_from_type_curly_enum(type_string: str) -> set[str]:
 
 
 def _extract_from_type_listing(type_string: str) -> set[str]:
+    """
+    Extraction of valid values from the listing of the parameter type string to be examined.
+
+    Parameters
+    ----------
+    type_string: str
+        Type string of the parameter to be examined.
+
+    Returns
+    -------
+    set[str]
+        A set of valid values from the parameter description to be examined.
+    """
+
     # Multiple values seperated by ',', 'and' or 'or' with single# quotes
     single_and_or_pattern = r"('[^']*'|bool|str)\s*(?:and|or|,)?"
     # Multiple values seperated by ',', 'and' or'or' with double quotes
@@ -99,24 +144,63 @@ def _extract_from_type_listing(type_string: str) -> set[str]:
 
 
 def _extract_from_description_if_listings(description: str) -> set[str]:
-    # Detection of substrings starting with 'if' and satisfying one of the following cases:
-    # A value between single or double quotes, False, True, or None.
+    """
+    Detection of substrings starting with 'if' and satisfying one of the following cases:
+    A value between single or double quotes, False, True, or None.
+
+    Parameters
+    ----------
+    description: str
+        Description string of the parameter to be examined.
+
+    Returns
+    -------
+    set[str]
+        A set of valid values from the parameter description to be examined.
+    """
+
     pattern = r"[-\+\*]?\s*If\s*('[^']*'|\"[^\"]*\"|True|False|None)"
     matches = re.findall(pattern, description)
     return set(matches)
 
 
 def _extract_from_description_indented_listings(description: str) -> set[str]:
-    # Detect substrings that appear in an indented list and match one of the following cases:
-    # A value between single or double quotes, False, True, or None.
+    """
+    Detect substrings that appear in an indented list and match one of the following cases:
+    A value between single or double quotes, False, True, or None.
+
+    Parameters
+    ----------
+    description: str
+        Description string of the parameter to be examined.
+
+
+    Returns
+    -------
+    set[str]
+        A set of valid values from the parameter description to be examined.
+    """
+
     pattern = r"[-\+\*]?\s+(\"[^\"]*\"|'[^']*'|None|True|False):"
     matches = re.findall(pattern, description)
     return set(matches)
 
 
 def _extract_from_descritpion_when_set_to(description: str) -> set[str]:
-    # Detection of substrings starting with 'when set to' and satisfying one of the following cases:
-    # A value between single or double quotes, False, True, or None.
+    """
+    Detection of substrings starting with 'when set to' and satisfying one of the following cases:
+    A value between single or double quotes, False, True, or None.
+
+    Parameters
+    ----------
+    Description string of the parameter to be examined.
+
+    Returns
+    -------
+    set[str]
+        A set of valid values from the parameter description to be examined.
+    """
+
     pattern = r"When set to (\"[^\"]*\"|'[^']*'|None|True|False)"
     matches = re.findall(pattern, description, re.IGNORECASE)
     return set(matches)
