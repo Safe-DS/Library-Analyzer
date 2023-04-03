@@ -168,7 +168,7 @@ def migrate_todo_annotation_data_many_to_many_mapping() -> tuple[Mapping, Abstra
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        documentation=ClassDocumentation(""),
         code="class TestTodoClass:\n    pass",
         instance_attributes=[],
     )

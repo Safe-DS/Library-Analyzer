@@ -11,11 +11,11 @@ from library_analyzer.processing.api.model import (
     ParameterDocumentation,
 )
 
-from ._abstract_documentation_parser import AbstractDocumentationParser
-from ._get_full_docstring import get_full_docstring
+from ._abstract_documentation_parser import AbstractDocstringParser
+from ._helpers import get_full_docstring
 
 
-class NumpyDocParser(AbstractDocumentationParser):
+class NumpyDocParser(AbstractDocstringParser):
     """
     Parses documentation in the NumpyDoc format.
 
@@ -37,7 +37,6 @@ class NumpyDocParser(AbstractDocumentationParser):
 
         return ClassDocumentation(
             description=_get_description(NumpyDocString(docstring)),
-            full_docstring=docstring,
         )
 
     def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocumentation:
@@ -45,7 +44,6 @@ class NumpyDocParser(AbstractDocumentationParser):
 
         return FunctionDocumentation(
             description=_get_description(self.__get_cached_function_numpydoc_string(function_node, docstring)),
-            full_docstring=docstring,
         )
 
     def get_parameter_documentation(

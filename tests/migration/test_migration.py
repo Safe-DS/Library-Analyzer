@@ -314,7 +314,7 @@ def test_handle_duplicates() -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        documentation=ClassDocumentation(""),
         code="",
         instance_attributes=[],
     )
@@ -395,7 +395,7 @@ def test_was_moved() -> None:
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
     assert _was_moved(function, function, move_annotation) is False
@@ -410,7 +410,7 @@ def test_was_moved() -> None:
                 results=[],
                 is_public=True,
                 reexported_by=[],
-                documentation=FunctionDocumentation("", ""),
+                documentation=FunctionDocumentation(""),
                 code="",
             ),
             move_annotation,
@@ -428,7 +428,7 @@ def test_was_moved() -> None:
                 results=[],
                 is_public=True,
                 reexported_by=[],
-                documentation=FunctionDocumentation("", ""),
+                documentation=FunctionDocumentation(""),
                 code="",
             ),
             move_annotation,

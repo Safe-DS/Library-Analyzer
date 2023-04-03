@@ -1,8 +1,8 @@
 import astroid
 import pytest
 from library_analyzer.processing.api import get_parameter_list
-from library_analyzer.processing.api.documentation_parsing import (
-    DefaultDocumentationParser,
+from library_analyzer.processing.api.docstring_parsing import (
+    PlaintextDocstringParser,
 )
 from library_analyzer.processing.api.model import (
     Parameter,
@@ -119,7 +119,7 @@ def test_get_parameter_list_on_global_functions(python_code: str, expected_param
     actual_parameter_list = [
         it.to_json()
         for it in get_parameter_list(
-            documentation_parser=DefaultDocumentationParser(),
+            docstring_parser=PlaintextDocstringParser(),
             function_node=node,
             function_id="f",
             function_qname="f",
@@ -257,7 +257,7 @@ def test_get_parameter_list_on_method(python_code: str, expected_parameter_list:
     actual_parameter_list = [
         it.to_json()
         for it in get_parameter_list(
-            documentation_parser=DefaultDocumentationParser(),
+            docstring_parser=PlaintextDocstringParser(),
             function_node=node,
             function_id="C/f",
             function_qname="C.f",

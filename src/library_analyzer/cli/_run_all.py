@@ -7,6 +7,8 @@ from library_analyzer.cli._run_annotations import _run_annotations
 from library_analyzer.cli._run_api import _run_api_command
 from library_analyzer.cli._run_usages import _run_usages_command
 from library_analyzer.cli._shared_constants import _API_KEY, _USAGES_KEY
+from library_analyzer.processing.api.docstring_parsing import DocstringStyle
+
 
 
 def _run_all_command(
@@ -14,12 +16,13 @@ def _run_all_command(
     src_dir_path: Path,
     client_dir_path: Path,
     out_dir_path: Path,
+    docstring_style: DocstringStyle,
     n_processes: int,
     batch_size: int,
 ) -> None:
     out_file_annotations = out_dir_path.joinpath("annotations.json")
     results = _run_in_parallel(
-        partial(_run_api_command, package, src_dir_path, out_dir_path),
+        partial(_run_api_command, package, src_dir_path, out_dir_path, docstring_style),
         partial(
             _run_usages_command,
             package,

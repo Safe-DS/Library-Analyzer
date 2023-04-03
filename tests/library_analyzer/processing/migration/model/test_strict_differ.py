@@ -45,7 +45,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test", "This is a test"),
+        documentation=ClassDocumentation("This is a test"),
         code=code_a,
         instance_attributes=[attribute_a],
     )
@@ -64,7 +64,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a new test", "This is a new test"),
+        documentation=ClassDocumentation("This is a new test"),
         code=code_b,
         instance_attributes=[attribute_b],
     )
@@ -100,7 +100,6 @@ def test_similarity(differ: AbstractDiffer) -> None:
         is_public=True,
         reexported_by=[],
         documentation=FunctionDocumentation(
-            "This test function is a for testing",
             "This test function is a for testing",
         ),
         code=code_function_a,
@@ -138,7 +137,6 @@ def test_similarity(differ: AbstractDiffer) -> None:
         is_public=True,
         reexported_by=[],
         documentation=FunctionDocumentation(
-            "This test function is a test",
             "This test function is a test",
         ),
         code=code_b,

@@ -68,7 +68,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
 
@@ -107,7 +107,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
 
@@ -137,7 +137,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
 
@@ -167,7 +167,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
     parameterv2_4_b = Parameter(
@@ -187,7 +187,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
     functionv2_5 = Function(
@@ -198,7 +198,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
     classv2_6 = Class(
@@ -208,7 +208,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        documentation=ClassDocumentation(""),
         code="class NewClass:\n    pass",
         instance_attributes=[],
     )
@@ -328,7 +328,7 @@ def migrate_group_annotation_data_one_to_one_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
     parameterv1_a = Parameter(
@@ -358,7 +358,7 @@ def migrate_group_annotation_data_one_to_one_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
     parameterv2_a = Parameter(
@@ -423,7 +423,7 @@ def migrate_group_annotation_data_one_to_one_mapping__one_mapping_for_parameters
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
     parameterv1_a = Parameter(
@@ -453,7 +453,7 @@ def migrate_group_annotation_data_one_to_one_mapping__one_mapping_for_parameters
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
     parameterv2_a = Parameter(
@@ -571,7 +571,7 @@ def migrate_group_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
     functionv1_2 = Function(
@@ -582,7 +582,7 @@ def migrate_group_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
 
@@ -621,7 +621,7 @@ def migrate_group_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
 

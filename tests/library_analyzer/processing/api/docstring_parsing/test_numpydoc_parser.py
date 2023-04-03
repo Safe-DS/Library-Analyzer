@@ -1,6 +1,6 @@
 import astroid
 import pytest
-from library_analyzer.processing.api.documentation_parsing import NumpyDocParser
+from library_analyzer.processing.api.docstring_parsing import NumpyDocParser
 from library_analyzer.processing.api.model import (
     ClassDocumentation,
     FunctionDocumentation,
@@ -38,12 +38,11 @@ class C:
             class_with_documentation,
             ClassDocumentation(
                 description="Lorem ipsum. Code::\n\n    pass\n\nDolor sit amet.",
-                full_docstring="Lorem ipsum. Code::\n\n    pass\n\nDolor sit amet.",
             ),
         ),
         (
             class_without_documentation,
-            ClassDocumentation(description="", full_docstring=""),
+            ClassDocumentation(description=""),
         ),
     ],
     ids=[
@@ -88,12 +87,11 @@ def f():
             function_with_documentation,
             FunctionDocumentation(
                 description="Lorem ipsum. Code::\n\n    pass\n\nDolor sit amet.",
-                full_docstring="Lorem ipsum. Code::\n\n    pass\n\nDolor sit amet.",
             ),
         ),
         (
             function_without_documentation,
-            FunctionDocumentation(description="", full_docstring=""),
+            FunctionDocumentation(description=""),
         ),
     ],
     ids=[
