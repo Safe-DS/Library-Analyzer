@@ -9,12 +9,11 @@ from library_analyzer.processing.api.model import (
 )
 
 
-@pytest.fixture
+@pytest.fixture()
 def epydoc_parser() -> EpydocParser:
     return EpydocParser()
 
 
-# language=python
 class_with_documentation = '''
 class C:
     """
@@ -26,7 +25,6 @@ class C:
     """
 '''
 
-# language=python
 class_without_documentation = """
 class C:
     pass
@@ -34,7 +32,7 @@ class C:
 
 
 @pytest.mark.parametrize(
-    "python_code, expected_class_documentation",
+    ("python_code", "expected_class_documentation"),
     [
         (
             class_with_documentation,
@@ -56,7 +54,7 @@ def test_get_class_documentation(
     epydoc_parser: EpydocParser,
     python_code: str,
     expected_class_documentation: ClassDocumentation,
-):
+) -> None:
     node = astroid.extract_node(python_code)
 
     assert isinstance(node, astroid.ClassDef)
@@ -85,13 +83,11 @@ def f():
 
 
 @pytest.mark.parametrize(
-    "python_code, expected_function_documentation",
+    ("python_code", "expected_function_documentation"),
     [
         (
             function_with_documentation,
-            FunctionDocumentation(
-                description="Lorem ipsum. Code::\n\npass\n\nDolor sit amet."
-            ),
+            FunctionDocumentation(description="Lorem ipsum. Code::\n\npass\n\nDolor sit amet."),
         ),
         (
             function_without_documentation,
@@ -107,14 +103,11 @@ def test_get_function_documentation(
     epydoc_parser: EpydocParser,
     python_code: str,
     expected_function_documentation: FunctionDocumentation,
-):
+) -> None:
     node = astroid.extract_node(python_code)
 
     assert isinstance(node, astroid.FunctionDef)
-    assert (
-        epydoc_parser.get_function_documentation(node)
-        == expected_function_documentation
-    )
+    assert epydoc_parser.get_function_documentation(node) == expected_function_documentation
 
 
 # language=python
@@ -157,7 +150,7 @@ def f():
 
 
 @pytest.mark.parametrize(
-    "python_code, parameter_name, parameter_assigned_by, expected_parameter_documentation",
+    ("python_code", "parameter_name", "parameter_assigned_by", "expected_parameter_documentation"),
     [
         (
             class_with_parameters,
@@ -231,9 +224,9 @@ def test_get_parameter_documentation(
     parameter_name: str,
     parameter_assigned_by: ParameterAssignment,
     expected_parameter_documentation: ParameterDocumentation,
-):
+) -> None:
     node = astroid.extract_node(python_code)
-    assert isinstance(node, astroid.ClassDef) or isinstance(node, astroid.FunctionDef)
+    assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
 
     # Find the constructor
     if isinstance(node, astroid.ClassDef):
@@ -243,8 +236,6 @@ def test_get_parameter_documentation(
 
     assert isinstance(node, astroid.FunctionDef)
     assert (
-        epydoc_parser.get_parameter_documentation(
-            node, parameter_name, parameter_assigned_by
-        )
+        epydoc_parser.get_parameter_documentation(node, parameter_name, parameter_assigned_by)
         == expected_parameter_documentation
     )

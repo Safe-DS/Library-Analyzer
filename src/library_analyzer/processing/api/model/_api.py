@@ -234,9 +234,7 @@ class Class:
             json.get("superclasses", []),
             json.get("is_public", True),
             json.get("reexported_by", []),
-            ClassDocumentation(
-                description=json.get("description", "")
-            ),
+            ClassDocumentation(description=json.get("description", "")),
             json.get("code", ""),
             [
                 Attribute.from_json(instance_attribute, json["id"])
@@ -358,9 +356,7 @@ class Function:
             [Result.from_json(result_json) for result_json in json.get("results", [])],
             json.get("is_public", True),
             json.get("reexported_by", []),
-            FunctionDocumentation(
-                description=json.get("description", "")
-            ),
+            FunctionDocumentation(description=json.get("description", "")),
             json.get("code", ""),
         )
 

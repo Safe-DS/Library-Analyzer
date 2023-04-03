@@ -32,11 +32,7 @@ def trim_code(code: str | None, from_line_no: int, to_line_no: int, encoding: st
 
 
 class _AstVisitor:
-    def __init__(
-        self,
-        docstring_parser: AbstractDocstringParser,
-        api: API
-    ) -> None:
+    def __init__(self, docstring_parser: AbstractDocstringParser, api: API) -> None:
         self.docstring_parser: AbstractDocstringParser = docstring_parser
         self.reexported: dict[str, list[str]] = {}
         self.api: API = api

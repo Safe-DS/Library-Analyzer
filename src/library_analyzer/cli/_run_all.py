@@ -10,7 +10,6 @@ from library_analyzer.cli._shared_constants import _API_KEY, _USAGES_KEY
 from library_analyzer.processing.api.docstring_parsing import DocstringStyle
 
 
-
 def _run_all_command(
     package: str,
     src_dir_path: Path,

@@ -1,9 +1,8 @@
 from pathlib import Path
 
 from library_analyzer.processing.api import get_api
-from library_analyzer.processing.dependencies import get_dependencies
 from library_analyzer.processing.api.docstring_parsing import DocstringStyle
-
+from library_analyzer.processing.dependencies import get_dependencies
 
 from ._read_and_write_file import _write_api_dependency_file, _write_api_file
 from ._shared_constants import _API_KEY

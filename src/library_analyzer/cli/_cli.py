@@ -72,7 +72,7 @@ def _add_api_subparser(subparsers: _SubParsersAction) -> None:
         "-s",
         "--src",
         help="Directory containing the Python code of the package. If this is omitted, we try to locate the package "
-             "with the given name in the current Python interpreter.",
+        "with the given name in the current Python interpreter.",
         type=Path,
         required=False,
         default=None,
@@ -85,7 +85,7 @@ def _add_api_subparser(subparsers: _SubParsersAction) -> None:
         choices=list(DocstringStyle),
         required=False,
         default=DocstringStyle.PLAINTEXT.name,
-    ),
+    )
 
 
 def _add_usages_subparser(subparsers: _SubParsersAction) -> None:
@@ -156,7 +156,7 @@ def _add_all_subparser(subparsers: _SubParsersAction) -> None:
         "-s",
         "--src",
         help="Directory containing the Python code of the package. If this is omitted, we try to locate the package "
-             "with the given name in the current Python interpreter.",
+        "with the given name in the current Python interpreter.",
         type=Path,
         required=False,
         default=None,
@@ -176,21 +176,21 @@ def _add_all_subparser(subparsers: _SubParsersAction) -> None:
         choices=list(DocstringStyle),
         required=False,
         default=DocstringStyle.PLAINTEXT.name,
-    ),
+    )
     all_parser.add_argument(
         "--processes",
         help="How many processes should be spawned during processing.",
         type=int,
         required=False,
         default=4,
-    ),
+    )
     all_parser.add_argument(
         "--batchsize",
         help="How many files to process in one go. Higher values lead to higher memory usage but better performance.",
         type=int,
         required=False,
         default=100,
-    ),
+    )
 
 
 def _add_migrate_subparser(subparsers: _SubParsersAction) -> None:
