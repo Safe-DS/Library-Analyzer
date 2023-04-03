@@ -37,7 +37,7 @@ def migrate_remove_annotation_data_one_to_one_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 
@@ -49,7 +49,7 @@ def migrate_remove_annotation_data_one_to_one_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 
@@ -86,7 +86,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(""),
+        documentation=ClassDocumentation(),
         code="class RemoveTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -97,7 +97,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(""),
+        documentation=ClassDocumentation(),
         code="class NewRemoveTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -108,7 +108,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(""),
+        documentation=ClassDocumentation(),
         code="class NewRemoveTestClass2:\n    pass",
         instance_attributes=[],
     )
@@ -120,7 +120,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 
@@ -173,7 +173,7 @@ def migrate_remove_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
     functionv1_2 = Function(
@@ -184,7 +184,7 @@ def migrate_remove_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 
@@ -196,7 +196,7 @@ def migrate_remove_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 

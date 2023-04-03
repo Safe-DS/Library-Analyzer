@@ -40,7 +40,7 @@ def migrate_expert_annotation_data__function() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 
@@ -52,7 +52,7 @@ def migrate_expert_annotation_data__function() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 
@@ -89,7 +89,7 @@ def migrate_expert_annotation_data__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(""),
+        documentation=ClassDocumentation(),
         code="class ExpertTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -100,7 +100,7 @@ def migrate_expert_annotation_data__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(""),
+        documentation=ClassDocumentation(),
         code="class NewExpertTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -112,7 +112,7 @@ def migrate_expert_annotation_data__class() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 
@@ -201,7 +201,7 @@ def migrate_expert_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
     functionv1_2 = Function(
@@ -212,7 +212,7 @@ def migrate_expert_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 
@@ -224,7 +224,7 @@ def migrate_expert_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 

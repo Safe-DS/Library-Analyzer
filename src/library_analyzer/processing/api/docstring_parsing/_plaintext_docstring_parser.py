@@ -15,13 +15,19 @@ class PlaintextDocstringParser(AbstractDocstringParser):
     """Parses documentation in any format. Should not be used if there is another parser for the specific format."""
 
     def get_class_documentation(self, class_node: astroid.ClassDef) -> ClassDocumentation:
+        docstring = get_full_docstring(class_node)
+
         return ClassDocumentation(
-            description=get_full_docstring(class_node),
+            description=docstring,
+            full_docstring=docstring,
         )
 
     def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocumentation:
+        docstring = get_full_docstring(function_node)
+
         return FunctionDocumentation(
-            description=get_full_docstring(function_node),
+            description=docstring,
+            full_docstring=docstring,
         )
 
     def get_parameter_documentation(

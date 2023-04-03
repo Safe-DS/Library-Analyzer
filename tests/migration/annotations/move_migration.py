@@ -37,7 +37,7 @@ def migrate_move_annotation_data_one_to_one_mapping__global_function() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 
@@ -49,7 +49,7 @@ def migrate_move_annotation_data_one_to_one_mapping__global_function() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 
@@ -88,7 +88,7 @@ def migrate_move_annotation_data_one_to_one_mapping__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(""),
+        documentation=ClassDocumentation(),
         code="class MoveTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -99,7 +99,7 @@ def migrate_move_annotation_data_one_to_one_mapping__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(""),
+        documentation=ClassDocumentation(),
         code="class NewMoveTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -140,7 +140,7 @@ def migrate_move_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 
@@ -152,7 +152,7 @@ def migrate_move_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 
@@ -164,7 +164,7 @@ def migrate_move_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 
@@ -212,7 +212,7 @@ def migrate_move_annotation_data_one_to_one_mapping_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
     functionv1_2 = Function(
@@ -223,7 +223,7 @@ def migrate_move_annotation_data_one_to_one_mapping_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 
@@ -235,7 +235,7 @@ def migrate_move_annotation_data_one_to_one_mapping_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(""),
+        documentation=FunctionDocumentation(),
         code="",
     )
 

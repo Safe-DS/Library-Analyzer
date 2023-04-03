@@ -28,13 +28,18 @@ class EpydocParser(AbstractDocstringParser):
         docstring = get_full_docstring(class_node)
         docstring_obj = parse_docstring(docstring, style=DocstringStyle.EPYDOC)
 
-        return ClassDocumentation(description=get_description(docstring_obj))
+        return ClassDocumentation(
+            description=get_description(docstring_obj),
+            full_docstring=docstring,
+        )
 
     def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocumentation:
         docstring = get_full_docstring(function_node)
+        docstring_obj = self.__get_cached_function_numpydoc_string(function_node, docstring)
 
         return FunctionDocumentation(
-            description=get_description(self.__get_cached_function_numpydoc_string(function_node, docstring)),
+            description=get_description(docstring_obj),
+            full_docstring=docstring,
         )
 
     def get_parameter_documentation(
