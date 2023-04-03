@@ -1,7 +1,7 @@
 import re
 
 import astroid
-from docstring_parser import Docstring, DocstringStyle, DocstringParam
+from docstring_parser import Docstring, DocstringParam, DocstringStyle
 from docstring_parser import parse as parse_docstring
 
 from library_analyzer.processing.api.model import (
@@ -10,8 +10,9 @@ from library_analyzer.processing.api.model import (
     ParameterAssignment,
     ParameterDocumentation,
 )
+
 from ._abstract_documentation_parser import AbstractDocstringParser
-from ._helpers import get_full_docstring, get_description
+from ._helpers import get_description, get_full_docstring
 
 
 class NumpyDocParser(AbstractDocstringParser):
@@ -35,17 +36,13 @@ class NumpyDocParser(AbstractDocstringParser):
         docstring = get_full_docstring(class_node)
         docstring_obj = parse_docstring(docstring, style=DocstringStyle.NUMPYDOC)
 
-        return ClassDocumentation(
-            description=get_description(docstring_obj)
-        )
+        return ClassDocumentation(description=get_description(docstring_obj))
 
     def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocumentation:
         docstring = get_full_docstring(function_node)
         docstring_obj = self.__get_cached_function_numpydoc_string(function_node, docstring)
 
-        return FunctionDocumentation(
-            description=get_description(docstring_obj)
-        )
+        return FunctionDocumentation(description=get_description(docstring_obj))
 
     def get_parameter_documentation(
         self,

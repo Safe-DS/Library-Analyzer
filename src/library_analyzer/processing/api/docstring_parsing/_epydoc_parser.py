@@ -41,7 +41,7 @@ class EpydocParser(AbstractDocstringParser):
         self,
         function_node: astroid.FunctionDef,
         parameter_name: str,
-        parameter_assigned_by: ParameterAssignment,
+        parameter_assigned_by: ParameterAssignment,  # noqa: ARG002
     ) -> ParameterDocumentation:
         # For constructors (__init__ functions) the parameters are described on the class
         if function_node.name == "__init__" and isinstance(function_node.parent, astroid.ClassDef):

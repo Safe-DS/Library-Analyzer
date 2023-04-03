@@ -6,8 +6,9 @@ from docstring_parser import Docstring
 
 def get_full_docstring(declaration: astroid.ClassDef | astroid.FunctionDef) -> str:
     """
-    Returns the full docstring of the given declaration or an empty string if no docstring is available. Indentation is
-    cleaned up.
+    Return the full docstring of the given declaration.
+
+    If no docstring is available, an empty string is returned. Indentation is cleaned up.
     """
     doc_node = declaration.doc_node
     if doc_node is None:
@@ -17,8 +18,9 @@ def get_full_docstring(declaration: astroid.ClassDef | astroid.FunctionDef) -> s
 
 def get_description(docstring_obj: Docstring) -> str:
     """
-    Returns the concatenated short and long description of the given docstring object or an empty string if these parts
-    are blank.
+    Return the concatenated short and long description of the given docstring object.
+
+    If these parts are blank, an empty string is returned.
     """
     summary: str = docstring_obj.short_description or ""
     extended_summary: str = docstring_obj.long_description or ""

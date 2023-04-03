@@ -4,8 +4,11 @@ from enum import Enum
 
 
 class DocstringStyle(Enum):
-    PLAINTEXT = "plaintext"
-    NUMPY = "numpy"
+    # AUTO = "auto",
+    PLAINTEXT = ("plaintext",)
+    # REST = "reST",
+    NUMPY = ("numpy",)
+    # GOOGLE = "google",
     EPYDOC = "epydoc"
 
     def __str__(self) -> str:
