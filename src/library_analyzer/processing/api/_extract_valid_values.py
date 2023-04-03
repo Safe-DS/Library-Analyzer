@@ -144,7 +144,7 @@ def _extract_from_type_listing(type_string: str) -> set[str]:
 
 
 def _extract_from_description_if_listing(description: str) -> set[str]:
-    """The 'if listing' pattern extraction.
+    """Extract the 'if listing' pattern.
 
     Detect all substrings starting with 'if' and satisfying one of the following cases:
     A value between single or double quotes, False, True, or None.
@@ -166,7 +166,7 @@ def _extract_from_description_if_listing(description: str) -> set[str]:
 
 
 def _extract_from_description_indented_listing(description: str) -> set[str]:
-    """The 'indented listing' pattern extraction.
+    """Extract the 'indented listing' pattern.
 
     Detect all substrings that appear in an indented list and match one of the following cases:
     A value between single or double quotes, False, True, or None.
@@ -189,7 +189,7 @@ def _extract_from_description_indented_listing(description: str) -> set[str]:
 
 
 def _extract_from_description_when_set_to(description: str) -> set[str]:
-    """The 'when set to' pattern extraction.
+    """Extract the 'when set to' pattern.
 
     Detect all substrings starting with 'when set to' and satisfying one of the following cases:
     A value between single or double quotes, False, True, or None.
