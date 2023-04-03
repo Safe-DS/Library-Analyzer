@@ -94,25 +94,50 @@ class PurityInformation:
 
 
 @dataclass
+class ParameterUsage:
+    parameter: str
+    used: bool
+    call: str
+
+    # def __str__(self) -> str:
+    #     return f"{self.parameter} {self.used} {self.call}"
+
+
+@dataclass
 class ParameterUsageHandler:
     parameters: list[str]
-    parameter_usage: dict[str, bool]
+    parameter_usage: list[ParameterUsage]
 
-    def enter_name(self, node):
+    def enter_name(self, node: astroid.Name):
         variable = node.as_string()
         # print("WITHIN PARAMETER ", variable)
-        if isinstance(node.parent, astroid.Call):
-            return  # TODO: is a function call, also a parameter access if a parameter is passed?
+        if isinstance(node, astroid.Call):
+            return
 
-        if variable in self.parameters:
-            self.parameter_usage[variable] = True
+        # if variable in self.parameters:
+        #    self.parameter_usage[variable] = True
             # print("PARAMETER IS USED", variable)
+        pass
+
+    def enter_call(self, node: astroid.Call):
+        arguments = node.args
+        if isinstance(node.func, astroid.Attribute):
+            function_name = node.func.attrname
+        else:
+            function_name = node.func.name
+        for arg in arguments:
+            if arg.as_string() in self.parameters:
+                # print("PARAMETER IS USED IN CALL", arg.as_string(), node.func.name)
+                self.parameter_usage.append(ParameterUsage(arg.as_string(), True, function_name))
+            else:
+                self.parameter_usage.append(ParameterUsage(arg.as_string(), False, function_name))
+        return
 
     def get_used_parameters(self):
-        return [parameter for parameter, used in self.parameter_usage.items() if used]
+        return [parameter for parameter in self.parameter_usage if parameter.used]
 
     def get_unused_parameters(self):
-        return [parameter for parameter, used in self.parameter_usage.items() if not used]
+        return [parameter.parameter for parameter in self.parameter_usage if not parameter.used]
 
 
 class PurityHandler:
@@ -132,12 +157,14 @@ class PurityHandler:
                 parameters.append(arg.name)
                 # print(f"Argument: {arg.name}")
 
-            parameter_handler = ParameterUsageHandler(parameters, {})
+            parameter_handler = ParameterUsageHandler(parameters, [])
             visitor = ASTWalker(parameter_handler)
             visitor.walk(node)
             # print("Used parameters: ", parameter_handler.get_used_parameters())
             for parameter in parameter_handler.get_used_parameters():
-                self.append_reason([VariableWrite(ParameterAccess(parameter=parameter, function=node.name))])
+
+                self.append_reason([Call(ParameterAccess(parameter=parameter.parameter,
+                                                         function=parameter.call))])
         for nodes in node.body:
             if isinstance(nodes, astroid.Global):
                 self.append_reason([VariableWrite(GlobalAccess(name=nodes.names[0], module=node.root().name))])
@@ -194,8 +221,8 @@ class PurityHandler:
             if node.attrname in BUILTIN_FUNCTIONS:
                 impurity_indicator = check_builtin_function(node, node.attrname)
                 self.append_reason(impurity_indicator)
-        else:
-            self.append_reason([Call(Reference(node.as_string()))])
+        # else:
+        #     self.append_reason([Call(Reference(node.as_string()))])
 
     def enter_arguments(self, node: astroid.Arguments) -> None:
         # print(f"Entering Arguments node {node.as_string()}")

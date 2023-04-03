@@ -298,16 +298,19 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
                 def fun11(path11): # open with variable
                     open(path11)
             """,
-            [FileRead(source=Reference("path11")),
-             Call(expression=Reference(name="open(path11)"))],
+            [Call(expression=ParameterAccess(parameter='path11', function='open')),
+             FileRead(source=Reference(name='path11', expression=None)),
+             Call(expression=Reference(name='open(path11)', expression=None))],
         ),
         (
             """
                 def fun12(path12): # open with variable write mode
                     open(path12, "w")
             """,
-            [FileWrite(source=Reference(name="path12")),
-             Call(expression=Reference(name="open(path12, 'w')"))],  # ??
+            [
+                Call(expression=ParameterAccess(parameter='path12', function='open')),
+                FileWrite(source=Reference(name='path12', expression=None)),
+                Call(expression=Reference(name="open(path12, 'w')", expression=None))],  # ??
         ),
         (
             """
@@ -315,10 +318,10 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
                     open(path13, "wb+")
             """,
             [
-                FileRead(source=Reference(name="path13")),
-                FileWrite(source=Reference(name="path13")),
-                Call(expression=Reference(name="open(path13, 'wb+')")),
-            ],
+                Call(expression=ParameterAccess(parameter='path13', function='open')),
+                FileRead(source=Reference(name='path13', expression=None)),
+                FileWrite(source=Reference(name='path13', expression=None)),
+                Call(expression=Reference(name="open(path13, 'wb+')", expression=None))],
         ),
         (
             """
@@ -327,6 +330,8 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
                         f.read()
             """,
             [
+                Call(expression=ParameterAccess(parameter='path14',
+                                                function='open')),
                 FileRead(source=Reference("path14")),
                 Call(expression=Reference(name="open(path14)")),
                 Call(expression=Reference(name="f.read()")),
@@ -339,6 +344,8 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
                         f.write("test")
             """,
             [
+                Call(expression=ParameterAccess(parameter='path15',
+                                                function='open')),
                 FileWrite(source=Reference(name='path15')),
                 Call(expression=Reference(name="open(path15, 'w')")),
                 Call(expression=Reference(name="f.write('test')")),
@@ -434,6 +441,7 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
             """,
             # TODO: Nur wenn wir auf Modul ebene arbeiten soll für "globale Variablen"
             #  die PurityInformation gespeichert werde, sonst nicht
+            # in this case this analysis would be correct, since this testcase represents a "module"-scope
             [VariableWrite(expression=Reference(name="glob", expression=Reference(name="g(1)"))),
              Call(expression=Reference(name="g(1)"))],
         ),
@@ -557,7 +565,54 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                     return res1
             """,  # function with one parameter, one accessed parameter via a call argument
             [Call(expression=ParameterAccess(parameter='a',
-                                             function='parameter_access'))],
+                                             function='f')),
+             Call(expression=Reference(name='f(a)',
+                                       expression=None))  # TODO: remove this when Call is fixed
+             ],
+        ),
+        (
+            """
+                def parameter_access(a, b):
+                    res1 = f(a, b)  # ParameterAccess => pure but Call => impure
+                    return res1
+            """,  # function with two arguments, two accessed parameters via a call argument
+            [Call(expression=ParameterAccess(parameter='a',
+                                             function='f')),
+             Call(expression=ParameterAccess(parameter='b',
+                                             function='f')),
+             Call(expression=Reference(name='f(a, b)',
+                                       expression=None))  # TODO: remove this when Call is fixed
+             ],
+        ),
+        (
+            """
+                def parameter_access(a, b):
+                    res1 = f(a)  # ParameterAccess => pure but Call => impure
+                    return res1
+            """,  # function with two arguments, two accessed parameters via a call argument
+            [Call(expression=ParameterAccess(parameter='a',
+                                             function='f')),
+             Call(expression=Reference(name='f(a)',
+                                       expression=None))  # TODO: remove this when Call is fixed
+
+             ],
+        ),
+        (
+            """
+                def parameter_access(a, b):
+                    res1 = f(a)  # ParameterAccess => pure but Call => impure
+                    res2 = g(b)  # ParameterAccess => pure but Call => impure
+                    return res1, res2
+            """,  # function with two arguments, two accessed parameters via a call argument
+            [Call(expression=ParameterAccess(parameter='a',
+                                             function='f')),
+             Call(expression=ParameterAccess(parameter='b',
+                                             function='g')),
+             Call(expression=Reference(name='f(a)',
+                                       expression=None)),  # TODO: remove this when Call is fixed
+             Call(expression=Reference(name='g(b)',
+                                       expression=None))  # TODO: remove this when Call is fixed
+             ],
         ),
     ]
 )
@@ -594,6 +649,7 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
                     return res
             """,
             [VariableWrite(expression=GlobalAccess(name='glob1', module=''))],
+            #  TODO: to fix this, we need to check if the global is accessed in the function body
         ),
         (
             """
