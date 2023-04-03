@@ -88,14 +88,14 @@ def _extract_from_type_listing(type_string: str) -> set[str]:
     if not matches:
         matches = re.findall(double_and_or_pattern, type_string)
 
-    matches = set(matches)
+    extracted = set(matches)
 
-    if 'bool' in matches:
-        matches.remove('bool')
-        matches.add('False')
-        matches.add('True')
+    if 'bool' in extracted:
+        extracted.remove('bool')
+        extracted.add('False')
+        extracted.add('True')
 
-    return matches
+    return extracted
 
 
 
