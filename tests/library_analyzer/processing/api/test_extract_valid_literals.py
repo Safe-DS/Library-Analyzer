@@ -18,7 +18,7 @@ from library_analyzer.processing.api._extract_valid_values import extract_valid_
         (
             "str, list or tuple of str",
             'Attribute name(s) given as string or a list/tuple of strings Eg.: ["coef_", "estimator_", ...], "coef_"\n\nIf None, estimator is considered fitted if there exist an attribute that ends with a underscore and does not start with double underscore.',
-            ["None"],
+            ["None", 'unlistable_str'],
         ),
         (
             "bool or 'allow-nan'",
@@ -31,9 +31,9 @@ from library_analyzer.processing.api._extract_valid_values import extract_valid_
             ['"best"', '"random"'],
         ),
         (
-            "str or bool",
+            "bool or str",
             "When set to True, change the display of 'values' and/or 'samples' to be proportions and percentages respectively.",
-            ["True"],
+            ['False', 'True', 'unlistable_str']
         ),
         (
             "int, RandomState instance or None",

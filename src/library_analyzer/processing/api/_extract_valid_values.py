@@ -34,14 +34,17 @@ class TypeStringConfiguration(Configuration):
         if self.curly_enum:
             self._function_list.append(_extract_from_type_curly_enum)
         if self.and_or_enum:
-            self._function_list.append(_extract_from_type_and_or)
+            self._function_list.append(_extract_from_type_listing)
 
 
 def extract_valid_literals(param_description: str, param_type: str) -> set[str]:
+    # Function that extracts all valid literals from the type and description string.
     description_config: DescriptionStringConfiguration = DescriptionStringConfiguration()
     type_config: TypeStringConfiguration = TypeStringConfiguration()
+    none_and_bool = {'False', 'None', 'True'}
 
     def _execute_pattern(string: str, config: Configuration) -> set[str]:
+        # Function to execute all pattern functions from config
         result = set()
         for pattern_function in config.get_function_list():
             result.update(pattern_function(string))
@@ -49,10 +52,16 @@ def extract_valid_literals(param_description: str, param_type: str) -> set[str]:
 
     matches = _execute_pattern(param_type, type_config)
 
-    if matches:
-        return matches
+    description_matches = _execute_pattern(param_description, description_config)
 
-    matches = _execute_pattern(param_description, description_config)
+    # Check if there are matching values in the description that are not True, False or None
+    # when 'str' occurs in the type string. If this is not the case, unlistable_str is returned as a 'valid' value.
+    if description_matches:
+        matches.update(description_matches)
+        if 'str' in matches:
+            if not description_matches.difference(none_and_bool):
+                matches.add('unlistable_str')
+            matches.remove('str')
 
     return matches
 
@@ -68,24 +77,27 @@ def _extract_from_type_curly_enum(type_string: str) -> set[str]:
     return set(extracted)
 
 
-def _extract_from_type_and_or(type_string: str) -> set[str]:
-    # Two values seperated by 'and' or 'or' with single# quotes
-    single_and_or_pattern = r"('[^']*')\s*(?:and|or)\s*('[^']*')"
-    # Two values seperated by 'and' or 'or' with double quotes
-    double_and_or_pattern = r"(\"[^\"]*\")\s*(?:and|or)\s*(\"[^\"]*\")"
-
-    extracted = set()
+def _extract_from_type_listing(type_string: str) -> set[str]:
+    # Multiple values seperated by ',', 'and' or 'or' with single# quotes
+    single_and_or_pattern = r"('[^']*'|bool|str)\s*(?:and|or|,)?"
+    # Multiple values seperated by ',', 'and' or'or' with double quotes
+    double_and_or_pattern = r"(\"[^\"]*\"|bool|str)\s*(?:and|or|,)?"
 
     matches = re.findall(single_and_or_pattern, type_string)
 
     if not matches:
         matches = re.findall(double_and_or_pattern, type_string)
 
-    for x, y in matches:
-        extracted.add(x)
-        extracted.add(y)
+    matches = set(matches)
 
-    return extracted
+    if 'bool' in matches:
+        matches.remove('bool')
+        matches.add('False')
+        matches.add('True')
+
+    return matches
+
+
 
 
 def _extract_from_description_if_listings(description: str) -> set[str]:
