@@ -234,10 +234,7 @@ class Class:
             json.get("superclasses", []),
             json.get("is_public", True),
             json.get("reexported_by", []),
-            ClassDocumentation(
-                description=json.get("description", ""),
-                full_docstring=json.get("docstring", ""),
-            ),
+            ClassDocumentation(description=json.get("description", "")),
             json.get("code", ""),
             [
                 Attribute.from_json(instance_attribute, json["id"])
@@ -271,7 +268,6 @@ class Class:
             "is_public": self.is_public,
             "reexported_by": self.reexported_by,
             "description": self.documentation.description,
-            "docstring": self.documentation.full_docstring,
             "code": self.code,
             "instance_attributes": [attribute.to_json() for attribute in self.instance_attributes],
         }
@@ -360,10 +356,7 @@ class Function:
             [Result.from_json(result_json) for result_json in json.get("results", [])],
             json.get("is_public", True),
             json.get("reexported_by", []),
-            FunctionDocumentation(
-                description=json.get("description", ""),
-                full_docstring=json.get("docstring", ""),
-            ),
+            FunctionDocumentation(description=json.get("description", "")),
             json.get("code", ""),
         )
 
@@ -382,7 +375,6 @@ class Function:
             "is_public": self.is_public,
             "reexported_by": self.reexported_by,
             "description": self.documentation.description,
-            "docstring": self.documentation.full_docstring,
             "code": self.code,
         }
 

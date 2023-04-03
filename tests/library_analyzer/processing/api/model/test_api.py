@@ -217,7 +217,6 @@ def test_cut_documentation_from_code(code: str, expected_code: str) -> None:
             reexported_by=[],
             documentation=ClassDocumentation(
                 "this documentation string cannot be used",
-                " because indentation was removed",
             ),
             code=code,
             instance_attributes=[],
@@ -231,7 +230,7 @@ def test_cut_documentation_from_code(code: str, expected_code: str) -> None:
             results=[],
             is_public=True,
             reexported_by=[],
-            documentation=FunctionDocumentation("", ""),
+            documentation=FunctionDocumentation(""),
             code=code,
         )
     assert api_element.get_formatted_code(cut_documentation=True) == expected_code + "\n"

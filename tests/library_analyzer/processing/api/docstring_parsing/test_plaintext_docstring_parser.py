@@ -1,7 +1,7 @@
 import astroid
 import pytest
-from library_analyzer.processing.api.documentation_parsing import (
-    DefaultDocumentationParser,
+from library_analyzer.processing.api.docstring_parsing import (
+    PlaintextDocstringParser,
 )
 from library_analyzer.processing.api.model import (
     ClassDocumentation,
@@ -12,8 +12,8 @@ from library_analyzer.processing.api.model import (
 
 
 @pytest.fixture()
-def default_documentation_parser() -> DefaultDocumentationParser:
-    return DefaultDocumentationParser()
+def plaintext_docstring_parser() -> PlaintextDocstringParser:
+    return PlaintextDocstringParser()
 
 
 class_with_documentation = '''
@@ -40,13 +40,12 @@ class C:
         (
             class_with_documentation,
             ClassDocumentation(
-                description="",
-                full_docstring="Lorem ipsum.\n\nDolor sit amet.",
+                description="Lorem ipsum.\n\nDolor sit amet.",
             ),
         ),
         (
             class_without_documentation,
-            ClassDocumentation(description="", full_docstring=""),
+            ClassDocumentation(description=""),
         ),
     ],
     ids=[
@@ -55,14 +54,14 @@ class C:
     ],
 )
 def test_get_class_documentation(
-    default_documentation_parser: DefaultDocumentationParser,
+    plaintext_docstring_parser: PlaintextDocstringParser,
     python_code: str,
     expected_class_documentation: ClassDocumentation,
 ) -> None:
     node = astroid.extract_node(python_code)
 
     assert isinstance(node, astroid.ClassDef)
-    assert default_documentation_parser.get_class_documentation(node) == expected_class_documentation
+    assert plaintext_docstring_parser.get_class_documentation(node) == expected_class_documentation
 
 
 function_with_documentation = '''
@@ -88,13 +87,12 @@ def f(p: int):
         (
             function_with_documentation,
             FunctionDocumentation(
-                description="",
-                full_docstring="Lorem ipsum.\n\nDolor sit amet.",
+                description="Lorem ipsum.\n\nDolor sit amet.",
             ),
         ),
         (
             function_without_documentation,
-            FunctionDocumentation(description="", full_docstring=""),
+            FunctionDocumentation(description=""),
         ),
     ],
     ids=[
@@ -103,14 +101,14 @@ def f(p: int):
     ],
 )
 def test_get_function_documentation(
-    default_documentation_parser: DefaultDocumentationParser,
+    plaintext_docstring_parser: PlaintextDocstringParser,
     python_code: str,
     expected_function_documentation: FunctionDocumentation,
 ) -> None:
     node = astroid.extract_node(python_code)
 
     assert isinstance(node, astroid.FunctionDef)
-    assert default_documentation_parser.get_function_documentation(node) == expected_function_documentation
+    assert plaintext_docstring_parser.get_function_documentation(node) == expected_function_documentation
 
 
 @pytest.mark.parametrize(
@@ -141,7 +139,7 @@ def test_get_function_documentation(
     ],
 )
 def test_get_parameter_documentation(
-    default_documentation_parser: DefaultDocumentationParser,
+    plaintext_docstring_parser: PlaintextDocstringParser,
     python_code: str,
     parameter_name: str,
     expected_parameter_documentation: ParameterDocumentation,
@@ -149,7 +147,7 @@ def test_get_parameter_documentation(
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.FunctionDef)
     assert (
-        default_documentation_parser.get_parameter_documentation(
+        plaintext_docstring_parser.get_parameter_documentation(
             node,
             parameter_name,
             ParameterAssignment.POSITION_OR_NAME,

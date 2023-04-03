@@ -1,13 +1,13 @@
 import astroid
 
-from library_analyzer.processing.api.documentation_parsing import (
-    AbstractDocumentationParser,
+from library_analyzer.processing.api.docstring_parsing import (
+    AbstractDocstringParser,
 )
 from library_analyzer.processing.api.model import Parameter, ParameterAssignment
 
 
 def get_parameter_list(
-    documentation_parser: AbstractDocumentationParser,
+    docstring_parser: AbstractDocstringParser,
     function_node: astroid.FunctionDef,
     function_id: str,
     function_qname: str,
@@ -27,7 +27,7 @@ def get_parameter_list(
                 default_value=_get_stringified_default_value(function_node, parameter_name),
                 assigned_by=parameter_assigned_by,
                 is_public=function_is_public,
-                documentation=documentation_parser.get_parameter_documentation(
+                documentation=docstring_parser.get_parameter_documentation(
                     function_node,
                     parameter_name,
                     parameter_assigned_by,

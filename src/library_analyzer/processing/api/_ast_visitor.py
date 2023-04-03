@@ -19,7 +19,7 @@ from library_analyzer.utils import parent_qualified_name
 from ._file_filters import _is_init_file
 from ._get_instance_attributes import get_instance_attributes
 from ._get_parameter_list import get_parameter_list
-from .documentation_parsing import AbstractDocumentationParser
+from .docstring_parsing import AbstractDocstringParser
 
 
 def trim_code(code: str | None, from_line_no: int, to_line_no: int, encoding: str) -> str:
@@ -32,8 +32,8 @@ def trim_code(code: str | None, from_line_no: int, to_line_no: int, encoding: st
 
 
 class _AstVisitor:
-    def __init__(self, documentation_parser: AbstractDocumentationParser, api: API) -> None:
-        self.documentation_parser: AbstractDocumentationParser = documentation_parser
+    def __init__(self, docstring_parser: AbstractDocstringParser, api: API) -> None:
+        self.docstring_parser: AbstractDocstringParser = docstring_parser
         self.reexported: dict[str, list[str]] = {}
         self.api: API = api
         self.__declaration_stack: list[Module | Class | Function] = []
@@ -150,7 +150,7 @@ class _AstVisitor:
             superclasses=class_node.basenames,
             is_public=self.is_public(class_node.name, qname),
             reexported_by=self.reexported.get(qname, []),
-            documentation=self.documentation_parser.get_class_documentation(class_node),
+            documentation=self.docstring_parser.get_class_documentation(class_node),
             code=code,
             instance_attributes=instance_attributes,
         )
@@ -188,7 +188,7 @@ class _AstVisitor:
             qname=qname,
             decorators=decorator_names,
             parameters=get_parameter_list(
-                self.documentation_parser,
+                self.docstring_parser,
                 function_node,
                 function_id,
                 qname,
@@ -197,7 +197,7 @@ class _AstVisitor:
             results=[],  # TODO: results
             is_public=is_public,
             reexported_by=self.reexported.get(qname, []),
-            documentation=self.documentation_parser.get_function_documentation(function_node),
+            documentation=self.docstring_parser.get_function_documentation(function_node),
             code=code,
         )
         self.__declaration_stack.append(function)

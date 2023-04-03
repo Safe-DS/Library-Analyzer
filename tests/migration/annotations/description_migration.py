@@ -40,7 +40,7 @@ def migrate_description_annotation_data_one_to_one_mapping__function() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
 
@@ -52,7 +52,7 @@ def migrate_description_annotation_data_one_to_one_mapping__function() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
 
@@ -91,7 +91,7 @@ def migrate_description_annotation_data_one_to_many_mapping__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        documentation=ClassDocumentation(""),
         code="class DescriptionTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -102,7 +102,7 @@ def migrate_description_annotation_data_one_to_many_mapping__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        documentation=ClassDocumentation(""),
         code="class NewDescriptionTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -113,7 +113,7 @@ def migrate_description_annotation_data_one_to_many_mapping__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        documentation=ClassDocumentation(""),
         code="class NewDescriptionTestClass2:\n    pass",
         instance_attributes=[],
     )
@@ -125,7 +125,7 @@ def migrate_description_annotation_data_one_to_many_mapping__class() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
 
@@ -229,7 +229,7 @@ def migrate_description_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
     functionv1_2 = Function(
@@ -240,7 +240,7 @@ def migrate_description_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
 
@@ -252,7 +252,7 @@ def migrate_description_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        documentation=FunctionDocumentation(""),
         code="",
     )
 

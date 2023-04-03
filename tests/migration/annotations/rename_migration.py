@@ -109,7 +109,7 @@ def migrate_rename_annotation_data_one_to_many_mapping() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        documentation=ClassDocumentation(""),
         code="class NewClass:\n    pass",
         instance_attributes=[],
     )
