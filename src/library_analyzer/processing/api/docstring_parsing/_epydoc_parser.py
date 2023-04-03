@@ -66,9 +66,10 @@ class EpydocParser(AbstractDocstringParser):
 
     def __get_cached_function_numpydoc_string(self, function_node: astroid.FunctionDef, docstring: str) -> Docstring:
         """
-        Returns the NumpyDocString for the given function node. It is only recomputed when the function node differs
-        from the previous one that was passed to this function. This avoids reparsing the docstring for the function
-        itself and all of its parameters.
+        Return the NumpyDocString for the given function node.
+
+        It is only recomputed when the function node differs from the previous one that was passed to this function.
+        This avoids reparsing the docstring for the function itself and all of its parameters.
 
         On Lars's system this caused a significant performance improvement: Previously, 8.382s were spent inside the
         function get_parameter_documentation when parsing sklearn. Afterwards, it was only 2.113s.

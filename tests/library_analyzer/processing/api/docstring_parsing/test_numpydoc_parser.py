@@ -37,7 +37,7 @@ class C:
         (
             class_with_documentation,
             ClassDocumentation(
-                description="Lorem ipsum. Code::\n\n    pass\n\nDolor sit amet.",
+                description="Lorem ipsum. Code::\n\npass\n\nDolor sit amet.",
             ),
         ),
         (
@@ -86,7 +86,7 @@ def f():
         (
             function_with_documentation,
             FunctionDocumentation(
-                description="Lorem ipsum. Code::\n\n    pass\n\nDolor sit amet.",
+                description="Lorem ipsum. Code::\n\npass\n\nDolor sit amet.",
             ),
         ),
         (

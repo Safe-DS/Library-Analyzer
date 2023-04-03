@@ -1,6 +1,6 @@
 import astroid
 import pytest
-from library_analyzer.processing.api.docstring_parsing import get_full_docstring
+from library_analyzer.processing.api.docstring_parsing._helpers import get_full_docstring
 
 class_with_multi_line_documentation = '''
 class C:
