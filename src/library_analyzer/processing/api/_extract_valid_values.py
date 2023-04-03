@@ -22,7 +22,7 @@ class DescriptionStringConfiguration(Configuration):
         if self.indented_listings:
             self._function_list.append(_extract_from_description_indented_listings)
         if self.when_set_to:
-            self._function_list.append(_extract_from_descritpion_when_set_to)
+            self._function_list.append(_extract_from_description_when_set_to)
 
 
 @dataclass
@@ -39,7 +39,7 @@ class TypeStringConfiguration(Configuration):
 
 def extract_valid_literals(param_description: str, param_type: str) -> set[str]:
     """
-    Function that extracts all valid literals from the type and description string.
+    Extract all valid literals from the type and description string.
 
     Parameters
     ----------
@@ -85,7 +85,7 @@ def extract_valid_literals(param_description: str, param_type: str) -> set[str]:
 
 def _extract_from_type_curly_enum(type_string: str) -> set[str]:
     """
-    Extraction of valid values of the parameter type string to be examined, enclosed in curly brackets.
+    Extract all valid values of the parameter type string to be examined that were enclosed in curly braces.
 
     Parameters
     ----------
@@ -110,7 +110,7 @@ def _extract_from_type_curly_enum(type_string: str) -> set[str]:
 
 def _extract_from_type_listing(type_string: str) -> set[str]:
     """
-    Extraction of valid values from the listing of the parameter type string to be examined.
+    Extract all valid values from the listing of the parameter type string to be examined.
 
     Parameters
     ----------
@@ -145,7 +145,7 @@ def _extract_from_type_listing(type_string: str) -> set[str]:
 
 def _extract_from_description_if_listings(description: str) -> set[str]:
     """
-    Detection of substrings starting with 'if' and satisfying one of the following cases:
+    Detect all substrings starting with 'if' and satisfying one of the following cases:
     A value between single or double quotes, False, True, or None.
 
     Parameters
@@ -166,7 +166,7 @@ def _extract_from_description_if_listings(description: str) -> set[str]:
 
 def _extract_from_description_indented_listings(description: str) -> set[str]:
     """
-    Detect substrings that appear in an indented list and match one of the following cases:
+    Detect all substrings that appear in an indented list and match one of the following cases:
     A value between single or double quotes, False, True, or None.
 
     Parameters
@@ -186,9 +186,9 @@ def _extract_from_description_indented_listings(description: str) -> set[str]:
     return set(matches)
 
 
-def _extract_from_descritpion_when_set_to(description: str) -> set[str]:
+def _extract_from_description_when_set_to(description: str) -> set[str]:
     """
-    Detection of substrings starting with 'when set to' and satisfying one of the following cases:
+    Detect all substrings starting with 'when set to' and satisfying one of the following cases:
     A value between single or double quotes, False, True, or None.
 
     Parameters
