@@ -18,9 +18,9 @@ class DescriptionStringConfiguration(Configuration):
 
     def __post_init__(self) -> None:
         if self.if_listings:
-            self._function_list.append(_extract_from_description_if_listings)
+            self._function_list.append(_extract_from_description_if_listing)
         if self.indented_listings:
-            self._function_list.append(_extract_from_description_indented_listings)
+            self._function_list.append(_extract_from_description_indented_listing)
         if self.when_set_to:
             self._function_list.append(_extract_from_description_when_set_to)
 
@@ -143,8 +143,9 @@ def _extract_from_type_listing(type_string: str) -> set[str]:
     return extracted
 
 
-def _extract_from_description_if_listings(description: str) -> set[str]:
-    """
+def _extract_from_description_if_listing(description: str) -> set[str]:
+    """The 'if listing' pattern extraction.
+
     Detect all substrings starting with 'if' and satisfying one of the following cases:
     A value between single or double quotes, False, True, or None.
 
@@ -164,8 +165,9 @@ def _extract_from_description_if_listings(description: str) -> set[str]:
     return set(matches)
 
 
-def _extract_from_description_indented_listings(description: str) -> set[str]:
-    """
+def _extract_from_description_indented_listing(description: str) -> set[str]:
+    """The 'indented listing' pattern extraction.
+
     Detect all substrings that appear in an indented list and match one of the following cases:
     A value between single or double quotes, False, True, or None.
 
@@ -187,7 +189,8 @@ def _extract_from_description_indented_listings(description: str) -> set[str]:
 
 
 def _extract_from_description_when_set_to(description: str) -> set[str]:
-    """
+    """The 'when set to' pattern extraction.
+
     Detect all substrings starting with 'when set to' and satisfying one of the following cases:
     A value between single or double quotes, False, True, or None.
 
@@ -198,7 +201,7 @@ def _extract_from_description_when_set_to(description: str) -> set[str]:
     Returns
     -------
     set[str]
-        A set of valid values from the parameter description to be examined.
+        A set of valid literals from the parameter description to be examined.
     """
 
     pattern = r"When set to (\"[^\"]*\"|'[^']*'|None|True|False)"
