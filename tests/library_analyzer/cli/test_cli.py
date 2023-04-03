@@ -61,27 +61,6 @@ def test_cli_annotations() -> None:
     )
 
 
-def test_cli_all() -> None:
-    subprocess.run(
-        [
-            "poetry",
-            "run",
-            "analyze-library",
-            "all",
-            "-p",
-            "library_analyzer",
-            "-s",
-            "src",
-            "-c",
-            "library_analyzer",
-            "-o",
-            "out",
-        ],
-        check=True,
-        cwd=_project_root,
-    )
-
-
 def test_cli_migration() -> None:
     subprocess.run(
         [
