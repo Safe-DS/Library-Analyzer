@@ -41,7 +41,7 @@ def extract_valid_literals(param_description: str, param_type: str) -> set[str]:
     # Function that extracts all valid literals from the type and description string.
     description_config: DescriptionStringConfiguration = DescriptionStringConfiguration()
     type_config: TypeStringConfiguration = TypeStringConfiguration()
-    none_and_bool = {'False', 'None', 'True'}
+    none_and_bool = {"False", "None", "True"}
 
     def _execute_pattern(string: str, config: Configuration) -> set[str]:
         # Function to execute all pattern functions from config
@@ -58,10 +58,10 @@ def extract_valid_literals(param_description: str, param_type: str) -> set[str]:
     # when 'str' occurs in the type string. If this is not the case, unlistable_str is returned as a 'valid' value.
     if description_matches:
         matches.update(description_matches)
-        if 'str' in matches:
+        if "str" in matches:
             if not description_matches.difference(none_and_bool):
-                matches.add('unlistable_str')
-            matches.remove('str')
+                matches.add("unlistable_str")
+            matches.remove("str")
 
     return matches
 
@@ -90,14 +90,12 @@ def _extract_from_type_listing(type_string: str) -> set[str]:
 
     extracted = set(matches)
 
-    if 'bool' in extracted:
-        extracted.remove('bool')
-        extracted.add('False')
-        extracted.add('True')
+    if "bool" in extracted:
+        extracted.remove("bool")
+        extracted.add("False")
+        extracted.add("True")
 
     return extracted
-
-
 
 
 def _extract_from_description_if_listings(description: str) -> set[str]:
