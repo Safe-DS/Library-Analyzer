@@ -682,3 +682,65 @@ def test_infer_purity_global_access(code: str, expected: list[ImpurityIndicator]
         print(f"{info.id.module} {info.id.name} is {p} because {info.reasons} \n")
 
     assert result_list[0].reasons == expected
+
+@pytest.mark.parametrize(
+    "code, expected",
+    [
+        (
+            """
+                class A:
+                    def __init__(self):
+                        self.number = 42
+
+                    def __eq__(self, other):
+                        return self.number == other.number
+
+                    def __hash__(self):
+                        return hash(self.number)
+
+                    def function_access(self):
+                        g() # Call => impure
+            """,
+            [Call(expression=Reference(name='hash(self.number)', expression=None)),
+             Call(expression=Reference(name='g()', expression=None))],
+        ),
+       (
+            """
+                class A:
+                    def __init__(self):
+                        self.number = 42
+
+                a = A()
+
+                def instance(a):
+                    res = a.number # InstanceAccess => impure
+                    return res
+            """,
+            [
+                InstanceAccess(
+                    receiver=Reference(name='a'),
+                    target=Reference(name='number'))
+            ],
+        ),
+        (
+            """
+                class B:
+                    name = "test"
+
+                b = B()
+
+                def attribute(b):
+                    res = b.name # AttributeAccess => impure
+                    return res
+            """,
+            [AttributeAccess(name='b.name')],
+        ),
+    ]
+)
+def test_infer_purity_class_definition(code: str, expected: list[ImpurityIndicator]) -> None:
+    result_list = infer_purity(code)
+    for info in result_list:
+        p = get_purity_result_str(info.reasons)
+        print(f"{info.id.module} {info.id.name} is {p} because {info.reasons} \n")
+
+    assert result_list[0].reasons == expected
