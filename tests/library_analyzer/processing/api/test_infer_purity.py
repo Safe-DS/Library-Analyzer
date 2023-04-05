@@ -625,52 +625,125 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
     assert result_list[0].reasons == expected
 
 
+# TODO: add analysis to detect from which module the global variable comes from?
+#  right now it is assumed that the global variable is from the same module
 @pytest.mark.parametrize(
     "code, expected",
     [
+        # FunctionDef with use of a global variable as a value (reading from global)
         (
             """
-                glob = 17
-                def global_access():
+                glob = 0
+                def global_access0():
                     global glob
                     res = glob # GlobalAccess => impure
                     return res
             """,
-            [VariableWrite(expression=GlobalAccess(name='glob', module=''))],
+            [VariableRead(expression=GlobalAccess(name='glob', module=''))],
         ),
+        # FunctionDef with use of a global variable as a variable (writing to global)
         (
             """
-                glob1 = 17
-                glob2 = 18
-                def global_access():
-                    global glob1
-                    global glob2
-                    res = glob1 # GlobalAccess => impure
-                    return res
-            """,
-            [VariableWrite(expression=GlobalAccess(name='glob1', module=''))],
-            #  TODO: to fix this, we need to check if the global is accessed in the function body
-        ),
-        (
-            """
-                glob = 19
-                def global_access():
+                glob = 1
+                def global_access1():
                     global glob
                     glob = "test"  # GlobalAccess => impure
                     return res
             """,
             [VariableWrite(expression=GlobalAccess(name='glob', module=''))],
         ),
+        # FunctionDef with use of one global variable only (reading from global1)
         (
             """
-                glob = 20
-                def global_access():
+                glob1 = 1
+                glob2 = 2
+                def global_access_two():
+                    global glob1
+                    global glob2
+                    res = glob1 # GlobalAccess => impure
+                    return res
+            """,
+            [VariableRead(expression=GlobalAccess(name='glob1', module=''))],
+            #  TODO: to fix this, we need to check if the global is accessed in the function body
+        ),
+        # FunctionDef with use of a global variable as a variable (writing to global) + call
+        (
+            """
+                glob = 2
+                def global_access2():
                     global glob
                     glob = h(1)  # GlobalAccess + Call => impure
-                    return res
             """,
             [VariableWrite(expression=GlobalAccess(name='glob', module='')),
              Call(expression=Reference(name='h(1)', expression=None))],
+        ),
+        # FunctionDef with use of a global variable parameter (reading from global) + call
+        (
+            """
+                glob = 3
+                def global_access3():
+                    global glob
+                    res = h(glob)  # GlobalAccess + Call => impure
+                    return res
+            """,
+            [VariableRead(expression=GlobalAccess(name='glob', module='')),
+             Call(expression=Reference(name='h(glob)', expression=None))],
+        ),
+        # FunctionDef with use of a global variable as return value
+        (
+            """
+                glob = 4
+                def global_access4():
+                    global glob
+                    return glob
+            """,
+            [],
+        ),  # TODO: what is the correct result here?
+        # FunctionDef with use of a global as a variable (writing to global) and as a value (reading from global)
+        (
+            """
+                glob = 5
+                def global_access5():
+                    global glob
+                    glob = 2 * glob # GlobalAccess => impure
+            """,
+            [VariableWrite(expression=GlobalAccess(name='glob', module='')),
+             VariableRead(expression=GlobalAccess(name='glob', module=''))],
+        ),
+        # FunctionDef with use of a global as a variable (writing to global) and as a value (reading from global)
+        (
+            """
+                glob = 6
+                def global_access6():
+                    global glob
+                    glob += 1 # GlobalAccess => impure
+            """,
+            [VariableWrite(expression=GlobalAccess(name='glob', module='')),
+             VariableRead(expression=GlobalAccess(name='glob', module=''))],
+        ),  # TODO: is this correct?
+        # FunctionDef with use of a global as a variable (writing to global) and as a value (reading from global)
+        (
+            """
+                glob = 7
+                def global_access7():
+                    global glob
+                    return glob + 1 # GlobalAccess => impure
+
+                # x = global_access() # x = 8
+            """,
+            [VariableWrite(expression=GlobalAccess(name='glob', module=''))],
+        ),  # TODO: what is the correct result here?
+        # FunctionDef with use of a global variable as return value
+        (
+            """
+                glob = 8
+                def global_access8():
+                    global glob
+                    glob = glob + 1 # GlobalAccess => impure
+                    return glob
+            """,
+            [VariableWrite(expression=GlobalAccess(name='glob', module='')),
+             VariableRead(expression=GlobalAccess(name='glob', module=''))],
         ),
     ]
 )
