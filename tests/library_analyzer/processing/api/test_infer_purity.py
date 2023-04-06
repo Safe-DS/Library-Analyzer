@@ -1,14 +1,13 @@
-import astroid
 import pytest
 from library_analyzer.processing.api import (
     Impure,
     Pure,
-    ImpurityIndicator,
+    IntraProceduralDataFlow,
     Unknown,
     PurityInformation,
     PurityResult,
     OpenMode,
-    calc_function_id,
+    # calc_function_id,
     determine_purity,
     extract_impurity_reasons,
     infer_purity,
@@ -73,7 +72,7 @@ from library_analyzer.processing.api.model import (
 #     assert str(result) == expected
 
 
-# since we only look at FunctionDefs we can not use other types of CodeSnippets
+# TODO: redo this test when analysis is more advanced
 @pytest.mark.parametrize(
     "purity_result, expected",
     [
@@ -100,12 +99,13 @@ from library_analyzer.processing.api.model import (
         ),
     ],
 )
-def test_generate_purity_information(purity_result: PurityResult, expected: list[ImpurityIndicator]) -> None:
+def test_generate_purity_information(purity_result: PurityResult, expected: list[IntraProceduralDataFlow]) -> None:
     purity_info = extract_impurity_reasons(purity_result)
 
     assert purity_info == expected
 
 
+# TODO: redo this test when analysis is more advanced
 @pytest.mark.parametrize(
     "purity_reasons, expected",
     [
@@ -115,10 +115,19 @@ def test_generate_purity_information(purity_result: PurityResult, expected: list
             Impure(reasons=[Call(expression=AttributeAccess(name="impure_call"))]),
         ),
         # TODO: improve analysis so this test does not fail:
-        # (
-        #    [Call(expression=AttributeAccess(name="pure_call"))],
-        #    DefinitelyPure()
-        # ),
+        (
+           [Call(expression=AttributeAccess(name="pure_call"))],
+           Pure()
+        ),
+        (
+            [Call(expression=Reference(name="impure_call"))],
+            Impure(reasons=[Call(expression=Reference(name="impure_call"))]),
+        ),
+        # TODO: improve analysis so this test does not fail:
+        (
+            [Call(expression=Reference(name="pure_call"))],
+            Pure(),
+        ),
         (
             [FileRead(source=StringLiteral(value="read_path"))],
             Impure(reasons=[FileRead(source=StringLiteral(value="read_path"))]),
@@ -135,9 +144,31 @@ def test_generate_purity_information(purity_result: PurityResult, expected: list
             [VariableWrite(StringLiteral(value="var_write"))],
             Unknown(reasons=[VariableWrite(StringLiteral(value="var_write"))]),
         ),
+        (
+            [VariableRead(expression=GlobalAccess(name="global_var"))],
+            Impure(reasons=[VariableRead(expression=GlobalAccess(name="global_var"))]),
+        ),
+        (
+            [Call(expression=ParameterAccess(parameter="param", function="function"))],
+            Impure(reasons=[Call(expression=ParameterAccess(parameter="param", function="function"))]),
+        )
     ],
+    ids=[
+        "empty-Pure",
+        "Call-AttributeAccess-Impure",
+        "Call-AttributeAccess-Pure",
+        "Call-Reference-Impure",
+        "Call-Reference-Pure",
+        "FileRead-StringLiteral-Impure",
+        "FileWrite-StringLiteral-Impure",
+        "VariableRead-StringLiteral-Unknown",
+        "VariableWrite-StringLiteral-Unknown",
+        "VariableRead-GlobalAccess-Impure",
+        "Call-ParameterAccess-Impure"
+    ]
+
 )
-def test_determine_purity(purity_reasons: list[ImpurityIndicator], expected: PurityResult) -> None:
+def test_determine_purity(purity_reasons: list[IntraProceduralDataFlow], expected: PurityResult) -> None:
     result = determine_purity(purity_reasons)
     assert result == expected
 
@@ -359,17 +390,28 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
             """,
             ValueError,
         ),
-        (
-            """
-                def fun17(): # this does not belong here but is needed for code coverage
-                    print("test")
-            """,
-            TypeError,
-        ),
-    ],
+    ], ids=
+    [
+        "open - FileRead + Call",
+        "open r - FileRead + Call",
+        "open w - FileWrite + Call",
+        "open a - FileWrite + Call",
+        "open r+ - FileRead + FileWrite + Call",
+        "open - FileRead + Call + Call",
+        "open - FileRead + Call + Call",
+        "open w - FileWrite + Call + Call",
+        "open w - FileWrite + Call + Call",
+        "with open - FileRead + Call + Call",
+        "open with variable - FileRead + Call + Call",
+        "open w with variable - FileWrite + Call + Call",
+        "open wb+ with variable - FileRead + FileWrite + Call + Call",
+        "with open with variable - FileRead + Call + Call + Call",
+        "with open w with variable - FileWrite + Call + Call + Call",
+        "open with variable and wrong mode - ValueError",
+    ]
 )
 # TODO: test for wrong arguments and Errors
-def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
+def test_file_interaction(code: str, expected: list[IntraProceduralDataFlow]) -> None:
     if expected is ValueError:
         with pytest.raises(ValueError):
             infer_purity(code)
@@ -396,7 +438,7 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
             """,
             [Call(expression=Reference(name='impure_call(a)')),
              Call(expression=Reference(name='impure_call(a)'))],
-        ),  # TODO: there is no way to distinguish between the two calls
+        ),  # TODO: there is no way to distinguish between the two calls - see Call for fix
         (
             """
                 def pure_fun(a):
@@ -514,7 +556,7 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
     ]
 
 )
-def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> None:
+def test_infer_purity_basics(code: str, expected: list[IntraProceduralDataFlow]) -> None:
     result_list = infer_purity(code)
     for info in result_list:
         p = get_purity_result_str(info.reasons)
@@ -531,7 +573,7 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                 def parameter_access1(a):
                     res = a # ParameterAccess => pure
                     return res
-            """,  # function with one parameter, one accessed parameter
+            """,
             [],
         ),
         (
@@ -540,7 +582,7 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                     res1 = a  # ParameterAccess => pure
                     res2 = b  # ParameterAccess => pure
                     return res1, res2
-            """,  # function with two parameters, two accessed parameters
+            """,
             [],
         ),
         (
@@ -548,7 +590,7 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                 def parameter_access(a, b):
                     res1 = a  # ParameterAccess => pure
                     return res1
-            """,  # function with two parameters, one accessed parameter and one not accessed parameter
+            """,
             []
         ),
         (
@@ -556,7 +598,7 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                 def parameter_access(a, b):
                     res1 = 1234
                     return res1
-            """,  # function with two parameters, two not accessed parameters
+            """,
             [],
         ),
         (
@@ -564,7 +606,7 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                 def parameter_access(a):
                     res1 = f(a)  # ParameterAccess => pure but Call => impure
                     return res1
-            """,  # function with one parameter, one accessed parameter via a call argument
+            """,
             [Call(expression=ParameterAccess(parameter='a',
                                              function='f')),
              Call(expression=Reference(name='f(a)',
@@ -576,7 +618,7 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                 def parameter_access(a, b):
                     res1 = f(a, b)  # ParameterAccess => pure but Call => impure
                     return res1
-            """,  # function with two arguments, two accessed parameters via a call argument
+            """,
             [Call(expression=ParameterAccess(parameter='a',
                                              function='f')),
              Call(expression=ParameterAccess(parameter='b',
@@ -590,7 +632,7 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                 def parameter_access(a, b):
                     res1 = f(a)  # ParameterAccess => pure but Call => impure
                     return res1
-            """,  # function with two arguments, two accessed parameters via a call argument
+            """,
             [Call(expression=ParameterAccess(parameter='a',
                                              function='f')),
              Call(expression=Reference(name='f(a)',
@@ -604,7 +646,7 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                     res1 = f(a)  # ParameterAccess => pure but Call => impure
                     res2 = g(b)  # ParameterAccess => pure but Call => impure
                     return res1, res2
-            """,  # function with two arguments, two accessed parameters via a call argument
+            """,
             [Call(expression=ParameterAccess(parameter='a',
                                              function='f')),
              Call(expression=ParameterAccess(parameter='b',
@@ -615,9 +657,17 @@ def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> No
                                        expression=None))  # TODO: remove this when Call is fixed
              ],
         ),
-    ]
+    ], ids=["function with one parameter, one accessed parameter",
+            "function with two parameters, two accessed parameters",
+            "function with two parameters, one accessed parameter",
+            "function with two parameters, two not accessed parameters",
+            "function with one parameter, one accessed parameter via call",
+            "function with two arguments, two accessed parameters via call",
+            "function with two arguments, one accessed parameter via call",
+            "function with two arguments, two accessed parameters via different calls",
+            ]
 )
-def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicator]) -> None:
+def test_infer_purity_parameter_access(code: str, expected: list[IntraProceduralDataFlow]) -> None:
     result_list = infer_purity(code)
     for info in result_list:
         p = get_purity_result_str(info.reasons)
@@ -631,7 +681,6 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
 @pytest.mark.parametrize(
     "code, expected",
     [
-        # FunctionDef with use of a global variable as a value (reading from global)
         (
             """
                 glob0 = 0
@@ -642,7 +691,6 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
             """,
             [VariableRead(expression=GlobalAccess(name='glob0', module=''))],
         ),
-        # FunctionDef with use of a global variable as a variable (writing to global)
         (
             """
                 glob1 = 1
@@ -652,7 +700,6 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
             """,
             [VariableWrite(expression=GlobalAccess(name='glob1', module=''))],
         ),
-        # FunctionDef with use of one global variable only (reading from global1)
         (
             """
                 glob1 = 1
@@ -664,9 +711,7 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
                     return res
             """,
             [VariableRead(expression=GlobalAccess(name='glob1', module=''))],
-            #  TODO: to fix this, we need to check if the global is accessed in the function body
         ),
-        # FunctionDef with use of a global variable as a variable (writing to global) + call
         (
             """
                 glob2 = 2
@@ -677,7 +722,6 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
             [VariableWrite(expression=GlobalAccess(name='glob2', module='')),
              Call(expression=Reference(name='h(1)', expression=None))],
         ),
-        # FunctionDef with use of a global variable parameter (reading from global) + call
         (
             """
                 glob3 = 3
@@ -689,7 +733,6 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
             [VariableRead(expression=GlobalAccess(name='glob3', module='')),
              Call(expression=Reference(name='h(glob3)', expression=None))],
         ),
-        # FunctionDef with use of a global variable as return value
         (
             """
                 glob4 = 4
@@ -697,9 +740,8 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
                     global glob4
                     return glob4
             """,
-            [],
-        ),  # TODO: what is the correct result here?
-        # FunctionDef with use of a global as a variable (writing to global) and as a value (reading from global)
+            [VariableRead(expression=GlobalAccess(name='glob4', module=''))],
+        ),
         (
             """
                 glob5 = 5
@@ -710,7 +752,6 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
             [VariableWrite(expression=GlobalAccess(name='glob5', module='')),
              VariableRead(expression=GlobalAccess(name='glob5', module=''))],
         ),
-        # FunctionDef with use of a global as a variable (writing to global) and as a value (reading from global)
         (
             """
                 glob6 = 6
@@ -718,10 +759,8 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
                     global glob6
                     glob6 += 1 # GlobalAccess => impure
             """,
-            [VariableWrite(expression=GlobalAccess(name='glob6', module='')),
-             VariableRead(expression=GlobalAccess(name='glob6', module=''))],
+            [VariableWrite(expression=GlobalAccess(name='glob6', module=''))],
         ),  # TODO: is this correct?
-        # FunctionDef with use of a global as a variable (writing to global) and as a value (reading from global)
         (
             """
                 glob7 = 7
@@ -732,27 +771,37 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
                 # x = global_access() # x = 8
             """,
             [VariableWrite(expression=GlobalAccess(name='glob7', module=''))],
-        ),  # TODO: what is the correct result here?
-        # FunctionDef with use of a global variable as return value
+        ),
         (
             """
                 glob8 = 8
                 def global_access8():
                     global glob8
-                    glob = glob8 + 1 # GlobalAccess => impure
+                    glob8 = glob8 + 1 # GlobalAccess => impure
                     return glob8
             """,
             [VariableWrite(expression=GlobalAccess(name='glob8', module='')),
              VariableRead(expression=GlobalAccess(name='glob8', module=''))],
         ),
-    ]
+    ], ids=["global variable as value (reading from global)",
+            "global variable as target (writing to global)",
+            "two global variable only one used (reading from global)",
+            "global variable as target (writing to global) + call",
+            "global variable as argument (reading from global) + call",
+            "global variable as return value (reading from global)",
+            "global variable as target (writing to global) and as value (reading from global)",
+            "global variable as target (writing to global)",
+            "global variable as return value (reading from global)",
+            "global variable as target (writing to global) and as value (reading from global)"
+            ]  # TODO: remove duplicates?
 )
-def test_infer_purity_global_access(code: str, expected: list[ImpurityIndicator]) -> None:
+def test_infer_purity_global_access(code: str, expected: list[IntraProceduralDataFlow]) -> None:
     result_list = infer_purity(code)
     result_list = remove_irrelevant_information(result_list)
     print_result_list(result_list)
 
     assert result_list[0].reasons == expected
+
 
 @pytest.mark.parametrize(
     "code, expected",
@@ -775,7 +824,7 @@ def test_infer_purity_global_access(code: str, expected: list[ImpurityIndicator]
             [Call(expression=Reference(name='hash(self.number)', expression=None)),
              Call(expression=Reference(name='g()', expression=None))],
         ),
-       (
+        (
             """
                 class A:
                     def __init__(self):
@@ -808,7 +857,7 @@ def test_infer_purity_global_access(code: str, expected: list[ImpurityIndicator]
         ),
     ]
 )
-def test_infer_purity_class_definition(code: str, expected: list[ImpurityIndicator]) -> None:
+def test_infer_purity_class_definition(code: str, expected: list[IntraProceduralDataFlow]) -> None:
     result_list = infer_purity(code)
     for info in result_list:
         p = get_purity_result_str(info.reasons)
