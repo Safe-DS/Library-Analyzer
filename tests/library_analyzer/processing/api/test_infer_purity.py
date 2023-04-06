@@ -15,6 +15,7 @@ from library_analyzer.processing.api import (
     determine_open_mode,
     remove_irrelevant_information,
     get_purity_result_str,
+    print_result_list,
 )
 
 from library_analyzer.processing.api.model import (
@@ -633,24 +634,23 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
         # FunctionDef with use of a global variable as a value (reading from global)
         (
             """
-                glob = 0
+                glob0 = 0
                 def global_access0():
-                    global glob
-                    res = glob # GlobalAccess => impure
+                    global glob0
+                    res = glob0 # GlobalAccess => impure
                     return res
             """,
-            [VariableRead(expression=GlobalAccess(name='glob', module=''))],
+            [VariableRead(expression=GlobalAccess(name='glob0', module=''))],
         ),
         # FunctionDef with use of a global variable as a variable (writing to global)
         (
             """
-                glob = 1
+                glob1 = 1
                 def global_access1():
-                    global glob
-                    glob = "test"  # GlobalAccess => impure
-                    return res
+                    global glob1
+                    glob1 = "test"  # GlobalAccess => impure
             """,
-            [VariableWrite(expression=GlobalAccess(name='glob', module=''))],
+            [VariableWrite(expression=GlobalAccess(name='glob1', module=''))],
         ),
         # FunctionDef with use of one global variable only (reading from global1)
         (
@@ -669,90 +669,88 @@ def test_infer_purity_parameter_access(code: str, expected: list[ImpurityIndicat
         # FunctionDef with use of a global variable as a variable (writing to global) + call
         (
             """
-                glob = 2
+                glob2 = 2
                 def global_access2():
-                    global glob
-                    glob = h(1)  # GlobalAccess + Call => impure
+                    global glob2
+                    glob2 = h(1)  # GlobalAccess + Call => impure
             """,
-            [VariableWrite(expression=GlobalAccess(name='glob', module='')),
+            [VariableWrite(expression=GlobalAccess(name='glob2', module='')),
              Call(expression=Reference(name='h(1)', expression=None))],
         ),
         # FunctionDef with use of a global variable parameter (reading from global) + call
         (
             """
-                glob = 3
+                glob3 = 3
                 def global_access3():
-                    global glob
-                    res = h(glob)  # GlobalAccess + Call => impure
+                    global glob3
+                    res = h(glob3)  # GlobalAccess + Call => impure
                     return res
             """,
-            [VariableRead(expression=GlobalAccess(name='glob', module='')),
-             Call(expression=Reference(name='h(glob)', expression=None))],
+            [VariableRead(expression=GlobalAccess(name='glob3', module='')),
+             Call(expression=Reference(name='h(glob3)', expression=None))],
         ),
         # FunctionDef with use of a global variable as return value
         (
             """
-                glob = 4
+                glob4 = 4
                 def global_access4():
-                    global glob
-                    return glob
+                    global glob4
+                    return glob4
             """,
             [],
         ),  # TODO: what is the correct result here?
         # FunctionDef with use of a global as a variable (writing to global) and as a value (reading from global)
         (
             """
-                glob = 5
+                glob5 = 5
                 def global_access5():
-                    global glob
-                    glob = 2 * glob # GlobalAccess => impure
+                    global glob5
+                    glob5 = 2 * glob5 # GlobalAccess => impure
             """,
-            [VariableWrite(expression=GlobalAccess(name='glob', module='')),
-             VariableRead(expression=GlobalAccess(name='glob', module=''))],
+            [VariableWrite(expression=GlobalAccess(name='glob5', module='')),
+             VariableRead(expression=GlobalAccess(name='glob5', module=''))],
         ),
         # FunctionDef with use of a global as a variable (writing to global) and as a value (reading from global)
         (
             """
-                glob = 6
+                glob6 = 6
                 def global_access6():
-                    global glob
-                    glob += 1 # GlobalAccess => impure
+                    global glob6
+                    glob6 += 1 # GlobalAccess => impure
             """,
-            [VariableWrite(expression=GlobalAccess(name='glob', module='')),
-             VariableRead(expression=GlobalAccess(name='glob', module=''))],
+            [VariableWrite(expression=GlobalAccess(name='glob6', module='')),
+             VariableRead(expression=GlobalAccess(name='glob6', module=''))],
         ),  # TODO: is this correct?
         # FunctionDef with use of a global as a variable (writing to global) and as a value (reading from global)
         (
             """
-                glob = 7
+                glob7 = 7
                 def global_access7():
-                    global glob
-                    return glob + 1 # GlobalAccess => impure
+                    global glob7
+                    return glob7 + 1 # GlobalAccess => impure
 
                 # x = global_access() # x = 8
             """,
-            [VariableWrite(expression=GlobalAccess(name='glob', module=''))],
+            [VariableWrite(expression=GlobalAccess(name='glob7', module=''))],
         ),  # TODO: what is the correct result here?
         # FunctionDef with use of a global variable as return value
         (
             """
-                glob = 8
+                glob8 = 8
                 def global_access8():
-                    global glob
-                    glob = glob + 1 # GlobalAccess => impure
-                    return glob
+                    global glob8
+                    glob = glob8 + 1 # GlobalAccess => impure
+                    return glob8
             """,
-            [VariableWrite(expression=GlobalAccess(name='glob', module='')),
-             VariableRead(expression=GlobalAccess(name='glob', module=''))],
+            [VariableWrite(expression=GlobalAccess(name='glob8', module='')),
+             VariableRead(expression=GlobalAccess(name='glob8', module=''))],
         ),
     ]
 )
 def test_infer_purity_global_access(code: str, expected: list[ImpurityIndicator]) -> None:
     result_list = infer_purity(code)
     result_list = remove_irrelevant_information(result_list)
-    for info in result_list:
-        p = get_purity_result_str(info.reasons)
-        print(f"{info.id.module} {info.id.name} is {p} because {info.reasons} \n")
+    print_result_list(result_list)
 
     assert result_list[0].reasons == expected
 
