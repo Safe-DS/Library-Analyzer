@@ -9,11 +9,11 @@ import astroid
 from library_analyzer.processing.api.model import (
     BuiltInFunction,
     Call,
-    ConcreteImpurityIndicator,
+    ConcreteIntraProceduralDataFlow,
     FileRead,
     FileWrite,
     ImpurityCertainty,
-    ImpurityIndicator,
+    IntraProceduralDataFlow,
     Reference,
     StringLiteral,
     SystemInteraction,
@@ -26,7 +26,7 @@ from library_analyzer.processing.api.model import (
 from library_analyzer.utils import ASTWalker
 
 BUILTIN_FUNCTIONS = {
-    "open": BuiltInFunction(Reference("open"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
+    "open": BuiltInFunction(Reference("open"), ConcreteIntraProceduralDataFlow(), ImpurityCertainty.DEFINITELY_IMPURE),
     "print": BuiltInFunction(Reference("print"), SystemInteraction(), ImpurityCertainty.DEFINITELY_IMPURE),
     # "read": BuiltInFunction(Reference("read"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
     # "write": BuiltInFunction(Reference("write"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_IMPURE),
@@ -63,7 +63,7 @@ class FunctionID:
 
 class PurityResult(ABC):
     def __init__(self) -> None:
-        self.reasons: list[ImpurityIndicator] = []
+        self.reasons: list[IntraProceduralDataFlow] = []
 
 
 @dataclass
@@ -73,7 +73,7 @@ class Pure(PurityResult):
 
 @dataclass
 class Unknown(PurityResult):
-    reasons: list[ImpurityIndicator]
+    reasons: list[IntraProceduralDataFlow]
 
     # def __hash__(self) -> int:
     #     return hash(tuple(self.reasons))
@@ -81,7 +81,7 @@ class Unknown(PurityResult):
 
 @dataclass
 class Impure(PurityResult):
-    reasons: list[ImpurityIndicator]
+    reasons: list[IntraProceduralDataFlow]
 
     # def __hash__(self) -> int:
     #     return hash(tuple(self.reasons))
@@ -90,7 +90,7 @@ class Impure(PurityResult):
 @dataclass
 class PurityInformation:
     id: FunctionID
-    reasons: list[ImpurityIndicator]
+    reasons: list[IntraProceduralDataFlow]
 
     # def __hash__(self) -> int:
     #     return hash((self.id, self.reasons))
@@ -155,7 +155,7 @@ class ParameterUsageHandler:
 #
 # """
 #     This class is used to find out how global variables are used in a function.
-#     Therefore it differentiates between global variables and global values
+#     Therefore, it differentiates between global variables and global values
 # """
 # @dataclass
 # class GlobalUsageHandler:
@@ -182,9 +182,9 @@ class ParameterUsageHandler:
 
 class PurityHandler:
     def __init__(self) -> None:
-        self.purity_reason: list[ImpurityIndicator] = []
+        self.purity_reason: list[IntraProceduralDataFlow] = []
 
-    def append_reason(self, reason: list[ImpurityIndicator]) -> None:
+    def append_reason(self, reason: list[IntraProceduralDataFlow]) -> None:
         for r in reason:
             self.purity_reason.append(r)
 
@@ -427,7 +427,7 @@ def determine_open_mode(args: list[str]) -> OpenMode:
 
 def check_builtin_function(
     node: astroid.NodeNG, key: str, value: Optional[str] = None, is_var: bool = False
-) -> list[ImpurityIndicator]:
+) -> list[IntraProceduralDataFlow]:
     if isinstance(value, str):
         if key == "open":
             open_mode = determine_open_mode(node.args)
@@ -480,7 +480,7 @@ def infer_purity(code: str) -> list[PurityInformation]:
     return result
 
 
-def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
+def determine_purity(indicators: list[IntraProceduralDataFlow]) -> PurityResult:
     if len(indicators) == 0:
         return Pure()
     if any(indicator.certainty == ImpurityCertainty.DEFINITELY_IMPURE for indicator in indicators):
@@ -499,7 +499,7 @@ def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
     #     return DefinitelyPure()
 
 
-def extract_impurity_reasons(purity: PurityResult) -> list[ImpurityIndicator]:
+def extract_impurity_reasons(purity: PurityResult) -> list[IntraProceduralDataFlow]:
     if isinstance(purity, Pure):
         return []
     return purity.reasons
@@ -550,7 +550,7 @@ def remove_irrelevant_information(purity_information: list[PurityInformation]) -
 
 
 # this function are only for visualization purposes
-def get_purity_result_str(indicators: list[ImpurityIndicator]) -> str:
+def get_purity_result_str(indicators: list[IntraProceduralDataFlow]) -> str:
     if len(indicators) == 0:
         return "Pure"
     if any(indicator.certainty == ImpurityCertainty.DEFINITELY_IMPURE for indicator in indicators):

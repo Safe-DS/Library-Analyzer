@@ -90,7 +90,7 @@ class ImpurityCertainty(Enum):
 
 
 # Reasons for impurity
-class ImpurityIndicator(ABC):
+class IntraProceduralDataFlow(ABC):
     certainty: ImpurityCertainty
 
     # @abstractmethod
@@ -103,7 +103,7 @@ class ImpurityIndicator(ABC):
 
 
 @dataclass
-class ConcreteImpurityIndicator(ImpurityIndicator):
+class ConcreteIntraProceduralDataFlow(IntraProceduralDataFlow):
     # def __hash__(self) -> int:
     #     return hash(self.certainty)
 
@@ -112,7 +112,7 @@ class ConcreteImpurityIndicator(ImpurityIndicator):
 
 
 @dataclass
-class VariableRead(ImpurityIndicator):
+class VariableRead(IntraProceduralDataFlow):
     expression: Expression
     certainty = ImpurityCertainty.MAYBE_IMPURE
 
@@ -124,7 +124,7 @@ class VariableRead(ImpurityIndicator):
 
 
 @dataclass
-class VariableWrite(ImpurityIndicator):
+class VariableWrite(IntraProceduralDataFlow):
     expression: Expression
     certainty = ImpurityCertainty.MAYBE_IMPURE
 
@@ -136,7 +136,7 @@ class VariableWrite(ImpurityIndicator):
 
 
 @dataclass
-class FileRead(ImpurityIndicator):
+class FileRead(IntraProceduralDataFlow):
     source: Expression
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
@@ -148,7 +148,7 @@ class FileRead(ImpurityIndicator):
 
 
 @dataclass
-class FileWrite(ImpurityIndicator):
+class FileWrite(IntraProceduralDataFlow):
     source: Expression
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
@@ -160,7 +160,7 @@ class FileWrite(ImpurityIndicator):
 
 
 @dataclass
-class UnknownCallTarget(ImpurityIndicator):
+class UnknownCallTarget(IntraProceduralDataFlow):
     expression: Expression
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
@@ -172,8 +172,11 @@ class UnknownCallTarget(ImpurityIndicator):
 
 
 @dataclass
-class Call(ImpurityIndicator):
+class Call(IntraProceduralDataFlow):
     expression: Expression
+    # TODO: add the arguments to better display dependencies in a call
+    # callee: Expression
+    # arguments: list[Expression]
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
     # def __hash__(self) -> int:
@@ -184,7 +187,7 @@ class Call(ImpurityIndicator):
 
 
 @dataclass
-class SystemInteraction(ImpurityIndicator):
+class SystemInteraction(IntraProceduralDataFlow):
     certainty = ImpurityCertainty.DEFINITELY_IMPURE
 
     # def __hash__(self) -> int:
@@ -195,11 +198,11 @@ class SystemInteraction(ImpurityIndicator):
 
 
 @dataclass
-class BuiltInFunction(ImpurityIndicator):
+class BuiltInFunction(IntraProceduralDataFlow):
     """Class for built-in functions"""
 
     expression: Expression
-    indicator: ImpurityIndicator  # this should be a list to handle multiple reasons
+    indicator: IntraProceduralDataFlow  # this should be a list to handle multiple reasons
     certainty: ImpurityCertainty
 
     # def __hash__(self) -> int:

@@ -4,7 +4,7 @@ from ._get_parameter_list import get_parameter_list
 from ._infer_purity import (
     Impure,
     Pure,
-    ImpurityIndicator,
+    IntraProceduralDataFlow,
     Unknown,
     OpenMode,
     PurityInformation,
