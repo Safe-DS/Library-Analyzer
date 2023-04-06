@@ -7,6 +7,13 @@ from typing import Optional
 
 import astroid
 
+# for testing purposes only
+# __y = 42
+# __version__ = "0.1.0"
+# x = "rest"
+# y = 23
+# y = 34
+
 
 # Type of access
 class Expression(astroid.NodeNG, ABC):

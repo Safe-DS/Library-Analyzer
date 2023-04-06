@@ -19,7 +19,9 @@ from library_analyzer.processing.api.model import (
     SystemInteraction,
     VariableRead,
     VariableWrite,
-    InstanceAccess, ParameterAccess, GlobalAccess,
+    InstanceAccess,
+    ParameterAccess,
+    GlobalAccess,
 )
 from library_analyzer.utils import ASTWalker
 
@@ -39,6 +41,12 @@ BUILTIN_FUNCTIONS = {
     # ),
     # "close": BuiltInFunction(Reference("close"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_PURE),
 }
+
+
+class OpenMode(Enum):
+    READ = auto()
+    WRITE = auto()
+    READ_WRITE = auto()
 
 
 @dataclass
@@ -109,7 +117,7 @@ class ParameterUsageHandler:
     parameter_usage: list[ParameterUsage]
 
     def enter_name(self, node: astroid.Name):
-        variable = node.as_string()
+        # variable = node.as_string()
         # print("WITHIN PARAMETER ", variable)
         if isinstance(node, astroid.Call):
             return
@@ -140,6 +148,38 @@ class ParameterUsageHandler:
         return [parameter.parameter for parameter in self.parameter_usage if not parameter.used]
 
 
+# class UsageMode(Enum):
+#     VALUE = auto()
+#     VARIABLE = auto()
+#
+#
+# """
+#     This class is used to find out how global variables are used in a function.
+#     Therefore it differentiates between global variables and global values
+# """
+# @dataclass
+# class GlobalUsageHandler:
+#     global_values: list[str]  # list of global values (eg. a = value    -> value)
+#     global_variables: list[str]  # list of global variables (eg. a = value    -> a)
+#     global_usage: list[tuple[str, UsageMode]]  # list of global variables and values and how they are used in the function
+#
+#     def enter_name(self, node: astroid.Name):
+#         # handle global values
+#         value = node.as_string()
+#         if value in self.global_values:
+#             self.global_usage.append((value, UsageMode.VALUE))
+#
+#         # append global variables to global_usage
+#         variable = node.as_string()
+#         if variable in self.global_variables:
+#             self.global_usage.append((variable, UsageMode.VARIABLE))
+#
+#
+#
+#     def get_used_globals(self, usage_mode: UsageMode):
+#         return [glob for glob in self.global_usage if glob[1] == usage_mode]
+
+
 class PurityHandler:
     def __init__(self) -> None:
         self.purity_reason: list[ImpurityIndicator] = []
@@ -167,16 +207,58 @@ class PurityHandler:
                 self.append_reason([Call(ParameterAccess(parameter=parameter.parameter,
                                                          function=parameter.call))])
 
-        for nodes in node.body:
-            """Handle Global Variables"""
-            # TODO: Check if a global variable is used in the function
-            if isinstance(nodes, astroid.Global):
-                self.append_reason([VariableWrite(GlobalAccess(name=nodes.names[0], module=node.root().name))])
-                print("GLOBAL", nodes.names[0], node.root().name)
-            # TODO: Check if a global variable is written in the function
+        """Handle Global Variables"""
+        globals_list = []
+        values = []
+        variables = []
+        for body_nodes in node.body:
+            # TODO: how to handle returns?
+            # TODO: how too handle calls?
 
-            # TODO: Handle Built-In Functions
-            """Handle Built-In Functions"""
+            if isinstance(body_nodes, astroid.Global):
+                globals_list += body_nodes.names
+
+            if isinstance(body_nodes, astroid.Assign):
+                values.append(body_nodes.value.as_string())
+                variables.append(body_nodes.targets[0].as_string())
+
+            # print("GLOBAL", body_nodes.names[0], node.root().name)
+        global_used_as_values = []
+        global_used_as_variables = []
+        if globals_list:
+            if values:
+                global_used_as_values = [value for value in values if value in globals_list]
+                if global_used_as_values:
+                    for name in global_used_as_values:
+                        self.append_reason([VariableRead(GlobalAccess(name=name, module=node.root().name))])
+                        # TODO: there is a problem with assignments if there is  more than one statement in the assignment
+            if variables:
+                global_used_as_variables = [variable for variable in variables if variable in globals_list]
+                if global_used_as_variables:
+                    for name in global_used_as_variables:
+                        self.append_reason([VariableWrite(GlobalAccess(name=name, module=node.root().name))])
+
+            if global_used_as_values and global_used_as_variables:
+                for name in global_used_as_values:
+                    self.append_reason([VariableRead(GlobalAccess(name=name, module=node.root().name))])
+                for name in global_used_as_variables:
+                    self.append_reason([VariableWrite(GlobalAccess(name=name, module=node.root().name))])
+        #
+        # global_handler = GlobalUsageHandler(global_used_as_values, global_used_as_variables, [])
+        # visitor = ASTWalker(global_handler)
+        # print(node.repr_tree())
+        # for node in node.body:
+        #     visitor.walk(node)
+        # # if a variable is used in the function it is used as a value -> VariableRead
+        # for name in global_handler.get_used_globals(UsageMode.VALUE):
+        #     self.append_reason([VariableRead(GlobalAccess(name=name[0], module=node.root().name))])
+        #
+        # # if a variable is used in the function it is used as a variable -> VariableWrite
+        # for name in global_handler.get_used_globals(UsageMode.VARIABLE):
+        #     self.append_reason([VariableWrite(GlobalAccess(name=name[0], module=node.root().name))])
+
+        # TODO: Handle Built-In Functions
+        """Handle Built-In Functions"""
 
     def enter_assign(self, node: astroid.Assign) -> None:
         # print(f"Entering Assign node {node}, {node.as_string()}")
@@ -244,7 +326,7 @@ class PurityHandler:
         pass
 
     def enter_name(self, node: astroid.Name) -> None:
-        #print(f"Entering Name node {node.as_string()}")
+        # print(f"Entering Name node {node.as_string()}")
         # Handle the Name node here
         # if isinstance(node.parent, astroid.AssignAttr) and node.parent.expr == node:
         #     print(f"{node.name} is an attribute")
@@ -293,16 +375,8 @@ class PurityHandler:
             result.append(generate_purity_information(child, purity_result))
             inner_class_purity_handler.purity_reason = []
 
-
         print(f"Class {node.name} is {result}")
         print_result_list(result)
-        pass
-
-
-class OpenMode(Enum):
-    READ = auto()
-    WRITE = auto()
-    READ_WRITE = auto()
 
 
 def determine_open_mode(args: list[str]) -> OpenMode:
@@ -446,11 +520,12 @@ def get_module_code(module: str) -> str:
         return file.read()
     # TODO: remove conversion to string and use astroid nodes instead
 
+
 def calc_function_id(node: astroid.NodeNG) -> FunctionID | None:
     module = node.parent.name  # TODO: This is not correct, it should be the module name
     # module = "_infer_purity.py"
     if module.endswith(".py"):
-       module = module[:-3]
+        module = module[:-3]
     if not isinstance(node, astroid.FunctionDef):
         return FunctionID(module, node.as_string().split('=')[0].strip(), 0, 0, node.__class__.__name__)
 
@@ -467,10 +542,10 @@ def remove_irrelevant_information(purity_information: list[PurityInformation]) -
     result = []
     for info in purity_information:
         # print(info.reasons)
-        if not isinstance(info.id.node_type, astroid.FunctionDef):  # this does not work as intended
+        if not info.id.node_type == "FunctionDef":
             if len(info.reasons) == 0:
                 continue
-        result.append(info)  # TODO: should we check if the global variable is actually used in the function? - yes
+        result.append(info)
     return result
 
 
@@ -487,14 +562,16 @@ def get_purity_result_str(indicators: list[ImpurityIndicator]) -> str:
 def print_result_list(result: list[PurityInformation]):
     for purity_info in result:
         p = get_purity_result_str(purity_info.reasons)
-        print(f"Module:{purity_info.id.module}, Name: {purity_info.id.name} of type {purity_info.id.node_type} is {p} because {purity_info.reasons} \n")
+        print(f"Module: {purity_info.id.module}, Node name: {purity_info.id.name} of type {purity_info.id.node_type} is {p} "
+              f"because {purity_info.reasons} \n")
 
 
 if __name__ == "__main__":
-    x = get_module_code("C:/Users/Lukas Radermacher/Documents/GitHub/Library-Analyzer/src/library_analyzer/utils/_ASTWalker.py")
-    # print(x)
-    result = infer_purity(x)
-    print_result_list(result)
+    # x = get_module_code("C:/Users/Lukas Radermacher/Documents/GitHub/Library-Analyzer/src/library_analyzer/"
+    #                     "utils/_ASTWalker.py")
+    # # print(x)
+    # x_result = infer_purity(x)
+    # print_result_list(x_result)
 
     sourcecode = """
        class A:
@@ -533,7 +610,8 @@ if __name__ == "__main__":
 
     # print(get_global_variables_from_file("C:/Users/Lukas Radermacher/Documents/GitHub/Library-Analyzer/src/"
     #                                      "library_analyzer/processing/api/model/_purity.py"))
-    # print(get_global_variables_from_file("C:/Users/Lukas Radermacher/Documents/GitHub/Library-Analyzer/src/library_analyzer/processing/api/_infer_purity.py"))
+    # print(get_global_variables_from_file("C:/Users/Lukas Radermacher/Documents/GitHub/Library-Analyzer/src/
+    # library_analyzer/processing/api/_infer_purity.py"))
 
     result_list = infer_purity(sourcecode)
     print_result_list(result_list)

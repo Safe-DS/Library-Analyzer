@@ -17,6 +17,7 @@ from ._infer_purity import (
     remove_irrelevant_information,
     get_purity_result_str,
     infer_purity,
+    print_result_list,
 )
 from ._package_metadata import (
     distribution,
