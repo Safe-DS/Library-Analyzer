@@ -56,4 +56,6 @@ __all__ = [
     "infer_purity",
     "package_files",
     "package_root",
+    "resolve_references",
+    "get_name_nodes"
 ]
