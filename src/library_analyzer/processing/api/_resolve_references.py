@@ -17,18 +17,18 @@ class ReferenceHandler:
     def enter_name(self, node: astroid.Name) -> None:
         if isinstance(node.parent, astroid.Assign | astroid.AssignAttr | astroid.Attribute | astroid.AugAssign | astroid.Return | astroid.Compare | astroid.For):
             self.names_list.append(node)
+        if isinstance(node.parent, astroid.Call):
+            if isinstance(node.parent.func, astroid.Name):
+                # append a node only then when it is not the name node of the function
+                if node.parent.func.name != node.name:
+                    self.names_list.append(node)
 
     # AssignName is used to find the name if it is used as a target in an assignment
     def enter_assignname(self, node: astroid.AssignName) -> None:
-        if isinstance(node.parent, astroid.Assign | astroid.AssignAttr | astroid.Attribute| astroid.AugAssign | astroid.AnnAssign | astroid.Return | astroid.Compare | astroid.For):
+        if isinstance(node.parent, astroid.Assign | astroid.Arguments | astroid.AssignAttr | astroid.Attribute| astroid.AugAssign | astroid.AnnAssign | astroid.Return | astroid.Compare | astroid.For):
             self.names_list.append(node)
 
     # We do not need AugAssign, since it uses AssignName as a target and Name as value
-    # def enter_attribute(self, node: astroid.Attribute) -> None:
-    #     self.names_list.append(node)
-
-    # def enter_augassignname(self, node: astroid.AugAssignName) -> None:
-    #     self.names_list.append(node.name)
 
 
 def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name]]:
