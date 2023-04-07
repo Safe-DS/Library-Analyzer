@@ -20,6 +20,12 @@ from ._infer_purity import (
     get_purity_result_str,
     infer_purity,
 )
+
+from ._resolve_references import (
+    resolve_references,
+    get_name_nodes
+)
+
 from ._package_metadata import (
     distribution,
     distribution_version,
