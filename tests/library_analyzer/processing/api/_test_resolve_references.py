@@ -7,19 +7,6 @@ from library_analyzer.processing.api import (
 )
 
 
-# # language=Python
-# x = """
-# def my_func():
-#     var1 = 20
-#     res = var1
-# """
-# module = astroid.parse(x)
-#
-# for node in module.body:
-#     resolve_references(node)
-# ...
-
-
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
@@ -28,14 +15,14 @@ from library_analyzer.processing.api import (
                 def variable():
                     var1 = 20
             """,
-            ["var1"]
+            ["AssignName.var1"]
         ),
         (
             """
                 def parameter(a):
                     var1 = a
             """,
-            ["a", "var1"]
+            ['AssignName.a', 'AssignName.var1', 'Name.a']
         ),
         (
             """
@@ -44,7 +31,7 @@ from library_analyzer.processing.api import (
             """,
             # TODO: "global glob1" is not a Name node - what should we do, since it is never used?
             #  see next case:
-            ["glob1"]
+            ["TODO"]
         ),
         (
             """
@@ -52,61 +39,60 @@ from library_analyzer.processing.api import (
                     global glob1
                     var1 = glob1
             """,
-            ["var1", "glob1"]
+            ['AssignName.var1', 'Name.glob1']
         ),
         (
             """
                 def class_attr():
                     var1 = A.class_attr
             """,
-            ["var1", "A.class_attr"]  # TODO: how do we need A.class_attr1?
+            ['AssignName.var1', 'Name.A.class_attr']  # TODO: how do we need A.class_attr1?
         ),  # TODO: Problem with instance attributes since: A.class_attr1 is not a Name node
         (
             """
                 def instance_attr():
                     var1 = B().instance_attr
             """,
-            ["var1", "b.instance_attr"]  # TODO: how do we need B().instance_attr1?
+            ['AssignName.var1', 'Name.b.instance_attr']  # TODO: how do we need B().instance_attr1?
         ),  # TODO: Problem with instance attributes since: B().instance_attr1 is not a Name node
         (
             """
                 def aug_assign():
-                    var1 = 10
                     var1 += 1
-            """, ["var1"]
+            """, ['AssignName.var1']
         ),
         (
             """
                 def assign_attr():
                     a.res = 1
-            """, ["a.res"]
+            """, ["Name.a.res"]
         ),  # TODO: Problem with instance attributes since: a.res is not a Name node
         (
             """
                 def assign_return():
                     return var1
-            """, ["var1"]
+            """, ['Name.var1']
         ),
         (
             """
                 def while_loop():
                     while var1 > 0:
                         do_something()
-            """, ["var1"]
+            """, ['Name.var1']
         ),
         (
             """
                 def for_loop():
                     for var1 in range(10):
                         do_something()
-            """, ["var1"]
+            """, ['AssignName.var1']
         ),
         (
             """
                 def if_state():
                     if var1 > 0:
                         do_something()
-            """, ["var1"]
+            """, ['Name.var1']
         ),
         (
             """
@@ -115,7 +101,7 @@ from library_analyzer.processing.api import (
                         do_something()
                     else:
                         do_something_else()
-            """, ["var1"]
+            """, ['Name.var1']
         ),
         (
             """
@@ -124,14 +110,20 @@ from library_analyzer.processing.api import (
                         do_something()
                     elif var1 > var2:
                         do_something_else()
-            """, ["var1", "var2"]
+            """, ['Name.var1', 'Name.var1', 'Name.var2']
         ),
         (
             """
                 def ann_assign():
                     var1: int = 10
-            """, ["var1"]
+            """, ['AssignName.var1']
         ),
+        (
+            """
+                def func_call():
+                    var1 = func(var2)
+            """, ['AssignName.var1', 'Name.var2']
+        )
     ],
     ids=[
         "Assign",
@@ -148,19 +140,21 @@ from library_analyzer.processing.api import (
         "If",
         "If Else",
         "If Elif",
-        "AnnAssign"
+        "AnnAssign",
+        "FuncCall"
     ]
 )
 def test_get_name_nodes(code: str, expected: str) -> None:
-    names_list_str = []
     module = astroid.parse(code)
     print(module.repr_tree(), "\n")
     names_list = get_name_nodes(module)
-    if not names_list_str:
-        for i, name in enumerate(names_list[0]):
-            names_list_str.append(name.name)
-    assert set(names_list_str) == set(expected)
+    names_list = names_list[0]
+    names_list = transform_actual_names(names_list)
+    assert names_list == expected
 
+
+def transform_actual_names(names):
+    return [f"{name.__class__.__name__}.{name.name}" for name in names]
 
 @pytest.mark.parametrize(
     ("code", "expected"),
