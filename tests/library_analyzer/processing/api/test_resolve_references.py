@@ -123,7 +123,13 @@ from library_analyzer.processing.api import (
                 def func_call():
                     var1 = func(var2)
             """, ['AssignName.var1', 'Name.var2']
-        )
+        ),
+        (
+            """
+                def unresolved_reference():
+                    var1 =
+            """, ['AssignName.var1']
+        )  # TODO: this should better be checked in the resolve_references test?
     ],
     ids=[
         "Assign",
@@ -141,7 +147,8 @@ from library_analyzer.processing.api import (
         "If Else",
         "If Elif",
         "AnnAssign",
-        "FuncCall"
+        "FuncCall",
+        "Unresolved Reference"
     ]
 )
 def test_get_name_nodes(code: str, expected: str) -> None:
@@ -155,6 +162,86 @@ def test_get_name_nodes(code: str, expected: str) -> None:
 
 def transform_actual_names(names):
     return [f"{name.__class__.__name__}.{name.name}" for name in names]
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (
+            """
+                def local_const():
+                    var1 = 20
+                    var2 = 40
+                    res = var1 + var2
+                    res = var1 - var2
+                    return res
+            """,
+            []
+        ),
+        (
+            """
+                def local_parameter(a):
+                    var1 = a
+                    res = var1
+                    return res
+            """,
+            []
+        ),        (
+            """
+                glob1 = 10
+                def local_global():
+                    global glob1
+
+                    var1 = glob1
+                    res = var1
+                    return res
+            """,
+            []
+        ),        (
+            """
+                class A:
+                    class_attr1 = 10
+
+                def local_class_attr():
+                    var1 = A.class_attr1
+                    res = var1
+                    return res
+            """,
+            []
+        ),
+        (
+            """
+                class B:
+                    def __init__(self):
+                        self.instance_attr1 = 10
+
+                def local_instance_attr():
+                    var1 = B().instance_attr1
+                    res = var1
+                    return res
+            """,
+            []
+        ),
+    ],
+    ids=[
+        "constant as local variable",
+        "parameter as local variable",
+        "global as local variable",
+        "class attribute as local variable",
+        "instance attribute as local variable",
+    ]
+)
+def test_resolve_references_local(code, expected):
+    module = astroid.parse(code)
+    # print(module.repr_tree(), "\n")
+    all_names_list = get_name_nodes(module)
+    print(all_names_list)
+    resolved_references = []
+    for module_name in all_names_list:
+        resolved_references.append(resolve_references(module_name))
+
+    print(resolved_references)
+
 
 @pytest.mark.parametrize(
     ("code", "expected"),
@@ -221,7 +308,7 @@ def transform_actual_names(names):
         "instance attribute as local variable",
     ]
 )
-def test_resolve_references_local(code, expected):
+def test_resolve_references_global(code, expected):
     module = astroid.parse(code)
     print(module.repr_tree(), "\n")
     names_list = get_name_nodes(module)
