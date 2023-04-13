@@ -284,6 +284,11 @@ def transform_actual_names(names):
         "AssignName (parent FunctionDef)",
         "Name (parent FunctionDef)",
         "Name (parent FunctionDef, parent ClassDef, parent Module)",
+        # "Name incorrect (wrong parent)",
+        # "Name incorrect (wrong name)",
+        # "Name incorrect (wrong lineno)",
+        # "Name incorrect (wrong col_offset)",
+        # TODO: see above
     ]
 )
 def test_calc_function_id_new(node: astroid.NodeNG, expected: str) -> None:
@@ -295,24 +300,51 @@ def test_calc_function_id_new(node: astroid.NodeNG, expected: str) -> None:
     ("node", "expected"),
     [
         (
-            [astroid.Name("var1", lineno=1, col_offset=5)],
-            [Reference(astroid.Name("var1", lineno=1, col_offset=4), Usage.TARGET, [], False)]
+            [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
+            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", Usage.TARGET, [], False)]
         ),
         (
-            [astroid.AssignName("var1", lineno=1, col_offset=4)],
-            [Reference(astroid.AssignName("var1", lineno=1, col_offset=4), Usage.TARGET, [], False)]
+            [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
+             astroid.Name("var2", lineno=2, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
+             astroid.Name("var3", lineno=30, col_offset=4, parent=astroid.FunctionDef("func2", lineno=1, col_offset=0))],
+            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", Usage.TARGET, [], False),
+             Reference(astroid.Name("var2", lineno=2, col_offset=4), "func1.var2.2.4", Usage.TARGET, [], False),
+                Reference(astroid.Name("var3", lineno=30, col_offset=4), "func2.var3.30.4", Usage.TARGET, [], False)]
+        ),
+        (
+            [astroid.AssignName("var1", lineno=12, col_offset=42, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
+            [Reference(astroid.AssignName("var1", lineno=12, col_offset=42), "func1.var1.12.42", Usage.TARGET, [], False)]
+        ),
+        (
+            [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
+             astroid.AssignName("var2", lineno=1, col_offset=8, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
+            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", Usage.TARGET, [], False),
+             Reference(astroid.AssignName("var2", lineno=1, col_offset=8), "func1.var2.1.8", Usage.TARGET, [], False)]
+        ),
+        (
+            [],
+            []
         ),
     ],
     ids=[
         "Name",
+        "Multiple Names",
         "AssignName",
+        "Name and AssignName",
+        "Empty list",
     ]
 )
 def test_construct_reference_list(node: list[astroid.Name | astroid.AssignName], expected) -> None:
     result = construct_reference_list(node)
-    result = transform_actual_names(result)
-    expected = transform_actual_names(expected)
+    result = transform_reference_names(result)
+    expected = transform_reference_names(expected)
     assert result == expected
+
+
+def transform_reference_names(names):
+    """Transforms the name of the reference to a string for easier comparison (removes the address of the object)"""
+    print(names)
+    return [Reference(name.name.name, name.node_id, name.usage, name.potential_references, name.list_is_complete) for name in names]
 
 
 def test_add_potential_value_reference() -> None:
@@ -463,6 +495,7 @@ def test_resolve_references_local(code, expected):
 
     for resolved in resolved_references:
         print(resolved, "\n")
+        # print(resolved[0].node_id.module, "\n")
         assert resolved == expected
 
 
