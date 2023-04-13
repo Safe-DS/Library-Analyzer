@@ -3,7 +3,7 @@ import astroid
 
 from library_analyzer.processing.api import (
     resolve_references,
-    get_name_nodes
+    get_name_nodes, construct_reference_list, Reference, Usage, calc_node_id
 )
 
 
@@ -245,6 +245,85 @@ def transform_actual_names(names):
 
 
 @pytest.mark.parametrize(
+    ("node", "expected"),
+    [
+        (
+            astroid.Module("numpy"),
+            "numpy.numpy.0.0",
+        ),
+        (
+            astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy")),
+            "numpy.A.2.3",
+        ),
+        (
+            astroid.FunctionDef("local_func", lineno=1, col_offset=0, parent=astroid.ClassDef("A", lineno=2, col_offset=3)),
+            "A.local_func.1.0",
+        ),
+        (
+            astroid.FunctionDef("global_func", lineno=1, col_offset=0, parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy"))),
+            "numpy.global_func.1.0",
+        ),
+        (
+            astroid.AssignName("var1", lineno=1, col_offset=5, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
+            "func1.var1.1.5",
+        ),
+        (
+            astroid.Name("var2", lineno=20, col_offset=0, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
+            "func1.var2.20.0",
+        ),
+        (
+            astroid.Name("glob", lineno=20, col_offset=0, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0, parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy")))),
+            "numpy.glob.20.0",
+        ),
+    ],
+    ids=[
+        "Module",
+        "ClassDef (parent Module)",
+        "FunctionDef (parent ClassDef)",
+        "FunctionDef (parent ClassDef, parent Module)",
+        "AssignName (parent FunctionDef)",
+        "Name (parent FunctionDef)",
+        "Name (parent FunctionDef, parent ClassDef, parent Module)",
+    ]
+)
+def test_calc_function_id_new(node: astroid.NodeNG, expected: str) -> None:
+    result = calc_node_id(node)
+    assert result.__str__() == expected
+
+
+@pytest.mark.parametrize(
+    ("node", "expected"),
+    [
+        (
+            [astroid.Name("var1", lineno=1, col_offset=5)],
+            [Reference(astroid.Name("var1", lineno=1, col_offset=4), Usage.TARGET, [], False)]
+        ),
+        (
+            [astroid.AssignName("var1", lineno=1, col_offset=4)],
+            [Reference(astroid.AssignName("var1", lineno=1, col_offset=4), Usage.TARGET, [], False)]
+        ),
+    ],
+    ids=[
+        "Name",
+        "AssignName",
+    ]
+)
+def test_construct_reference_list(node: list[astroid.Name | astroid.AssignName], expected) -> None:
+    result = construct_reference_list(node)
+    result = transform_actual_names(result)
+    expected = transform_actual_names(expected)
+    assert result == expected
+
+
+def test_add_potential_value_reference() -> None:
+    raise NotImplementedError("Test not implemented")
+
+
+def test_add_potential_target_reference() -> None:
+    raise NotImplementedError("Test not implemented")
+
+
+@pytest.mark.parametrize(
     ("code", "expected"),
     [
         (
@@ -253,7 +332,8 @@ def transform_actual_names(names):
                     var1 = 20
                     var2 = 40
                     res = var1 + var2
-                    res = var1 - var2
+                    if res > 0:
+                        res = var1 - var2
                     return res
             """,
             []
@@ -271,10 +351,15 @@ def transform_actual_names(names):
             """
                 glob1 = 10
                 def local_global():
-                    global glob1
 
-                    var1 = glob1
-                    return var1
+                    res = glob1
+                    if res > 0:
+                        global glob1
+                        glob1 = 20
+                    else:
+                        glob1 = 30
+
+                    return glob1
             """,
             []
         ),        (
@@ -299,7 +384,64 @@ def transform_actual_names(names):
                     return var1
             """,
             []
-        ),
+        ),        (
+            """
+                from collections.abc import Callable
+                from typing import Any
+
+                import astroid
+
+                _EnterAndLeaveFunctions = tuple[
+                    Callable[[astroid.NodeNG], None] | None,
+                    Callable[[astroid.NodeNG], None] | None,
+                ]
+
+
+                class ASTWalker:
+                    def __init__(self, handler: Any) -> None:
+                        self._handler = handler
+                        self._cache: dict[type, _EnterAndLeaveFunctions] = {}
+
+                    def walk(self, node: astroid.NodeNG) -> None:
+                        self.__walk(node, set())
+
+                    def __walk(self, node: astroid.NodeNG, visited_nodes: set[astroid.NodeNG]) -> None:
+                        if node in visited_nodes:
+                            raise AssertionError("Node visited twice")
+                        visited_nodes.add(node)
+
+                        self.__enter(node)
+                        for child_node in node.get_children():
+                            self.__walk(child_node, visited_nodes)
+                        self.__leave(node)
+
+                    def __enter(self, node: astroid.NodeNG) -> None:
+                        method = self.__get_callbacks(node)[0]
+                        if method is not None:
+                            method(node)
+
+                    def __leave(self, node: astroid.NodeNG) -> None:
+                        method = self.__get_callbacks(node)[1]
+                        if method is not None:
+                            method(node)
+
+                    def __get_callbacks(self, node: astroid.NodeNG) -> _EnterAndLeaveFunctions:
+                        klass = node.__class__
+                        methods = self._cache.get(klass)
+
+                        if methods is None:
+                            handler = self._handler
+                            class_name = klass.__name__.lower()
+                            enter_method = getattr(handler, f"enter_{class_name}", getattr(handler, "enter_default", None))
+                            leave_method = getattr(handler, f"leave_{class_name}", getattr(handler, "leave_default", None))
+                            self._cache[klass] = (enter_method, leave_method)
+                        else:
+                            enter_method, leave_method = methods
+
+                        return enter_method, leave_method
+
+            """, []
+        )
     ],
     ids=[
         "constant as local variable",
@@ -307,6 +449,7 @@ def transform_actual_names(names):
         "global as local variable",
         "class attribute as local variable",
         "instance attribute as local variable",
+        "ASTWalker"
     ]
 )
 def test_resolve_references_local(code, expected):
