@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import List
+from typing import List, Optional
 
 import astroid
 
@@ -12,10 +12,21 @@ class Usage(Enum):
     TARGET = auto()
     VALUE = auto()
 
+# TODO: Scope class that maps a name node to a scope node (module, function, class) by using a dict.
+#  Each scope has a parent scope. If the scope is module, its parent is None.
 
+
+# IMPORTS anschauen
+# Module anschauen
+# Klassen anschauen
+# im klassen scope: funktionen
+# zu jedem scope eine Funktion schreiben + entsprechende tests
+
+# danach references auflösen
 @dataclass
 class Reference:
     name: astroid.Name | astroid.AssignName
+    # node_id: FunctionID
     # scope: astroid.Module | astroid.FunctionDef | astroid.ClassDef  # TODO: implement scope
     usage: Usage
     potential_references: List[astroid.Name | astroid.AssignName] = field(default_factory=list)
@@ -54,6 +65,7 @@ def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name]]:
 
     if isinstance(module, astroid.Module):
         for node in module.body:
+
             if isinstance(node, astroid.FunctionDef):  # filter all function definitions
                 walker.walk(node)
                 name_nodes.append(name_node_handler.names_list)
@@ -68,10 +80,40 @@ def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name]]:
     return name_nodes
 
 
+@dataclass
+class NodeID:
+    module: astroid.Module | None  # None if the node is a module
+    name: str
+    line: int
+    col: int
+    node_type: Optional[str]
+
+    def __str__(self) -> str:
+        return f"{self.module.name}.{self.name}.{self.line}.{self.col}"
+
+
+# THIS FUNCTION IS THE CORRECT ONE - MERGE THIS
+def calc_node_id(node: astroid.NodeNG) -> NodeID | None:
+    module = node.root()
+    if isinstance(node, astroid.Module):
+        return NodeID(node, node.name, 0, 0, node.__class__.__name__)
+    elif isinstance(node, astroid.ClassDef):
+        return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
+    elif isinstance(node, astroid.FunctionDef):
+        return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
+    # elif isinstance(node, astroid.Assign):
+    #     return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
+    elif isinstance(node, astroid.AssignName):
+        return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
+    elif isinstance(node, astroid.Name):
+        return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
+
+
 def construct_reference_list(names_list: list[astroid.Name | astroid.AssignName]) -> list[Reference]:
     """Construct a list of references from a list of name nodes."""
     references_without_potential_references: list[Reference] = []
     for name in names_list:
+        node_id = calc_node_id(name)  # TODO: implement node_id
         if isinstance(name, astroid.Name):
             references_without_potential_references.append(Reference(name, Usage.VALUE, [], False))
         if isinstance(name, astroid.AssignName):
