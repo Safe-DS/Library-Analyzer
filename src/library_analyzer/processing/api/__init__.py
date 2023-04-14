@@ -24,11 +24,10 @@ from ._infer_purity import (
 from ._resolve_references import (
     resolve_references,
     get_name_nodes,
-    construct_reference_list,
+    create_references,
     add_potential_target_references,
     add_potential_value_references,
     Reference,
-    Usage,
     calc_node_id,
 )
 
@@ -63,10 +62,9 @@ __all__ = [
     "package_files",
     "package_root",
     "Reference",
-    "Usage",
     "resolve_references",
     "get_name_nodes",
-    "construct_reference_list",
+    "create_references",
     "add_potential_target_references",
     "add_potential_value_references",
     "calc_node_id",

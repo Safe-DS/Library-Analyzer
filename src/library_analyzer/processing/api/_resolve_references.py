@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import astroid
 
@@ -8,27 +7,25 @@ from library_analyzer.utils import ASTWalker
 
 
 @dataclass
-class Usage(Enum):
-    TARGET = auto()
-    VALUE = auto()
+class NodeID:
+    module: astroid.Module  # | None  # None if the node is a module
+    name: str
+    line: int
+    col: int
+    node_type: Optional[str]
+
+    def __str__(self) -> str:
+        return f"{self.module.name}.{self.name}.{self.line}.{self.col}"
+
 
 # TODO: Scope class that maps a name node to a scope node (module, function, class) by using a dict.
 #  Each scope has a parent scope. If the scope is module, its parent is None.
-
-
-# IMPORTS anschauen
-# Module anschauen
-# Klassen anschauen
-# im klassen scope: funktionen
-# zu jedem scope eine Funktion schreiben + entsprechende tests
-
-# danach references auflösen
 @dataclass
 class Reference:
     name: astroid.Name | astroid.AssignName
-    # node_id: FunctionID
+    node_id: str
     # scope: astroid.Module | astroid.FunctionDef | astroid.ClassDef  # TODO: implement scope
-    usage: Usage
+    usage: str
     potential_references: List[astroid.Name | astroid.AssignName] = field(default_factory=list)
     list_is_complete: bool = False  # if True, then the list potential_references is completed
     # TODO: implement a methode to check if the list is complete: all references are found
@@ -37,7 +34,6 @@ class Reference:
 
 @dataclass
 class NameNodeFinder:
-    # search_name_in_nodes: list[astroid.Assign]
     names_list: list[astroid.Name | astroid.AssignName] = field(default_factory=list)
 
     # AssignName is used to find the name if it is used as a value in an assignment
@@ -80,46 +76,38 @@ def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name]]:
     return name_nodes
 
 
-@dataclass
-class NodeID:
-    module: astroid.Module | None  # None if the node is a module
-    name: str
-    line: int
-    col: int
-    node_type: Optional[str]
-
-    def __str__(self) -> str:
-        return f"{self.module.name}.{self.name}.{self.line}.{self.col}"
-
-
 # THIS FUNCTION IS THE CORRECT ONE - MERGE THIS
-def calc_node_id(node: astroid.NodeNG) -> NodeID | None:
+def calc_node_id(node: Union[astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AssignName, astroid.Name])-> NodeID | None:
+    # TODO: there is problem: when a name node is used within a real module, the module is not calculated correctly
     module = node.root()
-    if isinstance(node, astroid.Module):
-        return NodeID(node, node.name, 0, 0, node.__class__.__name__)
-    elif isinstance(node, astroid.ClassDef):
-        return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
-    elif isinstance(node, astroid.FunctionDef):
-        return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
-    # elif isinstance(node, astroid.Assign):
-    #     return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
-    elif isinstance(node, astroid.AssignName):
-        return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
-    elif isinstance(node, astroid.Name):
-        return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
+    match node:
+        case astroid.Module():
+            return NodeID(module, node.name, 0, 0, node.__class__.__name__)
+        case astroid.ClassDef():
+            return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
+        case astroid.FunctionDef():
+            return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
+        case astroid.AssignName():
+            return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
+        case astroid.Name():
+            return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
+        case _:
+            raise ValueError(f"Node type {node.__class__.__name__} is not supported yet.")
+
+    # TODO: add fitting default case
 
 
-def construct_reference_list(names_list: list[astroid.Name | astroid.AssignName]) -> list[Reference]:
+def create_references(names_list: list[astroid.Name | astroid.AssignName]) -> list[Reference]:
     """Construct a list of references from a list of name nodes."""
-    references_without_potential_references: list[Reference] = []
+    references_proto: list[Reference] = []
     for name in names_list:
-        node_id = calc_node_id(name)  # TODO: implement node_id
+        node_id = calc_node_id(name)
         if isinstance(name, astroid.Name):
-            references_without_potential_references.append(Reference(name, Usage.VALUE, [], False))
+            references_proto.append(Reference(name, node_id.__str__(), "VALUE", [], False))
         if isinstance(name, astroid.AssignName):
-            references_without_potential_references.append(Reference(name, Usage.TARGET, [], False))
+            references_proto.append(Reference(name, node_id.__str__(), "TARGET", [], False))
 
-    return references_without_potential_references
+    return references_proto
 
 
 def add_potential_value_references(reference: Reference, reference_list: list[Reference]) -> Reference:
@@ -128,18 +116,16 @@ def add_potential_value_references(reference: Reference, reference_list: list[Re
     A potential value reference is a reference where the name is used as a value.
     Therefor we need to check all nodes further down the list where the name is used as a value.
     """
-    references_complete = reference
-    # check all nodes further down the list where the name is used as a value
+    complete_references = reference
     if reference in reference_list:
-        for reference_next in reference_list[reference_list.index(reference):]:
-            if reference_next.name.name == reference.name.name:
-                if reference_next.usage.name == "VALUE":
-                    references_complete.potential_references.append(reference_next.name)
+        for next_reference in reference_list[reference_list.index(reference):]:
+            if next_reference.name.name == reference.name.name and next_reference.usage == "VALUE":
+                complete_references.potential_references.append(next_reference.name)
 
     # TODO: check if the list is actually complete
-    references_complete.list_is_complete = True
+    complete_references.list_is_complete = True
 
-    return references_complete
+    return complete_references
 
 
 def add_potential_target_references(reference: Reference, reference_list: list[Reference]) -> Reference:
@@ -148,17 +134,16 @@ def add_potential_target_references(reference: Reference, reference_list: list[R
     A potential target reference is a reference where the name is used as a target.
     Therefor we need to check all nodes further up the list where the name is used as a target.
     """
-    references_complete = reference
-    # check all nodes further down the list where the name is used as a target
+    complete_references = reference
     if reference in reference_list:
-        for reference_next in reference_list[:reference_list.index(reference)]:
-            if reference_next.name.name == reference.name.name:
-                if reference_next.usage.name == "TARGET":
-                    references_complete.potential_references.append(reference_next.name)
+        for next_reference in reference_list[:reference_list.index(reference)]:
+            if next_reference.name.name == reference.name.name and next_reference.usage == "TARGET":
+                complete_references.potential_references.append(next_reference.name)
 
-    references_complete.list_is_complete = True
+    # TODO: check if the list is actually complete
+    complete_references.list_is_complete = True
 
-    return references_complete
+    return complete_references
 
 
 def resolve_references(module_names: list[astroid.Name]) -> list[Reference]:
@@ -171,12 +156,12 @@ def resolve_references(module_names: list[astroid.Name]) -> list[Reference]:
     """
 
     reference_list_complete: list[Reference] = []
-    reference_list_proto = construct_reference_list(module_names)
+    reference_list_proto = create_references(module_names)
     for reference in reference_list_proto:
-        if reference.usage.name == "TARGET":
+        if reference.usage == "TARGET":
             reference_complete = add_potential_value_references(reference, reference_list_proto)
             reference_list_complete.append(reference_complete)
-        if reference.usage.name == "VALUE":
+        if reference.usage == "VALUE":
             reference_complete = add_potential_target_references(reference, reference_list_proto)
             reference_list_complete.append(reference_complete)
 

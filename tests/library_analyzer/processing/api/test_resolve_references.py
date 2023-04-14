@@ -3,7 +3,7 @@ import astroid
 
 from library_analyzer.processing.api import (
     resolve_references,
-    get_name_nodes, construct_reference_list, Reference, Usage, calc_node_id
+    get_name_nodes, create_references, Reference, calc_node_id
 )
 
 
@@ -144,6 +144,16 @@ from library_analyzer.processing.api import (
         ),
         (
             """
+                import math
+
+                def local_import():
+                    var1 = math.pi
+                    return var1
+            """,
+            []
+        ),
+        (
+            """
                 def unresolved_reference():
                     var1 = x
             """, ['AssignName.var1']
@@ -227,6 +237,7 @@ from library_analyzer.processing.api import (
         "FuncCall Parameter",
         "BinOp",
         "BoolOp",
+        "Import",
         "Unresolved Reference",
         "ASTWalker"
     ]
@@ -301,25 +312,25 @@ def test_calc_function_id_new(node: astroid.NodeNG, expected: str) -> None:
     [
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", Usage.TARGET, [], False)]
+            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", "VALUE", [], False)]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.Name("var2", lineno=2, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.Name("var3", lineno=30, col_offset=4, parent=astroid.FunctionDef("func2", lineno=1, col_offset=0))],
-            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", Usage.TARGET, [], False),
-             Reference(astroid.Name("var2", lineno=2, col_offset=4), "func1.var2.2.4", Usage.TARGET, [], False),
-                Reference(astroid.Name("var3", lineno=30, col_offset=4), "func2.var3.30.4", Usage.TARGET, [], False)]
+            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4","VALUE", [], False),
+             Reference(astroid.Name("var2", lineno=2, col_offset=4), "func1.var2.2.4", "VALUE", [], False),
+                Reference(astroid.Name("var3", lineno=30, col_offset=4), "func2.var3.30.4", "VALUE", [], False)]
         ),
         (
             [astroid.AssignName("var1", lineno=12, col_offset=42, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [Reference(astroid.AssignName("var1", lineno=12, col_offset=42), "func1.var1.12.42", Usage.TARGET, [], False)]
+            [Reference(astroid.AssignName("var1", lineno=12, col_offset=42), "func1.var1.12.42", "TARGET", [], False)]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.AssignName("var2", lineno=1, col_offset=8, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", Usage.TARGET, [], False),
-             Reference(astroid.AssignName("var2", lineno=1, col_offset=8), "func1.var2.1.8", Usage.TARGET, [], False)]
+            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", "VALUE", [], False),
+             Reference(astroid.AssignName("var2", lineno=1, col_offset=8), "func1.var2.1.8", "TARGET", [], False)]
         ),
         (
             [],
@@ -335,7 +346,7 @@ def test_calc_function_id_new(node: astroid.NodeNG, expected: str) -> None:
     ]
 )
 def test_construct_reference_list(node: list[astroid.Name | astroid.AssignName], expected) -> None:
-    result = construct_reference_list(node)
+    result = create_references(node)
     result = transform_reference_names(result)
     expected = transform_reference_names(expected)
     assert result == expected
@@ -416,7 +427,8 @@ def test_add_potential_target_reference() -> None:
                     return var1
             """,
             []
-        ),        (
+        ),
+        (
             """
                 from collections.abc import Callable
                 from typing import Any
