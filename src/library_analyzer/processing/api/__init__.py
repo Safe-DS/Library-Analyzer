@@ -28,6 +28,7 @@ from ._resolve_references import (
     add_potential_target_references,
     add_potential_value_references,
     Reference,
+    NodeScope,
     calc_node_id,
 )
 
@@ -62,6 +63,7 @@ __all__ = [
     "package_files",
     "package_root",
     "Reference",
+    "NodeScope",
     "find_references",
     "get_name_nodes",
     "create_references",

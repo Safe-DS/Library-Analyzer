@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import List, Optional, Union
 
@@ -8,7 +10,7 @@ from library_analyzer.utils import ASTWalker
 
 @dataclass
 class NodeID:
-    module: astroid.Module  # | None  # None if the node is a module
+    module: astroid.Module  # | None  # TODO: can we use NodeScope here
     name: str
     line: int
     col: int
@@ -18,13 +20,25 @@ class NodeID:
         return f"{self.module.name}.{self.name}.{self.line}.{self.col}"
 
 
-# TODO: Scope class that maps a name node to a scope node (module, function, class) by using a dict.
-#  Each scope has a parent scope. If the scope is module, its parent is None.
+@dataclass
+class NodeScope:
+    node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Lambda | astroid.GeneratorExp
+    parent: NodeScope | None = field(default=None)
+    # TODO: how to deal with astroid.Lambda and astroid.GeneratorExp in scope?
+
+
+@dataclass
+class Scope:
+    module: list[Reference]
+    klass: list[Reference]
+    function: list[Reference]
+
+
 @dataclass
 class Reference:
     name: astroid.Name | astroid.AssignName
     node_id: str
-    scope: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Lambda | astroid.GeneratorExp
+    scope: NodeScope
     usage: str
     potential_references: List[astroid.Name | astroid.AssignName] = field(default_factory=list)
     list_is_complete: bool = False  # if True, then the list potential_references is completed
@@ -102,10 +116,14 @@ def create_references(names_list: list[astroid.Name | astroid.AssignName]) -> li
     references_proto: list[Reference] = []
     for name in names_list:
         node_id = calc_node_id(name)
+        if name.scope() is astroid.Module:
+            node_scope = NodeScope(name.scope(), None)
+        else:
+            node_scope = NodeScope(name.scope(), name.scope().parent)
         if isinstance(name, astroid.Name):
-            references_proto.append(Reference(name, node_id.__str__(), name.scope(), "VALUE", [], False))
+            references_proto.append(Reference(name, node_id.__str__(), node_scope, "VALUE", [], False))
         if isinstance(name, astroid.AssignName):
-            references_proto.append(Reference(name, node_id.__str__(), name.scope(), "TARGET", [], False))
+            references_proto.append(Reference(name, node_id.__str__(), node_scope, "TARGET", [], False))
 
     return references_proto
 
@@ -158,12 +176,13 @@ def find_references(module_names: list[astroid.Name]) -> list[Reference]:
     reference_list_complete: list[Reference] = []
     reference_list_proto = create_references(module_names)
     for reference in reference_list_proto:
-        if reference.usage == "TARGET":
-            reference_complete = add_potential_value_references(reference, reference_list_proto)
-            reference_list_complete.append(reference_complete)
-        if reference.usage == "VALUE":
-            reference_complete = add_potential_target_references(reference, reference_list_proto)
-            reference_list_complete.append(reference_complete)
+        match reference.usage:
+            case "TARGET":
+                reference_complete = add_potential_value_references(reference, reference_list_proto)
+                reference_list_complete.append(reference_complete)
+            case "VALUE":
+                reference_complete = add_potential_target_references(reference, reference_list_proto)
+                reference_list_complete.append(reference_complete)
 
         # TODO: since we have found all name Nodes, we need to find the scope of the current name node
         #  and then search for all name nodes in that scope where the name is used
