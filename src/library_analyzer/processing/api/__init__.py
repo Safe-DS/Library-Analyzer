@@ -22,7 +22,7 @@ from ._infer_purity import (
 )
 
 from ._resolve_references import (
-    resolve_references,
+    find_references,
     get_name_nodes,
     create_references,
     add_potential_target_references,
@@ -62,7 +62,7 @@ __all__ = [
     "package_files",
     "package_root",
     "Reference",
-    "resolve_references",
+    "find_references",
     "get_name_nodes",
     "create_references",
     "add_potential_target_references",

@@ -24,7 +24,7 @@ class NodeID:
 class Reference:
     name: astroid.Name | astroid.AssignName
     node_id: str
-    # scope: astroid.Module | astroid.FunctionDef | astroid.ClassDef  # TODO: implement scope
+    scope: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Lambda | astroid.GeneratorExp
     usage: str
     potential_references: List[astroid.Name | astroid.AssignName] = field(default_factory=list)
     list_is_complete: bool = False  # if True, then the list potential_references is completed
@@ -103,9 +103,9 @@ def create_references(names_list: list[astroid.Name | astroid.AssignName]) -> li
     for name in names_list:
         node_id = calc_node_id(name)
         if isinstance(name, astroid.Name):
-            references_proto.append(Reference(name, node_id.__str__(), "VALUE", [], False))
+            references_proto.append(Reference(name, node_id.__str__(), name.scope(), "VALUE", [], False))
         if isinstance(name, astroid.AssignName):
-            references_proto.append(Reference(name, node_id.__str__(), "TARGET", [], False))
+            references_proto.append(Reference(name, node_id.__str__(), name.scope(), "TARGET", [], False))
 
     return references_proto
 
@@ -146,7 +146,7 @@ def add_potential_target_references(reference: Reference, reference_list: list[R
     return complete_references
 
 
-def resolve_references(module_names: list[astroid.Name]) -> list[Reference]:
+def find_references(module_names: list[astroid.Name]) -> list[Reference]:
     """Resolve references in a node.
 
     The following methods are called:
