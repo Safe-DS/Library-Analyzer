@@ -30,6 +30,7 @@ from ._resolve_references import (
     Reference,
     NodeScope,
     calc_node_id,
+    get_nodes_for_scope,
 )
 
 from ._package_metadata import (
@@ -66,6 +67,7 @@ __all__ = [
     "NodeScope",
     "find_references",
     "get_name_nodes",
+    "get_nodes_for_scope",
     "create_references",
     "add_potential_target_references",
     "add_potential_value_references",

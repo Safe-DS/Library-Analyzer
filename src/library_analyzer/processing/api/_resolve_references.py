@@ -22,16 +22,16 @@ class NodeID:
 
 @dataclass
 class NodeScope:
-    node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Lambda | astroid.GeneratorExp
-    parent: NodeScope | None = field(default=None)
+    scope: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Lambda | astroid.GeneratorExp
+    parent_scope: NodeScope | None = field(default=None)
     # TODO: how to deal with astroid.Lambda and astroid.GeneratorExp in scope?
 
 
 @dataclass
-class Scope:
-    module: list[Reference]
-    klass: list[Reference]
-    function: list[Reference]
+class Scopes:
+    module_scope: list[Reference]
+    class_scope: list[Reference]
+    function_scope: list[Reference]
 
 
 @dataclass
@@ -116,8 +116,8 @@ def create_references(names_list: list[astroid.Name | astroid.AssignName]) -> li
     references_proto: list[Reference] = []
     for name in names_list:
         node_id = calc_node_id(name)
-        if name.scope() is astroid.Module:
-            node_scope = NodeScope(name.scope(), None)
+        if name.scope() == "Module":
+            node_scope = NodeScope(name.scope(), None) # TODO: check if this works correct when working with real data
         else:
             node_scope = NodeScope(name.scope(), name.scope().parent)
         if isinstance(name, astroid.Name):
@@ -184,10 +184,26 @@ def find_references(module_names: list[astroid.Name]) -> list[Reference]:
                 reference_complete = add_potential_target_references(reference, reference_list_proto)
                 reference_list_complete.append(reference_complete)
 
-        # TODO: since we have found all name Nodes, we need to find the scope of the current name node
-        #  and then search for all name nodes in that scope where the name is used
-        #  if the name is used as a value in an assignment, then we need to find the target of the assignment and then
-        #  check all nodes further down the list where the name is used as a target
-        #  if the name is used as a target in an assignment, then we need to find the value of the assignment?
+    scope_list = get_nodes_for_scope(reference_list_complete)
+
+    # TODO: since we have found all name Nodes, we need to find the scope of the current name node
+    #  and then search for all name nodes in that scope where the name is used
+    #  if the name is used as a value in an assignment, then we need to find the target of the assignment and then
+    #  check all nodes further down the list where the name is used as a target
+    #  if the name is used as a target in an assignment, then we need to find the value of the assignment?
 
     return reference_list_complete
+
+
+# build a function that returns a list of nodes fot a given scope
+def get_nodes_for_scope(reference_list: list[Reference]) -> Scopes:
+    scope_list = Scopes([], [], [])
+
+    for reference in reference_list:
+        if reference.scope.scope.__class__.__name__ == "Module" or reference.scope.parent_scope is None:
+            scope_list.module_scope.append(reference)
+        elif reference.scope.scope.__class__.__name__ == "ClassDef":
+            scope_list.class_scope.append(reference)
+        elif reference.scope.scope is not None and reference.scope.scope.__class__.__name__ == "FunctionDef":
+            scope_list.function_scope.append(reference)
+    return scope_list
