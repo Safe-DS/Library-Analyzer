@@ -3,7 +3,7 @@ import astroid
 
 from library_analyzer.processing.api import (
     find_references,
-    get_name_nodes, create_references, Reference, calc_node_id, NodeScope,
+    get_name_nodes, create_references, Reference, calc_node_id, NodeScope, get_nodes_for_scope,
 )
 
 
@@ -302,7 +302,7 @@ def transform_actual_names(names):
         # TODO: see above
     ]
 )
-def test_calc_function_id_new(node: astroid.NodeNG, expected: str) -> None:
+def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name, expected: str) -> None:
     result = calc_node_id(node)
     assert result.__str__() == expected
 
@@ -369,7 +369,7 @@ def test_construct_reference_list(node: list[astroid.Name | astroid.AssignName],
 def transform_reference_names(names):
     """Transforms the name of the reference to a string for easier comparison (removes the address of the object)"""
     # print(names)
-    return [Reference(name.name.name, name.node_id, name.scope.node.__class__.__name__, name.usage, name.potential_references, name.list_is_complete) for name in names]
+    return [Reference(name.name.name, name.node_id, name.scope.scope.__class__.__name__, name.usage, name.potential_references, name.list_is_complete) for name in names]
 
 
 def test_add_potential_value_reference() -> None:
@@ -404,7 +404,8 @@ def test_add_potential_target_reference() -> None:
                 local_parameter(10)
             """,
             []
-        ),        (
+        ),
+        (
             """
                 glob1 = 10
                 def local_global():
@@ -418,8 +419,9 @@ def test_add_potential_target_reference() -> None:
 
                     return glob1
             """,
-            []
-        ),        (
+            ["glob1"]
+        ),
+        (
             """
                 class A:
                     class_attr1 = 20
@@ -523,6 +525,164 @@ def test_find_references_local(code, expected):
         print(reference, "\n")
         # print(resolved[0].node_id.module, "\n")
         assert reference == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (
+            """
+                def function_scope():
+                    res = 23
+                    return res
+            """,
+            []
+        ),
+        (
+            """
+                var1 = 10
+                def function_scope():
+                    res = var1
+                    return res
+            """,
+            []
+        ),
+        (
+            """
+                var1 = 10
+                def function_scope():
+                    global var1
+                    res = var1
+                    return res
+            """,
+            []
+        ),
+        (
+            """
+                class A:
+                    class_attr1 = 20
+
+                    def local_class_attr():
+                        var1 = A.class_attr1
+                        return var1
+            """,
+            []
+        ),
+        (
+            """
+                class B:
+                    def __init__(self):
+                        self.instance_attr1 = 10
+
+                    def local_instance_attr():
+                        var1 = self.instance_attr1
+                        return var1
+            """,
+            []
+        ),
+        (
+            """
+                class B:
+                    def __init__(self):
+                        self.instance_attr1 = 10
+
+                def local_instance_attr():
+                    var1 = B().instance_attr1
+                    return var1
+            """,
+            []
+        ),
+        (
+            """
+                from collections.abc import Callable
+                from typing import Any
+
+                import astroid
+
+                _EnterAndLeaveFunctions = tuple[
+                    Callable[[astroid.NodeNG], None] | None,
+                    Callable[[astroid.NodeNG], None] | None,
+                ]
+
+
+                class ASTWalker:
+                    def __init__(self, handler: Any) -> None:
+                        self._handler = handler
+                        self._cache: dict[type, _EnterAndLeaveFunctions] = {}
+
+                    def walk(self, node: astroid.NodeNG) -> None:
+                        self.__walk(node, set())
+
+                    def __walk(self, node: astroid.NodeNG, visited_nodes: set[astroid.NodeNG]) -> None:
+                        if node in visited_nodes:
+                            raise AssertionError("Node visited twice")
+                        visited_nodes.add(node)
+
+                        self.__enter(node)
+                        for child_node in node.get_children():
+                            self.__walk(child_node, visited_nodes)
+                        self.__leave(node)
+
+                    def __enter(self, node: astroid.NodeNG) -> None:
+                        method = self.__get_callbacks(node)[0]
+                        if method is not None:
+                            method(node)
+
+                    def __leave(self, node: astroid.NodeNG) -> None:
+                        method = self.__get_callbacks(node)[1]
+                        if method is not None:
+                            method(node)
+
+                    def __get_callbacks(self, node: astroid.NodeNG) -> _EnterAndLeaveFunctions:
+                        klass = node.__class__
+                        methods = self._cache.get(klass)
+
+                        if methods is None:
+                            handler = self._handler
+                            class_name = klass.__name__.lower()
+                            enter_method = getattr(handler, f"enter_{class_name}", getattr(handler, "enter_default", None))
+                            leave_method = getattr(handler, f"leave_{class_name}", getattr(handler, "leave_default", None))
+                            self._cache[klass] = (enter_method, leave_method)
+                        else:
+                            enter_method, leave_method = methods
+
+                        return enter_method, leave_method
+
+            """, []
+        )
+    ],
+    ids=[
+        "Function Scope",
+        "Function Scope with variable",
+        "Function Scope with global variable",
+        "Class Scope with class attribute and Class function",
+        "Class Scope with instance attribute and Class function",
+        "Class Scope with instance attribute and Modul function",
+        "ASTWalker",
+    ]
+)
+def test_get_nodes_for_scope(code: str, expected) -> None:
+    module = astroid.parse(code)
+    # print(module.repr_tree(), "\n")
+    all_names_list = get_name_nodes(module)
+    references = []
+    for name in all_names_list:
+        references.append(find_references(name))
+
+    # print("\n")
+    # for reference in references[0]:
+    #     print(reference , "\n", reference.scope.scope.__class__.__name__, "\n")
+
+    scope_list = get_nodes_for_scope(references[0])
+    print("\n Module: ")
+    for reference in scope_list.module_scope:
+        print(reference)
+    print("ClassDef: ")
+    for reference in scope_list.class_scope:
+        print(reference)
+    print("FunctionDef: ")
+    for reference in scope_list.function_scope:
+        print(reference)
 
 
 # @pytest.mark.parametrize(
