@@ -5,7 +5,17 @@ from typing import List, Optional, Union
 
 import astroid
 
+from library_analyzer.processing.api.model import Expression, Reference
 from library_analyzer.utils import ASTWalker
+
+
+@dataclass
+class MemberAccess(astroid.Attribute, Expression):
+    receiver: MemberAccess
+    target: Reference | None
+
+    def __str__(self):
+        return f'MemberAccess.{self.receiver}.{self.target}'
 
 
 @dataclass
@@ -29,17 +39,16 @@ class NodeScope:
 
 @dataclass
 class Scopes:
-    module_scope: list[Reference]
-    class_scope: list[Reference]
-    function_scope: list[Reference]
+    module_scope: list[NodeReference]
+    class_scope: list[NodeReference]
+    function_scope: list[NodeReference]
 
 
 @dataclass
-class Reference:
-    name: astroid.Name | astroid.AssignName
+class NodeReference:
+    name: astroid.Name | astroid.AssignName | str
     node_id: str
     scope: NodeScope
-    # usage: str
     potential_references: List[astroid.Name | astroid.AssignName] = field(default_factory=list)
     list_is_complete: bool = False  # if True, then the list potential_references is completed
     # TODO: implement a methode to check if the list is complete: all references are found
@@ -48,11 +57,11 @@ class Reference:
 
 @dataclass
 class NameNodeFinder:
-    names_list: list[astroid.Name | astroid.AssignName] = field(default_factory=list)
+    names_list: list[astroid.Name | astroid.AssignName | MemberAccess] = field(default_factory=list)
 
     # AssignName is used to find the name if it is used as a value in an assignment
     def enter_name(self, node: astroid.Name) -> None:
-        if isinstance(node.parent, astroid.Assign | astroid.AssignAttr | astroid.Attribute | astroid.AugAssign | astroid.Return | astroid.Compare | astroid.For | astroid.BinOp | astroid.BoolOp):
+        if isinstance(node.parent, astroid.Assign | astroid.AugAssign | astroid.Return | astroid.Compare | astroid.For | astroid.BinOp | astroid.BoolOp):
             self.names_list.append(node)
         if isinstance(node.parent, astroid.Call):
             if isinstance(node.parent.func, astroid.Name):
@@ -64,8 +73,18 @@ class NameNodeFinder:
     def enter_assignname(self, node: astroid.AssignName) -> None:
         if isinstance(node.parent, astroid.Assign | astroid.Arguments | astroid.AssignAttr | astroid.Attribute | astroid.AugAssign | astroid.AnnAssign | astroid.Return | astroid.Compare | astroid.For):
             self.names_list.append(node)
-
     # We do not need AugAssign, since it uses AssignName as a target and Name as value
+
+    def enter_attribute(self, node: astroid.Attribute) -> None:
+        self.names_list.append(MemberAccess(node.expr, node.attrname))
+        print(node.as_string())
+        print(node.attrname)
+        print(node.get_children())
+
+
+    def enter_assignattr(self, node: astroid.AssignAttr) -> None:
+        self.names_list.append(MemberAccess(node.expr, node.attrname))
+
 
 
 def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name]]:
@@ -79,21 +98,6 @@ def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name]]:
             walker.walk(node)
             name_nodes.append(name_node_handler.names_list)
             name_node_handler.names_list = []
-
-            # if isinstance(node, astroid.FunctionDef):  # filter all function definitions
-            #     walker.walk(node)
-            #     name_nodes.append(name_node_handler.names_list)
-            #     name_node_handler.names_list = []
-            # if isinstance(node, astroid.ClassDef):  # filter all class definitions
-            #     walker.walk(node)
-            #     name_nodes.append(name_node_handler.names_list)
-            #     name_node_handler.names_list = []
-            # if isinstance(node, astroid.Module):
-            #     walker.walk(node)
-            #     name_nodes.append(name_node_handler.names_list)
-            #     name_node_handler.names_list = []
-    # for i in name_nodes:
-    #    print(i)
 
     return name_nodes
 
@@ -119,24 +123,24 @@ def calc_node_id(node: Union[astroid.Module, astroid.ClassDef, astroid.FunctionD
     # TODO: add fitting default case
 
 
-def create_references(names_list: list[astroid.Name | astroid.AssignName]) -> list[Reference]:
+def create_references(names_list: list[astroid.Name | astroid.AssignName]) -> list[NodeReference]:
     """Construct a list of references from a list of name nodes."""
-    references_proto: list[Reference] = []
+    references_proto: list[NodeReference] = []
     for name in names_list:
         node_id = calc_node_id(name)
         if name.scope() == "Module":
-            node_scope = NodeScope(name.scope(), None) # TODO: check if this works correct when working with real data
+            node_scope = NodeScope(name.scope(), None)  # TODO: check if this works correct when working with real data
         else:
             node_scope = NodeScope(name.scope(), name.scope().parent)
         if isinstance(name, astroid.Name):
-            references_proto.append(Reference(name, node_id.__str__(), node_scope, [], False))
+            references_proto.append(NodeReference(name, node_id.__str__(), node_scope, [], False))
         if isinstance(name, astroid.AssignName):
-            references_proto.append(Reference(name, node_id.__str__(), node_scope, [], False))
+            references_proto.append(NodeReference(name, node_id.__str__(), node_scope, [], False))
 
     return references_proto
 
 
-def add_potential_value_references(reference: Reference, reference_list: list[Reference]) -> Reference:
+def add_potential_value_references(reference: NodeReference, reference_list: list[NodeReference]) -> NodeReference:
     """Add all potential value references to a reference.
 
     A potential value reference is a reference where the name is used as a value.
@@ -154,7 +158,7 @@ def add_potential_value_references(reference: Reference, reference_list: list[Re
     return complete_references
 
 
-def add_potential_target_references(reference: Reference, reference_list: list[Reference]) -> Reference:
+def add_potential_target_references(reference: NodeReference, reference_list: list[NodeReference]) -> NodeReference:
     """Add all potential target references to a reference.
 
     A potential target reference is a reference where the name is used as a target.
@@ -172,7 +176,7 @@ def add_potential_target_references(reference: Reference, reference_list: list[R
     return complete_references
 
 
-def find_references(module_names: list[astroid.Name]) -> list[Reference]:
+def find_references(module_names: list[astroid.Name]) -> list[NodeReference]:
     """Resolve references in a node.
 
     The following methods are called:
@@ -181,7 +185,7 @@ def find_references(module_names: list[astroid.Name]) -> list[Reference]:
     * add_potential_target_references: add all potential target references to a reference
     """
 
-    reference_list_complete: list[Reference] = []
+    reference_list_complete: list[NodeReference] = []
     reference_list_proto = create_references(module_names)
     for reference in reference_list_proto:
         if isinstance(reference.name, astroid.AssignName):
@@ -203,7 +207,7 @@ def find_references(module_names: list[astroid.Name]) -> list[Reference]:
 
 
 # build a function that returns a list of nodes fot a given scope
-def get_nodes_for_scope(reference_list: list[Reference]) -> Scopes:
+def get_nodes_for_scope(reference_list: list[NodeReference]) -> Scopes:
     all_scopes = Scopes([], [], [])
 
     for reference in reference_list:
