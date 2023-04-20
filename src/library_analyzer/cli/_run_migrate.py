@@ -17,6 +17,7 @@ from ._read_and_write_file import (
     _read_api_file,
     _write_annotations_file,
 )
+from ..processing.api.model import API
 
 
 def _run_migrate_command(
@@ -29,8 +30,35 @@ def _run_migrate_command(
     apiv2 = _read_api_file(apiv2_file_path)
     annotationsv1 = _read_annotations_file(annotations_file_path)
 
+    apiv1_ = API(apiv1.distribution, apiv1.package, apiv1.version)
+    apiv2_ = API(apiv2.distribution, apiv2.package, apiv2.version)
+
+    id_filter = ""
+    for class_v1 in apiv1.classes.values():
+        if class_v1.id.startswith(id_filter) and class_v1.is_public:
+            apiv1_.add_class(class_v1)
+    for func_v1 in apiv1.functions.values():
+        if func_v1.id.startswith(id_filter) and func_v1.is_public:
+            apiv1_.add_function(func_v1)
+    for class_v2 in apiv2.classes.values():
+        if class_v2.id.startswith(id_filter) and class_v2.is_public:
+            apiv2_.add_class(class_v2)
+    for func_v2 in apiv2.functions.values():
+        if func_v2.id.startswith(id_filter) and func_v2.is_public:
+            apiv2_.add_function(func_v2)
+
+    apiv1 = apiv1_
+    apiv2 = apiv2_
+
+    threshold_of_similarity_for_creation_of_mappings = 0.61
+    threshold_of_similarity_between_mappings = 0.1
+
+    print("-----------------------------")
+    print("i: " + str(threshold_of_similarity_for_creation_of_mappings) + " j:" + str(threshold_of_similarity_between_mappings))
+    print("-----------------------------")
+
     unchanged_differ = UnchangedDiffer(None, [], apiv1, apiv2)
-    api_mapping = APIMapping(apiv1, apiv2, unchanged_differ)
+    api_mapping = APIMapping(apiv1, apiv2, unchanged_differ, threshold_of_similarity_for_creation_of_mappings, threshold_of_similarity_between_mappings)
     unchanged_mappings: list[Mapping] = api_mapping.map_api()
     previous_mappings = unchanged_mappings
     previous_base_differ: Optional[AbstractDiffer] = unchanged_differ
@@ -50,7 +78,7 @@ def _run_migrate_command(
             apiv2,
             **additional_parameters
         )
-        api_mapping = APIMapping(apiv1, apiv2, differ)
+        api_mapping = APIMapping(apiv1, apiv2, differ, threshold_of_similarity_for_creation_of_mappings, threshold_of_similarity_between_mappings)
         mappings = api_mapping.map_api()
 
         previous_mappings = mappings

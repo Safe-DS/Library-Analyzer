@@ -147,6 +147,8 @@ class Migration:
     def _get_mappings_for_table(self) -> list[str]:
         table_rows: list[str] = []
         for mapping in self.mappings:
+            if len(mapping.get_apiv1_elements()) > 0 and isinstance(mapping.get_apiv1_elements()[0], (Attribute, Result)):
+                continue
 
             def print_api_element(
                 api_element: Union[Attribute, Class, Function, Parameter, Result]
@@ -253,20 +255,20 @@ class Migration:
         for parameter in api.parameters().values():
             if not is_included(parameter):
                 not_mapped_api_elements.append(parameter.id)
-        for attribute, class_ in [
-            (attribute, class_)
-            for class_ in api.classes.values()
-            for attribute in class_.instance_attributes
-        ]:
-            if not is_included(attribute):
-                not_mapped_api_elements.append(class_.id + "/" + attribute.name)
-        for result, function in [
-            (result, function)
-            for function in api.functions.values()
-            for result in function.results
-        ]:
-            if not is_included(result):
-                not_mapped_api_elements.append(function.id + "/" + result.name)
+        # for attribute, class_ in [
+        #     (attribute, class_)
+        #     for class_ in api.classes.values()
+        #     for attribute in class_.instance_attributes
+        # ]:
+        #     if not is_included(attribute):
+        #         not_mapped_api_elements.append(class_.id + "/" + attribute.name)
+        # for result, function in [
+        #     (result, function)
+        #     for function in api.functions.values()
+        #     for result in function.results
+        # ]:
+        #     if not is_included(result):
+        #         not_mapped_api_elements.append(function.id + "/" + result.name)
         return not_mapped_api_elements
 
     def print(self, apiv1: API, apiv2: API) -> None:
