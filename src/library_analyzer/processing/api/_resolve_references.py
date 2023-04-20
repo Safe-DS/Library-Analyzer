@@ -39,7 +39,7 @@ class Reference:
     name: astroid.Name | astroid.AssignName
     node_id: str
     scope: NodeScope
-    usage: str
+    # usage: str
     potential_references: List[astroid.Name | astroid.AssignName] = field(default_factory=list)
     list_is_complete: bool = False  # if True, then the list potential_references is completed
     # TODO: implement a methode to check if the list is complete: all references are found
@@ -98,7 +98,7 @@ def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name]]:
     return name_nodes
 
 
-# THIS FUNCTION IS THE CORRECT ONE - MERGE THIS
+# THIS FUNCTION IS THE CORRECT ONE - MERGE THIS (over calc_function_id)
 def calc_node_id(node: Union[astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AssignName, astroid.Name])-> NodeID | None:
     # TODO: there is problem: when a name node is used within a real module, the module is not calculated correctly
     module = node.root()
@@ -129,9 +129,9 @@ def create_references(names_list: list[astroid.Name | astroid.AssignName]) -> li
         else:
             node_scope = NodeScope(name.scope(), name.scope().parent)
         if isinstance(name, astroid.Name):
-            references_proto.append(Reference(name, node_id.__str__(), node_scope, "VALUE", [], False))
+            references_proto.append(Reference(name, node_id.__str__(), node_scope, [], False))
         if isinstance(name, astroid.AssignName):
-            references_proto.append(Reference(name, node_id.__str__(), node_scope, "TARGET", [], False))
+            references_proto.append(Reference(name, node_id.__str__(), node_scope, [], False))
 
     return references_proto
 
@@ -145,7 +145,7 @@ def add_potential_value_references(reference: Reference, reference_list: list[Re
     complete_references = reference
     if reference in reference_list:
         for next_reference in reference_list[reference_list.index(reference):]:
-            if next_reference.name.name == reference.name.name and next_reference.usage == "VALUE":
+            if next_reference.name.name == reference.name.name and isinstance(next_reference.name, astroid.Name):
                 complete_references.potential_references.append(next_reference.name)
 
     # TODO: check if the list is actually complete
@@ -163,7 +163,7 @@ def add_potential_target_references(reference: Reference, reference_list: list[R
     complete_references = reference
     if reference in reference_list:
         for next_reference in reference_list[:reference_list.index(reference)]:
-            if next_reference.name.name == reference.name.name and next_reference.usage == "TARGET":
+            if next_reference.name.name == reference.name.name and isinstance(next_reference.name, astroid.AssignName):
                 complete_references.potential_references.append(next_reference.name)
 
     # TODO: check if the list is actually complete
@@ -184,13 +184,12 @@ def find_references(module_names: list[astroid.Name]) -> list[Reference]:
     reference_list_complete: list[Reference] = []
     reference_list_proto = create_references(module_names)
     for reference in reference_list_proto:
-        match reference.usage:
-            case "TARGET":
-                reference_complete = add_potential_value_references(reference, reference_list_proto)
-                reference_list_complete.append(reference_complete)
-            case "VALUE":
-                reference_complete = add_potential_target_references(reference, reference_list_proto)
-                reference_list_complete.append(reference_complete)
+        if isinstance(reference.name, astroid.AssignName):
+            reference_complete = add_potential_value_references(reference, reference_list_proto)
+            reference_list_complete.append(reference_complete)
+        elif isinstance(reference.name, astroid.Name):
+            reference_complete = add_potential_target_references(reference, reference_list_proto)
+            reference_list_complete.append(reference_complete)
 
     scope_list = get_nodes_for_scope(reference_list_complete)
 

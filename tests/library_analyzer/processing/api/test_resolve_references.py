@@ -312,35 +312,35 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
     [
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), "VALUE", [], False)]
+            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.Name("var2", lineno=2, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.Name("var3", lineno=30, col_offset=4, parent=astroid.FunctionDef("func2", lineno=1, col_offset=0))],
-            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), "VALUE", [], False),
-             Reference(astroid.Name("var2", lineno=2, col_offset=4), "func1.var2.2.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), "VALUE", [], False),
-                Reference(astroid.Name("var3", lineno=30, col_offset=4), "func2.var3.30.4", NodeScope(astroid.FunctionDef("func2", lineno=1, col_offset=0)), "VALUE", [], False)]
+            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
+             Reference(astroid.Name("var2", lineno=2, col_offset=4), "func1.var2.2.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
+                Reference(astroid.Name("var3", lineno=30, col_offset=4), "func2.var3.30.4", NodeScope(astroid.FunctionDef("func2", lineno=1, col_offset=0)), [], False)]
         ),
         (
             [astroid.AssignName("var1", lineno=12, col_offset=42, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [Reference(astroid.AssignName("var1", lineno=12, col_offset=42), "func1.var1.12.42", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), "TARGET", [], False)]
+            [Reference(astroid.AssignName("var1", lineno=12, col_offset=42), "func1.var1.12.42", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.AssignName("var2", lineno=1, col_offset=8, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), "VALUE", [], False),
-             Reference(astroid.AssignName("var2", lineno=1, col_offset=8), "func1.var2.1.8", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), "TARGET", [], False)]
+            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
+             Reference(astroid.AssignName("var2", lineno=1, col_offset=8), "func1.var2.1.8", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.ClassDef("MyClass", lineno=1, col_offset=0))],
             [Reference(astroid.Name("var1", lineno=1, col_offset=4), "MyClass.var1.1.4",
-                      NodeScope(astroid.ClassDef("MyClass", lineno=1, col_offset=0)), "VALUE", [], False)]
+                      NodeScope(astroid.ClassDef("MyClass", lineno=1, col_offset=0)), [], False)]
         ),
         (
             [astroid.Name("glob", lineno=1, col_offset=4, parent=astroid.Module("mod"))],
             [Reference(astroid.Name("glob", lineno=1, col_offset=4), "mod.glob.1.4",
-                       NodeScope(astroid.Module("mod")), "VALUE", [], False)]
+                       NodeScope(astroid.Module("mod")), [], False)]
         ),
         (
             [],
@@ -369,7 +369,7 @@ def test_construct_reference_list(node: list[astroid.Name | astroid.AssignName],
 def transform_reference_names(names):
     """Transforms the name of the reference to a string for easier comparison (removes the address of the object)"""
     # print(names)
-    return [Reference(name.name.name, name.node_id, name.scope.scope.__class__.__name__, name.usage, name.potential_references, name.list_is_complete) for name in names]
+    return [Reference(name.name.name, name.node_id, name.scope.scope.__class__.__name__, name.potential_references, name.list_is_complete) for name in names]
 
 
 def test_add_potential_value_reference() -> None:
