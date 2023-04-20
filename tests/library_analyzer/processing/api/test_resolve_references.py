@@ -606,6 +606,7 @@ def test_find_references_local(code, expected):
 
 
                 class ASTWalker:
+                    additional_locals = []
                     def __init__(self, handler: Any) -> None:
                         self._handler = handler
                         self._cache: dict[type, _EnterAndLeaveFunctions] = {}
@@ -669,20 +670,30 @@ def test_get_nodes_for_scope(code: str, expected) -> None:
     for name in all_names_list:
         references.append(find_references(name))
 
-    # print("\n")
-    # for reference in references[0]:
-    #     print(reference , "\n", reference.scope.scope.__class__.__name__, "\n")
+    print("\n")
+    module_scope = []
+    class_scope = []
+    function_scope = []
+    for reference in references:
+        for ref in reference:
+            print(ref, "\n", ref.scope.scope.__class__.__name__, "\n")
+        scope_list = get_nodes_for_scope(reference)
+        module_scope.append(scope_list.module_scope)
+        class_scope.append(scope_list.class_scope)
+        function_scope.append(scope_list.function_scope)
 
-    scope_list = get_nodes_for_scope(references[0])
     print("\n Module: ")
-    for reference in scope_list.module_scope:
-        print(reference)
+    for reference in module_scope:
+        for ref in reference:
+            print(ref)
     print("ClassDef: ")
-    for reference in scope_list.class_scope:
-        print(reference)
+    for reference in class_scope:
+        for ref in reference:
+            print(ref)
     print("FunctionDef: ")
-    for reference in scope_list.function_scope:
-        print(reference)
+    for reference in function_scope:
+        for ref in reference:
+            print(ref)
 
 
 # @pytest.mark.parametrize(

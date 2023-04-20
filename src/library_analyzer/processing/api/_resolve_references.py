@@ -71,19 +71,27 @@ class NameNodeFinder:
 def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name]]:
     name_node_handler = NameNodeFinder()
     walker = ASTWalker(name_node_handler)
-    name_nodes: list[list[astroid.Name]] = []
+    name_nodes: list[list[astroid.Name | astroid.AssignName]] = []
 
     if isinstance(module, astroid.Module):
         for node in module.body:
+            # print(node.as_string())
+            walker.walk(node)
+            name_nodes.append(name_node_handler.names_list)
+            name_node_handler.names_list = []
 
-            if isinstance(node, astroid.FunctionDef):  # filter all function definitions
-                walker.walk(node)
-                name_nodes.append(name_node_handler.names_list)
-                name_node_handler.names_list = []
-            if isinstance(node, astroid.ClassDef):  # filter all class definitions
-                walker.walk(node)
-                name_nodes.append(name_node_handler.names_list)
-                name_node_handler.names_list = []
+            # if isinstance(node, astroid.FunctionDef):  # filter all function definitions
+            #     walker.walk(node)
+            #     name_nodes.append(name_node_handler.names_list)
+            #     name_node_handler.names_list = []
+            # if isinstance(node, astroid.ClassDef):  # filter all class definitions
+            #     walker.walk(node)
+            #     name_nodes.append(name_node_handler.names_list)
+            #     name_node_handler.names_list = []
+            # if isinstance(node, astroid.Module):
+            #     walker.walk(node)
+            #     name_nodes.append(name_node_handler.names_list)
+            #     name_node_handler.names_list = []
     # for i in name_nodes:
     #    print(i)
 
@@ -197,13 +205,13 @@ def find_references(module_names: list[astroid.Name]) -> list[Reference]:
 
 # build a function that returns a list of nodes fot a given scope
 def get_nodes_for_scope(reference_list: list[Reference]) -> Scopes:
-    scope_list = Scopes([], [], [])
+    all_scopes = Scopes([], [], [])
 
     for reference in reference_list:
         if reference.scope.scope.__class__.__name__ == "Module" or reference.scope.parent_scope is None:
-            scope_list.module_scope.append(reference)
-        elif reference.scope.scope.__class__.__name__ == "ClassDef":
-            scope_list.class_scope.append(reference)
+            all_scopes.module_scope.append(reference)
+        elif reference.scope.scope is not None and reference.scope.scope.__class__.__name__ == "ClassDef":
+            all_scopes.class_scope.append(reference)
         elif reference.scope.scope is not None and reference.scope.scope.__class__.__name__ == "FunctionDef":
-            scope_list.function_scope.append(reference)
-    return scope_list
+            all_scopes.function_scope.append(reference)
+    return all_scopes
