@@ -3,7 +3,7 @@ import astroid
 
 from library_analyzer.processing.api import (
     find_references,
-    get_name_nodes, create_references, Reference, calc_node_id, NodeScope, get_nodes_for_scope,
+    get_name_nodes, create_references, NodeReference, calc_node_id, NodeScope, get_nodes_for_scope, MemberAccess,
 )
 
 
@@ -44,17 +44,23 @@ from library_analyzer.processing.api import (
                 def class_attr():
                     var1 = A.class_attr
             """,
-            ['AssignName.var1', 'Name.A.class_attr']  # TODO: how do we need A.class_attr1?
-        ),  # TODO: Problem with instance attributes since: A.class_attr1 is not a Name node
+            ['AssignName.var1', 'MemberAccess.A.class_attr']
+        ),
         (
             """
-
                 def instance_attr():
                     b = B()
                     var1 = b.instance_attr
             """,
-            ['AssignName.b', 'AssignName.var1', 'Name.b.instance_attr']  # TODO: how do we need B().instance_attr1?
-        ),  # TODO: Problem with instance attributes since: B().instance_attr1 is not a Name node
+            ['AssignName.b', 'AssignName.var1', 'MemberAccess.b.instance_attr']
+        ),
+        (
+            """
+                def chain():
+                    var1 = test.instance_attr.field.next_field
+            """,
+            ['AssignName.var1', 'MemberAccess.test.instance_attr.field.next_field']
+        ),
         (
             """
                 def aug_assign():
@@ -65,8 +71,8 @@ from library_analyzer.processing.api import (
             """
                 def assign_attr():
                     a.res = 1
-            """, ["Name.a.res"]
-        ),  # TODO: Problem with instance attributes since: a.res is not a Name node
+            """, ["MemberAccess.a.res"]
+        ),
         (
             """
                 def assign_return():
@@ -150,14 +156,28 @@ from library_analyzer.processing.api import (
                     var1 = math.pi
                     return var1
             """,
-            []
+            ["ImportName.math", "AssignName.var1", "MemberAccess.math.pi", "Name.var1"]
         ),
         (
             """
-                def unresolved_reference():
-                    var1 = x
-            """, ['AssignName.var1']
-        ),  # TODO: this should better be checked in the resolve_references test?
+                from math import pi
+
+                def local_import():
+                    var1 = pi
+                    return var1
+            """,
+            ["ImportName.math.pi", "AssignName.var1", "Name.test", "Name.var1"]
+        ),
+        (
+            """
+                from math import pi as test
+
+                def local_import():
+                    var1 = test
+                    return var1
+            """,
+            ["ImportName.math.pi.test", "AssignName.var1", "Name.test", "Name.var1"]
+        ),
         (
             """
                 from collections.abc import Callable
@@ -224,6 +244,7 @@ from library_analyzer.processing.api import (
         "Global and Assign",
         "Assign Class Attribute",
         "Assign Instance Attribute",
+        "Assign Chain",
         "AugAssign",
         "AssignAttr",
         "Return",
@@ -238,7 +259,8 @@ from library_analyzer.processing.api import (
         "BinOp",
         "BoolOp",
         "Import",
-        "Unresolved Reference",
+        "Import From",
+        "Import From As",
         "ASTWalker"
     ]
 )
@@ -247,12 +269,23 @@ def test_get_name_nodes(code: str, expected: str) -> None:
     print(module.repr_tree(), "\n")
     names_list = get_name_nodes(module)
     names_list = names_list[0]
-    names_list = transform_actual_names(names_list)
+    assert_names_list(names_list, expected)
+
+
+def assert_names_list(names_list: list[astroid.Name], expected: str) -> None:
+    names_list = transform_names_list(names_list)
     assert names_list == expected
 
 
-def transform_actual_names(names):
-    return [f"{name.__class__.__name__}.{name.name}" for name in names]
+def transform_names_list(names_list):
+    names_list_transformed = []
+    for name in names_list:
+        if isinstance(name, astroid.Name | astroid.AssignName):
+            names_list_transformed.append(f"{name.__class__.__name__}.{name.name}")
+        elif isinstance(name, MemberAccess):
+            names_list_transformed.append(f"MemberAccess.{name.receiver.name}.{name.target}")
+
+    return names_list_transformed
 
 
 @pytest.mark.parametrize(
@@ -312,35 +345,35 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
     [
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
+            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.Name("var2", lineno=2, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.Name("var3", lineno=30, col_offset=4, parent=astroid.FunctionDef("func2", lineno=1, col_offset=0))],
-            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
-             Reference(astroid.Name("var2", lineno=2, col_offset=4), "func1.var2.2.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
-                Reference(astroid.Name("var3", lineno=30, col_offset=4), "func2.var3.30.4", NodeScope(astroid.FunctionDef("func2", lineno=1, col_offset=0)), [], False)]
+            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
+             NodeReference(astroid.Name("var2", lineno=2, col_offset=4), "func1.var2.2.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
+             NodeReference(astroid.Name("var3", lineno=30, col_offset=4), "func2.var3.30.4", NodeScope(astroid.FunctionDef("func2", lineno=1, col_offset=0)), [], False)]
         ),
         (
             [astroid.AssignName("var1", lineno=12, col_offset=42, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [Reference(astroid.AssignName("var1", lineno=12, col_offset=42), "func1.var1.12.42", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
+            [NodeReference(astroid.AssignName("var1", lineno=12, col_offset=42), "func1.var1.12.42", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.AssignName("var2", lineno=1, col_offset=8, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
-             Reference(astroid.AssignName("var2", lineno=1, col_offset=8), "func1.var2.1.8", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
+            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
+             NodeReference(astroid.AssignName("var2", lineno=1, col_offset=8), "func1.var2.1.8", NodeScope(astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.ClassDef("MyClass", lineno=1, col_offset=0))],
-            [Reference(astroid.Name("var1", lineno=1, col_offset=4), "MyClass.var1.1.4",
-                      NodeScope(astroid.ClassDef("MyClass", lineno=1, col_offset=0)), [], False)]
+            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "MyClass.var1.1.4",
+                           NodeScope(astroid.ClassDef("MyClass", lineno=1, col_offset=0)), [], False)]
         ),
         (
             [astroid.Name("glob", lineno=1, col_offset=4, parent=astroid.Module("mod"))],
-            [Reference(astroid.Name("glob", lineno=1, col_offset=4), "mod.glob.1.4",
-                       NodeScope(astroid.Module("mod")), [], False)]
+            [NodeReference(astroid.Name("glob", lineno=1, col_offset=4), "mod.glob.1.4",
+                           NodeScope(astroid.Module("mod")), [], False)]
         ),
         (
             [],
@@ -359,17 +392,15 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
 )
 def test_construct_reference_list(node: list[astroid.Name | astroid.AssignName], expected) -> None:
     result = create_references(node)
-    result = transform_reference_names(result)
-    expected = transform_reference_names(expected)
+    assert_reference_list_equal(result, expected)
+
+
+def assert_reference_list_equal(result: list[NodeReference], expected: list[NodeReference]) -> None:
+    """ The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
+    The real results name and scope are objects and not strings"""
+    result = [NodeReference(name.name.name, name.node_id, name.scope.scope.__class__.__name__, name.potential_references, name.list_is_complete) for name in result]
+    expected = [NodeReference(name.name.name, name.node_id, name.scope.scope.__class__.__name__, name.potential_references, name.list_is_complete) for name in expected]
     assert result == expected
-    # the result data as well as the expected data in this test is simplified, so it is easier to compare the results.
-    # the real results name and scope are objects and not strings
-
-
-def transform_reference_names(names):
-    """Transforms the name of the reference to a string for easier comparison (removes the address of the object)"""
-    # print(names)
-    return [Reference(name.name.name, name.node_id, name.scope.scope.__class__.__name__, name.potential_references, name.list_is_complete) for name in names]
 
 
 def test_add_potential_value_reference() -> None:
@@ -536,7 +567,11 @@ def test_find_references_local(code, expected):
                     res = 23
                     return res
             """,
-            []
+            [
+                [],
+                [],
+                []
+            ]
         ),
         (
             """
@@ -695,6 +730,9 @@ def test_get_nodes_for_scope(code: str, expected) -> None:
         for ref in reference:
             print(ref)
 
+    assert module_scope == expected[0]
+    assert class_scope == expected[1]
+    assert function_scope == expected[2]
 
 # @pytest.mark.parametrize(
 #     ("code", "expected"),
