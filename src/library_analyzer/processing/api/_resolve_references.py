@@ -10,12 +10,9 @@ from library_analyzer.utils import ASTWalker
 
 
 @dataclass
-class MemberAccess(astroid.Attribute, Expression):
-    receiver: MemberAccess
-    target: Reference | None
-
-    def __str__(self):
-        return f'MemberAccess.{self.receiver}.{self.target}'
+class MemberAccess(Expression):
+    expression: Expression
+    value: MemberAccess | Reference | None
 
 
 @dataclass
@@ -76,15 +73,19 @@ class NameNodeFinder:
     # We do not need AugAssign, since it uses AssignName as a target and Name as value
 
     def enter_attribute(self, node: astroid.Attribute) -> None:
-        self.names_list.append(MemberAccess(node.expr, node.attrname))
-        print(node.as_string())
-        print(node.attrname)
-        print(node.get_children())
-
+        member_access = construct_member_access(node)
+        self.names_list.append(member_access)
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         self.names_list.append(MemberAccess(node.expr, node.attrname))
+        # TODO: change this so a MemberAccess can represent the whole expression (chaining)
 
+
+def construct_member_access(node: astroid.Attribute) -> MemberAccess:
+    if isinstance(node.expr, astroid.Attribute):
+        return MemberAccess(construct_member_access(node.expr), node.attrname)
+    else:
+        return MemberAccess(node.expr, node.attrname)
 
 
 def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name]]:

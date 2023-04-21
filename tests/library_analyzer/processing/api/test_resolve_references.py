@@ -59,7 +59,17 @@ from library_analyzer.processing.api import (
                 def chain():
                     var1 = test.instance_attr.field.next_field
             """,
-            ['AssignName.var1', 'MemberAccess.test.instance_attr.field.next_field']
+            ['AssignName.var1',
+             'MemberAccess.test.instance_attr.field.next_field',
+             'MemberAccess.test.instance_attr.field',
+             'MemberAccess.test.instance_attr']
+        ),
+        (
+            """
+                def chain_reversed():
+                    test.instance_attr.field.next_field = var1
+            """,
+            ['Name.var1',]
         ),
         (
             """
@@ -245,6 +255,7 @@ from library_analyzer.processing.api import (
         "Assign Class Attribute",
         "Assign Instance Attribute",
         "Assign Chain",
+        "Assign Chain Reversed",
         "AugAssign",
         "AssignAttr",
         "Return",
@@ -274,6 +285,8 @@ def test_get_name_nodes(code: str, expected: str) -> None:
 
 def assert_names_list(names_list: list[astroid.Name], expected: str) -> None:
     names_list = transform_names_list(names_list)
+    # for name in names_list:
+    #     print(name)
     assert names_list == expected
 
 
@@ -283,7 +296,16 @@ def transform_names_list(names_list):
         if isinstance(name, astroid.Name | astroid.AssignName):
             names_list_transformed.append(f"{name.__class__.__name__}.{name.name}")
         elif isinstance(name, MemberAccess):
-            names_list_transformed.append(f"MemberAccess.{name.receiver.name}.{name.target}")
+            attribute_names = []
+
+            while isinstance(name, MemberAccess):
+                attribute_names.append(name.value)
+                name = name.expression
+            if isinstance(name, astroid.Name):
+                attribute_names.append(name.name)
+
+            result = '.'.join(reversed(attribute_names))
+            names_list_transformed.append(f"MemberAccess.{result}")
 
     return names_list_transformed
 
