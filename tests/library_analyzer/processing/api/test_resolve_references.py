@@ -69,7 +69,7 @@ from library_analyzer.processing.api import (
                 def chain_reversed():
                     test.instance_attr.field.next_field = var1
             """,
-            ['Name.var1',]
+            ['Name.var1']  # TODO: how to handle this?
         ),
         (
             """
@@ -244,7 +244,7 @@ from library_analyzer.processing.api import (
 
                         return enter_method, leave_method
 
-            """, []
+            """, [""]
         )
     ],
     ids=[
@@ -277,10 +277,11 @@ from library_analyzer.processing.api import (
 )
 def test_get_name_nodes(code: str, expected: str) -> None:
     module = astroid.parse(code)
-    print(module.repr_tree(), "\n")
+    # print(module.repr_tree(), "\n")
     names_list = get_name_nodes(module)
-    names_list = names_list[0]
-    assert_names_list(names_list, expected)
+    names_list_joined = [element for name in names_list for element in name]
+
+    assert_names_list(names_list_joined, expected)
 
 
 def assert_names_list(names_list: list[astroid.Name], expected: str) -> None:
