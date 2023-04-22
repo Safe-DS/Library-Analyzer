@@ -1,7 +1,7 @@
 # Todo Function with return value
 import astroid
 import pytest
-from library_analyzer.processing.api.docstring_parsing import EpydocParser
+from library_analyzer.processing.api.docstring_parsing import GooglestyledocParser
 from library_analyzer.processing.api.model import (
     ClassDocumentation,
     FunctionDocumentation,
@@ -11,8 +11,8 @@ from library_analyzer.processing.api.model import (
 
 
 @pytest.fixture()
-def epydoc_parser() -> EpydocParser:
-    return EpydocParser()
+def googlestyledoc_parser() -> GooglestyledocParser:
+    return GooglestyledocParser()
 
 
 class_with_documentation = '''
@@ -56,14 +56,14 @@ class C:
     ],
 )
 def test_get_class_documentation(
-    epydoc_parser: EpydocParser,
+    googlestyledoc_parser: GooglestyledocParser,
     python_code: str,
     expected_class_documentation: ClassDocumentation,
 ) -> None:
     node = astroid.extract_node(python_code)
 
     assert isinstance(node, astroid.ClassDef)
-    assert epydoc_parser.get_class_documentation(node) == expected_class_documentation
+    assert googlestyledoc_parser.get_class_documentation(node) == expected_class_documentation
 
 
 # language=python
@@ -111,44 +111,26 @@ def f():
     ],
 )
 def test_get_function_documentation(
-    epydoc_parser: EpydocParser,
+    googlestyledoc_parser: GooglestyledocParser,
     python_code: str,
     expected_function_documentation: FunctionDocumentation,
 ) -> None:
     node = astroid.extract_node(python_code)
 
     assert isinstance(node, astroid.FunctionDef)
-    assert epydoc_parser.get_function_documentation(node) == expected_function_documentation
+    assert googlestyledoc_parser.get_function_documentation(node) == expected_function_documentation
 
 
 # language=python
 class_with_parameters = '''
 # noinspection PyUnresolvedReferences,PyIncorrectDocstring
 class C:
-    """
-    Lorem ipsum.
+    """Lorem ipsum.
 
     Dolor sit amet.
 
-    @param p: foo defaults to 1
-    @type p: int
-    """
-
-    def __init__(self):
-        pass
-'''
-
-# language=python
-class_with_parameters_2 = '''
-# noinspection PyUnresolvedReferences,PyIncorrectDocstring
-class C:
-    """
-    Lorem ipsum.
-
-    Dolor sit amet.
-
-    @ivar p: foo defaults to 1
-    @type p: int
+    Attributes:
+        p (int): foo defaults to 1
     """
 
     def __init__(self):
@@ -159,18 +141,17 @@ class C:
 function_with_parameters = '''
 # noinspection PyUnresolvedReferences,PyIncorrectDocstring
 def f():
-    """
-    Lorem ipsum.
+    """Lorem ipsum.
 
     Dolor sit amet.
 
-    Parameters
-    ----------
-    @param no_type_no_default: no type and no default
-    @param type_no_default: type but no default
-    @type type_no_default: int
-    @param with_default: foo that defaults to 2
-    @type with_default: int
+    Args:
+        no_type_no_default: no type and no default
+        type_no_default (int): type but no default
+        with_default (int): foo that defaults to 2
+
+    Returns:
+        float: this will be the return value
     """
 
     pass
@@ -198,16 +179,6 @@ def f():
                 type="",
                 default_value="",
                 description="",
-            ),
-        ),
-        (
-            class_with_parameters_2,
-            "p",
-            ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
-                type="int",
-                default_value="1",
-                description="foo defaults to 1",
             ),
         ),
         (
@@ -257,7 +228,7 @@ def f():
     ],
 )
 def test_get_parameter_documentation(
-    epydoc_parser: EpydocParser,
+    googlestyledoc_parser: GooglestyledocParser,
     python_code: str,
     parameter_name: str,
     parameter_assigned_by: ParameterAssignment,
@@ -274,75 +245,6 @@ def test_get_parameter_documentation(
 
     assert isinstance(node, astroid.FunctionDef)
     assert (
-        epydoc_parser.get_parameter_documentation(node, parameter_name, parameter_assigned_by)
+        googlestyledoc_parser.get_parameter_documentation(node, parameter_name, parameter_assigned_by)
         == expected_parameter_documentation
     )
-
-# # language=python
-# function_with_return_value_and_type = '''
-# # noinspection PyUnresolvedReferences,PyIncorrectDocstring
-# def f():
-#     """
-#     Lorem ipsum.
-#
-#     Dolor sit amet.
-#
-#     @return: return value
-#     @rtype: float
-#     """
-#
-#     pass
-# '''
-#
-# # language=python
-# function_with_return_value_no_type = '''
-# # noinspection PyUnresolvedReferences,PyIncorrectDocstring
-# def f():
-#     """
-#     Lorem ipsum.
-#
-#     Dolor sit amet.
-#
-#     @return: return value
-#     """
-#
-#     pass
-# '''
-#
-#
-# @pytest.mark.parametrize(
-#     ("python_code", "expected_parameter_documentation"),
-#     [
-#         (
-#             function_with_return_value_and_type,
-#             ParameterDocumentation(type="", default_value="", description=""),
-#         ),
-#         (
-#             function_with_return_value_no_type,
-#             ParameterDocumentation(type="", default_value="", description=""),
-#         ),
-#     ],
-#     ids=[
-#         "existing return value and type",
-#         "existing return value no type",
-#     ],
-# )
-# def test_get_return_documentation(
-#     epydoc_parser: EpydocParser,
-#     python_code: str,
-#     expected_parameter_documentation: ParameterDocumentation,
-# ) -> None:
-#     node = astroid.extract_node(python_code)
-#     assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
-#
-#     # Find the constructor
-#     if isinstance(node, astroid.ClassDef):
-#         for method in node.mymethods():
-#             if method.name == "__init__":
-#                 node = method
-#
-#     assert isinstance(node, astroid.FunctionDef)
-#     assert (
-#         epydoc_parser.get_return_documentation(node)
-#         == expected_parameter_documentation
-#     )
