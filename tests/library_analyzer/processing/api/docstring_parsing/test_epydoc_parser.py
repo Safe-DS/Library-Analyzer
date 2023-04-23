@@ -1,4 +1,3 @@
-# Todo Function with return value
 import astroid
 import pytest
 from library_analyzer.processing.api.docstring_parsing import EpydocParser
@@ -7,6 +6,7 @@ from library_analyzer.processing.api.model import (
     FunctionDocumentation,
     ParameterAssignment,
     ParameterDocumentation,
+    ReturnDocumentation
 )
 
 
@@ -15,6 +15,7 @@ def epydoc_parser() -> EpydocParser:
     return EpydocParser()
 
 
+# language=python
 class_with_documentation = '''
 class C:
     """
@@ -26,6 +27,7 @@ class C:
     """
 '''
 
+# language=python
 class_without_documentation = """
 class C:
     pass
@@ -278,71 +280,89 @@ def test_get_parameter_documentation(
         == expected_parameter_documentation
     )
 
-# # language=python
-# function_with_return_value_and_type = '''
-# # noinspection PyUnresolvedReferences,PyIncorrectDocstring
-# def f():
-#     """
-#     Lorem ipsum.
-#
-#     Dolor sit amet.
-#
-#     @return: return value
-#     @rtype: float
-#     """
-#
-#     pass
-# '''
-#
-# # language=python
-# function_with_return_value_no_type = '''
-# # noinspection PyUnresolvedReferences,PyIncorrectDocstring
-# def f():
-#     """
-#     Lorem ipsum.
-#
-#     Dolor sit amet.
-#
-#     @return: return value
-#     """
-#
-#     pass
-# '''
-#
-#
-# @pytest.mark.parametrize(
-#     ("python_code", "expected_parameter_documentation"),
-#     [
-#         (
-#             function_with_return_value_and_type,
-#             ParameterDocumentation(type="", default_value="", description=""),
-#         ),
-#         (
-#             function_with_return_value_no_type,
-#             ParameterDocumentation(type="", default_value="", description=""),
-#         ),
-#     ],
-#     ids=[
-#         "existing return value and type",
-#         "existing return value no type",
-#     ],
-# )
-# def test_get_return_documentation(
-#     epydoc_parser: EpydocParser,
-#     python_code: str,
-#     expected_parameter_documentation: ParameterDocumentation,
-# ) -> None:
-#     node = astroid.extract_node(python_code)
-#     assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
-#
-#     # Find the constructor
-#     if isinstance(node, astroid.ClassDef):
-#         for method in node.mymethods():
-#             if method.name == "__init__":
-#                 node = method
-#
-#     assert isinstance(node, astroid.FunctionDef)
-#     assert (
-#         epydoc_parser.get_return_documentation(node)
-#         == expected_parameter_documentation
-#     )
+# language=python
+function_with_return_value_and_type = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+def f():
+    """
+    Lorem ipsum.
+
+    Dolor sit amet.
+
+    @return: return value
+    @rtype: float
+    """
+
+    pass
+'''
+
+# language=python
+function_with_return_value_no_type = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+def f():
+    """
+    Lorem ipsum.
+
+    Dolor sit amet.
+
+    @return: return value
+    """
+
+    pass
+'''
+
+# language=python
+function_without_return_value = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+def f():
+    """
+    Lorem ipsum.
+
+    Dolor sit amet.
+    """
+
+    pass
+'''
+
+
+@pytest.mark.parametrize(
+    ("python_code", "expected_return_documentation"),
+    [
+        (
+            function_with_return_value_and_type,
+            ParameterDocumentation(type="", description=""),
+        ),
+        (
+            function_with_return_value_no_type,
+            ParameterDocumentation(type="", description=""),
+        ),
+        (
+            function_without_return_value,
+            ParameterDocumentation(type="", description="")
+        ),
+    ],
+    ids=[
+        "existing return value and type",
+        "existing return value no type",
+        "function without return value"
+    ],
+)
+def test_get_return_documentation(
+    epydoc_parser: EpydocParser,
+    python_code: str,
+    expected_return_documentation: ParameterDocumentation,
+) -> None:
+    node = astroid.extract_node(python_code)
+    assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
+
+    # Find the constructor
+    if isinstance(node, astroid.ClassDef):
+        for method in node.mymethods():
+            if method.name == "__init__":
+                node = method
+
+    assert isinstance(node, astroid.FunctionDef)
+    assert (
+        epydoc_parser.get_return_documentation(node)
+        == expected_return_documentation
+    )

@@ -7,6 +7,7 @@ from library_analyzer.processing.api.model import (
     FunctionDocumentation,
     ParameterAssignment,
     ParameterDocumentation,
+    ReturnDocumentation
 )
 
 
@@ -152,8 +153,6 @@ def f():
     :type type_no_default: int
     :param with_default: foo that defaults to 2
     :type with_default: int
-    :return: return value
-    :rtype: bool
     """
 
     pass
@@ -249,4 +248,93 @@ def test_get_parameter_documentation(
     assert (
         restdoc_parser.get_parameter_documentation(node, parameter_name, parameter_assigned_by)
         == expected_parameter_documentation
+    )
+
+
+# language=python
+function_with_return_value_and_type = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+def f():
+    """
+    Lorem ipsum.
+
+    Dolor sit amet.
+
+    :return: return value
+    :rtype: bool
+    """
+
+    pass
+'''
+
+# language=python
+function_with_return_value_no_type = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+def f():
+    """
+    Lorem ipsum.
+
+    Dolor sit amet.
+
+    :return: return value
+    :rtype: bool
+    """
+
+    pass
+'''
+
+# language=python
+function_without_return_value = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+def f():
+    """
+    Lorem ipsum.
+
+    Dolor sit amet.
+    """
+
+    pass
+'''
+
+
+@pytest.mark.parametrize(
+    ("python_code", "expected_return_documentation"),
+    [
+        (
+            function_with_return_value_and_type,
+            ParameterDocumentation(type="", description=""),
+        ),
+        (
+            function_with_return_value_no_type,
+            ParameterDocumentation(type="", description=""),
+        ),
+        (
+            function_without_return_value,
+            ParameterDocumentation(type="", description="")
+        ),
+    ],
+    ids=[
+        "existing return value and type",
+        "existing return value no type",
+        "function without return value"
+    ],
+)
+def test_get_return_documentation(
+    restdoc_parser: RestdocParser,
+    python_code: str,
+    expected_return_documentation: ReturnDocumentation,
+) -> None:
+    node = astroid.extract_node(python_code)
+    assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
+
+    # Find the constructor
+    if isinstance(node, astroid.ClassDef):
+        for method in node.mymethods():
+            if method.name == "__init__":
+                node = method
+
+    assert isinstance(node, astroid.FunctionDef)
+    assert (
+        restdoc_parser.get_return_documentation(node)
+        == expected_return_documentation
     )

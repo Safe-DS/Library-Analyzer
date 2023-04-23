@@ -1,4 +1,3 @@
-# Todo Function with return value
 import astroid
 import pytest
 from library_analyzer.processing.api.docstring_parsing import GooglestyledocParser
@@ -7,6 +6,7 @@ from library_analyzer.processing.api.model import (
     FunctionDocumentation,
     ParameterAssignment,
     ParameterDocumentation,
+    ReturnDocumentation
 )
 
 
@@ -15,6 +15,7 @@ def googlestyledoc_parser() -> GooglestyledocParser:
     return GooglestyledocParser()
 
 
+# language=python
 class_with_documentation = '''
 class C:
     """
@@ -26,6 +27,7 @@ class C:
     """
 '''
 
+# language=python
 class_without_documentation = """
 class C:
     pass
@@ -149,9 +151,6 @@ def f():
         no_type_no_default: no type and no default
         type_no_default (int): type but no default
         with_default (int): foo that defaults to 2
-
-    Returns:
-        float: this will be the return value
     """
 
     pass
@@ -247,4 +246,90 @@ def test_get_parameter_documentation(
     assert (
         googlestyledoc_parser.get_parameter_documentation(node, parameter_name, parameter_assigned_by)
         == expected_parameter_documentation
+    )
+
+
+# language=python
+function_with_return_value_and_type = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+def f():
+    """Lorem ipsum.
+
+    Dolor sit amet.
+
+    Returns:
+        int: this will be the return value
+    """
+
+    pass
+'''
+
+# language=python
+function_with_return_value_no_type = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+def f():
+    """Lorem ipsum.
+
+    Dolor sit amet.
+
+    Returns:
+        int: this will be the return value
+    """
+
+    pass
+'''
+
+# language=python
+function_without_return_value = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+def f():
+    """Lorem ipsum.
+
+    Dolor sit amet.
+    """
+
+    pass
+'''
+
+
+@pytest.mark.parametrize(
+    ("python_code", "expected_return_documentation"),
+    [
+        (
+            function_with_return_value_and_type,
+            ParameterDocumentation(type="", description=""),
+        ),
+        (
+            function_with_return_value_no_type,
+            ParameterDocumentation(type="", description=""),
+        ),
+        (
+            function_without_return_value,
+            ParameterDocumentation(type="", description="")
+        ),
+    ],
+    ids=[
+        "existing return value and type",
+        "existing return value no type",
+        "function without return value"
+    ],
+)
+def test_get_return_documentation(
+    googlestyledoc_parser: GooglestyledocParser,
+    python_code: str,
+    expected_return_documentation: ReturnDocumentation,
+) -> None:
+    node = astroid.extract_node(python_code)
+    assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
+
+    # Find the constructor
+    if isinstance(node, astroid.ClassDef):
+        for method in node.mymethods():
+            if method.name == "__init__":
+                node = method
+
+    assert isinstance(node, astroid.FunctionDef)
+    assert (
+        googlestyledoc_parser.get_return_documentation(node)
+        == expected_return_documentation
     )
