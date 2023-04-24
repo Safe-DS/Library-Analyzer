@@ -69,7 +69,10 @@ from library_analyzer.processing.api import (
                 def chain_reversed():
                     test.instance_attr.field.next_field = var1
             """,
-            ['Name.var1']  # TODO: how to handle this?
+            ['MemberAccess.test.instance_attr.field.next_field',
+             'MemberAccess.test.instance_attr.field',
+             'MemberAccess.test.instance_attr',
+             'Name.var1']
         ),
         (
             """
@@ -277,7 +280,7 @@ from library_analyzer.processing.api import (
 )
 def test_get_name_nodes(code: str, expected: str) -> None:
     module = astroid.parse(code)
-    # print(module.repr_tree(), "\n")
+    print(module.repr_tree(), "\n")
     names_list = get_name_nodes(module)
     names_list_joined = [element for name in names_list for element in name]
 
@@ -300,7 +303,7 @@ def transform_names_list(names_list):
             attribute_names = []
 
             while isinstance(name, MemberAccess):
-                attribute_names.append(name.value)
+                attribute_names.append(name.value.name)
                 name = name.expression
             if isinstance(name, astroid.Name):
                 attribute_names.append(name.name)

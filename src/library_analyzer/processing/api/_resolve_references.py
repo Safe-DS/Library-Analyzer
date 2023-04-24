@@ -11,8 +11,8 @@ from library_analyzer.utils import ASTWalker
 
 @dataclass
 class MemberAccess(Expression):
-    expression: Expression
-    value: MemberAccess | Reference | None
+    expression: astroid.NodeNG
+    value: MemberAccess | Reference
 
 
 @dataclass
@@ -77,15 +77,15 @@ class NameNodeFinder:
         self.names_list.append(member_access)
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
-        self.names_list.append(MemberAccess(node.expr, node.attrname))
-        # TODO: change this so a MemberAccess can represent the whole expression (chaining)
+        member_access = construct_member_access(node)
+        self.names_list.append(member_access)
 
 
-def construct_member_access(node: astroid.Attribute) -> MemberAccess:
-    if isinstance(node.expr, astroid.Attribute):
-        return MemberAccess(construct_member_access(node.expr), node.attrname)
+def construct_member_access(node: astroid.Attribute | astroid.AssignAttr) -> MemberAccess:
+    if isinstance(node.expr, astroid.Attribute | astroid.AssignAttr):
+        return MemberAccess(construct_member_access(node.expr), Reference(node.attrname))
     else:
-        return MemberAccess(node.expr, node.attrname)
+        return MemberAccess(node.expr, Reference(node.attrname))
 
 
 def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name]]:
@@ -104,7 +104,7 @@ def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name]]:
 
 
 # THIS FUNCTION IS THE CORRECT ONE - MERGE THIS (over calc_function_id)
-def calc_node_id(node: Union[astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AssignName, astroid.Name])-> NodeID | None:
+def calc_node_id(node: Union[astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AssignName, astroid.Name]) -> NodeID | None:
     # TODO: there is problem: when a name node is used within a real module, the module is not calculated correctly
     module = node.root()
     match node:
