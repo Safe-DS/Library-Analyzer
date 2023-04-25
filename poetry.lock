@@ -108,14 +108,14 @@ python-dateutil = ">=2.7.0"
 
 [[package]]
 name = "astroid"
-version = "2.15.1"
+version = "2.15.4"
 description = "An abstract syntax tree for Python with inference support."
 category = "main"
 optional = false
 python-versions = ">=3.7.2"
 files = [
-    {file = "astroid-2.15.1-py3-none-any.whl", hash = "sha256:89860bda98fe2bbd1f5d262229be7629d778ce280de68d95d4a73d1f592ad268"},
-    {file = "astroid-2.15.1.tar.gz", hash = "sha256:af4e0aff46e2868218502789898269ed95b663fba49e65d91c1e09c966266c34"},
+    {file = "astroid-2.15.4-py3-none-any.whl", hash = "sha256:a1b8543ef9d36ea777194bc9b17f5f8678d2c56ee6a45b2c2f17eec96f242347"},
+    {file = "astroid-2.15.4.tar.gz", hash = "sha256:c81e1c7fbac615037744d067a9bb5f9aeb655edf59b63ee8b59585475d6f80d8"},
 ]
 
 [package.dependencies]
