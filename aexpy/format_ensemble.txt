@@ -1,0 +1,353 @@
+
+
+Remove Keyword parameter	sklearn.decomposition._nmf.NMF.__init__/alpha
+Remove Keyword parameter	sklearn.decomposition._nmf.NMF.__init__/regularization
+Remove Keyword parameter	sklearn.decomposition._nmf.non_negative_factorization/alpha
+Remove Keyword parameter	sklearn.decomposition._nmf.non_negative_factorization/regularization
+Remove attribute	sklearn.decomposition._dict_learning.SparseCoder/components_
+>      NMF  →  sklearn.decomposition._nmf.NMF
+🔴 Remove alias (sklearn.utils.tests.test_estimator_checks)
+
+
+Change parameter default	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning.__init__/n_iter: int('1000')	str('deprecated')
+Change parameter default	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning.__init__/batch_size: int('3')	str('warn')
+Change parameter default	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning.partial_fit/iter_offset: None	str('deprecated')
+Change parameter default	sklearn.decomposition._sparse_pca.MiniBatchSparsePCA.__init__/n_iter: int('100')	str('deprecated')
+Change parameter default	sklearn.decomposition._nmf.NMF.__init__/init: str('warn')	None
+Add Keyword parameter	sklearn.decomposition._fastica.FastICA.__init__/whiten_solver
+Add Keyword parameter	sklearn.decomposition._kernel_pca.KernelPCA.__init__/iterated_power
+Add Keyword parameter	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning.__init__/max_iter
+Add Keyword parameter	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning.__init__/callback
+Add Keyword parameter	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning.__init__/tol
+Add Keyword parameter	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning.__init__/max_no_improvement
+Add Keyword parameter	sklearn.decomposition._sparse_pca.MiniBatchSparsePCA.__init__/max_iter
+Add Keyword parameter	sklearn.decomposition._sparse_pca.MiniBatchSparsePCA.__init__/tol
+Add Keyword parameter	sklearn.decomposition._sparse_pca.MiniBatchSparsePCA.__init__/max_no_improvement
+Add Keyword parameter	sklearn.decomposition._nmf.NMF.__init__/alpha_W
+Add Keyword parameter	sklearn.decomposition._nmf.NMF.__init__/alpha_H
+Add Keyword parameter	sklearn.decomposition._pca.PCA.__init__/n_oversamples
+Add Keyword parameter	sklearn.decomposition._pca.PCA.__init__/power_iteration_normalizer
+Add Keyword parameter	sklearn.decomposition._truncated_svd.TruncatedSVD.__init__/n_oversamples
+Add Keyword parameter	sklearn.decomposition._truncated_svd.TruncatedSVD.__init__/power_iteration_normalizer
+Remove PositionalOrKeyword parameter	sklearn.decomposition._lda._update_doc_distribution/max_iters
+Remove PositionalOrKeyword parameter	sklearn.decomposition._dict_learning._update_dict/return_r2
+Remove method	sklearn.decomposition._fastica.FastICA/_fit
+Remove method	sklearn.decomposition._lda.LatentDirichletAllocation/_check_params
+Remove instance attribute	sklearn.decomposition._kernel_pca.KernelPCA/lambdas_
+Remove instance attribute	sklearn.decomposition._kernel_pca.KernelPCA/alphas_
+Remove instance attribute	sklearn.decomposition._nmf.NMF/alpha
+Remove instance attribute	sklearn.decomposition._nmf.NMF/regularization
+Remove function	sklearn.decomposition._nmf/_check_string_param
+Remove function	sklearn.decomposition._nmf/_compute_regularization
+Remove alias	sklearn.decomposition._nmf/numbers	numbers
+Remove alias	sklearn.decomposition._pca/numbers	numbers
+Remove base class	sklearn.decomposition._sparse_pca.MiniBatchSparsePCA/
+>      sklearn.decomposition._sparse_pca.SparsePCA
+🟡 Remove base class (sklearn.linear_model._glm.glm.GammaRegressor)
+
+
+Remove attribute	sklearn.decomposition._fastica/FLOAT_DTYPES
+Remove attribute	sklearn.decomposition._lda/_dirichlet_expectation_1d
+Remove attribute	sklearn.decomposition._lda/mean_change
+Remove alias	sklearn.decomposition._dict_learning/_deprecate_positional_args	sklearn.utils.validation._deprecate_positional_args
+Remove alias	sklearn.decomposition._factor_analysis/_deprecate_positional_args	sklearn.utils.validation._deprecate_positional_args
+Remove alias	sklearn.decomposition._fastica/_deprecate_positional_args	sklearn.utils.validation._deprecate_positional_args
+Remove alias	sklearn.decomposition._incremental_pca/_deprecate_positional_args	sklearn.utils.validation._deprecate_positional_args
+Remove alias	sklearn.decomposition._kernel_pca/_deprecate_positional_args	sklearn.utils.validation._deprecate_positional_args
+Remove alias	sklearn.decomposition._kernel_pca/deprecated	sklearn.utils.deprecation.deprecated
+Remove alias	sklearn.decomposition._lda/_deprecate_positional_args	sklearn.utils.validation._deprecate_positional_args
+Remove alias	sklearn.decomposition._nmf/_deprecate_positional_args	sklearn.utils.validation._deprecate_positional_args
+Remove alias	sklearn.decomposition._pca/_deprecate_positional_args	sklearn.utils.validation._deprecate_positional_args
+Remove alias	sklearn.decomposition._sparse_pca/
+>      dict_learning_online  →  sklearn.decomposition._dict_learning.dict_learning_online
+
+
+
+Remove alias	sklearn.decomposition._truncated_svd/_deprecate_positional_args	sklearn.utils.validation._deprecate_positional_args
+Move parameter	sklearn.decomposition._dict_learning._update_dict/positive: 7	8
+Move parameter	sklearn.decomposition._dict_learning._update_dict/verbose: 4	6
+Move parameter	sklearn.decomposition._dict_learning._update_dict/random_state: 6	7
+Add PositionalOrKeyword parameter	sklearn.decomposition._lda._update_doc_distribution/max_doc_update_iter
+Add PositionalOrKeyword parameter	sklearn.decomposition._lda.LatentDirichletAllocation._init_latent_vars/dtype
+Change parameter default	sklearn.decomposition._dict_learning.dict_learning_online/n_iter: int('100')	str('deprecated')
+Change parameter default	sklearn.decomposition._dict_learning.dict_learning_online/batch_size: int('3')	str('warn')
+Change parameter default	sklearn.decomposition._dict_learning.dict_learning_online/iter_offset: int('0')	str('deprecated')
+Change parameter default	sklearn.decomposition._dict_learning.dict_learning_online/return_inner_stats: bool('False')	str('deprecated')
+Change parameter default	sklearn.decomposition._dict_learning.dict_learning_online/inner_stats: None	str('deprecated')
+Change parameter default	sklearn.decomposition._dict_learning.dict_learning_online/return_n_iter: bool('False')	str('deprecated')
+Change parameter default	sklearn.decomposition._fastica.fastica/whiten: bool('True')	str('warn')
+Change parameter default	sklearn.decomposition._nmf._initialize_nmf/init: str('warn')	None
+Change parameter default	sklearn.decomposition._nmf.non_negative_factorization/init: str('warn')	None
+Add PositionalOrKeyword parameter	sklearn.decomposition._dict_learning._update_dict/A
+Add PositionalOrKeyword parameter	sklearn.decomposition._dict_learning._update_dict/B
+Add Keyword parameter	sklearn.decomposition._dict_learning.dict_learning_online/max_iter
+Add Keyword parameter	sklearn.decomposition._dict_learning.dict_learning_online/tol
+Add Keyword parameter	sklearn.decomposition._dict_learning.dict_learning_online/max_no_improvement
+Add Keyword parameter	sklearn.decomposition._fastica.fastica/whiten_solver
+Add PositionalOrKeyword parameter	sklearn.decomposition._nmf._multiplicative_update_h/A
+Add PositionalOrKeyword parameter	sklearn.decomposition._nmf._multiplicative_update_h/B
+Add PositionalOrKeyword parameter	sklearn.decomposition._nmf._multiplicative_update_h/rho
+Add Keyword parameter	sklearn.decomposition._nmf.non_negative_factorization/alpha_W
+Add Keyword parameter	sklearn.decomposition._nmf.non_negative_factorization/alpha_H
+Add method	sklearn.decomposition._fastica.FastICA/_fit_transform
+Add method	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_check_convergence
+Add method	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_check_params
+Add method	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_initialize_dict
+Add method	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_minibatch_step
+Add method	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_update_inner_stats
+Add method	sklearn.decomposition._nmf.MiniBatchNMF/__init__
+Add method	sklearn.decomposition._nmf.MiniBatchNMF/_check_params
+Add method	sklearn.decomposition._nmf.MiniBatchNMF/_fit_transform
+Add method	sklearn.decomposition._nmf.MiniBatchNMF/_minibatch_convergence
+Add method	sklearn.decomposition._nmf.MiniBatchNMF/_minibatch_step
+Add method	sklearn.decomposition._nmf.MiniBatchNMF/_solve_W
+Add method	sklearn.decomposition._nmf.MiniBatchNMF/fit_transform
+Add method	sklearn.decomposition._nmf.MiniBatchNMF/partial_fit
+Add method	sklearn.decomposition._nmf.MiniBatchNMF/transform
+Add method	sklearn.decomposition._sparse_pca.MiniBatchSparsePCA/_fit
+Add method	sklearn.decomposition._nmf.NMF/_check_params
+Add method	sklearn.decomposition._nmf.NMF/_fit_transform
+Add method	sklearn.decomposition._sparse_pca.SparsePCA/_fit
+Add method	sklearn.decomposition._nmf._BaseNMF/__init__
+Add method	sklearn.decomposition._nmf._BaseNMF/_check_params
+Add method	sklearn.decomposition._nmf._BaseNMF/_check_w_h
+Add method	sklearn.decomposition._nmf._BaseNMF/_compute_regularization
+Add method	sklearn.decomposition._nmf._BaseNMF/_more_tags
+Add method	sklearn.decomposition._nmf._BaseNMF/fit
+Add method	sklearn.decomposition._nmf._BaseNMF/inverse_transform
+Add method	sklearn.decomposition._sparse_pca._BaseSparsePCA/__init__
+Add method	sklearn.decomposition._sparse_pca._BaseSparsePCA/_more_tags
+Add method	sklearn.decomposition._sparse_pca._BaseSparsePCA/fit
+Add method	sklearn.decomposition._sparse_pca._BaseSparsePCA/inverse_transform
+Add method	sklearn.decomposition._sparse_pca._BaseSparsePCA/transform
+Add instance attribute	sklearn.decomposition._fastica.FastICA/whiten_solver
+Add instance attribute	sklearn.decomposition._fastica.FastICA/_whiten
+Add instance attribute	sklearn.decomposition._kernel_pca.KernelPCA/iterated_power
+Add instance attribute	sklearn.decomposition._kernel_pca.KernelPCA/eigenvalues_
+Add instance attribute	sklearn.decomposition._kernel_pca.KernelPCA/eigenvectors_
+Add instance attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/max_iter
+Add instance attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/callback
+Add instance attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/max_no_improvement
+Add instance attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/tol
+Add instance attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_n_components
+Add instance attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_fit_algorithm
+Add instance attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_batch_size
+Add instance attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_ewa_cost
+Add instance attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_no_improvement
+Add instance attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_ewa_cost_min
+Add instance attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_random_state
+Add instance attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_inner_stats
+Add instance attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/n_steps_
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/max_no_improvement
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/batch_size
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/forget_factor
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/fresh_restarts
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/fresh_restarts_max_iter
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/transform_max_iter
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/_batch_size
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/_rho
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/_gamma
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/_transform_max_iter
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/_ewa_cost
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/_no_improvement
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/_ewa_cost_min
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/reconstruction_err_
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/n_components_
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/components_
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/n_iter_
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/n_steps_
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/_components_numerator
+Add instance attribute	sklearn.decomposition._nmf.MiniBatchNMF/_components_denominator
+Add instance attribute	sklearn.decomposition._sparse_pca.MiniBatchSparsePCA/max_no_improvement
+Add instance attribute	sklearn.decomposition._pca.PCA/n_oversamples
+Add instance attribute	sklearn.decomposition._pca.PCA/power_iteration_normalizer
+Add instance attribute	sklearn.decomposition._truncated_svd.TruncatedSVD/n_oversamples
+Add instance attribute	sklearn.decomposition._truncated_svd.TruncatedSVD/power_iteration_normalizer
+Add instance attribute	sklearn.decomposition._nmf._BaseNMF/n_components
+Add instance attribute	sklearn.decomposition._nmf._BaseNMF/init
+Add instance attribute	sklearn.decomposition._nmf._BaseNMF/beta_loss
+Add instance attribute	sklearn.decomposition._nmf._BaseNMF/tol
+Add instance attribute	sklearn.decomposition._nmf._BaseNMF/max_iter
+Add instance attribute	sklearn.decomposition._nmf._BaseNMF/random_state
+Add instance attribute	sklearn.decomposition._nmf._BaseNMF/alpha_W
+Add instance attribute	sklearn.decomposition._nmf._BaseNMF/alpha_H
+Add instance attribute	sklearn.decomposition._nmf._BaseNMF/l1_ratio
+Add instance attribute	sklearn.decomposition._nmf._BaseNMF/verbose
+Add instance attribute	sklearn.decomposition._nmf._BaseNMF/_n_components
+Add instance attribute	sklearn.decomposition._nmf._BaseNMF/_beta_loss
+Add instance attribute	sklearn.decomposition._sparse_pca._BaseSparsePCA/n_components
+Add instance attribute	sklearn.decomposition._sparse_pca._BaseSparsePCA/alpha
+Add instance attribute	sklearn.decomposition._sparse_pca._BaseSparsePCA/ridge_alpha
+Add instance attribute	sklearn.decomposition._sparse_pca._BaseSparsePCA/max_iter
+Add instance attribute	sklearn.decomposition._sparse_pca._BaseSparsePCA/tol
+Add instance attribute	sklearn.decomposition._sparse_pca._BaseSparsePCA/method
+Add instance attribute	sklearn.decomposition._sparse_pca._BaseSparsePCA/n_jobs
+Add instance attribute	sklearn.decomposition._sparse_pca._BaseSparsePCA/verbose
+Add instance attribute	sklearn.decomposition._sparse_pca._BaseSparsePCA/random_state
+Add instance attribute	sklearn.decomposition._sparse_pca._BaseSparsePCA/mean_
+Add function	sklearn.decomposition._dict_learning/_check_warn_deprecated
+Add alias	sklearn.decomposition._dict_learning/warnings	warnings
+Add alias	sklearn.decomposition._dict_learning/Integral	numbers.Integral
+Add alias	sklearn.decomposition._dict_learning/Real	numbers.Real
+Add alias	sklearn.decomposition._factor_analysis/Integral	numbers.Integral
+Add alias	sklearn.decomposition._factor_analysis/Real	numbers.Real
+Add alias	sklearn.decomposition._fastica/Integral	numbers.Integral
+Add alias	sklearn.decomposition._fastica/Real	numbers.Real
+Add alias	sklearn.decomposition._incremental_pca/Integral	numbers.Integral
+Add alias	sklearn.decomposition._kernel_pca/_eigh	scipy.linalg._decomp.eigh
+Add alias	sklearn.decomposition._kernel_pca/Integral	numbers.Integral
+Add alias	sklearn.decomposition._kernel_pca/Real	numbers.Real
+Add alias	sklearn.decomposition._lda/Integral	numbers.Integral
+Add alias	sklearn.decomposition._lda/Real	numbers.Real
+Add alias	sklearn.decomposition._nmf/itertools	itertools
+Add alias	sklearn.decomposition._nmf/Integral	numbers.Integral
+Add alias	sklearn.decomposition._nmf/Real	numbers.Real
+Add alias	sklearn.decomposition._nmf/ABC	abc.ABC
+Add alias	sklearn.decomposition._nmf/linalg	scipy.linalg
+Add alias	sklearn.decomposition._online_lda_fast/__pyx_unpickle_Enum	View.MemoryView.__pyx_unpickle_Enum
+Add alias	sklearn.decomposition._pca/Integral	numbers.Integral
+Add alias	sklearn.decomposition._pca/Real	numbers.Real
+Add alias	sklearn.decomposition._sparse_pca/Integral	numbers.Integral
+Add alias	sklearn.decomposition._sparse_pca/Real	numbers.Real
+Add alias	sklearn.decomposition._truncated_svd/Integral	numbers.Integral
+Add alias	sklearn.decomposition._truncated_svd/Real	numbers.Real
+Add class	sklearn.decomposition._nmf/MiniBatchNMF
+Add class	sklearn.decomposition._nmf/_BaseNMF
+Add class	sklearn.decomposition._sparse_pca/_BaseSparsePCA
+Add base class	sklearn.decomposition._factor_analysis.FactorAnalysis/sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add base class	sklearn.decomposition._fastica.FastICA/sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add base class	sklearn.decomposition._kernel_pca.KernelPCA/sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add base class	sklearn.decomposition._lda.LatentDirichletAllocation/sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add base class	sklearn.decomposition._sparse_pca.MiniBatchSparsePCA/
+>      sklearn.decomposition._sparse_pca._BaseSparsePCA
+
+>      sklearn.decomposition._nmf._BaseNMF
+
+>      sklearn.decomposition._sparse_pca._BaseSparsePCA
+
+
+
+Add base class	sklearn.decomposition._base._BasePCA/sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add base class	sklearn.decomposition._dict_learning._BaseSparseCoding/sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add attribute	sklearn.decomposition._dict_learning.DictionaryLearning/_n_features_out
+Add attribute	sklearn.decomposition._dict_learning.DictionaryLearning/_parameter_constraints
+Add attribute	sklearn.decomposition._dict_learning.DictionaryLearning/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._factor_analysis.FactorAnalysis/_n_features_out
+Add attribute	sklearn.decomposition._factor_analysis.FactorAnalysis/_parameter_constraints
+Add attribute	sklearn.decomposition._factor_analysis.FactorAnalysis/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._fastica.FastICA/_n_features_out
+Add attribute	sklearn.decomposition._fastica.FastICA/_parameter_constraints
+Add attribute	sklearn.decomposition._fastica.FastICA/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._incremental_pca.IncrementalPCA/_parameter_constraints
+Add attribute	sklearn.decomposition._incremental_pca.IncrementalPCA/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._kernel_pca.KernelPCA/_n_features_out
+Add attribute	sklearn.decomposition._kernel_pca.KernelPCA/_parameter_constraints
+Add attribute	sklearn.decomposition._kernel_pca.KernelPCA/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._lda.LatentDirichletAllocation/_n_features_out
+Add attribute	sklearn.decomposition._lda.LatentDirichletAllocation/_parameter_constraints
+Add attribute	sklearn.decomposition._lda.LatentDirichletAllocation/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_n_features_out
+Add attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_parameter_constraints
+Add attribute	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._nmf.MiniBatchNMF/_parameter_constraints
+Add attribute	sklearn.decomposition._nmf.MiniBatchNMF/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._sparse_pca.MiniBatchSparsePCA/_parameter_constraints
+Add attribute	sklearn.decomposition._sparse_pca.MiniBatchSparsePCA/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._nmf.NMF/_parameter_constraints
+Add attribute	sklearn.decomposition._nmf.NMF/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._pca.PCA/_parameter_constraints
+Add attribute	sklearn.decomposition._pca.PCA/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._dict_learning.SparseCoder/_n_features_out
+Add attribute	sklearn.decomposition._dict_learning.SparseCoder/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._sparse_pca.SparsePCA/_parameter_constraints
+Add attribute	sklearn.decomposition._sparse_pca.SparsePCA/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._truncated_svd.TruncatedSVD/_n_features_out
+Add attribute	sklearn.decomposition._truncated_svd.TruncatedSVD/_parameter_constraints
+Add attribute	sklearn.decomposition._truncated_svd.TruncatedSVD/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._base._BasePCA/_n_features_out
+Add attribute	sklearn.decomposition._base._BasePCA/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._dict_learning._BaseSparseCoding/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._lda/cy_dirichlet_expectation_1d
+Add attribute	sklearn.decomposition._lda/cy_mean_change
+Add attribute	sklearn.decomposition._nmf._BaseNMF/_n_features_out
+Add attribute	sklearn.decomposition._nmf._BaseNMF/_parameter_constraints
+Add attribute	sklearn.decomposition._nmf._BaseNMF/_sklearn_auto_wrap_output_keys
+Add attribute	sklearn.decomposition._sparse_pca._BaseSparsePCA/_n_features_out
+Add attribute	sklearn.decomposition._sparse_pca._BaseSparsePCA/_parameter_constraints
+Add attribute	sklearn.decomposition._sparse_pca._BaseSparsePCA/_sklearn_auto_wrap_output_keys
+>      MiniBatchNMF  →  sklearn.decomposition._nmf.MiniBatchNMF
+
+
+
+Add alias	sklearn.decomposition._factor_analysis.FactorAnalysis/set_output	sklearn.utils._set_output._SetOutputMixin.set_output
+Add alias	sklearn.decomposition._fastica.FastICA/set_output	sklearn.utils._set_output._SetOutputMixin.set_output
+Add alias	sklearn.decomposition._incremental_pca.IncrementalPCA/set_output	sklearn.utils._set_output._SetOutputMixin.set_output
+Add alias	sklearn.decomposition._kernel_pca.KernelPCA/set_output	sklearn.utils._set_output._SetOutputMixin.set_output
+Add alias	sklearn.decomposition._lda.LatentDirichletAllocation/set_output	sklearn.utils._set_output._SetOutputMixin.set_output
+Add alias	sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning/set_output	sklearn.utils._set_output._SetOutputMixin.set_output
+Add alias	sklearn.decomposition._sparse_pca.MiniBatchSparsePCA/set_output	sklearn.utils._set_output._SetOutputMixin.set_output
+Add alias	sklearn.decomposition._nmf.NMF/set_output	sklearn.utils._set_output._SetOutputMixin.set_output
+Add alias	sklearn.decomposition._pca.PCA/set_output	sklearn.utils._set_output._SetOutputMixin.set_output
+Add alias	sklearn.decomposition._dict_learning.SparseCoder/set_output	sklearn.utils._set_output._SetOutputMixin.set_output
+Add alias	sklearn.decomposition._sparse_pca.SparsePCA/set_output	sklearn.utils._set_output._SetOutputMixin.set_output
+Add alias	sklearn.decomposition._truncated_svd.TruncatedSVD/set_output	sklearn.utils._set_output._SetOutputMixin.set_output
+Add alias	sklearn.decomposition._base/ClassNamePrefixFeaturesOutMixin	sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add alias	sklearn.decomposition._base._BasePCA/set_output	sklearn.utils._set_output._SetOutputMixin.set_output
+Add alias	sklearn.decomposition._dict_learning/ClassNamePrefixFeaturesOutMixin	sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add alias	sklearn.decomposition._dict_learning/StrOptions	sklearn.utils._param_validation.StrOptions
+Add alias	sklearn.decomposition._dict_learning/Interval	sklearn.utils._param_validation.Interval
+Add alias	sklearn.decomposition._dict_learning/Hidden	sklearn.utils._param_validation.Hidden
+Add alias	sklearn.decomposition._dict_learning/svd_flip	sklearn.utils.extmath.svd_flip
+Add alias	sklearn.decomposition._dict_learning._BaseSparseCoding/set_output	sklearn.utils._set_output._SetOutputMixin.set_output
+Add alias	sklearn.decomposition._factor_analysis/ClassNamePrefixFeaturesOutMixin	sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add alias	sklearn.decomposition._factor_analysis/StrOptions	sklearn.utils._param_validation.StrOptions
+Add alias	sklearn.decomposition._factor_analysis/Interval	sklearn.utils._param_validation.Interval
+Add alias	sklearn.decomposition._fastica/ClassNamePrefixFeaturesOutMixin	sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add alias	sklearn.decomposition._fastica/StrOptions	sklearn.utils._param_validation.StrOptions
+Add alias	sklearn.decomposition._fastica/Interval	sklearn.utils._param_validation.Interval
+Add alias	sklearn.decomposition._fastica/Hidden	sklearn.utils._param_validation.Hidden
+Add alias	sklearn.decomposition._incremental_pca/Interval	sklearn.utils._param_validation.Interval
+Add alias	sklearn.decomposition._kernel_pca/ClassNamePrefixFeaturesOutMixin	sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add alias	sklearn.decomposition._kernel_pca/StrOptions	sklearn.utils._param_validation.StrOptions
+Add alias	sklearn.decomposition._kernel_pca/Interval	sklearn.utils._param_validation.Interval
+Add alias	sklearn.decomposition._kernel_pca/_randomized_eigsh	sklearn.utils.extmath._randomized_eigsh
+Add alias	sklearn.decomposition._lda/ClassNamePrefixFeaturesOutMixin	sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add alias	sklearn.decomposition._lda/StrOptions	sklearn.utils._param_validation.StrOptions
+Add alias	sklearn.decomposition._lda/Interval	sklearn.utils._param_validation.Interval
+Add alias	sklearn.decomposition._nmf/ClassNamePrefixFeaturesOutMixin	sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add alias	sklearn.decomposition._nmf/StrOptions	sklearn.utils._param_validation.StrOptions
+Add alias	sklearn.decomposition._nmf/Interval	sklearn.utils._param_validation.Interval
+Add alias	sklearn.decomposition._nmf/gen_batches	sklearn.utils.gen_batches
+Add alias	sklearn.decomposition._nmf/validate_params	sklearn.utils._param_validation.validate_params
+Add alias	sklearn.decomposition._pca/StrOptions	sklearn.utils._param_validation.StrOptions
+Add alias	sklearn.decomposition._pca/deprecated	sklearn.utils.deprecation.deprecated
+Add alias	sklearn.decomposition._pca/Interval	sklearn.utils._param_validation.Interval
+Add alias	sklearn.decomposition._sparse_pca/ClassNamePrefixFeaturesOutMixin	sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add alias	sklearn.decomposition._sparse_pca/StrOptions	sklearn.utils._param_validation.StrOptions
+Add alias	sklearn.decomposition._sparse_pca/Interval	sklearn.utils._param_validation.Interval
+Add alias	sklearn.decomposition._sparse_pca/check_array	sklearn.utils.validation.check_array
+Add alias	sklearn.decomposition._sparse_pca/Hidden	sklearn.utils._param_validation.Hidden
+Add alias	sklearn.decomposition._sparse_pca/
+>      MiniBatchDictionaryLearning  →  sklearn.decomposition._dict_learning.MiniBatchDictionaryLearning
+
+
+
+Add alias	sklearn.decomposition._truncated_svd/ClassNamePrefixFeaturesOutMixin	sklearn.base.ClassNamePrefixFeaturesOutMixin
+Add alias	sklearn.decomposition._truncated_svd/StrOptions	sklearn.utils._param_validation.StrOptions
+Add alias	sklearn.decomposition._truncated_svd/Interval	sklearn.utils._param_validation.Interval
+>      PCA  →  sklearn.decomposition._pca.PCA
+🟢 Add alias (sklearn.utils.tests.test_estimator_checks)
+
+
+Change alias	sklearn.decomposition._pca/svds: scipy.sparse.linalg.eigen.arpack.arpack.svds	scipy.sparse.linalg._eigen._svds.svds
+Change alias	sklearn.decomposition._pca/issparse: scipy.sparse.base.isspmatrix	scipy.sparse._base.isspmatrix
+Change alias	sklearn.decomposition._truncated_svd/svds: scipy.sparse.linalg.eigen.arpack.arpack.svds	scipy.sparse.linalg._eigen._svds.svds
+Change alias	sklearn.decomposition._dict_learning/Parallel: joblib.parallel.Parallel	sklearn.utils.parallel.Parallel
+Change alias	sklearn.decomposition._dict_learning/delayed: sklearn.utils.fixes.delayed	sklearn.utils.parallel.delayed
+Change alias	sklearn.decomposition._lda/delayed: sklearn.utils.fixes.delayed	sklearn.utils.parallel.delayed
+Change alias	sklearn.decomposition._lda/Parallel: joblib.parallel.Parallel	sklearn.utils.parallel.Parallel
+
+
+
+
+
