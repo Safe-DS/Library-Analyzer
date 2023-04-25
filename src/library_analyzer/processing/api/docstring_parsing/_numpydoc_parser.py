@@ -8,7 +8,7 @@ from library_analyzer.processing.api.model import (
     ClassDocstring,
     FunctionDocstring,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 
 from ._abstract_documentation_parser import AbstractDocstringParser
@@ -55,7 +55,7 @@ class NumpyDocParser(AbstractDocstringParser):
         function_node: astroid.FunctionDef,
         parameter_name: str,
         parameter_assigned_by: ParameterAssignment,
-    ) -> ParameterDocumentation:
+    ) -> ParameterDocstring:
         # For constructors (__init__ functions) the parameters are described on the class
         if function_node.name == "__init__" and isinstance(function_node.parent, astroid.ClassDef):
             docstring = get_full_docstring(function_node.parent)
@@ -72,11 +72,11 @@ class NumpyDocParser(AbstractDocstringParser):
         ]
 
         if len(matching_parameters_numpydoc) == 0:
-            return ParameterDocumentation(type="", default_value="", description="")
+            return ParameterDocstring(type="", default_value="", description="")
 
         last_parameter_numpydoc = matching_parameters_numpydoc[-1]
         type_, default_value = _get_type_and_default_value(last_parameter_numpydoc)
-        return ParameterDocumentation(
+        return ParameterDocstring(
             type=type_,
             default_value=default_value,
             description=last_parameter_numpydoc.description,

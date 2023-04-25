@@ -11,7 +11,7 @@ from library_analyzer.processing.api.model import (
     FunctionDocstring,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 from library_analyzer.processing.migration.annotations import (
     get_migration_text,
@@ -157,7 +157,7 @@ def migrate_expert_annotation_data__parameter() -> (
         default_value="'this is a string'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "this is a string", ""),
+        documentation=ParameterDocstring("str", "this is a string", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.expert/test3/testB",
@@ -166,7 +166,7 @@ def migrate_expert_annotation_data__parameter() -> (
         default_value="'test string'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test string'", ""),
+        documentation=ParameterDocstring("str", "'test string'", ""),
     )
     mapping = OneToOneMapping(1.0, parameterv1, parameterv2)
     annotationv1 = ExpertAnnotation(

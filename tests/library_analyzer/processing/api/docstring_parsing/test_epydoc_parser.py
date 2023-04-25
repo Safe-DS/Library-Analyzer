@@ -5,7 +5,7 @@ from library_analyzer.processing.api.model import (
     ClassDocstring,
     FunctionDocstring,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 
 
@@ -166,7 +166,7 @@ def f():
             class_with_parameters,
             "p",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="1",
                 description="foo defaults to 1",
@@ -176,7 +176,7 @@ def f():
             class_with_parameters,
             "missing",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="",
                 default_value="",
                 description="",
@@ -186,7 +186,7 @@ def f():
             function_with_parameters,
             "no_type_no_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="",
                 default_value="",
                 description="no type and no default",
@@ -196,7 +196,7 @@ def f():
             function_with_parameters,
             "type_no_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="",
                 description="type but no default",
@@ -206,7 +206,7 @@ def f():
             function_with_parameters,
             "with_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="2",
                 description="foo that defaults to 2",
@@ -216,7 +216,7 @@ def f():
             function_with_parameters,
             "missing",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(type="", default_value="", description=""),
+            ParameterDocstring(type="", default_value="", description=""),
         ),
     ],
     ids=[
@@ -233,7 +233,7 @@ def test_get_parameter_documentation(
     python_code: str,
     parameter_name: str,
     parameter_assigned_by: ParameterAssignment,
-    expected_parameter_documentation: ParameterDocumentation,
+    expected_parameter_documentation: ParameterDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)

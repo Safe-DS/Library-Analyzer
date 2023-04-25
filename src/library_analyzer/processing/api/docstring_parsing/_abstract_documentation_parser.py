@@ -10,7 +10,7 @@ if TYPE_CHECKING:
         ClassDocstring,
         FunctionDocstring,
         ParameterAssignment,
-        ParameterDocumentation,
+        ParameterDocstring,
     )
 
 
@@ -29,5 +29,5 @@ class AbstractDocstringParser(ABC):
         function_node: astroid.FunctionDef,
         parameter_name: str,
         parameter_assigned_by: ParameterAssignment,
-    ) -> ParameterDocumentation:
+    ) -> ParameterDocstring:
         pass

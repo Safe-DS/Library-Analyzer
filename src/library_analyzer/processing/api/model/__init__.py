@@ -15,7 +15,7 @@ from ._api import (
 from ._documentation import (
     ClassDocstring,
     FunctionDocstring,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 from ._parameters import Parameter, ParameterAssignment
 from ._purity import (
@@ -76,7 +76,7 @@ __all__ = [
     "Parameter",
     "ParameterAccess",
     "ParameterAssignment",
-    "ParameterDocumentation",
+    "ParameterDocstring",
     "Reference",
     "Result",
     "ResultDocstring",

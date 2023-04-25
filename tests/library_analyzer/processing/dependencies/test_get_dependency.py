@@ -3,7 +3,7 @@ import spacy.cli
 from library_analyzer.processing.api.model import (
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 from library_analyzer.processing.dependencies import (
     Action,
@@ -90,7 +90,7 @@ def test_extract_dependencies_from_docstring_pattern_adverbial_clause() -> None:
         default_value=None,
         assigned_by=ParameterAssignment.NAME_ONLY,
         is_public=True,
-        documentation=ParameterDocumentation(
+        documentation=ParameterDocstring(
             type="param possible types",
             default_value="",
             description=param_docstring_nlp.text,
@@ -103,7 +103,7 @@ def test_extract_dependencies_from_docstring_pattern_adverbial_clause() -> None:
         default_value=None,
         assigned_by=ParameterAssignment.NAME_ONLY,
         is_public=True,
-        documentation=ParameterDocumentation(
+        documentation=ParameterDocstring(
             type="param possible types",
             default_value="",
             description="param probability docstring",

@@ -7,7 +7,7 @@ from library_analyzer.processing.api.model import (
     ClassDocstring,
     FunctionDocstring,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 
 
@@ -122,7 +122,7 @@ def test_get_function_documentation(
         (
             function_with_documentation,
             "p",
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="",
                 default_value="",
                 description="",
@@ -131,7 +131,7 @@ def test_get_function_documentation(
         (
             function_without_documentation,
             "p",
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="",
                 default_value="",
                 description="",
@@ -147,7 +147,7 @@ def test_get_parameter_documentation(
     plaintext_docstring_parser: PlaintextDocstringParser,
     python_code: str,
     parameter_name: str,
-    expected_parameter_documentation: ParameterDocumentation,
+    expected_parameter_documentation: ParameterDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.FunctionDef)

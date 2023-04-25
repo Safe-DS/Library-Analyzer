@@ -6,7 +6,7 @@ from library_analyzer.processing.api.model import (
     ClassDocstring,
     FunctionDocstring,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 
 from ._abstract_documentation_parser import AbstractDocstringParser
@@ -47,7 +47,7 @@ class EpydocParser(AbstractDocstringParser):
         function_node: astroid.FunctionDef,
         parameter_name: str,
         parameter_assigned_by: ParameterAssignment,  # noqa: ARG002
-    ) -> ParameterDocumentation:
+    ) -> ParameterDocstring:
         # For constructors (__init__ functions) the parameters are described on the class
         if function_node.name == "__init__" and isinstance(function_node.parent, astroid.ClassDef):
             docstring = get_full_docstring(function_node.parent)
@@ -60,10 +60,10 @@ class EpydocParser(AbstractDocstringParser):
         matching_parameters_numpydoc = [it for it in all_parameters_numpydoc if it.arg_name == parameter_name]
 
         if len(matching_parameters_numpydoc) == 0:
-            return ParameterDocumentation(type="", default_value="", description="")
+            return ParameterDocstring(type="", default_value="", description="")
 
         last_parameter_docstring_obj = matching_parameters_numpydoc[-1]
-        return ParameterDocumentation(
+        return ParameterDocstring(
             type=last_parameter_docstring_obj.type_name or "",
             default_value=last_parameter_docstring_obj.default or "",
             description=last_parameter_docstring_obj.description,

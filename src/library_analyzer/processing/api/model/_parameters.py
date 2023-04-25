@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from ._documentation import ParameterDocumentation
+from ._documentation import ParameterDocstring
 from ._types import AbstractType, create_type
 
 
@@ -17,7 +17,7 @@ class Parameter:
             d.get("default_value", None),
             ParameterAssignment[d.get("assigned_by", "POSITION_OR_NAME")],
             d.get("is_public", True),
-            ParameterDocumentation.from_dict(d.get("docstring", {})),
+            ParameterDocstring.from_dict(d.get("docstring", {})),
         )
 
     def __hash__(self) -> int:
@@ -54,7 +54,7 @@ class Parameter:
         default_value: str | None,
         assigned_by: ParameterAssignment,
         is_public: bool,
-        documentation: ParameterDocumentation,
+        documentation: ParameterDocstring,
     ) -> None:
         self.id: str = id_
         self.name: str = name

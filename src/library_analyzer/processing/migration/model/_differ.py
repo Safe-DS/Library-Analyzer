@@ -17,7 +17,7 @@ from library_analyzer.processing.api.model import (
     FunctionDocstring,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
     Result,
     UnionType,
 )
@@ -635,8 +635,8 @@ class SimpleDiffer(AbstractDiffer):
 
     def _compute_documentation_similarity(
         self,
-        documentationv1: ClassDocstring | FunctionDocstring | ParameterDocumentation,
-        documentationv2: ClassDocstring | FunctionDocstring | ParameterDocumentation,
+        documentationv1: ClassDocstring | FunctionDocstring | ParameterDocstring,
+        documentationv2: ClassDocstring | FunctionDocstring | ParameterDocstring,
     ) -> float:
         if len(documentationv1.description) == len(documentationv2.description) == 0:
             return -1.0

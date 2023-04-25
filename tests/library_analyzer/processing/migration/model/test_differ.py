@@ -11,7 +11,7 @@ from library_analyzer.processing.api.model import (
     NamedType,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
     Result,
     ResultDocstring,
     UnionType,
@@ -107,7 +107,7 @@ def test_function_similarity(differ: AbstractDiffer) -> None:
             default_value="'test_str'",
             assigned_by=ParameterAssignment.POSITION_OR_NAME,
             is_public=True,
-            documentation=ParameterDocumentation("'test_str'", "", ""),
+            documentation=ParameterDocstring("'test_str'", "", ""),
         ),
     ]
     results: list[Result] = []
@@ -152,7 +152,7 @@ def test_function_similarity(differ: AbstractDiffer) -> None:
             default_value="'test_str'",
             assigned_by=ParameterAssignment.POSITION_OR_NAME,
             is_public=True,
-            documentation=ParameterDocumentation("'test_str'", "", ""),
+            documentation=ParameterDocstring("'test_str'", "", ""),
         ),
     ]
     function_b = Function(
@@ -183,7 +183,7 @@ def test_parameter_similarity(differ: AbstractDiffer) -> None:
         default_value="'str'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("'str'", "", ""),
+        documentation=ParameterDocstring("'str'", "", ""),
     )
     parameter_b = Parameter(
         id_="test/test.Test/test_method/test_parameter",
@@ -192,7 +192,7 @@ def test_parameter_similarity(differ: AbstractDiffer) -> None:
         default_value="5",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "", ""),
+        documentation=ParameterDocstring("int", "", ""),
     )
     assert 0.45 < differ.compute_parameter_similarity(parameter_a, parameter_b) < 0.7
 
@@ -203,7 +203,7 @@ def test_parameter_similarity(differ: AbstractDiffer) -> None:
         default_value="9",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "", ""),
+        documentation=ParameterDocstring("int", "", ""),
     )
     assert 0.75 < differ.compute_parameter_similarity(parameter_a, parameter_b) < 0.9
 

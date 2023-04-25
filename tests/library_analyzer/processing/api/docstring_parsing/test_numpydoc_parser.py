@@ -5,7 +5,7 @@ from library_analyzer.processing.api.model import (
     ClassDocstring,
     FunctionDocstring,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 
 
@@ -176,7 +176,7 @@ def f():
             class_with_parameters,
             "p",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="1",
                 description="foo",
@@ -186,7 +186,7 @@ def f():
             class_with_parameters,
             "missing",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="",
                 default_value="",
                 description="",
@@ -196,7 +196,7 @@ def f():
             function_with_parameters,
             "no_type_no_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="",
                 default_value="",
                 description="foo: no_type_no_default. Code::\n\n    pass",
@@ -206,7 +206,7 @@ def f():
             function_with_parameters,
             "type_no_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="",
                 description="foo: type_no_default",
@@ -216,7 +216,7 @@ def f():
             function_with_parameters,
             "optional_unknown_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="",
                 description="foo: optional_unknown_default",
@@ -226,7 +226,7 @@ def f():
             function_with_parameters,
             "with_default_syntax_1",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="1",
                 description="foo: with_default_syntax_1",
@@ -236,19 +236,19 @@ def f():
             function_with_parameters,
             "with_default_syntax_2",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(type="int", default_value="2", description="foo: with_default_syntax_2"),
+            ParameterDocstring(type="int", default_value="2", description="foo: with_default_syntax_2"),
         ),
         (
             function_with_parameters,
             "with_default_syntax_3",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(type="int", default_value="3", description="foo: with_default_syntax_3"),
+            ParameterDocstring(type="int", default_value="3", description="foo: with_default_syntax_3"),
         ),
         (
             function_with_parameters,
             "grouped_parameter_1",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="4",
                 description="foo: grouped_parameter_1 and grouped_parameter_2",
@@ -258,7 +258,7 @@ def f():
             function_with_parameters,
             "grouped_parameter_2",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="4",
                 description="foo: grouped_parameter_1 and grouped_parameter_2",
@@ -268,7 +268,7 @@ def f():
             function_with_parameters,
             "args",
             ParameterAssignment.POSITIONAL_VARARG,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="",
                 description="foo: *args",
@@ -278,7 +278,7 @@ def f():
             function_with_parameters,
             "kwargs",
             ParameterAssignment.NAMED_VARARG,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="",
                 description="foo: **kwargs",
@@ -288,7 +288,7 @@ def f():
             function_with_parameters,
             "missing",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(type="", default_value="", description=""),
+            ParameterDocstring(type="", default_value="", description=""),
         ),
     ],
     ids=[
@@ -312,7 +312,7 @@ def test_get_parameter_documentation(
     python_code: str,
     parameter_name: str,
     parameter_assigned_by: ParameterAssignment,
-    expected_parameter_documentation: ParameterDocumentation,
+    expected_parameter_documentation: ParameterDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)

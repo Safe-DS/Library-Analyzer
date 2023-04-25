@@ -9,7 +9,7 @@ from library_analyzer.processing.api.model import (
     ClassDocstring,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 from library_analyzer.processing.migration.annotations import (
     get_migration_text,
@@ -37,7 +37,7 @@ def migrate_rename_annotation_data_one_to_one_mapping() -> (
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        documentation=ParameterDocstring("", "", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.rename.test1.TestB",
@@ -46,7 +46,7 @@ def migrate_rename_annotation_data_one_to_one_mapping() -> (
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        documentation=ParameterDocstring("", "", ""),
     )
     mappings = OneToOneMapping(1.0, parameterv1, parameterv2)
     annotationv1 = RenameAnnotation(
@@ -82,7 +82,7 @@ def migrate_rename_annotation_data_one_to_many_mapping() -> (
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        documentation=ParameterDocstring("", "", ""),
     )
     parameterv2_a = Parameter(
         id_="test/test.rename.test3.TestA",
@@ -91,7 +91,7 @@ def migrate_rename_annotation_data_one_to_many_mapping() -> (
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        documentation=ParameterDocstring("", "", ""),
     )
     parameterv2_b = Parameter(
         id_="test/test.rename.test3.Test",
@@ -100,7 +100,7 @@ def migrate_rename_annotation_data_one_to_many_mapping() -> (
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        documentation=ParameterDocstring("", "", ""),
     )
     classv2 = Class(
         id="test/test.rename.test3/NewClass",
@@ -167,7 +167,7 @@ def migrate_rename_annotation_data_duplicated() -> (
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        documentation=ParameterDocstring("", "", ""),
     )
     parameterv1_2 = Parameter(
         id_="test/test.rename.duplicate.Test_2",
@@ -176,7 +176,7 @@ def migrate_rename_annotation_data_duplicated() -> (
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        documentation=ParameterDocstring("", "", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.rename.duplicate.TestB",
@@ -185,7 +185,7 @@ def migrate_rename_annotation_data_duplicated() -> (
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        documentation=ParameterDocstring("", "", ""),
     )
     mappings = ManyToOneMapping(1.0, [parameterv1, parameterv1_2], parameterv2)
     annotationv1 = RenameAnnotation(

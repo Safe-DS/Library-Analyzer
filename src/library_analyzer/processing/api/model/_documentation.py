@@ -31,14 +31,14 @@ class FunctionDocstring:
 
 
 @dataclass(frozen=True)
-class ParameterDocumentation:
+class ParameterDocstring:
     type: str = ""
     default_value: str = ""
     description: str = ""
 
     @staticmethod
-    def from_dict(d: dict) -> ParameterDocumentation:
-        return ParameterDocumentation(**d)
+    def from_dict(d: dict) -> ParameterDocstring:
+        return ParameterDocstring(**d)
 
     def to_dict(self) -> dict:
         return dataclasses.asdict(self)

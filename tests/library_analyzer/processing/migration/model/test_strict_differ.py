@@ -11,7 +11,7 @@ from library_analyzer.processing.api.model import (
     NamedType,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
     Result,
     ResultDocstring,
 )
@@ -79,7 +79,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
         default_value="'test_str_a'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("'test_str_a'", "", ""),
+        documentation=ParameterDocstring("'test_str_a'", "", ""),
     )
     result_a = Result("config", ResultDocstring("dict", ""), function_id=function_id_a)
     code_function_a = cleandoc(
@@ -121,7 +121,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
         default_value="'test_str_b'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("'test_str_b'", "", ""),
+        documentation=ParameterDocstring("'test_str_b'", "", ""),
     )
     result_b = Result(
         "new_config",

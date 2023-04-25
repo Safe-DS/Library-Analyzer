@@ -11,7 +11,7 @@ from library_analyzer.processing.api.model import (
     FunctionDocstring,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 from library_analyzer.processing.migration.annotations import (
     get_migration_text,
@@ -180,7 +180,7 @@ def migrate_description_annotation_data_one_to_one_mapping__parameter() -> (
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "value", "docstring"),
+        documentation=ParameterDocstring("str", "value", "docstring"),
     )
 
     parameterv2 = Parameter(
@@ -190,7 +190,7 @@ def migrate_description_annotation_data_one_to_one_mapping__parameter() -> (
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "value", "docstring"),
+        documentation=ParameterDocstring("str", "value", "docstring"),
     )
 
     mapping = OneToOneMapping(1.0, parameterv1, parameterv2)

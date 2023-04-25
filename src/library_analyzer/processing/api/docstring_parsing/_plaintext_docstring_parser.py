@@ -4,7 +4,7 @@ from library_analyzer.processing.api.model import (
     ClassDocstring,
     FunctionDocstring,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 
 from ._abstract_documentation_parser import AbstractDocstringParser
@@ -35,5 +35,5 @@ class PlaintextDocstringParser(AbstractDocstringParser):
         function_node: astroid.FunctionDef,  # noqa: ARG002
         parameter_name: str,  # noqa: ARG002
         parameter_assigned_by: ParameterAssignment,  # noqa: ARG002
-    ) -> ParameterDocumentation:
-        return ParameterDocumentation()
+    ) -> ParameterDocstring:
+        return ParameterDocstring()

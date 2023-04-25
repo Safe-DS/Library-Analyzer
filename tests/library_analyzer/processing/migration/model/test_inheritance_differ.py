@@ -11,7 +11,7 @@ from library_analyzer.processing.api.model import (
     NamedType,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
     Result,
     ResultDocstring,
 )
@@ -65,7 +65,7 @@ def create_api_super() -> tuple[API, Class, Class, Attribute, Function, Paramete
         default_value="'test_str_a'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("'test_str_a'", "", ""),
+        documentation=ParameterDocstring("'test_str_a'", "", ""),
     )
     result_super = Result("config", ResultDocstring("dict", ""), function_id=function_id_super)
     code_function_a = cleandoc(
@@ -143,7 +143,7 @@ def create_api_sub() -> tuple[API, Class, Class, Attribute, Function, Parameter,
         default_value="'test_str_a'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("'test_str_a'", "", ""),
+        documentation=ParameterDocstring("'test_str_a'", "", ""),
     )
     result_sub = Result("config", ResultDocstring("dict", ""), function_id=function_id_sub)
     code_function_a = cleandoc(
