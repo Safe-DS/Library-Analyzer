@@ -137,6 +137,36 @@ class API:
 
         return None
 
+    def get_public_api(self) -> API:
+        result = API(self.distribution, self.package, self.version)
+
+        for module in self.modules.values():
+            result.add_module(module)
+
+        for class_ in self.classes.values():
+            if class_.is_public:
+                copy = Class(
+                    id=class_.id,
+                    qname=class_.qname,
+                    decorators=class_.decorators,
+                    superclasses=class_.superclasses,
+                    is_public=class_.is_public,
+                    reexported_by=class_.reexported_by,
+                    docstring=class_.docstring,
+                    code=class_.code,
+                    instance_attributes=class_.instance_attributes,
+                )
+                for method in class_.methods:
+                    if self.is_public_function(method):
+                        copy.add_method(method)
+                result.add_class(copy)
+
+        for function in self.functions.values():
+            if function.is_public:
+                result.add_function(function)
+
+        return result
+
     def to_json_file(self, path: Path) -> None:
         ensure_file_exists(path)
         with path.open("w", encoding="utf-8") as f:
