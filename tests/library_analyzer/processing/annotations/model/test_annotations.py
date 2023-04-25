@@ -345,7 +345,7 @@ def test_annotation_store() -> None:
 
 
 @pytest.mark.parametrize(
-    ("annotation", "json"),
+    ("annotation", "d"),
     [
         (
             AbstractAnnotation(
