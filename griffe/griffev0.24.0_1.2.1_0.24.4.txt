@@ -1,0 +1,839 @@
+error: The branch 'griffe_0.24.2' is not fully merged.
+If you are sure you want to delete it, run 'git branch -D griffe_0.24.2'.
+sklearn/calibration.py:909: calibration_curve(normalize): Parameter default was changed: False -> 'deprecated'
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/naive_bayes.py:762: MultinomialNB.alpha: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/naive_bayes.py:763: MultinomialNB.fit_prior: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/naive_bayes.py:764: MultinomialNB.class_prior: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/naive_bayes.py:884: ComplementNB.alpha: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/naive_bayes.py:885: ComplementNB.fit_prior: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/naive_bayes.py:886: ComplementNB.class_prior: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/naive_bayes.py:1007: BernoulliNB.alpha: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/naive_bayes.py:1009: BernoulliNB.fit_prior: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/naive_bayes.py:1010: BernoulliNB.class_prior: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/naive_bayes.py:1137: CategoricalNB.alpha: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/naive_bayes.py:1138: CategoricalNB.fit_prior: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/naive_bayes.py:1139: CategoricalNB.class_prior: Public object was removed
+sklearn/discriminant_analysis.py:860: QuadraticDiscriminantAnalysis.priors: Attribute value was changed: np.asarray(priors) if priors is not None else None -> priors
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/multiclass.py:461: OneVsRestClassifier.coef_: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/multiclass.py:479: OneVsRestClassifier.intercept_: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/multiclass.py:509: OneVsRestClassifier.n_features_in_: Public object was removed
+sklearn/pipeline.py:633: Pipeline.transform(X): Parameter was added as required
+sklearn/pipeline.py:664: Pipeline.inverse_transform(Xt): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/pipeline.py:920: FeatureUnion.get_feature_names: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/exceptions.py:43: ChangedBehaviorWarning: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/exceptions.py:116: NonBLASDotWarning: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/random_projection.py:305: BaseRandomProjection.dense_output: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/random_projection.py:392: BaseRandomProjection.transform: Public object was removed
+sklearn/multioutput.py:465: MultiOutputClassifier.predict_proba(X): Parameter was added as required
+sklearn/cluster/tests/test_birch.py:20: test_n_samples_leaves_roots(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_birch.py:20: test_n_samples_leaves_roots(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_birch.py:34: test_partial_fit(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_birch.py:34: test_partial_fit(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_birch.py:52: test_birch_predict(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_birch.py:52: test_birch_predict(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_birch.py:76: test_n_clusters(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_birch.py:76: test_n_clusters(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_birch.py:99: test_sparse_X(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_birch.py:99: test_sparse_X(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_birch.py:137: test_branching_factor(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_birch.py:137: test_branching_factor(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_birch.py:162: test_threshold(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_birch.py:162: test_threshold(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_affinity_propagation.py:37: test_affinity_propagation(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_affinity_propagation.py:37: test_affinity_propagation(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_affinity_propagation.py:115: test_affinity_propagation_predict(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_affinity_propagation.py:115: test_affinity_propagation_predict(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_affinity_propagation.py:139: test_affinity_propagation_fit_non_convergence(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_affinity_propagation.py:154: test_affinity_propagation_equal_mutual_similarities(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_affinity_propagation.py:186: test_affinity_propagation_predict_non_convergence(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_affinity_propagation.py:203: test_affinity_propagation_non_convergence_regressiontest(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_affinity_propagation.py:218: test_equal_similarities_and_preferences(global_dtype): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_affinity_propagation.py:208: test_affinity_propagation_random_state_warning: Public object was removed
+sklearn/cluster/tests/test_affinity_propagation.py:260: test_affinity_propagation_convergence_warning_dense_sparse(global_dtype): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_affinity_propagation.py:231: test_affinity_propagation_float32: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_affinity_propagation.py:245: test_affinity_propagation_pairwise_is_deprecated: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_hierarchical.py:125: test_agglomerative_clustering_wrong_arg_memory: Public object was removed
+sklearn/cluster/tests/test_hierarchical.py:179: test_agglomerative_clustering(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_hierarchical.py:283: test_ward_agglomeration(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_hierarchical.py:333: test_sparse_scikit_vs_scipy(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_hierarchical.py:373: test_vector_scikit_single_vs_scipy_single(seed): Parameter was removed
+sklearn/cluster/tests/test_hierarchical.py:373: test_vector_scikit_single_vs_scipy_single(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_hierarchical.py:470: test_ward_tree_children_order(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_hierarchical.py:490: test_ward_linkage_tree_return_distance(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_hierarchical.py:637: test_agg_n_clusters: Public object was removed
+sklearn/cluster/tests/test_hierarchical.py:727: test_agglomerative_clustering_with_distance_threshold(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_hierarchical.py:766: test_small_distance_threshold(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_hierarchical.py:783: test_cluster_distances_with_distance_threshold(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_dbscan.py:261: test_dbscan_badargs: Public object was removed
+sklearn/cluster/tests/test_dbscan.py:289: test_weighted_dbscan(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_optics.py:87: test_extract_xi(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_optics.py:144: test_cluster_hierarchy_(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_optics.py:162: test_correct_number_of_clusters(metric): Parameter was added as required
+sklearn/cluster/tests/test_optics.py:162: test_correct_number_of_clusters(is_sparse): Parameter was added as required
+sklearn/cluster/tests/test_optics.py:292: test_dbscan_optics_parity(metric): Parameter was added as required
+sklearn/cluster/tests/test_optics.py:292: test_dbscan_optics_parity(is_sparse): Parameter was added as required
+sklearn/cluster/tests/test_optics.py:292: test_dbscan_optics_parity(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_optics.py:329: test_min_samples_edge_case(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_optics.py:350: test_min_cluster_size(global_dtype): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_optics.py:293: test_min_cluster_size_invalid: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_optics.py:398: test_wrong_cluster_method: Public object was removed
+sklearn/cluster/tests/test_optics.py:789: test_extract_dbscan(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_optics.py:804: test_precomputed_dists(is_sparse): Parameter was added as required
+sklearn/cluster/tests/test_optics.py:804: test_precomputed_dists(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_bicluster.py:63: test_spectral_coclustering(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_bicluster.py:92: test_spectral_biclustering(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_bicluster.py:151: test_scale_normalize(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_bicluster.py:161: test_bistochastic_normalize(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_bicluster.py:171: test_log_normalize(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_bicluster.py:180: test_fit_best_piecewise(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_bicluster.py:187: test_project_and_cluster(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_bicluster.py:196: test_perfect_checkerboard(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_bicluster.py:230: test_errors: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_bicluster.py:249: test_wrong_shape: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_bicluster.py:267: test_n_jobs_deprecated: Public object was removed
+sklearn/cluster/tests/test_mean_shift.py:41: test_estimate_bandwidth_1sample(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_mean_shift.py:52: test_mean_shift(bandwidth): Positional parameter was moved
+sklearn/cluster/tests/test_mean_shift.py:52: test_mean_shift(cluster_all): Positional parameter was moved
+sklearn/cluster/tests/test_mean_shift.py:52: test_mean_shift(expected): Positional parameter was moved
+sklearn/cluster/tests/test_mean_shift.py:52: test_mean_shift(first_cluster_label): Positional parameter was moved
+sklearn/cluster/tests/test_mean_shift.py:52: test_mean_shift(global_dtype): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_mean_shift.py:63: test_mean_shift_negative_bandwidth: Public object was removed
+sklearn/cluster/tests/test_mean_shift.py:87: test_parallel(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_mean_shift.py:111: test_meanshift_predict(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_mean_shift.py:137: test_cluster_intensity_tie(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_mean_shift.py:147: test_bin_seeds(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_mean_shift.py:202: test_mean_shift_zero_bandwidth(global_dtype): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:162: test_kmeans_elkan_results(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:194: test_kmeans_convergence(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:228: test_minibatch_update_consistency(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:338: test_fortran_aligned_data(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_k_means.py:298: test_k_means_fit_predict: Public object was removed
+sklearn/cluster/tests/test_k_means.py:414: test_minibatch_sensible_reassign(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:444: test_minibatch_reassign(data): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:444: test_minibatch_reassign(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:587: test_score_max_iter(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_k_means.py:518: test_predict: Public object was removed
+sklearn/cluster/tests/test_k_means.py:679: test_integer_input(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:713: test_transform(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:731: test_fit_transform(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:739: test_n_init(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:755: test_k_means_function(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:769: test_float_precision(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:832: test_kmeans_warns_less_centers_than_unique_points(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:853: test_weighted_vs_repeated(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:879: test_unit_weights_vs_no_weights(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:894: test_scaled_weights(Estimator): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:894: test_scaled_weights(data): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:894: test_scaled_weights(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_k_means.py:840: test_result_of_kmeans_equal_in_diff_n_threads: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_k_means.py:855: test_precompute_distance_deprecated: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_k_means.py:868: test_n_jobs_deprecated: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_k_means.py:881: test_minibatch_kmeans_deprecated_attributes: Public object was removed
+sklearn/cluster/tests/test_k_means.py:964: test_k_means_1_iteration(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:995: test_euclidean_distance(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:1022: test_inertia(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_k_means.py:1016: test_kmeans_wrong_params: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_k_means.py:1026: test_minibatch_kmeans_wrong_params: Public object was removed
+sklearn/cluster/tests/test_k_means.py:1155: test_kmeans_plusplus_output(global_random_seed): Parameter was added as required
+sklearn/cluster/tests/test_k_means.py:1189: test_kmeans_plusplus_dataorder(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_spectral.py:60: test_spectral_unknown_mode: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_spectral.py:77: test_spectral_unknown_assign_labels: Public object was removed
+sklearn/cluster/tests/test_spectral.py:76: test_spectral_clustering_sparse(assign_labels): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cluster/tests/test_spectral.py:275: test_pairwise_is_deprecated: Public object was removed
+sklearn/inspection/tests/test_permutation_importance.py:33: test_permutation_importance_correlated_feature_regression(max_samples): Parameter was added as required
+sklearn/inspection/tests/test_permutation_importance.py:66: test_permutation_importance_correlated_feature_regression_pandas(max_samples): Parameter was added as required
+sklearn/inspection/tests/test_permutation_importance.py:106: test_robustness_to_high_cardinality_noisy_feature(seed): Positional parameter was moved
+sklearn/inspection/tests/test_permutation_importance.py:106: test_robustness_to_high_cardinality_noisy_feature(max_samples): Parameter was added as required
+sklearn/inspection/tests/test_permutation_importance.py:259: test_permutation_importance_equivalence_sequential_parallel(max_samples): Parameter was added as required
+sklearn/inspection/tests/test_permutation_importance.py:300: test_permutation_importance_equivalence_array_dataframe(max_samples): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/inspection/tests/test_partial_dependence.py:709: test_warning_for_kind_legacy: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_t_sne.py:266: test_fit_csr_matrix: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_t_sne.py:305: test_early_exaggeration_too_small: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_t_sne.py:312: test_too_few_iterations: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_t_sne.py:383: test_init_not_available: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_t_sne.py:406: test_distance_not_available: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_t_sne.py:418: test_method_not_available: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_t_sne.py:425: test_square_distances_not_available: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_t_sne.py:432: test_angle_out_of_range_checks: Public object was removed
+sklearn/manifold/tests/test_t_sne.py:1031: test_tsne_with_different_distance_metrics(metric): Parameter was added as required
+sklearn/manifold/tests/test_t_sne.py:1031: test_tsne_with_different_distance_metrics(dist_func): Parameter was added as required
+sklearn/manifold/tests/test_t_sne.py:1031: test_tsne_with_different_distance_metrics(method): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_t_sne.py:895: test_tsne_different_square_distances: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_t_sne.py:926: test_tsne_square_distances_futurewarning: Public object was removed
+sklearn/manifold/tests/test_locally_linear.py:21: test_barycenter_kneighbors_graph(global_dtype): Parameter was added as required
+sklearn/manifold/tests/test_locally_linear.py:44: test_lle_simple_grid(global_dtype): Parameter was added as required
+sklearn/manifold/tests/test_locally_linear.py:84: test_lle_manifold(global_dtype): Parameter was added as required
+sklearn/manifold/tests/test_locally_linear.py:84: test_lle_manifold(method): Parameter was added as required
+sklearn/manifold/tests/test_locally_linear.py:84: test_lle_manifold(solver): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_locally_linear.py:104: test_lle_init_parameters: Public object was removed
+sklearn/manifold/tests/test_isomap.py:36: test_isomap_simple_grid(global_dtype): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:36: test_isomap_simple_grid(n_neighbors): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:36: test_isomap_simple_grid(radius): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:36: test_isomap_simple_grid(eigen_solver): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:36: test_isomap_simple_grid(path_method): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:71: test_isomap_reconstruction_error(global_dtype): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:71: test_isomap_reconstruction_error(n_neighbors): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:71: test_isomap_reconstruction_error(radius): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:71: test_isomap_reconstruction_error(eigen_solver): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:71: test_isomap_reconstruction_error(path_method): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:120: test_transform(global_dtype): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:120: test_transform(n_neighbors): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:120: test_transform(radius): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:146: test_pipeline(n_neighbors): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:146: test_pipeline(radius): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:146: test_pipeline(global_dtype): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:163: test_pipeline_with_nearest_neighbors_transformer(global_dtype): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:195: test_different_metric(global_dtype): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:195: test_different_metric(metric): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:195: test_different_metric(p): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:195: test_different_metric(is_euclidean): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:230: test_sparse_input(global_dtype): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:230: test_sparse_input(eigen_solver): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:230: test_sparse_input(path_method): Parameter was added as required
+sklearn/manifold/tests/test_isomap.py:230: test_sparse_input(global_random_seed): Parameter was added as required
+sklearn/manifold/tests/test_spectral_embedding.py:104: test_spectral_embedding_two_components(seed): Positional parameter was moved
+sklearn/manifold/tests/test_spectral_embedding.py:104: test_spectral_embedding_two_components(seed): Parameter default was changed: 36 -> 0
+sklearn/manifold/tests/test_spectral_embedding.py:104: test_spectral_embedding_two_components(eigen_solver): Parameter was added as required
+sklearn/manifold/tests/test_spectral_embedding.py:104: test_spectral_embedding_two_components(dtype): Parameter was added as required
+sklearn/manifold/tests/test_spectral_embedding.py:157: test_spectral_embedding_precomputed_affinity(seed): Positional parameter was moved
+sklearn/manifold/tests/test_spectral_embedding.py:157: test_spectral_embedding_precomputed_affinity(eigen_solver): Parameter was added as required
+sklearn/manifold/tests/test_spectral_embedding.py:157: test_spectral_embedding_precomputed_affinity(dtype): Parameter was added as required
+sklearn/manifold/tests/test_spectral_embedding.py:237: test_spectral_embedding_amg_solver(seed): Positional parameter was moved
+sklearn/manifold/tests/test_spectral_embedding.py:237: test_spectral_embedding_amg_solver(dtype): Parameter was added as required
+sklearn/manifold/tests/test_spectral_embedding.py:291: test_spectral_embedding_amg_solver_failure(dtype): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_spectral_embedding.py:268: test_spectral_embedding_unknown_eigensolver: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_spectral_embedding.py:277: test_spectral_embedding_unknown_affinity: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_spectral_embedding.py:357: test_spectral_embedding_pairwise_deprecated: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_mds.py:69: test_MDS_pairwise_deprecated: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/manifold/tests/test_mds.py:77: test_MDS_pairwise: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cross_decomposition/tests/test_pls.py:438: test_n_components_bounds: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cross_decomposition/tests/test_pls.py:454: test_n_components_bounds_pls_regression: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cross_decomposition/tests/test_pls.py:469: test_scores_deprecations: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cross_decomposition/tests/test_pls.py:485: test_norm_y_weights_deprecation: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/cross_decomposition/tests/test_pls.py:496: test_mean_and_std_deprecation: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_naive_bayes.py:163: test_gnb_pfit_wrong_nb_features: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_naive_bayes.py:198: test_discretenb_deprecated_coef_intercept: Public object was removed
+sklearn/tests/test_naive_bayes.py:217: test_discretenb_prior(cls): Parameter was removed
+sklearn/tests/test_naive_bayes.py:217: test_discretenb_prior(DiscreteNaiveBayes): Parameter was added as required
+sklearn/tests/test_naive_bayes.py:226: test_discretenb_partial_fit(cls): Parameter was removed
+sklearn/tests/test_naive_bayes.py:226: test_discretenb_partial_fit(DiscreteNaiveBayes): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_naive_bayes.py:264: test_discretenb_pickle: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_naive_bayes.py:287: test_discretenb_input_check_fit: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_naive_bayes.py:300: test_discretenb_input_check_partial_fit: Public object was removed
+sklearn/tests/test_naive_bayes.py:326: test_discretenb_uniform_prior(cls): Parameter was removed
+sklearn/tests/test_naive_bayes.py:326: test_discretenb_uniform_prior(DiscreteNaiveBayes): Parameter was added as required
+sklearn/tests/test_naive_bayes.py:338: test_discretenb_provide_prior(cls): Parameter was removed
+sklearn/tests/test_naive_bayes.py:338: test_discretenb_provide_prior(DiscreteNaiveBayes): Parameter was added as required
+sklearn/tests/test_naive_bayes.py:357: test_discretenb_provide_prior_with_partial_fit(cls): Parameter was removed
+sklearn/tests/test_naive_bayes.py:357: test_discretenb_provide_prior_with_partial_fit(DiscreteNaiveBayes): Parameter was added as required
+sklearn/tests/test_naive_bayes.py:378: test_discretenb_sample_weight_multiclass(cls): Parameter was removed
+sklearn/tests/test_naive_bayes.py:378: test_discretenb_sample_weight_multiclass(DiscreteNaiveBayes): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_naive_bayes.py:427: test_discretenb_coef_intercept_shape: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_naive_bayes.py:521: test_mnb_sample_weight: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_kernel_approximation.py:24: test_polynomial_count_sketch_raises_if_degree_lower_than_one: Public object was removed
+sklearn/tests/test_kernel_approximation.py:28: test_polynomial_count_sketch(X): Parameter was removed
+sklearn/tests/test_kernel_approximation.py:28: test_polynomial_count_sketch(Y): Parameter was removed
+sklearn/tests/test_kernel_approximation.py:28: test_polynomial_count_sketch(gamma): Positional parameter was moved
+sklearn/tests/test_kernel_approximation.py:28: test_polynomial_count_sketch(degree): Positional parameter was moved
+sklearn/tests/test_kernel_approximation.py:28: test_polynomial_count_sketch(coef0): Positional parameter was moved
+sklearn/tests/test_kernel_approximation.py:28: test_polynomial_count_sketch(n_components): Parameter was added as required
+sklearn/tests/test_docstring_parameters.py:42: PUBLIC_MODULES: Attribute value was changed: set([pckg[1] for pckg in walk_packages(prefix='sklearn.', path=sklearn.__path__) if not '._' in pckg[1] or '.tests.' in pckg[1]]) -> set([pckg[1] for pckg in walk_packages(prefix='sklearn.', path=sklearn_path) if not '._' in pckg[1] or '.tests.' in pckg[1]])
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_docstring_parameters.py:178: N_FEATURES_MODULES_TO_IGNORE: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_multiclass.py:446: test_ovr_coef_: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_multiclass.py:466: test_ovr_coef_exceptions: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_multiclass.py:481: test_ovr_deprecated_coef_intercept: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_multiclass.py:779: test_pairwise_attribute: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_multiclass.py:806: test_pairwise_deprecated: Public object was removed
+sklearn/tests/test_multiclass.py:853: test_pairwise_cross_val_score(MultiClassClassifier): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_isotonic.py:334: test_isotonic_regression_oob_bad: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_isotonic.py:346: test_isotonic_regression_oob_bad_after: Public object was removed
+sklearn/tests/test_random_projection.py:30: all_RandomProjection: Attribute value was changed: set(all_SparseRandomProjection + all_DenseRandomProjection) -> all_SparseRandomProjection + all_DenseRandomProjection
+sklearn/tests/test_random_projection.py:67: test_invalid_jl_domain(n_samples): Parameter was added as required
+sklearn/tests/test_random_projection.py:67: test_invalid_jl_domain(eps): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_random_projection.py:199: test_sparse_random_projection_transformer_invalid_density: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_random_projection.py:268: test_SparseRandomProjection_output_representation: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_dummy.py:258: test_classifier_exceptions: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_dummy.py:477: test_unknown_strategey_regressor: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_dummy.py:759: test_n_features_in_: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_pipeline.py:168: test_pipeline_init: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_pipeline.py:452: test_predict_with_predict_params: Public object was removed
+sklearn/tests/test_base.py:299: test_score_sample_weight(tree): Parameter was added as required
+sklearn/tests/test_base.py:299: test_score_sample_weight(dataset): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_base.py:544: test_is_pairwise: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_kernel_ridge.py:91: test_kernel_ridge_pairwise_is_deprecated: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_common.py:266: N_FEATURES_IN_AFTER_FIT_MODULES_TO_IGNORE: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_common.py:291: N_FEATURES_IN_AFTER_FIT_ESTIMATORS: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_calibration.py:105: test_calibration_bad_method: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_calibration.py:117: test_calibration_regressor: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_calibration.py:489: text_data: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_calibration.py:500: text_data_pipeline: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_calibration.py:510: test_calibration_pipeline: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tests/test_calibration.py:548: test_calibrated_classifier_cv_deprecation: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tree/tests/test_export.py:454: test_plot_tree_rotate_deprecation: Public object was removed
+sklearn/tree/tests/test_tree.py:64: CLF_CRITERIONS: Attribute value was changed: ('gini', 'entropy') -> ('gini', 'log_loss')
+sklearn/tree/tests/test_tree.py:65: REG_CRITERIONS: Attribute value was changed: ('mse', 'mae', 'friedman_mse', 'poisson') -> ('squared_error', 'absolute_error', 'friedman_mse', 'poisson')
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tree/tests/test_tree.py:423: test_importances_gini_equal_mse: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tree/tests/test_tree.py:825: test_min_impurity_split: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tree/tests/test_tree.py:1942: test_prune_tree_raises_negative_ccp_alpha: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tree/tests/test_tree.py:1958: check_apply_path_readonly: Public object was removed
+sklearn/tree/tests/test_tree.py:1938: test_apply_path_readonly_all_trees(splitter): Parameter was added as required
+sklearn/tree/tests/test_tree.py:1938: test_apply_path_readonly_all_trees(X_format): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tree/tests/test_tree.py:2066: test_decision_tree_regressor_sample_weight_consistentcy: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/tree/tests/test_tree.py:2107: test_X_idx_sorted_deprecated: Public object was removed
+sklearn/semi_supervised/tests/test_label_propagation.py:35: test_fit_transduction(global_dtype): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:35: test_fit_transduction(Estimator): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:35: test_fit_transduction(parameters): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:43: test_distribution(global_dtype): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:43: test_distribution(Estimator): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:43: test_distribution(parameters): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:55: test_predict(global_dtype): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:55: test_predict(Estimator): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:55: test_predict(parameters): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:63: test_predict_proba(global_dtype): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:63: test_predict_proba(Estimator): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:63: test_predict_proba(parameters): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:71: test_label_spreading_closed_form(global_dtype): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:71: test_label_spreading_closed_form(Estimator): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:71: test_label_spreading_closed_form(parameters): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:71: test_label_spreading_closed_form(alpha): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:98: test_label_propagation_closed_form(global_dtype): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/semi_supervised/tests/test_label_propagation.py:120: test_valid_alpha: Public object was removed
+sklearn/semi_supervised/tests/test_label_propagation.py:163: test_label_propagation_non_zero_normalizer(LabelPropagationCls): Parameter was added as required
+sklearn/semi_supervised/tests/test_label_propagation.py:180: test_predict_sparse_callable_kernel(global_dtype): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/semi_supervised/tests/test_self_training.py:45: test_none_classifier: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/semi_supervised/tests/test_self_training.py:51: test_invalid_params: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/semi_supervised/tests/test_self_training.py:66: test_invalid_params_selection_crit: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/neighbors/tests/test_nearest_centroid.py:57: test_precomputed: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/neighbors/tests/test_kde.py:131: test_kde_badargs: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/neighbors/tests/test_kde.py:209: test_sample_weight_invalid: Public object was removed
+sklearn/neighbors/tests/test_lof.py:35: test_lof(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_lof.py:57: test_lof_performance(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_lof.py:80: test_lof_values(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_lof.py:100: test_lof_precomputed(random_state): Positional parameter was moved
+sklearn/neighbors/tests/test_lof.py:100: test_lof_precomputed(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_lof.py:138: test_score_samples(global_dtype): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/neighbors/tests/test_lof.py:149: test_contamination: Public object was removed
+sklearn/neighbors/tests/test_lof.py:182: test_novelty_training_scores(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_lof.py:221: test_novelty_true_common_tests(estimator): Parameter was added as required
+sklearn/neighbors/tests/test_lof.py:221: test_novelty_true_common_tests(check): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(n_samples): Parameter is now required
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(n_samples): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(n_samples): Parameter default was changed: 20 -> None
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(n_features): Parameter is now required
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(n_features): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(n_features): Parameter default was changed: 5 -> None
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(n_query_pts): Parameter is now required
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(n_query_pts): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(n_query_pts): Parameter default was changed: 2 -> None
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(n_neighbors): Parameter is now required
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(n_neighbors): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(n_neighbors): Parameter default was changed: 5 -> None
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(query_is_train): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:140: test_unsupervised_kneighbors(metric): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:284: test_unsupervised_inputs(NearestNeighbors): Parameter was removed
+sklearn/neighbors/tests/test_neighbors.py:284: test_unsupervised_inputs(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:284: test_unsupervised_inputs(KNeighborsMixinSubclass): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/neighbors/tests/test_neighbors.py:123: test_n_neighbors_datatype: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/neighbors/tests/test_neighbors.py:266: test_check_precomputed: Public object was removed
+sklearn/neighbors/tests/test_neighbors.py:576: test_unsupervised_radius_neighbors(n_samples): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:576: test_unsupervised_radius_neighbors(n_features): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:576: test_unsupervised_radius_neighbors(n_query_pts): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:576: test_unsupervised_radius_neighbors(radius): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:576: test_unsupervised_radius_neighbors(random_state): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:576: test_unsupervised_radius_neighbors(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:618: test_kneighbors_classifier(n_samples): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:618: test_kneighbors_classifier(n_features): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:618: test_kneighbors_classifier(n_test_pts): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:618: test_kneighbors_classifier(n_neighbors): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:618: test_kneighbors_classifier(random_state): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:618: test_kneighbors_classifier(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:618: test_kneighbors_classifier(algorithm): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:618: test_kneighbors_classifier(weights): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:649: test_kneighbors_classifier_float_labels(n_samples): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:649: test_kneighbors_classifier_float_labels(n_features): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:649: test_kneighbors_classifier_float_labels(n_test_pts): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:649: test_kneighbors_classifier_float_labels(n_neighbors): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:649: test_kneighbors_classifier_float_labels(random_state): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:649: test_kneighbors_classifier_float_labels(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:669: test_kneighbors_classifier_predict_proba(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:701: test_radius_neighbors_classifier(n_samples): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:701: test_radius_neighbors_classifier(n_features): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:701: test_radius_neighbors_classifier(n_test_pts): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:701: test_radius_neighbors_classifier(radius): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:701: test_radius_neighbors_classifier(random_state): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:701: test_radius_neighbors_classifier(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:701: test_radius_neighbors_classifier(algorithm): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:701: test_radius_neighbors_classifier(weights): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:731: test_radius_neighbors_classifier_when_no_neighbors(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:731: test_radius_neighbors_classifier_when_no_neighbors(algorithm): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:731: test_radius_neighbors_classifier_when_no_neighbors(weights): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:731: test_radius_neighbors_classifier_when_no_neighbors(outlier_label): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:764: test_radius_neighbors_classifier_outlier_labeling(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:764: test_radius_neighbors_classifier_outlier_labeling(algorithm): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:764: test_radius_neighbors_classifier_outlier_labeling(weights): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:1285: test_RadiusNeighborsRegressor_multioutput(n_neighbors): Parameter was removed
+sklearn/neighbors/tests/test_neighbors.py:1285: test_RadiusNeighborsRegressor_multioutput(random_state): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:1412: test_kneighbors_graph_sparse(seed): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:1412: test_kneighbors_graph_sparse(n_neighbors): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:1412: test_kneighbors_graph_sparse(mode): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:1440: test_radius_neighbors_graph_sparse(seed): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:1440: test_radius_neighbors_graph_sparse(n_neighbors): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:1440: test_radius_neighbors_graph_sparse(mode): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/neighbors/tests/test_neighbors.py:1164: test_neighbors_badargs: Public object was removed
+sklearn/neighbors/tests/test_neighbors.py:1575: test_neighbors_metrics(n_samples): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:1575: test_neighbors_metrics(n_features): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:1575: test_neighbors_metrics(n_query_pts): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:1575: test_neighbors_metrics(n_neighbors): Positional parameter was moved
+sklearn/neighbors/tests/test_neighbors.py:1575: test_neighbors_metrics(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:1575: test_neighbors_metrics(metric): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:1730: test_valid_brute_metric_for_auto_algorithm(global_dtype): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:1730: test_valid_brute_metric_for_auto_algorithm(metric): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:1864: test_k_and_radius_neighbors_X_None(algorithm): Parameter was added as required
+sklearn/neighbors/tests/test_neighbors.py:1896: test_k_and_radius_neighbors_duplicates(algorithm): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/neighbors/tests/test_neighbors.py:1749: test_pairwise_deprecated: Public object was removed
+sklearn/neighbors/tests/test_nca.py:92: test_finite_differences(global_random_seed): Parameter was added as required
+sklearn/metrics/pairwise.py:882: manhattan_distances(sum_over_features): Parameter default was changed: True -> 'deprecated'
+sklearn/metrics/tests/test_score_objects.py:78: CLF_SCORERS: Attribute value was changed: ['accuracy', 'balanced_accuracy', 'top_k_accuracy', 'f1', 'f1_weighted', 'f1_macro', 'f1_micro', 'roc_auc', 'average_precision', 'precision', 'precision_weighted', 'precision_macro', 'precision_micro', 'recall', 'recall_weighted', 'recall_macro', 'recall_micro', 'neg_log_loss', 'log_loss', 'neg_brier_score', 'jaccard', 'jaccard_weighted', 'jaccard_macro', 'jaccard_micro', 'roc_auc_ovr', 'roc_auc_ovo', 'roc_auc_ovr_weighted', 'roc_auc_ovo_weighted'] -> ['accuracy', 'balanced_accuracy', 'top_k_accuracy', 'f1', 'f1_weighted', 'f1_macro', 'f1_micro', 'roc_auc', 'average_precision', 'precision', 'precision_weighted', 'precision_macro', 'precision_micro', 'recall', 'recall_weighted', 'recall_macro', 'recall_micro', 'neg_log_loss', 'neg_brier_score', 'jaccard', 'jaccard_weighted', 'jaccard_macro', 'jaccard_micro', 'roc_auc_ovr', 'roc_auc_ovo', 'roc_auc_ovr_weighted', 'roc_auc_ovo_weighted', 'matthews_corrcoef', 'positive_likelihood_ratio', 'neg_negative_likelihood_ratio']
+sklearn/metrics/tests/test_score_objects.py:318: test_check_scoring_and_check_multimetric_scoring_errors(msg): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/metrics/tests/test_score_objects.py:309: test_classification_scores: Public object was removed
+sklearn/metrics/tests/test_ranking.py:835: test_binary_clf_curve_multiclass_error(curve_func): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/metrics/tests/test_ranking.py:758: test_precision_recall_curve_errors: Public object was removed
+sklearn/metrics/tests/test_ranking.py:2026: test_top_k_accuracy_score_error(labels): Positional parameter was moved
+sklearn/metrics/tests/test_ranking.py:2026: test_top_k_accuracy_score_error(msg): Positional parameter was moved
+sklearn/metrics/tests/test_ranking.py:2026: test_top_k_accuracy_score_error(y_score): Parameter was added as required
+sklearn/metrics/tests/test_pairwise.py:60: test_pairwise_distances(global_dtype): Parameter was added as required
+sklearn/metrics/tests/test_pairwise.py:303: test_pairwise_parallel(array_constr): Parameter was removed
+sklearn/metrics/tests/test_pairwise.py:303: test_pairwise_parallel(dtype): Positional parameter was moved
+sklearn/metrics/tests/test_pairwise.py:454: test_paired_distances_callable(global_dtype): Parameter was added as required
+sklearn/metrics/tests/test_pairwise.py:474: test_pairwise_distances_argmin_min(global_dtype): Parameter was added as required
+sklearn/metrics/tests/test_pairwise.py:599: test_pairwise_distances_chunked_reduce(global_dtype): Parameter was added as required
+sklearn/metrics/tests/test_pairwise.py:616: test_pairwise_distances_chunked_reduce_none(global_dtype): Parameter was added as required
+sklearn/metrics/tests/test_pairwise.py:647: test_pairwise_distances_chunked_reduce_invalid(bad_reduce): Positional parameter was moved
+sklearn/metrics/tests/test_pairwise.py:647: test_pairwise_distances_chunked_reduce_invalid(err_type): Positional parameter was moved
+sklearn/metrics/tests/test_pairwise.py:647: test_pairwise_distances_chunked_reduce_invalid(message): Positional parameter was moved
+sklearn/metrics/tests/test_pairwise.py:647: test_pairwise_distances_chunked_reduce_invalid(global_dtype): Parameter was added as required
+sklearn/metrics/tests/test_pairwise.py:705: test_pairwise_distances_chunked_diagonal(global_dtype): Parameter was added as required
+sklearn/metrics/tests/test_pairwise.py:714: test_parallel_pairwise_distances_diagonal(global_dtype): Parameter was added as required
+sklearn/metrics/tests/test_pairwise.py:722: test_pairwise_distances_chunked(global_dtype): Parameter was added as required
+sklearn/metrics/tests/test_pairwise.py:776: test_euclidean_distances_with_norms(dtype): Parameter was removed
+sklearn/metrics/tests/test_pairwise.py:776: test_euclidean_distances_with_norms(global_dtype): Parameter was added as required
+sklearn/metrics/tests/test_pairwise.py:845: test_euclidean_distances(dtype): Parameter was removed
+sklearn/metrics/tests/test_pairwise.py:845: test_euclidean_distances(global_dtype): Parameter was added as required
+sklearn/metrics/tests/test_pairwise.py:872: test_euclidean_distances_sym(dtype): Parameter was removed
+sklearn/metrics/tests/test_pairwise.py:872: test_euclidean_distances_sym(global_dtype): Parameter was added as required
+sklearn/metrics/tests/test_pairwise.py:1472: test_pairwise_distances_data_derived_params(y_is_x): Parameter was removed
+sklearn/metrics/tests/test_pairwise.py:1505: test_numeric_pairwise_distances_datatypes(dtype): Parameter was removed
+sklearn/metrics/tests/test_pairwise.py:1505: test_numeric_pairwise_distances_datatypes(global_dtype): Parameter was added as required
+sklearn/metrics/tests/test_common.py:103: REGRESSION_METRICS: Attribute value was changed: {'max_error': max_error, 'mean_absolute_error': mean_absolute_error, 'mean_squared_error': mean_squared_error, 'median_absolute_error': median_absolute_error, 'mean_absolute_percentage_error': mean_absolute_percentage_error, 'explained_variance_score': explained_variance_score, 'r2_score': partial(r2_score, multioutput='variance_weighted'), 'mean_normal_deviance': partial(mean_tweedie_deviance, power=0), 'mean_poisson_deviance': mean_poisson_deviance, 'mean_gamma_deviance': mean_gamma_deviance, 'mean_compound_poisson_deviance': partial(mean_tweedie_deviance, power=1.4)} -> {'max_error': max_error, 'mean_absolute_error': mean_absolute_error, 'mean_squared_error': mean_squared_error, 'mean_pinball_loss': mean_pinball_loss, 'median_absolute_error': median_absolute_error, 'mean_absolute_percentage_error': mean_absolute_percentage_error, 'explained_variance_score': explained_variance_score, 'r2_score': partial(r2_score, multioutput='variance_weighted'), 'mean_normal_deviance': partial(mean_tweedie_deviance, power=0), 'mean_poisson_deviance': mean_poisson_deviance, 'mean_gamma_deviance': mean_gamma_deviance, 'mean_compound_poisson_deviance': partial(mean_tweedie_deviance, power=1.4), 'd2_tweedie_score': partial(d2_tweedie_score, power=1.4), 'd2_pinball_score': d2_pinball_score, 'd2_absolute_error_score': d2_absolute_error_score}
+sklearn/metrics/tests/test_common.py:328: METRICS_WITH_POS_LABEL: Attribute value was changed: {'roc_curve', 'precision_recall_curve', 'det_curve', 'brier_score_loss', 'precision_score', 'recall_score', 'f1_score', 'f2_score', 'f0.5_score', 'jaccard_score', 'average_precision_score', 'weighted_average_precision_score', 'micro_average_precision_score', 'samples_average_precision_score', 'weighted_f0.5_score', 'weighted_f1_score', 'weighted_f2_score', 'weighted_precision_score', 'weighted_recall_score', 'micro_f0.5_score', 'micro_f1_score', 'micro_f2_score', 'micro_precision_score', 'micro_recall_score', 'macro_f0.5_score', 'macro_f1_score', 'macro_f2_score', 'macro_precision_score', 'macro_recall_score'} -> {'roc_curve', 'precision_recall_curve', 'det_curve', 'brier_score_loss', 'precision_score', 'recall_score', 'f1_score', 'f2_score', 'f0.5_score', 'jaccard_score', 'average_precision_score', 'weighted_average_precision_score', 'micro_average_precision_score', 'samples_average_precision_score'}
+sklearn/metrics/tests/test_common.py:445: MULTIOUTPUT_METRICS: Attribute value was changed: {'mean_absolute_error', 'median_absolute_error', 'mean_squared_error', 'r2_score', 'explained_variance_score', 'mean_absolute_percentage_error'} -> {'mean_absolute_error', 'median_absolute_error', 'mean_squared_error', 'r2_score', 'explained_variance_score', 'mean_absolute_percentage_error', 'mean_pinball_loss', 'd2_pinball_score', 'd2_absolute_error_score'}
+sklearn/metrics/tests/test_common.py:459: SYMMETRIC_METRICS: Attribute value was changed: {'accuracy_score', 'unnormalized_accuracy_score', 'hamming_loss', 'zero_one_loss', 'unnormalized_zero_one_loss', 'micro_jaccard_score', 'macro_jaccard_score', 'jaccard_score', 'samples_jaccard_score', 'f1_score', 'micro_f1_score', 'macro_f1_score', 'weighted_recall_score', 'micro_f0.5_score', 'micro_f1_score', 'micro_f2_score', 'micro_precision_score', 'micro_recall_score', 'matthews_corrcoef_score', 'mean_absolute_error', 'mean_squared_error', 'median_absolute_error', 'max_error', 'cohen_kappa_score', 'mean_normal_deviance'} -> {'accuracy_score', 'unnormalized_accuracy_score', 'hamming_loss', 'zero_one_loss', 'unnormalized_zero_one_loss', 'micro_jaccard_score', 'macro_jaccard_score', 'jaccard_score', 'samples_jaccard_score', 'f1_score', 'micro_f1_score', 'macro_f1_score', 'weighted_recall_score', 'micro_f0.5_score', 'micro_f1_score', 'micro_f2_score', 'micro_precision_score', 'micro_recall_score', 'matthews_corrcoef_score', 'mean_absolute_error', 'mean_squared_error', 'median_absolute_error', 'max_error', 'mean_pinball_loss', 'cohen_kappa_score', 'mean_normal_deviance'}
+sklearn/metrics/tests/test_common.py:492: NOT_SYMMETRIC_METRICS: Attribute value was changed: {'balanced_accuracy_score', 'adjusted_balanced_accuracy_score', 'explained_variance_score', 'r2_score', 'unnormalized_confusion_matrix', 'normalized_confusion_matrix', 'roc_curve', 'precision_recall_curve', 'det_curve', 'precision_score', 'recall_score', 'f2_score', 'f0.5_score', 'weighted_f0.5_score', 'weighted_f1_score', 'weighted_f2_score', 'weighted_precision_score', 'weighted_jaccard_score', 'unnormalized_multilabel_confusion_matrix', 'macro_f0.5_score', 'macro_f2_score', 'macro_precision_score', 'macro_recall_score', 'log_loss', 'hinge_loss', 'mean_gamma_deviance', 'mean_poisson_deviance', 'mean_compound_poisson_deviance', 'mean_absolute_percentage_error'} -> {'balanced_accuracy_score', 'adjusted_balanced_accuracy_score', 'explained_variance_score', 'r2_score', 'unnormalized_confusion_matrix', 'normalized_confusion_matrix', 'roc_curve', 'precision_recall_curve', 'det_curve', 'precision_score', 'recall_score', 'f2_score', 'f0.5_score', 'weighted_f0.5_score', 'weighted_f1_score', 'weighted_f2_score', 'weighted_precision_score', 'weighted_jaccard_score', 'unnormalized_multilabel_confusion_matrix', 'macro_f0.5_score', 'macro_f2_score', 'macro_precision_score', 'macro_recall_score', 'hinge_loss', 'mean_gamma_deviance', 'mean_poisson_deviance', 'mean_compound_poisson_deviance', 'd2_tweedie_score', 'd2_pinball_score', 'd2_absolute_error_score', 'mean_absolute_percentage_error'}
+sklearn/metrics/tests/test_common.py:535: METRICS_REQUIRE_POSITIVE_Y: Attribute value was changed: {'mean_poisson_deviance', 'mean_gamma_deviance', 'mean_compound_poisson_deviance'} -> {'mean_poisson_deviance', 'mean_gamma_deviance', 'mean_compound_poisson_deviance', 'd2_tweedie_score'}
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/compose/tests/test_column_transformer.py:722: test_column_transformer_get_feature_names_dataframe: Public object was removed
+sklearn/compose/tests/test_column_transformer.py:1446: test_column_transformer_reordered_column_names_remainder(remainder): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/compose/tests/test_column_transformer.py:1210: test_feature_name_validation: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/compose/tests/test_column_transformer.py:1425: test_get_feature_names_empty_selection: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/experimental/tests/test_enable_hist_gradient_boosting.py:8: test_imports_strategies: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/svm/tests/test_bounds.py:39: test_l1_min_c_l2_loss: Public object was removed
+sklearn/svm/tests/test_bounds.py:38: check_l1_min_c(intercept_scaling): Parameter default was changed: None -> 1.0
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/svm/tests/test_bounds.py:76: test_unsupported_loss: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/svm/tests/test_svm.py:664: test_svm_gamma_error: Public object was removed
+sklearn/svm/tests/test_svm.py:750: test_linearsvc_parameters(loss): Parameter was added as required
+sklearn/svm/tests/test_svm.py:750: test_linearsvc_parameters(penalty): Parameter was added as required
+sklearn/svm/tests/test_svm.py:750: test_linearsvc_parameters(dual): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/svm/tests/test_svm.py:738: test_linear_svx_uppercase_loss_penality_raises_error: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/svm/tests/test_svm.py:979: test_timeout: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/svm/tests/test_svm.py:1033: test_linear_svc_intercept_scaling: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/svm/tests/test_svm.py:1160: test_gamma_auto: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/svm/tests/test_svm.py:1219: test_n_support_oneclass_svr: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/svm/tests/test_svm.py:1239: test_svm_probA_proB_deprecated: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/neural_network/tests/test_rbm.py:113: test_fit_gibbs_sparse: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/neural_network/tests/test_mlp.py:440: test_params_errors: Public object was removed
+sklearn/neural_network/tests/test_mlp.py:671: test_early_stopping(MLPEstimator): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/feature_extraction/text.py:1288: CountVectorizer.get_feature_names: Public object was removed
+sklearn/feature_extraction/text.py:2022: TfidfVectorizer.norm: Public object points to a different kind of object: function -> attribute
+sklearn/feature_extraction/text.py:2023: TfidfVectorizer.use_idf: Public object points to a different kind of object: function -> attribute
+sklearn/feature_extraction/text.py:2024: TfidfVectorizer.smooth_idf: Public object points to a different kind of object: function -> attribute
+sklearn/feature_extraction/text.py:2025: TfidfVectorizer.sublinear_tf: Public object points to a different kind of object: function -> attribute
+sklearn/feature_extraction/tests/test_image.py:96: test_connect_regions(raccoon_face): Parameter was added as required
+sklearn/feature_extraction/tests/test_image.py:106: test_connect_regions_with_grid(raccoon_face): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/feature_extraction/tests/test_feature_hasher.py:10: pytestmark: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/feature_extraction/tests/test_feature_hasher.py:114: test_hasher_invalid_input: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/feature_extraction/tests/test_feature_hasher.py:133: test_hasher_set_params: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/decomposition/tests/test_dict_learning.py:223: test_dict_learning_unknown_fit_algorithm: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/decomposition/tests/test_dict_learning.py:400: test_dict_learning_iter_offset: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/decomposition/tests/test_dict_learning.py:561: test_sparse_coder_deprecation: Public object was removed
+sklearn/decomposition/tests/test_fastica.py:74: test_fastica_simple(seed): Parameter was removed
+sklearn/decomposition/tests/test_fastica.py:74: test_fastica_simple(global_random_seed): Parameter was added as required
+sklearn/decomposition/tests/test_fastica.py:74: test_fastica_simple(global_dtype): Parameter was added as required
+sklearn/decomposition/tests/test_fastica.py:271: test_fit_transform(global_random_seed): Parameter was added as required
+sklearn/decomposition/tests/test_fastica.py:271: test_fit_transform(global_dtype): Parameter was added as required
+sklearn/decomposition/tests/test_fastica.py:321: test_inverse_transform(whiten): Parameter was added as required
+sklearn/decomposition/tests/test_fastica.py:321: test_inverse_transform(n_components): Parameter was added as required
+sklearn/decomposition/tests/test_fastica.py:321: test_inverse_transform(expected_mixing_shape): Parameter was added as required
+sklearn/decomposition/tests/test_fastica.py:321: test_inverse_transform(global_random_seed): Parameter was added as required
+sklearn/decomposition/tests/test_fastica.py:321: test_inverse_transform(global_dtype): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/decomposition/tests/test_online_lda.py:140: test_invalid_params: Public object was removed
+sklearn/decomposition/tests/test_kernel_pca.py:157: test_kernel_pca_linear_kernel(solver): Parameter was added as required
+sklearn/decomposition/tests/test_kernel_pca.py:157: test_kernel_pca_linear_kernel(n_features): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/decomposition/tests/test_kernel_pca.py:212: test_kernel_pca_invalid_kernel: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/decomposition/tests/test_kernel_pca.py:323: test_kernel_pcc_pairwise_is_deprecated: Public object was removed
+sklearn/decomposition/tests/test_truncated_svd.py:50: test_too_many_components(algorithm): Positional parameter was moved
+sklearn/decomposition/tests/test_truncated_svd.py:50: test_too_many_components(X_sparse): Positional parameter was moved
+sklearn/decomposition/tests/test_truncated_svd.py:50: test_too_many_components(n_components): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/decomposition/tests/test_pca.py:493: test_pca_bad_solver: Public object was removed
+sklearn/decomposition/tests/test_nmf.py:26: test_convergence_warning(solver): Positional parameter was moved
+sklearn/decomposition/tests/test_nmf.py:26: test_convergence_warning(regularization): Parameter was removed
+sklearn/decomposition/tests/test_nmf.py:26: test_convergence_warning(Estimator): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:110: test_nmf_fit_nn_output(solver): Positional parameter was moved
+sklearn/decomposition/tests/test_nmf.py:110: test_nmf_fit_nn_output(init): Positional parameter was moved
+sklearn/decomposition/tests/test_nmf.py:110: test_nmf_fit_nn_output(regularization): Parameter was removed
+sklearn/decomposition/tests/test_nmf.py:110: test_nmf_fit_nn_output(Estimator): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:110: test_nmf_fit_nn_output(alpha_W): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:110: test_nmf_fit_nn_output(alpha_H): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:133: test_nmf_fit_close(solver): Positional parameter was moved
+sklearn/decomposition/tests/test_nmf.py:133: test_nmf_fit_close(regularization): Parameter was removed
+sklearn/decomposition/tests/test_nmf.py:133: test_nmf_fit_close(Estimator): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:199: test_nmf_transform(regularization): Parameter was removed
+sklearn/decomposition/tests/test_nmf.py:233: test_nmf_transform_custom_init(Estimator): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:233: test_nmf_transform_custom_init(solver): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:253: test_nmf_inverse_transform(regularization): Parameter was removed
+sklearn/decomposition/tests/test_nmf.py:286: test_n_components_greater_n_features(Estimator): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:294: test_nmf_sparse_input(solver): Positional parameter was moved
+sklearn/decomposition/tests/test_nmf.py:294: test_nmf_sparse_input(regularization): Parameter was removed
+sklearn/decomposition/tests/test_nmf.py:294: test_nmf_sparse_input(Estimator): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:294: test_nmf_sparse_input(alpha_W): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:294: test_nmf_sparse_input(alpha_H): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:330: test_nmf_sparse_transform(Estimator): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:330: test_nmf_sparse_transform(solver): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:347: test_non_negative_factorization_consistency(regularization): Parameter was removed
+sklearn/decomposition/tests/test_nmf.py:347: test_non_negative_factorization_consistency(alpha_W): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:347: test_non_negative_factorization_consistency(alpha_H): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:627: test_nmf_regularization(Estimator): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:627: test_nmf_regularization(solver): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:700: test_nmf_decreasing(solver): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:769: test_nmf_dtype_match(dtype_in): Positional parameter was moved
+sklearn/decomposition/tests/test_nmf.py:769: test_nmf_dtype_match(dtype_out): Positional parameter was moved
+sklearn/decomposition/tests/test_nmf.py:769: test_nmf_dtype_match(solver): Positional parameter was moved
+sklearn/decomposition/tests/test_nmf.py:769: test_nmf_dtype_match(regularization): Parameter was removed
+sklearn/decomposition/tests/test_nmf.py:769: test_nmf_dtype_match(Estimator): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:794: test_nmf_float32_float64_consistency(solver): Positional parameter was moved
+sklearn/decomposition/tests/test_nmf.py:794: test_nmf_float32_float64_consistency(regularization): Parameter was removed
+sklearn/decomposition/tests/test_nmf.py:794: test_nmf_float32_float64_consistency(Estimator): Parameter was added as required
+sklearn/decomposition/tests/test_nmf.py:810: test_nmf_custom_init_dtype_error(Estimator): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/decomposition/tests/test_nmf.py:599: test_init_default_deprecation: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/model_selection/tests/test_successive_halving.py:413: test_refit_callable: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/model_selection/tests/test_search.py:1270: test_fit_grid_point: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/model_selection/tests/test_search.py:1301: test_fit_grid_point_deprecated: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/model_selection/tests/test_search.py:1913: test_callable_multimetric_clf_all_fails: Public object was removed
+sklearn/model_selection/tests/test_split.py:375: test_stratified_kfold_ratios(kfold): Parameter was added as required
+sklearn/model_selection/tests/test_split.py:402: test_stratified_kfold_label_invariance(kfold): Parameter was added as required
+sklearn/model_selection/tests/test_split.py:443: test_stratifiedkfold_balance(kfold): Parameter was added as required
+sklearn/model_selection/tests/test_split.py:486: test_shuffle_kfold_stratifiedkfold_reproducibility(kfold): Parameter was added as required
+sklearn/model_selection/tests/test_split.py:1509: test_group_kfold(kfold): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/model_selection/tests/test_validation.py:1966: test_validation_pairwise: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/mixture/tests/test_gaussian_mixture.py:175: test_check_X: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/mixture/tests/test_bayesian_mixture.py:61: test_bayesian_mixture_covariance_type: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/mixture/tests/test_bayesian_mixture.py:76: test_bayesian_mixture_weight_concentration_prior_type: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/impute/tests/test_impute.py:89: test_imputation_error_invalid_strategy: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/impute/tests/test_impute.py:902: test_iterative_imputer_error_param: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/impute/tests/test_common.py:17: IMPUTERS: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/impute/tests/test_common.py:18: SPARSE_IMPUTERS: Public object was removed
+sklearn/ensemble/tests/test_gradient_boosting_loss_functions.py:156: test_multinomial_deviance(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting_loss_functions.py:233: test_init_raw_predictions_values(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_gradient_boosting_loss_functions.py:295: test_lad_equals_quantile_50: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_iforest.py:31: rng: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_iforest.py:43: perm: Public object was removed
+sklearn/ensemble/tests/test_iforest.py:36: test_iforest(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_iforest.py:52: test_iforest_sparse(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_iforest.py:123: test_iforest_parallel_regression(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_iforest.py:143: test_iforest_performance(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_iforest.py:167: test_iforest_works(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_iforest.py:260: test_iforest_chunks_works1(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_iforest.py:273: test_iforest_chunks_works2(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_weight_boosting.py:271: test_error: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_weight_boosting.py:286: test_base_estimator: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_bagging.py:535: test_base_estimator: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_forest.py:374: check_oob_score: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_forest.py:395: test_oob_score_classifiers: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_forest.py:406: test_oob_score_regressors: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_forest.py:414: check_oob_score_raise_error: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_forest.py:437: test_oob_score_raise_error: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_forest.py:1232: test_min_impurity_split: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_forest.py:1311: test_max_samples_exceptions: Public object was removed
+sklearn/ensemble/tests/test_gradient_boosting.py:62: test_classification_toy(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_gradient_boosting.py:86: test_gbdt_parameter_checks: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_gradient_boosting.py:123: test_gbdt_loss_alpha_error: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_gradient_boosting.py:135: test_wrong_type_loss_function: Public object was removed
+sklearn/ensemble/tests/test_gradient_boosting.py:83: test_classification_synthetic(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting.py:124: test_regression_dataset(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting.py:165: test_iris(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting.py:185: test_regression_synthetic(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting.py:245: test_probability_log(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting.py:292: test_max_feature_regression(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting.py:312: test_feature_importance_regression(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting.py:431: test_staged_functions_defensive(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting.py:484: test_quantile_loss(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting.py:676: test_warm_start(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting.py:699: test_warm_start_n_estimators(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_gradient_boosting.py:750: test_warm_start_zero_n_estimators: Public object was removed
+sklearn/ensemble/tests/test_gradient_boosting.py:838: test_warm_start_fortran(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting.py:935: test_zero_estimator_reg(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting.py:954: test_zero_estimator_clf(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_gradient_boosting.py:996: test_min_impurity_split: Public object was removed
+sklearn/ensemble/tests/test_gradient_boosting.py:1015: test_probability_exponential(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting.py:1106: test_gradient_boosting_early_stopping(GradientBoostingEstimator): Parameter was added as required
+sklearn/ensemble/tests/test_gradient_boosting.py:1222: test_gradient_boosting_with_init(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_gradient_boosting.py:1267: test_gradient_boosting_init_wrong_methods: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_gradient_boosting.py:1311: test_gbr_deprecated_attr: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_gradient_boosting.py:1323: test_attr_error_raised_if_not_fitted: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_gradient_boosting.py:1338: test_criterion_mae_deprecation: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_base.py:51: test_base_zero_n_estimators: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/ensemble/tests/test_base.py:62: test_base_not_int_n_estimators: Public object was removed
+sklearn/ensemble/tests/test_voting.py:93: test_majority_label_iris(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_voting.py:116: test_weights_iris(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_voting.py:166: test_predict_on_toy_problem(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_voting.py:280: test_parallel_fit(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_voting.py:299: test_sample_weight(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_voting.py:360: test_voting_classifier_set_params(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_voting.py:449: test_estimator_weights_format(global_random_seed): Parameter was added as required
+sklearn/ensemble/tests/test_voting.py:466: test_transform(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_discretization.py:39: test_invalid_n_bins: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_discretization.py:144: test_invalid_encode_option: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_discretization.py:176: test_invalid_strategy_option: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_data.py:95: test_polynomial_features: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_data.py:128: test_polynomial_feature_names: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_data.py:150: test_polynomial_feature_array_order: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_data.py:161: test_polynomial_features_csc_X: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_data.py:185: test_polynomial_features_csr_X: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_data.py:207: test_polynomial_features_csr_X_floats: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_data.py:227: test_polynomial_features_csr_X_zero_row: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_data.py:250: test_polynomial_features_csr_X_degree_4: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_data.py:267: test_polynomial_features_csr_X_dim_edges: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_data.py:2262: test_pairwise_deprecated: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_data.py:2463: test_power_transformer_method_exception: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_encoders.py:41: test_one_hot_encoder_diff_n_features: Public object was removed
+sklearn/preprocessing/tests/test_encoders.py:40: test_one_hot_encoder_handle_unknown(handle_unknown): Parameter was added as required
+sklearn/preprocessing/tests/test_encoders.py:76: test_one_hot_encoder_handle_unknown_strings(handle_unknown): Parameter was added as required
+sklearn/preprocessing/tests/test_encoders.py:255: test_one_hot_encoder_inverse(sparse_): Positional parameter was moved
+sklearn/preprocessing/tests/test_encoders.py:255: test_one_hot_encoder_inverse(drop): Positional parameter was moved
+sklearn/preprocessing/tests/test_encoders.py:255: test_one_hot_encoder_inverse(handle_unknown): Parameter was added as required
+sklearn/preprocessing/tests/test_encoders.py:430: test_one_hot_encoder_specified_categories(handle_unknown): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_encoders.py:577: test_ordinal_encoder_raise_missing: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_encoders.py:627: test_ordinal_encoder_handle_unknowns_raise: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/preprocessing/tests/test_encoders.py:795: test_one_hot_encoder_invalid_params: Public object was removed
+sklearn/preprocessing/tests/test_encoders.py:1432: test_ohe_missing_value_support_pandas_categorical(handle_unknown): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:35: currdir: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:285: test_feature_to_dtype: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:301: test_feature_to_dtype_error: Public object was removed
+sklearn/datasets/tests/test_openml.py:426: test_fetch_openml_iris_pandas(parser): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:356: test_fetch_openml_iris_pandas_equal_to_no_frame: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:378: test_fetch_openml_iris_multitarget_pandas: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:423: test_fetch_openml_anneal_pandas: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:463: test_fetch_openml_cpu_pandas: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:508: test_fetch_openml_australian_pandas_error_sparse: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:520: test_fetch_openml_as_frame_auto: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:552: test_fetch_openml_adultcensus_pandas_return_X_y: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:583: test_fetch_openml_adultcensus_pandas: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:622: test_fetch_openml_miceprotein_pandas: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:665: test_fetch_openml_emotions_pandas: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:706: test_fetch_openml_titanic_pandas: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:763: test_fetch_openml_iris: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:794: test_decode_iris: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:800: test_fetch_openml_iris_multitarget: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:819: test_fetch_openml_anneal: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:838: test_decode_anneal: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:844: test_fetch_openml_anneal_multitarget: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:863: test_fetch_openml_cpu: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:881: test_decode_cpu: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:887: test_fetch_openml_australian: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:919: test_fetch_openml_adultcensus: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:938: test_fetch_openml_miceprotein: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:960: test_fetch_openml_emotions: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:980: test_decode_emotions: Public object was removed
+sklearn/datasets/tests/test_openml.py:1372: test_open_openml_url_unlinks_local_path(gzip_response): Parameter was removed
+sklearn/datasets/tests/test_openml.py:1372: test_open_openml_url_unlinks_local_path(tmpdir): Positional parameter was moved
+sklearn/datasets/tests/test_openml.py:1372: test_open_openml_url_unlinks_local_path(write_to_disk): Positional parameter was moved
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:1090: test_fetch_openml_notarget: Public object was removed
+sklearn/datasets/tests/test_openml.py:1177: test_fetch_openml_inactive(dataset_params): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:1120: test_fetch_nonexiting: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:1130: test_raises_illegal_multitarget: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:1168: test_string_attribute_without_dataframe: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:1204: test_illegal_column: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:1218: test_fetch_openml_raises_missing_values_target: Public object was removed
+sklearn/datasets/tests/test_openml.py:1253: test_fetch_openml_raises_illegal_argument(params): Parameter was added as required
+sklearn/datasets/tests/test_openml.py:1253: test_fetch_openml_raises_illegal_argument(err_type): Parameter was added as required
+sklearn/datasets/tests/test_openml.py:1253: test_fetch_openml_raises_illegal_argument(err_msg): Parameter was added as required
+sklearn/datasets/tests/test_openml.py:1551: test_fetch_openml_with_ignored_feature(parser): Parameter was added as required
+sklearn/datasets/tests/test_openml.py:1470: test_fetch_openml_verify_checksum(parser): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_openml.py:1302: test_convert_arff_data_type: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/datasets/tests/test_svmlight_format.py:20: currdir: Public object was removed
+sklearn/datasets/tests/test_svmlight_format.py:22: datafile: Attribute value was changed: os.path.join(currdir, 'data', 'svmlight_classification.txt') -> 'svmlight_classification.txt'
+sklearn/datasets/tests/test_svmlight_format.py:23: multifile: Attribute value was changed: os.path.join(currdir, 'data', 'svmlight_multilabel.txt') -> 'svmlight_multilabel.txt'
+sklearn/datasets/tests/test_svmlight_format.py:24: invalidfile: Attribute value was changed: os.path.join(currdir, 'data', 'svmlight_invalid.txt') -> 'svmlight_invalid.txt'
+sklearn/datasets/tests/test_svmlight_format.py:25: invalidfile2: Attribute value was changed: os.path.join(currdir, 'data', 'svmlight_invalid_order.txt') -> 'svmlight_invalid_order.txt'
+sklearn/datasets/tests/test_samples_generator.py:560: test_make_swiss_roll(hole): Parameter was added as required
+sklearn/utils/extmath.py:287: randomized_svd(random_state): Parameter default was changed: 0 -> None
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/utils/fixes.py:160: MaskedArray: Public object was removed
+sklearn/utils/estimator_checks.py:548: check_estimator(Estimator): Positional parameter was moved
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/utils/tests/test_testing.py:221: TestWarns.test_warn_wrong_warning: Public object was removed
+sklearn/utils/tests/test_testing.py:483: test_check_docstring_parameters(mock_meta): Parameter was added as required
+sklearn/utils/tests/test_testing.py:645: test_create_memmap_backed_data(aligned): Parameter was added as required
+sklearn/utils/tests/test_multiclass.py:46: EXAMPLES: Attribute value was changed: {'multilabel-indicator': [csr_matrix(np.random.RandomState(42).randint(2, size=(10, 10))), [[0, 1], [1, 0]], [[0, 1]], csr_matrix(np.array([[0, 1], [1, 0]])), csr_matrix(np.array([[0, 1], [1, 0]], dtype=bool)), csr_matrix(np.array([[0, 1], [1, 0]], dtype=np.int8)), csr_matrix(np.array([[0, 1], [1, 0]], dtype=np.uint8)), csr_matrix(np.array([[0, 1], [1, 0]], dtype=float)), csr_matrix(np.array([[0, 1], [1, 0]], dtype=np.float32)), csr_matrix(np.array([[0, 0], [0, 0]])), csr_matrix(np.array([[0, 1]])), [[-1, 1], [1, -1]], np.array([[-1, 1], [1, -1]]), np.array([[-3, 3], [3, -3]]), _NotAnArray(np.array([[-3, 3], [3, -3]]))], 'multiclass': [[1, 0, 2, 2, 1, 4, 2, 4, 4, 4], np.array([1, 0, 2]), np.array([1, 0, 2], dtype=np.int8), np.array([1, 0, 2], dtype=np.uint8), np.array([1, 0, 2], dtype=float), np.array([1, 0, 2], dtype=np.float32), np.array([[1], [0], [2]]), _NotAnArray(np.array([1, 0, 2])), [0, 1, 2], ['a', 'b', 'c'], np.array(['a', 'b', 'c']), np.array(['a', 'b', 'c'], dtype=object), np.array(['a', 'b', 'c'], dtype=object)], 'multiclass-multioutput': [[[1, 0, 2, 2], [1, 4, 2, 4]], [['a', 'b'], ['c', 'd']], np.array([[1, 0, 2, 2], [1, 4, 2, 4]]), np.array([[1, 0, 2, 2], [1, 4, 2, 4]], dtype=np.int8), np.array([[1, 0, 2, 2], [1, 4, 2, 4]], dtype=np.uint8), np.array([[1, 0, 2, 2], [1, 4, 2, 4]], dtype=float), np.array([[1, 0, 2, 2], [1, 4, 2, 4]], dtype=np.float32), np.array([['a', 'b'], ['c', 'd']]), np.array([['a', 'b'], ['c', 'd']]), np.array([['a', 'b'], ['c', 'd']], dtype=object), np.array([[1, 0, 2]]), _NotAnArray(np.array([[1, 0, 2]]))], 'binary': [[0, 1], [1, 1], [], [0], np.array([0, 1, 1, 1, 0, 0, 0, 1, 1, 1]), np.array([0, 1, 1, 1, 0, 0, 0, 1, 1, 1], dtype=bool), np.array([0, 1, 1, 1, 0, 0, 0, 1, 1, 1], dtype=np.int8), np.array([0, 1, 1, 1, 0, 0, 0, 1, 1, 1], dtype=np.uint8), np.array([0, 1, 1, 1, 0, 0, 0, 1, 1, 1], dtype=float), np.array([0, 1, 1, 1, 0, 0, 0, 1, 1, 1], dtype=np.float32), np.array([[0], [1]]), _NotAnArray(np.array([[0], [1]])), [1, -1], [3, 5], ['a'], ['a', 'b'], ['abc', 'def'], np.array(['abc', 'def']), ['a', 'b'], np.array(['abc', 'def'], dtype=object)], 'continuous': [[1e-05], [0, 0.5], np.array([[0], [0.5]]), np.array([[0], [0.5]], dtype=np.float32)], 'continuous-multioutput': [np.array([[0, 0.5], [0.5, 0]]), np.array([[0, 0.5], [0.5, 0]], dtype=np.float32), np.array([[0, 0.5]])], 'unknown': [[[]], [()], np.array([np.array([]), np.array([1, 2, 3])], dtype=object), [np.array([]), np.array([1, 2, 3])], [{1, 2, 3}, {1, 2}], [frozenset([1, 2, 3]), frozenset([1, 2])], [{0: 'a', 1: 'b'}, {0: 'a'}], np.array([[], []]), np.array([[[0, 1], [2, 3]], [[4, 5], [6, 7]]])]} -> {'multilabel-indicator': [csr_matrix(np.random.RandomState(42).randint(2, size=(10, 10))), [[0, 1], [1, 0]], [[0, 1]], sparse_multilable_explicit_zero, _generate_sparse([[0, 1], [1, 0]]), _generate_sparse([[0, 0], [0, 0]]), _generate_sparse([[0, 1]]), [[-1, 1], [1, -1]], np.array([[-1, 1], [1, -1]]), np.array([[-3, 3], [3, -3]]), _NotAnArray(np.array([[-3, 3], [3, -3]]))], 'multiclass': [[1, 0, 2, 2, 1, 4, 2, 4, 4, 4], np.array([1, 0, 2]), np.array([1, 0, 2], dtype=np.int8), np.array([1, 0, 2], dtype=np.uint8), np.array([1, 0, 2], dtype=float), np.array([1, 0, 2], dtype=np.float32), np.array([[1], [0], [2]]), _NotAnArray(np.array([1, 0, 2])), [0, 1, 2], ['a', 'b', 'c'], np.array(['a', 'b', 'c']), np.array(['a', 'b', 'c'], dtype=object), np.array(['a', 'b', 'c'], dtype=object)], 'multiclass-multioutput': [[[1, 0, 2, 2], [1, 4, 2, 4]], [['a', 'b'], ['c', 'd']], np.array([[1, 0, 2, 2], [1, 4, 2, 4]]), np.array([[1, 0, 2, 2], [1, 4, 2, 4]], dtype=np.int8), np.array([[1, 0, 2, 2], [1, 4, 2, 4]], dtype=np.uint8), np.array([[1, 0, 2, 2], [1, 4, 2, 4]], dtype=float), np.array([[1, 0, 2, 2], [1, 4, 2, 4]], dtype=np.float32), _generate_sparse([[1, 0, 2, 2], [1, 4, 2, 4]], matrix_types=(csr_matrix, csc_matrix), dtypes=(int, np.int8, np.uint8, float, np.float32)), np.array([['a', 'b'], ['c', 'd']]), np.array([['a', 'b'], ['c', 'd']]), np.array([['a', 'b'], ['c', 'd']], dtype=object), np.array([[1, 0, 2]]), _NotAnArray(np.array([[1, 0, 2]]))], 'binary': [[0, 1], [1, 1], [], [0], np.array([0, 1, 1, 1, 0, 0, 0, 1, 1, 1]), np.array([0, 1, 1, 1, 0, 0, 0, 1, 1, 1], dtype=bool), np.array([0, 1, 1, 1, 0, 0, 0, 1, 1, 1], dtype=np.int8), np.array([0, 1, 1, 1, 0, 0, 0, 1, 1, 1], dtype=np.uint8), np.array([0, 1, 1, 1, 0, 0, 0, 1, 1, 1], dtype=float), np.array([0, 1, 1, 1, 0, 0, 0, 1, 1, 1], dtype=np.float32), np.array([[0], [1]]), _NotAnArray(np.array([[0], [1]])), [1, -1], [3, 5], ['a'], ['a', 'b'], ['abc', 'def'], np.array(['abc', 'def']), ['a', 'b'], np.array(['abc', 'def'], dtype=object)], 'continuous': [[1e-05], [0, 0.5], np.array([[0], [0.5]]), np.array([[0], [0.5]], dtype=np.float32)], 'continuous-multioutput': [np.array([[0, 0.5], [0.5, 0]]), np.array([[0, 0.5], [0.5, 0]], dtype=np.float32), np.array([[0, 0.5]]), _generate_sparse([[0, 0.5], [0.5, 0]], matrix_types=(csr_matrix, csc_matrix), dtypes=(float, np.float32)), _generate_sparse([[0, 0.5]], matrix_types=(csr_matrix, csc_matrix), dtypes=(float, np.float32))], 'unknown': [[[]], np.array([[]], dtype=object), [()], np.array([np.array([]), np.array([1, 2, 3])], dtype=object), [np.array([]), np.array([1, 2, 3])], [{1, 2, 3}, {1, 2}], [frozenset([1, 2, 3]), frozenset([1, 2])], [{0: 'a', 1: 'b'}, {0: 'a'}], np.array(0), np.array([[], []]), np.array([[[0, 1], [2, 3]], [[4, 5], [6, 7]]])]}
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/utils/tests/test_fixes.py:20: test_joblib_parallel_args: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/utils/tests/test_fixes.py:89: test_masked_array_deprecated: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/utils/tests/test_shortest_path.py:49: test_floyd_warshall: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/utils/tests/test_shortest_path.py:59: test_dijkstra: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/utils/tests/test_shortest_path.py:89: test_dijkstra_bug_fix: Public object was removed
+sklearn/utils/tests/test_utils.py:565: test_get_chunk_n_rows(warning): Parameter was removed
+sklearn/utils/tests/test_validation.py:168: test_check_array_force_all_finiteinvalid(force_all_finite): Positional parameter was moved
+sklearn/utils/tests/test_validation.py:168: test_check_array_force_all_finiteinvalid(match_msg): Positional parameter was moved
+sklearn/utils/tests/test_validation.py:168: test_check_array_force_all_finiteinvalid(retype): Positional parameter was moved
+sklearn/utils/tests/test_validation.py:168: test_check_array_force_all_finiteinvalid(input_name): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/utils/tests/test_validation.py:349: test_check_array_numeric_warns: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/utils/tests/test_validation.py:366: test_check_array_dtype_numeric_errors: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/utils/tests/test_validation.py:416: test_check_array_pandas_dtype_object_conversion: Public object was removed
+sklearn/utils/tests/test_validation.py:936: test_check_dataframe_mixed_float_dtypes(dtype): Parameter was added as required
+sklearn/utils/tests/test_validation.py:936: test_check_dataframe_mixed_float_dtypes(bool_dtype): Parameter was added as required
+sklearn/utils/tests/test_validation.py:1101: test_check_scalar_valid(target_type): Parameter was removed
+sklearn/utils/tests/test_validation.py:1101: test_check_scalar_valid(min_val): Parameter was removed
+sklearn/utils/tests/test_validation.py:1101: test_check_scalar_valid(max_val): Parameter was removed
+sklearn/utils/tests/test_validation.py:1118: test_check_scalar_invalid(err_msg): Positional parameter was moved
+sklearn/utils/tests/test_validation.py:1118: test_check_scalar_invalid(include_boundaries): Parameter was added as required
+sklearn/linear_model/tests/test_passive_aggressive.py:139: test_classifier_undefined_methods(response_method): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_passive_aggressive.py:195: test_wrong_class_weight_format: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_passive_aggressive.py:271: test_passive_aggressive_deprecated_attr: Public object was removed
+sklearn/linear_model/tests/test_omp.py:120: test_bad_input(positional_params): Parameter was added as required
+sklearn/linear_model/tests/test_omp.py:120: test_bad_input(keyword_params): Parameter was added as required
+sklearn/linear_model/tests/test_logistic.py:42: X_sp: Attribute value was changed: sp.csr_matrix(X) -> sparse.csr_matrix(X)
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_logistic.py:79: test_error: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_logistic.py:135: test_logistic_cv_score_does_not_warn_by_default: Public object was removed
+sklearn/linear_model/tests/test_logistic.py:132: test_predict_iris(clf): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_logistic.py:196: test_multinomial_validation: Public object was removed
+sklearn/linear_model/tests/test_logistic.py:249: test_multinomial_binary_probabilities(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_logistic.py:429: test_logistic_loss_and_grad: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_logistic.py:459: test_logistic_grad_hess: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_logistic.py:620: test_intercept_logistic_helper: Public object was removed
+sklearn/linear_model/tests/test_logistic.py:691: test_logistic_regressioncv_class_weights(weight): Parameter was added as required
+sklearn/linear_model/tests/test_logistic.py:691: test_logistic_regressioncv_class_weights(class_weight): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_logistic.py:973: test_multinomial_grad_hess: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_logistic.py:1036: test_logreg_intercept_scaling: Public object was removed
+sklearn/linear_model/tests/test_logistic.py:1098: test_max_iter(max_iter): Parameter was added as required
+sklearn/linear_model/tests/test_logistic.py:1098: test_max_iter(multi_class): Parameter was added as required
+sklearn/linear_model/tests/test_logistic.py:1098: test_max_iter(solver): Parameter was added as required
+sklearn/linear_model/tests/test_logistic.py:1098: test_max_iter(message): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_logistic.py:1616: test_l1_ratio_param: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_logistic.py:1632: test_l1_ratios_param: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_coordinate_descent.py:61: test_l1_ratio_param_invalid: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_coordinate_descent.py:734: test_precompute_invalid_argument: Public object was removed
+sklearn/linear_model/tests/test_coordinate_descent.py:1270: test_enet_sample_weight_consistency(normalize): Parameter was removed
+sklearn/linear_model/tests/test_coordinate_descent.py:1270: test_enet_sample_weight_consistency(precompute): Positional parameter was moved
+sklearn/linear_model/tests/test_coordinate_descent.py:1270: test_enet_sample_weight_consistency(sparseX): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_coordinate_descent.py:1190: test_enet_sample_weight_sparse: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_coordinate_descent.py:1200: test_linear_models_cv_fit_for_all_backends: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_ransac.py:152: test_ransac_resid_thresh_no_inliers: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_theil_sen.py:203: test_checksubparams_negative_subpopulation: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_theil_sen.py:209: test_checksubparams_too_few_subsamples: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_theil_sen.py:215: test_checksubparams_too_many_subsamples: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_bayes.py:26: test_n_iter: Public object was removed
+sklearn/linear_model/tests/test_bayes.py:198: test_ard_accuracy_on_easy_problem(seed): Parameter was removed
+sklearn/linear_model/tests/test_bayes.py:198: test_ard_accuracy_on_easy_problem(global_random_seed): Parameter was added as required
+sklearn/linear_model/tests/test_bayes.py:244: test_update_sigma(seed): Parameter was removed
+sklearn/linear_model/tests/test_bayes.py:244: test_update_sigma(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_bayes.py:277: test_ard_regression_predict_normalize_true: Public object was removed
+sklearn/linear_model/tests/test_ridge.py:70: DENSE_FILTER: Public object points to a different kind of object: attribute -> function
+sklearn/linear_model/tests/test_ridge.py:74: SPARSE_FILTER: Public object points to a different kind of object: attribute -> function
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_ridge.py:74: test_ridge: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_ridge.py:121: test_ridge_singular: Public object was removed
+sklearn/linear_model/tests/test_ridge.py:448: test_ridge_regression_sample_weights(solver): Parameter was added as required
+sklearn/linear_model/tests/test_ridge.py:448: test_ridge_regression_sample_weights(fit_intercept): Parameter was added as required
+sklearn/linear_model/tests/test_ridge.py:448: test_ridge_regression_sample_weights(sparseX): Parameter was added as required
+sklearn/linear_model/tests/test_ridge.py:448: test_ridge_regression_sample_weights(alpha): Parameter was added as required
+sklearn/linear_model/tests/test_ridge.py:448: test_ridge_regression_sample_weights(ols_ridge_dataset): Parameter was added as required
+sklearn/linear_model/tests/test_ridge.py:448: test_ridge_regression_sample_weights(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_ridge.py:169: test_ridge_sample_weights: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_ridge.py:215: test_ridge_shapes: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_ridge.py:257: test_toy_ridge_object: Public object was removed
+sklearn/linear_model/tests/test_ridge.py:766: test_ridge_gcv_vs_ridge_loo_cv(normalize): Parameter was removed
+sklearn/linear_model/tests/test_ridge.py:766: test_ridge_gcv_vs_ridge_loo_cv(noise): Positional parameter was moved
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_ridge.py:564: test_check_gcv_mode_error: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_ridge.py:867: test_ridge_sparse_svd: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_ridge.py:1121: test_ridgecv_negative_alphas: Public object was removed
+sklearn/linear_model/tests/test_ridge.py:1568: test_ridge_fit_intercept_sparse(with_sample_weight): Parameter was added as required
+sklearn/linear_model/tests/test_ridge.py:1568: test_ridge_fit_intercept_sparse(global_random_seed): Parameter was added as required
+sklearn/linear_model/tests/test_ridge.py:1616: test_ridge_fit_intercept_sparse_sag(with_sample_weight): Parameter was added as required
+sklearn/linear_model/tests/test_ridge.py:1616: test_ridge_fit_intercept_sparse_sag(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_ridge.py:1289: test_ridge_classifier_no_support_multilabel: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_base.py:27: rng: Public object was removed
+sklearn/linear_model/tests/test_base.py:56: test_linear_regression_sample_weights(array_constr): Parameter was added as required
+sklearn/linear_model/tests/test_base.py:56: test_linear_regression_sample_weights(fit_intercept): Parameter was added as required
+sklearn/linear_model/tests/test_base.py:56: test_linear_regression_sample_weights(global_random_seed): Parameter was added as required
+sklearn/linear_model/tests/test_base.py:107: test_raises_value_error_if_sample_weights_greater_than_1d(n_samples): Parameter was added as required
+sklearn/linear_model/tests/test_base.py:107: test_raises_value_error_if_sample_weights_greater_than_1d(n_features): Parameter was added as required
+sklearn/linear_model/tests/test_base.py:180: test_linear_regression_sparse(random_state): Parameter was removed
+sklearn/linear_model/tests/test_base.py:180: test_linear_regression_sparse(global_random_seed): Parameter was added as required
+sklearn/linear_model/tests/test_base.py:195: test_linear_regression_sparse_equal_dense(normalize): Parameter was removed
+sklearn/linear_model/tests/test_base.py:195: test_linear_regression_sparse_equal_dense(fit_intercept): Positional parameter was moved
+sklearn/linear_model/tests/test_base.py:214: test_linear_regression_multiple_outcome(random_state): Parameter was removed
+sklearn/linear_model/tests/test_base.py:231: test_linear_regression_sparse_multiple_outcome(random_state): Parameter was removed
+sklearn/linear_model/tests/test_base.py:231: test_linear_regression_sparse_multiple_outcome(global_random_seed): Parameter was added as required
+sklearn/linear_model/tests/test_base.py:271: test_linear_regression_positive_multiple_outcome(random_state): Parameter was removed
+sklearn/linear_model/tests/test_base.py:271: test_linear_regression_positive_multiple_outcome(global_random_seed): Parameter was added as required
+sklearn/linear_model/tests/test_base.py:288: test_linear_regression_positive_vs_nonpositive(global_random_seed): Parameter was added as required
+sklearn/linear_model/tests/test_base.py:301: test_linear_regression_positive_vs_nonpositive_when_positive(global_random_seed): Parameter was added as required
+sklearn/linear_model/tests/test_base.py:346: test_preprocess_data(global_random_seed): Parameter was added as required
+sklearn/linear_model/tests/test_base.py:384: test_preprocess_data_multioutput(global_random_seed): Parameter was added as required
+sklearn/linear_model/tests/test_base.py:412: test_preprocess_data_weighted(is_sparse): Parameter was added as required
+sklearn/linear_model/tests/test_base.py:412: test_preprocess_data_weighted(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_base.py:412: test_sparse_preprocess_data_with_return_mean: Public object was removed
+sklearn/linear_model/tests/test_base.py:585: test_dtype_preprocess_data(global_random_seed): Parameter was added as required
+sklearn/linear_model/tests/test_base.py:664: test_rescale_data_dense(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:168: test_sgd_bad_alpha: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:175: test_sgd_bad_penalty: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:183: test_sgd_bad_loss: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:273: test_sgd_deprecated_attr: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:332: test_sgd_bad_alpha_for_optimal_learning_rate: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:438: test_sgd_bad_l1_ratio: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:444: test_sgd_bad_learning_rate_schedule: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:450: test_sgd_bad_eta0: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:457: test_sgd_max_iter_param: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:463: test_sgd_shuffle_param: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:469: test_sgd_early_stopping_param: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:475: test_sgd_validation_fraction: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:481: test_sgd_n_iter_no_change: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:487: test_argument_coef: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:502: test_set_intercept: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:517: test_set_intercept_binary: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:840: test_wrong_class_weight_format: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:1444: test_gradient_hinge: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:1478: test_gradient_log: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:1495: test_gradient_squared_loss: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:1506: test_gradient_huber: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:1517: test_gradient_modified_huber: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:1529: test_gradient_epsilon_insensitive: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sgd.py:1540: test_gradient_squared_epsilon_insensitive: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/linear_model/tests/test_sparse_coordinate_descent.py:23: test_normalize_option: Public object was removed
+sklearn/linear_model/tests/test_sparse_coordinate_descent.py:38: test_enet_toy_list_input(with_sample_weight): Parameter was added as required
+sklearn/feature_selection/tests/test_mutual_info.py:27: test_compute_mi_cc(global_dtype): Parameter was added as required
+sklearn/feature_selection/tests/test_mutual_info.py:62: test_compute_mi_cd(global_dtype): Parameter was added as required
+sklearn/feature_selection/tests/test_mutual_info.py:101: test_compute_mi_cd_unique_label(global_dtype): Parameter was added as required
+sklearn/feature_selection/tests/test_mutual_info.py:121: test_mutual_info_classif_discrete(global_dtype): Parameter was added as required
+sklearn/feature_selection/tests/test_mutual_info.py:133: test_mutual_info_regression(global_dtype): Parameter was added as required
+sklearn/feature_selection/tests/test_mutual_info.py:155: test_mutual_info_classif_mixed(global_dtype): Parameter was added as required
+sklearn/feature_selection/tests/test_mutual_info.py:179: test_mutual_info_options(global_dtype): Parameter was added as required
+sklearn/feature_selection/tests/test_sequential.py:16: test_bad_n_features_to_select(n_features_to_select): Parameter was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/feature_selection/tests/test_sequential.py:24: test_bad_direction: Public object was removed
+sklearn/feature_selection/tests/test_feature_select.py:453: test_select_kbest_zero(dtype_in): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/feature_selection/tests/test_feature_select.py:321: test_invalid_percentile: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/feature_selection/tests/test_feature_select.py:561: test_score_func_error: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/feature_selection/tests/test_from_model.py:77: test_max_features_dim: Public object was removed
+sklearn/feature_selection/tests/test_from_model.py:327: test_coef_default_threshold(estimator): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/feature_selection/tests/test_rfe.py:112: test_rfe_invalid_n_features_errors: Public object was removed
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/feature_selection/tests/test_rfe.py:263: test_rfecv_grid_scores_size: Public object was removed
+sklearn/feature_selection/tests/test_rfe.py:333: test_rfe_min_step(global_random_seed): Parameter was added as required
+sklearn/feature_selection/tests/test_rfe.py:357: test_number_of_subsets_of_features(global_random_seed): Parameter was added as required
+sklearn/feature_selection/tests/test_rfe.py:422: test_rfe_cv_n_jobs(global_random_seed): Parameter was added as required
+/tmp/griffe-worktree-6294r2k0/griffe_0.24.2/sklearn/covariance/tests/test_graphical_lasso.py:156: test_graphical_lasso_cv_grid_scores_and_cv_alphas_deprecated: Public object was removed
+sklearn/covariance/tests/test_elliptic_envelope.py:15: test_elliptic_envelope(global_random_seed): Parameter was added as required
