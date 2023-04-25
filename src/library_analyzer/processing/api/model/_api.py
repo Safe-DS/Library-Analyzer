@@ -514,11 +514,7 @@ class Result:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "id": self.id,
-            "name": self.name,
-            "docstring": self.docstring.to_dict()
-        }
+        return {"id": self.id, "name": self.name, "docstring": self.docstring.to_dict()}
 
 
 ApiElement: TypeAlias = Module | Class | Attribute | Function | Parameter | Result
