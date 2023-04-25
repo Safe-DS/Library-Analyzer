@@ -1,23 +1,35 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from black import FileMode, InvalidInput, format_str
 from black.brackets import BracketMatchError
 from black.linegen import CannotSplit
 from black.trans import CannotTransform
 
-from library_analyzer.utils import parent_id
+from library_analyzer.utils import parent_id, ensure_file_exists
 
 from ._documentation import ClassDocumentation, FunctionDocumentation
 from ._parameters import Parameter
 from ._types import AbstractType
+from ... import api
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 API_SCHEMA_VERSION = 1
 
 
 class API:
+    @staticmethod
+    def from_json_file(path: Path) -> API:
+        with path.open(encoding="utf-8") as api_file:
+            api_json = json.load(api_file)
+
+        return API.from_dict(api_json)
+
     @staticmethod
     def from_dict(d: dict[str, Any]) -> API:
         result = API(d["distribution"], d["package"], d["version"])
@@ -126,6 +138,11 @@ class API:
 
         return None
 
+    def to_json_file(self, path: Path) -> None:
+        ensure_file_exists(path)
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "schemaVersion": API_SCHEMA_VERSION,
@@ -187,8 +204,8 @@ class Import:
     alias: str | None
 
     @staticmethod
-    def from_dict(json: dict[str, Any]) -> Import:
-        return Import(json["module"], json["alias"])
+    def from_dict(d: dict[str, Any]) -> Import:
+        return Import(d["module"], d["alias"])
 
     def to_dict(self) -> dict[str, Any]:
         return {"module": self.module_name, "alias": self.alias}
@@ -326,8 +343,8 @@ class Attribute:
     class_id: str | None = None
 
     @staticmethod
-    def from_dict(json: dict[str, Any], class_id: str | None = None) -> Attribute:
-        return Attribute(json["name"], AbstractType.from_dict(json.get("types", {})), class_id)
+    def from_dict(d: dict[str, Any], class_id: str | None = None) -> Attribute:
+        return Attribute(d["name"], AbstractType.from_dict(d.get("types", {})), class_id)
 
     def to_dict(self) -> dict[str, Any]:
         types_json = self.types.to_dict() if self.types is not None else None

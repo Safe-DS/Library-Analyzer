@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+from library_analyzer.utils import ensure_file_exists
 
 from ._annotations import (
     ANNOTATION_SCHEMA_VERSION,
@@ -21,6 +24,9 @@ from ._annotations import (
     ValueAnnotation,
 )
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 
 @dataclass
 class AnnotationStore:
@@ -37,6 +43,13 @@ class AnnotationStore:
     renameAnnotations: list[RenameAnnotation] = field(default_factory=list)  # noqa: N815
     todoAnnotations: list[TodoAnnotation] = field(default_factory=list)  # noqa: N815
     valueAnnotations: list[ValueAnnotation] = field(default_factory=list)  # noqa: N815
+
+    @staticmethod
+    def from_json_file(path: Path) -> AnnotationStore:
+        with path.open(encoding="utf-8") as annotations_file:
+            annotations_json = json.load(annotations_file)
+
+        return AnnotationStore.from_dict(annotations_json)
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> AnnotationStore:
@@ -138,6 +151,11 @@ class AnnotationStore:
             self.todoAnnotations.append(annotation)
         elif isinstance(annotation, ValueAnnotation):
             self.valueAnnotations.append(annotation)
+
+    def to_json_file(self, path: Path) -> None:
+        ensure_file_exists(path)
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(self.to_dict(), f, indent=2)
 
     def to_dict(self) -> dict:
         return {

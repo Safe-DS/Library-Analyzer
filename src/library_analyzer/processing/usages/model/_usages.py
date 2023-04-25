@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import json
 from collections import Counter
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+from library_analyzer.utils import ensure_file_exists
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 USAGES_SCHEMA_VERSION = 1
 
@@ -13,6 +19,13 @@ StringifiedValue = str
 
 class UsageCountStore:
     """Count how often classes, functions, parameters, and parameter values are used."""
+
+    @staticmethod
+    def from_json_file(path: Path) -> UsageCountStore:
+        with path.open(encoding="utf-8") as usages_file:
+            usages_json = json.load(usages_file)
+
+        return UsageCountStore.from_dict(usages_json)
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> UsageCountStore:
@@ -165,6 +178,11 @@ class UsageCountStore:
             self.value_usages[parameter_id] += value_usages
 
         return self
+
+    def to_json_file(self, path: Path) -> None:
+        ensure_file_exists(path)
+        with path.open("w") as f:
+            json.dump(self.to_dict(), f, indent=2)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert this class to a dictionary, which can later be serialized as JSON."""

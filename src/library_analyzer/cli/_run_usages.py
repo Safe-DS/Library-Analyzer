@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from library_analyzer.cli._read_and_write_file import _write_usages_file
 from library_analyzer.processing.usages import find_usages
 
 
@@ -28,4 +27,5 @@ def _run_usages_command(
         The batch size to use.
     """
     usages = find_usages(package, client_dir_path, n_processes, batch_size)
-    _write_usages_file(usages, package, out_dir_path)
+    out_file_usage_count = out_dir_path.joinpath(f"{package}__usage_counts.json")
+    usages.to_json_file(out_file_usage_count)

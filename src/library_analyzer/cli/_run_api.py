@@ -4,8 +4,6 @@ from library_analyzer.processing.api import get_api
 from library_analyzer.processing.api.docstring_parsing import DocstringStyle
 from library_analyzer.processing.dependencies import get_dependencies
 
-from ._read_and_write_file import _write_api_dependency_file, _write_api_file
-
 
 def _run_api_command(
     package: str,
@@ -25,10 +23,12 @@ def _run_api_command(
     out_dir_path : Path
         The path to the output directory.
     docstring_style : DocstringStyle
-        The style of docstrings to use.
+        The style of docstrings that used in the library.
     """
     api = get_api(package, src_dir_path, docstring_style)
-    api_dependencies = get_dependencies(api)
+    out_file_api = out_dir_path.joinpath(f"{package}__api.json")
+    api.to_json_file(out_file_api)
 
-    _write_api_file(api, out_dir_path)
-    _write_api_dependency_file(api, api_dependencies, out_dir_path)
+    api_dependencies = get_dependencies(api)
+    out_file_api_dependencies = out_dir_path.joinpath(f"{package}__api_dependencies.json")
+    api_dependencies.to_json_file(out_file_api_dependencies)
