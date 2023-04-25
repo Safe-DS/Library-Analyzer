@@ -331,7 +331,7 @@ def _cut_documentation_from_code(code: str, api_element: Class | Function) -> st
             if end_line >= 0:
                 if (end_line + 1) < len(lines) and lines[end_line + 1].lstrip() == "":
                     end_line += 1
-                return "\n".join(lines[:start_line]) + "\n" + "\n".join(lines[end_line + 1:])
+                return "\n".join(lines[:start_line]) + "\n" + "\n".join(lines[end_line + 1 :])
     return code
 
 

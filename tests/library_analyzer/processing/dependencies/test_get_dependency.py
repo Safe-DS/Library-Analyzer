@@ -43,7 +43,10 @@ def test_extract_action() -> None:
     assert ignored_action == ParameterIsIgnored(action="this parameter is ignored")
 
     action_is_illegal = nlp(
-        "Individual weights for each sample raises error if sample_weight is passed and base_estimator fit method does not support it. ",
+        (
+            "Individual weights for each sample raises error if sample_weight is passed and base_estimator fit method"
+            " does not support it. "
+        ),
     )
     action_is_illegal_action_token = action_is_illegal[5]
     action_is_illegal_condition_token = action_is_illegal[10]
