@@ -33,25 +33,25 @@ def _run_migrate_command(
     apiv1_ = API(apiv1.distribution, apiv1.package, apiv1.version)
     apiv2_ = API(apiv2.distribution, apiv2.package, apiv2.version)
 
-    id_filter = ""
-    for class_v1 in apiv1.classes.values():
-        if class_v1.id.startswith(id_filter) and class_v1.is_public:
-            apiv1_.add_class(class_v1)
-    for func_v1 in apiv1.functions.values():
-        if func_v1.id.startswith(id_filter) and func_v1.is_public:
-            apiv1_.add_function(func_v1)
-    for class_v2 in apiv2.classes.values():
-        if class_v2.id.startswith(id_filter) and class_v2.is_public:
-            apiv2_.add_class(class_v2)
-    for func_v2 in apiv2.functions.values():
-        if func_v2.id.startswith(id_filter) and func_v2.is_public:
-            apiv2_.add_function(func_v2)
-
-    apiv1 = apiv1_
-    apiv2 = apiv2_
+    # id_filter = ""
+    # for class_v1 in apiv1.classes.values():
+    #     if class_v1.id.startswith(id_filter) and class_v1.is_public:
+    #         apiv1_.add_class(class_v1)
+    # for func_v1 in apiv1.functions.values():
+    #     if func_v1.id.startswith(id_filter) and func_v1.is_public:
+    #         apiv1_.add_function(func_v1)
+    # for class_v2 in apiv2.classes.values():
+    #     if class_v2.id.startswith(id_filter) and class_v2.is_public:
+    #         apiv2_.add_class(class_v2)
+    # for func_v2 in apiv2.functions.values():
+    #     if func_v2.id.startswith(id_filter) and func_v2.is_public:
+    #         apiv2_.add_function(func_v2)
+    #
+    # apiv1 = apiv1_
+    # apiv2 = apiv2_
 
     threshold_of_similarity_for_creation_of_mappings = 0.61
-    threshold_of_similarity_between_mappings = 0.1
+    threshold_of_similarity_between_mappings = 0.23
 
     print("-----------------------------")
     print("i: " + str(threshold_of_similarity_for_creation_of_mappings) + " j:" + str(threshold_of_similarity_between_mappings))
