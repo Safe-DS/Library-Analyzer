@@ -5,7 +5,7 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import (
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Parameter,
     ParameterAssignment,
     ParameterDocumentation,
@@ -168,7 +168,7 @@ def migrate_todo_annotation_data_many_to_many_mapping() -> tuple[Mapping, Abstra
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(),
+        documentation=ClassDocstring(),
         code="class TestTodoClass:\n    pass",
         instance_attributes=[],
     )

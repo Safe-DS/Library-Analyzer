@@ -13,7 +13,7 @@ from ._api import (
     ResultDocstring,
 )
 from ._documentation import (
-    ClassDocumentation,
+    ClassDocstring,
     FunctionDocumentation,
     ParameterDocumentation,
 )
@@ -57,7 +57,7 @@ __all__ = [
     "BuiltInFunction",
     "Call",
     "Class",
-    "ClassDocumentation",
+    "ClassDocstring",
     "ConcreteImpurityIndicator",
     "EnumType",
     "Expression",

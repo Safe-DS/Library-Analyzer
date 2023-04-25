@@ -6,7 +6,7 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import (
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
     FunctionDocumentation,
 )
@@ -86,7 +86,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(),
+        documentation=ClassDocstring(),
         code="class RemoveTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -97,7 +97,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(),
+        documentation=ClassDocstring(),
         code="class NewRemoveTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -108,7 +108,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(),
+        documentation=ClassDocstring(),
         code="class NewRemoveTestClass2:\n    pass",
         instance_attributes=[],
     )

@@ -2,7 +2,7 @@ import astroid
 import pytest
 from library_analyzer.processing.api.docstring_parsing import EpydocParser
 from library_analyzer.processing.api.model import (
-    ClassDocumentation,
+    ClassDocstring,
     FunctionDocumentation,
     ParameterAssignment,
     ParameterDocumentation,
@@ -36,14 +36,14 @@ class C:
     [
         (
             class_with_documentation,
-            ClassDocumentation(
+            ClassDocstring(
                 description="Lorem ipsum. Code::\n\npass\n\nDolor sit amet.",
                 full_docstring="Lorem ipsum. Code::\n\n    pass\n\nDolor sit amet.",
             ),
         ),
         (
             class_without_documentation,
-            ClassDocumentation(
+            ClassDocstring(
                 description="",
                 full_docstring="",
             ),
@@ -57,7 +57,7 @@ class C:
 def test_get_class_documentation(
     epydoc_parser: EpydocParser,
     python_code: str,
-    expected_class_documentation: ClassDocumentation,
+    expected_class_documentation: ClassDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
 

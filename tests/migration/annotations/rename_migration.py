@@ -6,7 +6,7 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import (
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Parameter,
     ParameterAssignment,
     ParameterDocumentation,
@@ -109,7 +109,7 @@ def migrate_rename_annotation_data_one_to_many_mapping() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(),
+        documentation=ClassDocstring(),
         code="class NewClass:\n    pass",
         instance_attributes=[],
     )

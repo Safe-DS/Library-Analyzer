@@ -6,7 +6,7 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import (
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
     FunctionDocumentation,
 )
@@ -88,7 +88,7 @@ def migrate_move_annotation_data_one_to_one_mapping__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(),
+        documentation=ClassDocstring(),
         code="class MoveTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -99,7 +99,7 @@ def migrate_move_annotation_data_one_to_one_mapping__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(),
+        documentation=ClassDocstring(),
         code="class NewMoveTestClass:\n    pass",
         instance_attributes=[],
     )

@@ -5,13 +5,13 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class ClassDocumentation:
+class ClassDocstring:
     description: str = ""
     full_docstring: str = ""
 
     @staticmethod
-    def from_dict(d: dict) -> ClassDocumentation:
-        return ClassDocumentation(**d)
+    def from_dict(d: dict) -> ClassDocstring:
+        return ClassDocstring(**d)
 
     def to_dict(self) -> dict:
         return dataclasses.asdict(self)

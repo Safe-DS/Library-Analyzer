@@ -6,7 +6,7 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import (
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
     FunctionDocumentation,
     Parameter,
@@ -89,7 +89,7 @@ def migrate_expert_annotation_data__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(),
+        documentation=ClassDocstring(),
         code="class ExpertTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -100,7 +100,7 @@ def migrate_expert_annotation_data__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(),
+        documentation=ClassDocstring(),
         code="class NewExpertTestClass:\n    pass",
         instance_attributes=[],
     )

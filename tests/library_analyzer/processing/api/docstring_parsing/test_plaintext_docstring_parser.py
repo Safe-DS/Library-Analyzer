@@ -4,7 +4,7 @@ from library_analyzer.processing.api.docstring_parsing import (
     PlaintextDocstringParser,
 )
 from library_analyzer.processing.api.model import (
-    ClassDocumentation,
+    ClassDocstring,
     FunctionDocumentation,
     ParameterAssignment,
     ParameterDocumentation,
@@ -39,14 +39,14 @@ class C:
     [
         (
             class_with_documentation,
-            ClassDocumentation(
+            ClassDocstring(
                 description="Lorem ipsum.\n\nDolor sit amet.",
                 full_docstring="Lorem ipsum.\n\nDolor sit amet.",
             ),
         ),
         (
             class_without_documentation,
-            ClassDocumentation(
+            ClassDocstring(
                 description="",
                 full_docstring="",
             ),
@@ -60,7 +60,7 @@ class C:
 def test_get_class_documentation(
     plaintext_docstring_parser: PlaintextDocstringParser,
     python_code: str,
-    expected_class_documentation: ClassDocumentation,
+    expected_class_documentation: ClassDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
 

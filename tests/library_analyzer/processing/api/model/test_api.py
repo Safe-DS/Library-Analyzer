@@ -5,7 +5,7 @@ import pytest
 from library_analyzer.processing.api._ast_visitor import trim_code
 from library_analyzer.processing.api.model import (
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
     FunctionDocumentation,
 )
@@ -215,7 +215,7 @@ def test_cut_documentation_from_code(code: str, expected_code: str) -> None:
             superclasses=[],
             is_public=True,
             reexported_by=[],
-            documentation=ClassDocumentation(
+            documentation=ClassDocstring(
                 "this documentation string cannot be used",
             ),
             code=code,

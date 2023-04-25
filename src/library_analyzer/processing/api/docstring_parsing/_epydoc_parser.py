@@ -3,7 +3,7 @@ from docstring_parser import Docstring, DocstringParam, DocstringStyle
 from docstring_parser import parse as parse_docstring
 
 from library_analyzer.processing.api.model import (
-    ClassDocumentation,
+    ClassDocstring,
     FunctionDocumentation,
     ParameterAssignment,
     ParameterDocumentation,
@@ -24,11 +24,11 @@ class EpydocParser(AbstractDocstringParser):
         self.__cached_function_node: astroid.FunctionDef | None = None
         self.__cached_docstring: DocstringParam | None = None
 
-    def get_class_documentation(self, class_node: astroid.ClassDef) -> ClassDocumentation:
+    def get_class_documentation(self, class_node: astroid.ClassDef) -> ClassDocstring:
         docstring = get_full_docstring(class_node)
         docstring_obj = parse_docstring(docstring, style=DocstringStyle.EPYDOC)
 
-        return ClassDocumentation(
+        return ClassDocstring(
             description=get_description(docstring_obj),
             full_docstring=docstring,
         )

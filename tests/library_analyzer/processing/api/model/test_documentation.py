@@ -1,6 +1,6 @@
 import pytest
 from library_analyzer.processing.api.model import (
-    ClassDocumentation,
+    ClassDocstring,
     FunctionDocumentation,
     ParameterDocumentation,
 )
@@ -9,14 +9,14 @@ from library_analyzer.processing.api.model import (
 @pytest.mark.parametrize(
     "class_documentation",
     [
-        ClassDocumentation(),
-        ClassDocumentation(description="foo"),
+        ClassDocstring(),
+        ClassDocstring(description="foo"),
     ],
 )
 def test_dict_conversion_for_class_documentation(
-    class_documentation: ClassDocumentation,
+    class_documentation: ClassDocstring,
 ) -> None:
-    assert ClassDocumentation.from_dict(class_documentation.to_dict()) == class_documentation
+    assert ClassDocstring.from_dict(class_documentation.to_dict()) == class_documentation
 
 
 @pytest.mark.parametrize(

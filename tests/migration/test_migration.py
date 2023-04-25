@@ -13,7 +13,7 @@ from library_analyzer.processing.annotations.model import (
 from library_analyzer.processing.api.model import (
     API,
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
     FunctionDocumentation,
 )
@@ -314,7 +314,7 @@ def test_handle_duplicates() -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation(),
+        documentation=ClassDocstring(),
         code="",
         instance_attributes=[],
     )

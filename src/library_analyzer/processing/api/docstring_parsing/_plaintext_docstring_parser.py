@@ -1,7 +1,7 @@
 import astroid
 
 from library_analyzer.processing.api.model import (
-    ClassDocumentation,
+    ClassDocstring,
     FunctionDocumentation,
     ParameterAssignment,
     ParameterDocumentation,
@@ -14,10 +14,10 @@ from ._helpers import get_full_docstring
 class PlaintextDocstringParser(AbstractDocstringParser):
     """Parses documentation in any format. Should not be used if there is another parser for the specific format."""
 
-    def get_class_documentation(self, class_node: astroid.ClassDef) -> ClassDocumentation:
+    def get_class_documentation(self, class_node: astroid.ClassDef) -> ClassDocstring:
         docstring = get_full_docstring(class_node)
 
-        return ClassDocumentation(
+        return ClassDocstring(
             description=docstring,
             full_docstring=docstring,
         )

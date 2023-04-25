@@ -11,7 +11,7 @@ from black.trans import CannotTransform
 
 from library_analyzer.utils import ensure_file_exists, parent_id
 
-from ._documentation import ClassDocumentation, FunctionDocumentation
+from ._documentation import ClassDocstring, FunctionDocumentation
 from ._parameters import Parameter
 from ._types import AbstractType
 
@@ -237,7 +237,7 @@ class Class:
     methods: list[str] = field(init=False)
     is_public: bool
     reexported_by: list[str]
-    documentation: ClassDocumentation
+    documentation: ClassDocstring
     code: str
     instance_attributes: list[Attribute]
 
@@ -250,7 +250,7 @@ class Class:
             d.get("superclasses", []),
             d.get("is_public", True),
             d.get("reexported_by", []),
-            ClassDocumentation(description=d.get("description", "")),
+            ClassDocstring(description=d.get("description", "")),
             d.get("code", ""),
             [
                 Attribute.from_dict(instance_attribute, d["id"])

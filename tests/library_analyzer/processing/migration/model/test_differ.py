@@ -5,7 +5,7 @@ from library_analyzer.processing.api.model import (
     API,
     Attribute,
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
     FunctionDocumentation,
     NamedType,
@@ -69,7 +69,7 @@ def test_class_similarity(differ: AbstractDiffer) -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test"),
+        documentation=ClassDocstring("This is a test"),
         code=code_a,
         instance_attributes=[],
     )
@@ -87,7 +87,7 @@ def test_class_similarity(differ: AbstractDiffer) -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a new test"),
+        documentation=ClassDocstring("This is a new test"),
         code=code_b,
         instance_attributes=[],
     )
