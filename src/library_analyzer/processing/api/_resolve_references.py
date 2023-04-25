@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum, auto
 from typing import List, Optional, Union
 
 import astroid
@@ -13,6 +14,7 @@ from library_analyzer.utils import ASTWalker
 class MemberAccess(Expression):
     expression: astroid.NodeNG
     value: MemberAccess | Reference
+    parent: astroid.NodeNG | None = field(default=None)
 
 
 @dataclass
@@ -29,16 +31,17 @@ class NodeID:
 
 @dataclass
 class NodeScope:
-    scope: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Lambda | astroid.GeneratorExp
+    node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.AssignName | astroid.Name | astroid.Call
+    scope: str
     parent_scope: NodeScope | None = field(default=None)
     # TODO: how to deal with astroid.Lambda and astroid.GeneratorExp in scope?
 
 
 @dataclass
 class Scopes:
-    module_scope: list[NodeReference]
-    class_scope: list[NodeReference]
-    function_scope: list[NodeReference]
+    module_scope: list[NodeScope]
+    class_scope: list[NodeScope]
+    function_scope: list[NodeScope]
 
 
 @dataclass
@@ -50,6 +53,69 @@ class NodeReference:
     list_is_complete: bool = False  # if True, then the list potential_references is completed
     # TODO: implement a methode to check if the list is complete: all references are found
     #  the list is only completed if every reference is found
+
+
+@dataclass
+class ScopeDepth(Enum):
+    MODULE = auto()
+    CLASS = auto()
+    FUNCTION = auto()
+
+
+@dataclass
+class ScopeFinder:
+    depth: str
+    scopes_list: Scopes = field(default_factory=lambda: Scopes(module_scope=[], class_scope=[], function_scope=[]))
+
+    def enter_module(self, node: astroid.Module) -> None:
+        self.depth = ScopeDepth.MODULE.name
+        scope = self.depth
+        scope_node = NodeScope(node=node, scope=scope, parent_scope=None)
+        self.add_scope_to_list(scope_node)
+
+    def enter_classdef(self, node: astroid.ClassDef) -> None:
+        self.depth = ScopeDepth.CLASS.name
+        scope = self.depth
+        scope_node = NodeScope(node=node, scope=scope, parent_scope=node.parent)
+        self.add_scope_to_list(scope_node)
+
+    def enter_functiondef(self, node: astroid.FunctionDef) -> None:
+        self.depth = ScopeDepth.FUNCTION.name
+        scope = self.depth
+        scope_node = NodeScope(node=node, scope=scope, parent_scope=node.parent)
+        self.add_scope_to_list(scope_node)
+
+    # def enter_lambda(self, node: astroid.Lambda) -> None:
+    #     self.scopes.function_scope.append(NodeReference(name=node.name, node_id=node.name, scope=NodeScope(scope=node)))
+    #
+    # def enter_generatorexp(self, node: astroid.GeneratorExp) -> None:
+    #     self.scopes.function_scope.append(NodeReference(name=node.name, node_id=node.name, scope=NodeScope(scope=node)))
+
+    def enter_call(self, node: astroid.Call) -> None:
+        if isinstance(node.func, astroid.Name):
+            scope = self.depth
+            self.scopes_list.function_scope.append(NodeScope(node=node, scope=scope, parent_scope=None))
+            # TODO: test this
+
+    def enter_assignname(self, node: astroid.AssignName) -> None:
+        if isinstance(node.parent, astroid.Assign | astroid.Arguments | astroid.AssignAttr | astroid.Attribute | astroid.AugAssign | astroid.AnnAssign | astroid.Return | astroid.Compare | astroid.For):
+            scope = self.depth
+            self.scopes_list.function_scope.append(NodeScope(node=node, scope=scope, parent_scope=None))  # TODO: parent_scope
+
+    # def enter_assignattr(self, node: astroid.AssignAttr) -> None:
+    #     member_access = construct_member_access(node)
+    #     self.scopes.function_scope.append(NodeReference(name=member_access, node_id=member_access, scope=NodeScope(scope=node)))
+
+    def add_scope_to_list(self, node):
+        match node.scope:
+            case "MODULE":
+                self.scopes_list.module_scope.append(node)
+            case "CLASS":
+                self.scopes_list.class_scope.append(node)
+            case "FUNCTION":
+                self.scopes_list.function_scope.append(node)
+            case _:
+                raise ValueError(f"Scope {node.scope} is not supported.")
 
 
 @dataclass
@@ -88,7 +154,7 @@ def construct_member_access(node: astroid.Attribute | astroid.AssignAttr) -> Mem
         return MemberAccess(node.expr, Reference(node.attrname))
 
 
-def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name]]:
+def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name | astroid.AssignName]]:
     name_node_handler = NameNodeFinder()
     walker = ASTWalker(name_node_handler)
     name_nodes: list[list[astroid.Name | astroid.AssignName]] = []
@@ -130,9 +196,9 @@ def create_references(names_list: list[astroid.Name | astroid.AssignName]) -> li
     for name in names_list:
         node_id = calc_node_id(name)
         if name.scope() == "Module":
-            node_scope = NodeScope(name.scope(), None)  # TODO: check if this works correct when working with real data
+            node_scope = NodeScope(name, name.scope(), None)  # TODO: check if this works correct when working with real data
         else:
-            node_scope = NodeScope(name.scope(), name.scope().parent)
+            node_scope = NodeScope(name, name.scope(), name.scope().parent)
         if isinstance(name, astroid.Name):
             references_proto.append(NodeReference(name, node_id.__str__(), node_scope, [], False))
         if isinstance(name, astroid.AssignName):
@@ -196,7 +262,7 @@ def find_references(module_names: list[astroid.Name]) -> list[NodeReference]:
             reference_complete = add_potential_target_references(reference, reference_list_proto)
             reference_list_complete.append(reference_complete)
 
-    scope_list = get_nodes_for_scope(reference_list_complete)
+    # scope_list = get_nodes_for_scope(reference_list_complete)
 
     # TODO: since we have found all name Nodes, we need to find the scope of the current name node
     #  and then search for all name nodes in that scope where the name is used
@@ -219,3 +285,19 @@ def get_nodes_for_scope(reference_list: list[NodeReference]) -> Scopes:
         elif reference.scope.scope is not None and reference.scope.scope.__class__.__name__ == "FunctionDef":
             all_scopes.function_scope.append(reference)
     return all_scopes
+
+
+def get_scope(code: str) -> Scopes:
+    scope_handler = ScopeFinder(depth=ScopeDepth.MODULE)
+    walker = ASTWalker(scope_handler)
+    scopes: Scopes = Scopes([], [], [])
+    module = astroid.parse(code)
+
+    if isinstance(module, astroid.Module):
+        for node in module.body:
+            # print(node.as_string())
+            walker.walk(node)
+            scopes = scope_handler.scopes_list
+            scope_handler.scopes_list = Scopes([], [], [])
+
+    return scopes

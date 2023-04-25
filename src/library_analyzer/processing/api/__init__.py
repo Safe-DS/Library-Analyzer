@@ -32,6 +32,7 @@ from ._resolve_references import (
     MemberAccess,
     calc_node_id,
     get_nodes_for_scope,
+    get_scope,
 )
 
 from ._package_metadata import (
@@ -74,4 +75,5 @@ __all__ = [
     "add_potential_target_references",
     "add_potential_value_references",
     "calc_node_id",
+    "get_scope"
 ]
