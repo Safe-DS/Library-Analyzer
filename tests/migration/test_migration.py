@@ -199,7 +199,7 @@ def test_migrate_all_annotations() -> None:
     migration = Migration(annotation_store, mappings)
     migration.migrate_annotations()
 
-    unsure_migrated_annotations = migration.unsure_migrated_annotation_store.to_json()
+    unsure_migrated_annotations = migration.unsure_migrated_annotation_store.to_dict()
     assert len(unsure_migrated_annotations["todoAnnotations"]) == 3
     migration.migrated_annotation_store.todoAnnotations.extend(
         migration.unsure_migrated_annotation_store.todoAnnotations,
@@ -229,15 +229,15 @@ def test_migrate_command_and_both_annotation_stores() -> None:
         encoding="utf-8",
     ) as unsure_annotationsv2_file:
         apiv1_json = json.load(apiv1_file)
-        apiv1 = API.from_json(apiv1_json)
+        apiv1 = API.from_dict(apiv1_json)
         apiv2_json = json.load(apiv2_file)
-        apiv2 = API.from_json(apiv2_json)
+        apiv2 = API.from_dict(apiv2_json)
         annotationsv1_json = json.load(annotationsv1_file)
-        annotationsv1 = AnnotationStore.from_json(annotationsv1_json)
+        annotationsv1 = AnnotationStore.from_dict(annotationsv1_json)
         expected_annotationsv2_json = json.load(annotationsv2_file)
-        annotationsv2 = AnnotationStore.from_json(expected_annotationsv2_json)
+        annotationsv2 = AnnotationStore.from_dict(expected_annotationsv2_json)
         expected_unsure_annotationsv2_json = json.load(unsure_annotationsv2_file)
-        unsure_annotationsv2 = AnnotationStore.from_json(expected_unsure_annotationsv2_json)
+        unsure_annotationsv2 = AnnotationStore.from_dict(expected_unsure_annotationsv2_json)
 
         differ = SimpleDiffer(None, [], apiv1, apiv2)
         api_mapping = APIMapping(apiv1, apiv2, differ, threshold_of_similarity_between_mappings=0.3)
@@ -343,7 +343,7 @@ def test_handle_duplicates() -> None:
     migration.migrate_annotations()
     store = AnnotationStore()
     store.add_annotation(
-        TodoAnnotation.from_json(
+        TodoAnnotation.from_dict(
             {
                 "authors": ["", "migration"],
                 "comment": "Conflicting Attribute during migration: {'newTodo': 'lightbringer'}, {'newTodo': 'todo'}",
@@ -354,11 +354,11 @@ def test_handle_duplicates() -> None:
             },
         ),
     )
-    migrated_annotation_store = migration.migrated_annotation_store.to_json()
+    migrated_annotation_store = migration.migrated_annotation_store.to_dict()
     todo_annotations = migrated_annotation_store.pop("todoAnnotations")
     migrated_annotation_store["todoAnnotations"] = {}
     assert (
-        migrated_annotation_store == migration.unsure_migrated_annotation_store.to_json() == AnnotationStore().to_json()
+        migrated_annotation_store == migration.unsure_migrated_annotation_store.to_dict() == AnnotationStore().to_dict()
     )
     assert len(todo_annotations) == 1
     todo_values = ["darkage", "lightbringer", "todo"]
@@ -366,11 +366,13 @@ def test_handle_duplicates() -> None:
     todo_values.remove(todo_annotations[classv2.id].pop("newTodo"))
     assert todo_annotations[classv2.id] == {
         "authors": ["", "migration"],
-        "comment": "Conflicting Attribute during migration: {'newTodo': '"
-        + todo_values[0]
-        + "'}, {'newTodo': '"
-        + todo_values[1]
-        + "'}",
+        "comment": (
+            "Conflicting Attribute during migration: {'newTodo': '"
+            + todo_values[0]
+            + "'}, {'newTodo': '"
+            + todo_values[1]
+            + "'}"
+        ),
         "reviewResult": "unsure",
         "reviewers": [""],
         "target": "test/test.duplicate/TestClass",

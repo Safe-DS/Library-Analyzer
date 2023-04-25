@@ -9,15 +9,15 @@ from ._types import AbstractType, create_type
 
 class Parameter:
     @staticmethod
-    def from_json(json: Any) -> Parameter:
+    def from_dict(d: dict[str, Any]) -> Parameter:
         return Parameter(
-            json["id"],
-            json["name"],
-            json["qname"],
-            json.get("default_value", None),
-            ParameterAssignment[json.get("assigned_by", "POSITION_OR_NAME")],
-            json.get("is_public", True),
-            ParameterDocumentation.from_dict(json.get("docstring", {})),
+            d["id"],
+            d["name"],
+            d["qname"],
+            d.get("default_value", None),
+            ParameterAssignment[d.get("assigned_by", "POSITION_OR_NAME")],
+            d.get("is_public", True),
+            ParameterDocumentation.from_dict(d.get("docstring", {})),
         )
 
     def __hash__(self) -> int:
@@ -71,7 +71,7 @@ class Parameter:
     def is_required(self) -> bool:
         return self.default_value is None
 
-    def to_json(self) -> Any:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -80,7 +80,7 @@ class Parameter:
             "assigned_by": self.assigned_by.name,
             "is_public": self.is_public,
             "docstring": self.documentation.to_dict(),
-            "type": self.type.to_json() if self.type is not None else {},
+            "type": self.type.to_dict() if self.type is not None else {},
         }
 
 
