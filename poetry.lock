@@ -1675,18 +1675,15 @@ mkdocs = ">=1.0.3,<2.0.0"
 
 [[package]]
 name = "mkdocs-glightbox"
-version = "0.3.2"
+version = "0.3.4"
 description = "MkDocs plugin supports image lightbox with GLightbox."
 category = "dev"
 optional = false
 python-versions = "*"
 files = [
-    {file = "mkdocs-glightbox-0.3.2.tar.gz", hash = "sha256:aec32193fa367f83a5159a10ef0a0e501e595860f4399fb860ca1c5d95fd099d"},
-    {file = "mkdocs_glightbox-0.3.2-py3-none-any.whl", hash = "sha256:ef168717e0d6f5e3b33afa8a62837e9ea3b8754fbf073760db169650edbcb866"},
+    {file = "mkdocs-glightbox-0.3.4.tar.gz", hash = "sha256:96aaf98216f83c0d0fad2e42a8d805cfa6329d6ab25b54265012ccb2154010d8"},
+    {file = "mkdocs_glightbox-0.3.4-py3-none-any.whl", hash = "sha256:8f894435b4f75231164e5d9fb023c01e922e6769e74a121e822c4914f310a41d"},
 ]
-
-[package.dependencies]
-beautifulsoup4 = ">=4.11.1"
 
 [[package]]
 name = "mkdocs-jupyter"
