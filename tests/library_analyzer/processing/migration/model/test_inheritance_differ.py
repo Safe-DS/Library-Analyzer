@@ -34,7 +34,9 @@ def create_api_super() -> tuple[API, Class, Class, Attribute, Function, Paramete
         pass""",
     )
     class_id_super = "test/test/SuperTest"
-    attribute_super = Attribute("test/test/SuperTest/new_test_int", "new_test_int", NamedType("int"), class_id=class_id_super)
+    attribute_super = Attribute(
+        "test/test/SuperTest/new_test_int", "new_test_int", NamedType("int"), class_id=class_id_super,
+    )
     class_super = Class(
         id=class_id_super,
         qname="test.SuperTest",

@@ -344,20 +344,11 @@ class Attribute:
 
     @staticmethod
     def from_dict(d: dict[str, Any], class_id: str | None = None) -> Attribute:
-        return Attribute(
-            d["id"],
-            d["name"],
-            AbstractType.from_dict(d.get("types", {})),
-            class_id
-        )
+        return Attribute(d["id"], d["name"], AbstractType.from_dict(d.get("types", {})), class_id)
 
     def to_dict(self) -> dict[str, Any]:
         types_json = self.types.to_dict() if self.types is not None else None
-        return {
-            "id": self.id,
-            "name": self.name,
-            "types": types_json
-        }
+        return {"id": self.id, "name": self.name, "types": types_json}
 
 
 @dataclass(frozen=True)
