@@ -190,6 +190,7 @@ def test_correct_hash() -> None:
     assert hash(NamedType("a")) != hash(NamedType("b"))
     attribute = Attribute(
         "boundary",
+        "boundary",
         BoundaryType(
             base_type="int",
             min=0,
