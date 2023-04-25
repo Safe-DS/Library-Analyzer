@@ -50,15 +50,12 @@ class ParameterDocstring:
 
 @dataclass(frozen=True)
 class ResultDocstring:
-    type: str
-    description: str
+    type: str = ""
+    description: str = ""
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> ResultDocstring:
-        return ResultDocstring(
-            d.get("type", ""),
-            d.get("description", ""),
-        )
+        return ResultDocstring(**d)
 
     def to_dict(self) -> dict[str, Any]:
-        return {"type": self.type, "description": self.description}
+        return dataclasses.asdict(self)
