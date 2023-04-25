@@ -14,10 +14,10 @@ class ClassDocstring:
     full_docstring: str = ""
 
     @staticmethod
-    def from_dict(d: dict) -> ClassDocstring:
+    def from_dict(d: dict[str, Any]) -> ClassDocstring:
         return ClassDocstring(**d)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return dataclasses.asdict(self)
 
 
@@ -27,10 +27,10 @@ class FunctionDocstring:
     full_docstring: str = ""
 
     @staticmethod
-    def from_dict(d: dict) -> FunctionDocstring:
+    def from_dict(d: dict[str, Any]) -> FunctionDocstring:
         return FunctionDocstring(**d)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return dataclasses.asdict(self)
 
 
@@ -41,10 +41,10 @@ class ParameterDocstring:
     description: str = ""
 
     @staticmethod
-    def from_dict(d: dict) -> ParameterDocstring:
+    def from_dict(d: dict[str, Any]) -> ParameterDocstring:
         return ParameterDocstring(**d)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return dataclasses.asdict(self)
 
 
