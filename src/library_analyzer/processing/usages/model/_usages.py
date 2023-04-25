@@ -15,27 +15,27 @@ class UsageCountStore:
     """Count how often classes, functions, parameters, and parameter values are used."""
 
     @staticmethod
-    def from_json(json: Any) -> UsageCountStore:
+    def from_dict(d: dict[str, Any]) -> UsageCountStore:
         """Create an instance of this class from a dictionary."""
         result = UsageCountStore()
 
         # Revive class counts
-        class_counts = json["class_counts"]
+        class_counts = d["class_counts"]
         for class_id, count in class_counts.items():
             result.add_class_usages(class_id, count)
 
         # Revive function counts
-        function_counts = json["function_counts"]
+        function_counts = d["function_counts"]
         for function_id, count in function_counts.items():
             result.add_function_usages(function_id, count)
 
         # Revive parameter counts
-        parameter_counts = json["parameter_counts"]
+        parameter_counts = d["parameter_counts"]
         for parameter_id, count in parameter_counts.items():
             result.add_parameter_usages(parameter_id, count)
 
         # Revive value counts
-        value_counts = json["value_counts"]
+        value_counts = d["value_counts"]
         for parameter_id, values in value_counts.items():
             for value, count in values.items():
                 result.add_value_usages(parameter_id, value, count)
@@ -166,7 +166,7 @@ class UsageCountStore:
 
         return self
 
-    def to_json(self) -> Any:
+    def to_dict(self) -> dict[str, Any]:
         """Convert this class to a dictionary, which can later be serialized as JSON."""
         return {
             "schemaVersion": USAGES_SCHEMA_VERSION,

@@ -83,7 +83,7 @@ def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> Non
     if result is None:
         assert expected == {}
     else:
-        assert result.to_json() == expected
+        assert result.to_dict() == expected
 
 
 @pytest.mark.parametrize(
@@ -119,7 +119,7 @@ def test_boundary_from_string(description: str, expected: dict[str, Any]) -> Non
     if result is None:
         assert expected == {}
     else:
-        assert result.to_json() == expected
+        assert result.to_dict() == expected
 
 
 @pytest.mark.parametrize(
@@ -159,7 +159,7 @@ def test_boundary_and_union_from_string(
     if result is None:
         assert expected == {}
     else:
-        assert result.to_json() == expected
+        assert result.to_dict() == expected
 
 
 def test_correct_hash() -> None:

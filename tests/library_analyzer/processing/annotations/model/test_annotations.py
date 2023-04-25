@@ -340,8 +340,8 @@ def test_annotation_store() -> None:
             },
         },
     }
-    assert annotations.to_json() == json_store
-    assert AnnotationStore.from_json(json_store).to_json() == json_store
+    assert annotations.to_dict() == json_store
+    assert AnnotationStore.from_dict(json_store).to_dict() == json_store
 
 
 @pytest.mark.parametrize(
@@ -685,5 +685,5 @@ def test_annotation_store() -> None:
     ],
 )
 def test_conversion_between_json_and_annotation(annotation: AbstractAnnotation, json: dict) -> None:
-    assert annotation.to_json() == json
-    assert type(annotation).from_json(json) == annotation
+    assert annotation.to_dict() == json
+    assert type(annotation).from_dict(json) == annotation

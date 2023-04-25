@@ -11,10 +11,10 @@ class Action:
     action: str
 
     @classmethod
-    def from_json(cls, json: Any) -> Action:
+    def from_dict(cls, json: dict[str, Any]) -> Action:
         return cls(json["action"])
 
-    def to_json(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {"action": self.action}
 
 
@@ -43,10 +43,10 @@ class Condition:
     condition: str
 
     @classmethod
-    def from_json(cls, json: Any) -> Condition:
-        return cls(json["condition"])
+    def from_dict(cls, d: dict[str, Any]) -> Condition:
+        return cls(d["condition"])
 
-    def to_json(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {"condition": self.condition}
 
 
@@ -78,20 +78,20 @@ class Dependency:
     hasAction: Action  # noqa: N815
 
     @classmethod
-    def from_json(cls, json: Any) -> Dependency:
+    def from_dict(cls, d: dict[str, Any]) -> Dependency:
         return cls(
-            Parameter.from_json(json["hasDependentParameter"]),
-            Parameter.from_json(json["isDependingOn"]),
-            Condition.from_json(json["hasCondition"]),
-            Action.from_json(json["hasAction"]),
+            Parameter.from_dict(d["hasDependentParameter"]),
+            Parameter.from_dict(d["isDependingOn"]),
+            Condition.from_dict(d["hasCondition"]),
+            Action.from_dict(d["hasAction"]),
         )
 
-    def to_json(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
-            "hasDependentParameter": self.hasDependentParameter.to_json(),
-            "isDependingOn": self.isDependingOn.to_json(),
-            "hasCondition": self.hasCondition.to_json(),
-            "hasAction": self.hasAction.to_json(),
+            "hasDependentParameter": self.hasDependentParameter.to_dict(),
+            "isDependingOn": self.isDependingOn.to_dict(),
+            "hasCondition": self.hasCondition.to_dict(),
+            "hasAction": self.hasAction.to_dict(),
         }
 
 
@@ -99,10 +99,10 @@ class Dependency:
 class APIDependencies:
     dependencies: dict
 
-    def to_json(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return {
             function_name: {
-                parameter_name: [dependency.to_json() for dependency in dependencies]
+                parameter_name: [dependency.to_dict() for dependency in dependencies]
                 for parameter_name, dependencies in parameter_name.items()
             }
             for function_name, parameter_name in self.dependencies.items()

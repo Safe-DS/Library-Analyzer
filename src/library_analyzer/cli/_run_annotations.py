@@ -15,9 +15,14 @@ def _run_annotations(api_file_path: Path, usages_file_path: Path, annotations_fi
 
     Annotations that are generated are: remove, constant, required, optional, enum and boundary.
 
-    :param api_file_path: API file Path
-    :param usages_file_path: UsageStore file Path
-    :param annotations_file_path: Output file Path.
+    Parameters
+    ----------
+    api_file_path : Path
+        API file Path
+    usages_file_path : Path
+        UsageStore file Path
+    annotations_file_path : Path
+        Output file Path.
     """
     api = _read_api_file(api_file_path)
     usages = _read_usages_file(usages_file_path)
