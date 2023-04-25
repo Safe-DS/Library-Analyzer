@@ -157,83 +157,29 @@ class Migration:
         return unmapped_api_elements
 
     def _get_unmapped_api_elements_as_string(self, api: API, print_for_apiv2: bool = False) -> list[str]:
-        unmapped_api_elements: list[str] = []
+        api_elements: list[str] = []
+        for class_ in api.classes.values():
+            api_elements.append(class_.id)
+            for attribute in class_.instance_attributes:
+                api_elements.append(attribute.id)
+        for function in api.functions.values():
+            api_elements.append(function.id)
+            for result in function.results:
+                api_elements.append(result.id)
+        for parameter in api.parameters().values():
+            api_elements.append(parameter.id)
 
-        def is_included(api_element: Attribute | Class | Function | Parameter | Result) -> bool:
-            if not print_for_apiv2:
-                for mapping in self.mappings:
-                    for element in mapping.get_apiv1_elements():
-                        if (
-                            isinstance(api_element, Attribute)
-                            and isinstance(element, Attribute)
-                            and element.name == api_element.name
-                            and isinstance(element.types, type(api_element.types))
-                        ):
-                            return True
-                        if (
-                            isinstance(api_element, Result)
-                            and isinstance(element, Result)
-                            and element.name == api_element.name
-                            and element.docstring == api_element.docstring
-                        ):
-                            return True
-                        if (
-                            not isinstance(api_element, Attribute | Result)
-                            and not isinstance(
-                                element,
-                                Attribute | Result,
-                            )
-                            and element.id == api_element.id
-                        ):
-                            return True
-                return False
+        mapped_api_elements: set[str] = set()
+        if print_for_apiv2:
             for mapping in self.mappings:
                 for element in mapping.get_apiv2_elements():
-                    if (
-                        isinstance(api_element, Attribute)
-                        and isinstance(element, Attribute)
-                        and element.name == api_element.name
-                        and isinstance(element.types, type(api_element.types))
-                    ):
-                        return True
-                    if (
-                        isinstance(api_element, Result)
-                        and isinstance(element, Result)
-                        and element.name == api_element.name
-                        and element.docstring == api_element.docstring
-                    ):
-                        return True
-                    if (
-                        not isinstance(api_element, Attribute | Result)
-                        and not isinstance(
-                            element,
-                            Attribute | Result,
-                        )
-                        and element.id == api_element.id
-                    ):
-                        return True
-            return False
+                    mapped_api_elements.add(element.id)
+        else:
+            for mapping in self.mappings:
+                for element in mapping.get_apiv1_elements():
+                    mapped_api_elements.add(element.id)
 
-        for class_ in api.classes.values():
-            if not is_included(class_):
-                unmapped_api_elements.append(class_.id)
-        for function in api.functions.values():
-            if not is_included(function):
-                unmapped_api_elements.append(function.id)
-        for parameter in api.parameters().values():
-            if not is_included(parameter):
-                unmapped_api_elements.append(parameter.id)
-        for attribute, class_ in [
-            (attribute, class_1) for class_1 in api.classes.values() for attribute in class_1.instance_attributes
-        ]:
-            if not is_included(attribute):
-                unmapped_api_elements.append(class_.id + "/" + attribute.name)
-        for result, function in [
-            (result, function_1) for function_1 in api.functions.values() for result in function_1.results
-        ]:
-            if not is_included(result):
-                unmapped_api_elements.append(function.id + "/" + result.name)
-        return unmapped_api_elements
+        return [element for element in api_elements if element not in mapped_api_elements]
 
     def print(self, apiv1: API, apiv2: API) -> None:
         print("**Similarity**|**APIV1**|**APIV2**|**comment**\n:-----:|:-----:|:-----:|:----:|")
