@@ -499,6 +499,7 @@ class ParameterAssignment(Enum):
 
 @dataclass(frozen=True)
 class Result:
+    id: str
     name: str
     docstring: ResultDocstring
     function_id: str | None = None
@@ -506,13 +507,18 @@ class Result:
     @staticmethod
     def from_dict(d: dict[str, Any], function_id: str | None = None) -> Result:
         return Result(
+            d["id"],
             d["name"],
             ResultDocstring.from_dict(d.get("docstring", {})),
             function_id,
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {"name": self.name, "docstring": self.docstring.to_dict()}
+        return {
+            "id": self.id,
+            "name": self.name,
+            "docstring": self.docstring.to_dict()
+        }
 
 
 ApiElement: TypeAlias = Module | Class | Attribute | Function | Parameter | Result

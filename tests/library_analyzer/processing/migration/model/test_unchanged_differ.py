@@ -71,7 +71,7 @@ def test_similarity() -> None:
         is_public=True,
         docstring=ParameterDocstring("'test_str_a'", "", ""),
     )
-    result_a = Result("config", ResultDocstring("dict", ""), function_id=function_id_a)
+    result_a = Result("config", "config", ResultDocstring("dict", ""), function_id=function_id_a)
     code_function_a = cleandoc(
         """
     def test(test_parameter: str):
@@ -114,6 +114,7 @@ def test_similarity() -> None:
         docstring=ParameterDocstring("'test_str_b'", "", ""),
     )
     result_b = Result(
+        "new_config",
         "new_config",
         ResultDocstring("dict", "A dictionary that includes the new configuration"),
         function_id=function_id_b,
