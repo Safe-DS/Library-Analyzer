@@ -348,7 +348,7 @@ class SimpleDiffer(AbstractDiffer):
 
         id_similarity = self._compute_id_similarity(classv1.id, classv2.id)
 
-        documentation_similarity = self._compute_documentation_similarity(classv1.documentation, classv2.documentation)
+        documentation_similarity = self._compute_documentation_similarity(classv1.docstring, classv2.docstring)
         if documentation_similarity < 0:
             documentation_similarity = 0
             normalize_similarity -= 1
@@ -433,8 +433,8 @@ class SimpleDiffer(AbstractDiffer):
         id_similarity = self._compute_id_similarity(functionv1.id, functionv2.id)
 
         documentation_similarity = self._compute_documentation_similarity(
-            functionv1.documentation,
-            functionv2.documentation,
+            functionv1.docstring,
+            functionv2.docstring,
         )
         if documentation_similarity < 0:
             documentation_similarity = 0
@@ -513,8 +513,8 @@ class SimpleDiffer(AbstractDiffer):
             parameter_default_value_similarity = 0
             normalize_similarity -= 1
         parameter_documentation_similarity = self._compute_documentation_similarity(
-            parameterv1.documentation,
-            parameterv2.documentation,
+            parameterv1.docstring,
+            parameterv2.docstring,
         )
         if parameter_documentation_similarity < 0:
             parameter_documentation_similarity = 0

@@ -29,7 +29,7 @@ class Parameter:
                 self.default_value,
                 self.assigned_by,
                 self.is_public,
-                self.documentation,
+                self.docstring,
             ),
         )
 
@@ -42,7 +42,7 @@ class Parameter:
             and self.default_value == other.default_value
             and self.assigned_by == other.assigned_by
             and self.is_public == other.is_public
-            and self.documentation == other.documentation
+            and self.docstring == other.docstring
             and self.type == other.type
         )
 
@@ -54,7 +54,7 @@ class Parameter:
         default_value: str | None,
         assigned_by: ParameterAssignment,
         is_public: bool,
-        documentation: ParameterDocstring,
+        docstring: ParameterDocstring,
     ) -> None:
         self.id: str = id_
         self.name: str = name
@@ -62,8 +62,8 @@ class Parameter:
         self.default_value: str | None = default_value
         self.assigned_by: ParameterAssignment = assigned_by
         self.is_public: bool = is_public
-        self.documentation = documentation
-        self.type: AbstractType | None = create_type(documentation)
+        self.docstring = docstring
+        self.type: AbstractType | None = create_type(docstring)
 
     def is_optional(self) -> bool:
         return self.default_value is not None
@@ -79,7 +79,7 @@ class Parameter:
             "default_value": self.default_value,
             "assigned_by": self.assigned_by.name,
             "is_public": self.is_public,
-            "docstring": self.documentation.to_dict(),
+            "docstring": self.docstring.to_dict(),
             "type": self.type.to_dict() if self.type is not None else {},
         }
 

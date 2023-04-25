@@ -90,7 +90,7 @@ def test_extract_dependencies_from_docstring_pattern_adverbial_clause() -> None:
         default_value=None,
         assigned_by=ParameterAssignment.NAME_ONLY,
         is_public=True,
-        documentation=ParameterDocstring(
+        docstring=ParameterDocstring(
             type="param possible types",
             default_value="",
             description=param_docstring_nlp.text,
@@ -103,7 +103,7 @@ def test_extract_dependencies_from_docstring_pattern_adverbial_clause() -> None:
         default_value=None,
         assigned_by=ParameterAssignment.NAME_ONLY,
         is_public=True,
-        documentation=ParameterDocstring(
+        docstring=ParameterDocstring(
             type="param possible types",
             default_value="",
             description="param probability docstring",

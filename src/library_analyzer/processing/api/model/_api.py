@@ -237,7 +237,7 @@ class Class:
     methods: list[str] = field(init=False)
     is_public: bool
     reexported_by: list[str]
-    documentation: ClassDocstring
+    docstring: ClassDocstring
     code: str
     instance_attributes: list[Attribute]
 
@@ -283,7 +283,7 @@ class Class:
             "methods": self.methods,
             "is_public": self.is_public,
             "reexported_by": self.reexported_by,
-            "description": self.documentation.description,
+            "description": self.docstring.description,
             "code": self.code,
             "instance_attributes": [attribute.to_dict() for attribute in self.instance_attributes],
         }
@@ -359,7 +359,7 @@ class Function:
     results: list[Result]
     is_public: bool
     reexported_by: list[str]
-    documentation: FunctionDocstring
+    docstring: FunctionDocstring
     code: str
 
     @staticmethod
@@ -390,7 +390,7 @@ class Function:
             "results": [result.to_dict() for result in self.results],
             "is_public": self.is_public,
             "reexported_by": self.reexported_by,
-            "description": self.documentation.description,
+            "description": self.docstring.description,
             "code": self.code,
         }
 

@@ -40,7 +40,7 @@ def migrate_expert_annotation_data__function() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocstring(),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -52,7 +52,7 @@ def migrate_expert_annotation_data__function() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocstring(),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -89,7 +89,7 @@ def migrate_expert_annotation_data__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocstring(),
+        docstring=ClassDocstring(),
         code="class ExpertTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -100,7 +100,7 @@ def migrate_expert_annotation_data__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocstring(),
+        docstring=ClassDocstring(),
         code="class NewExpertTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -112,7 +112,7 @@ def migrate_expert_annotation_data__class() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocstring(),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -157,7 +157,7 @@ def migrate_expert_annotation_data__parameter() -> (
         default_value="'this is a string'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocstring("str", "this is a string", ""),
+        docstring=ParameterDocstring("str", "this is a string", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.expert/test3/testB",
@@ -166,7 +166,7 @@ def migrate_expert_annotation_data__parameter() -> (
         default_value="'test string'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocstring("str", "'test string'", ""),
+        docstring=ParameterDocstring("str", "'test string'", ""),
     )
     mapping = OneToOneMapping(1.0, parameterv1, parameterv2)
     annotationv1 = ExpertAnnotation(
@@ -201,7 +201,7 @@ def migrate_expert_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocstring(),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv1_2 = Function(
@@ -212,7 +212,7 @@ def migrate_expert_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocstring(),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -224,7 +224,7 @@ def migrate_expert_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocstring(),
+        docstring=FunctionDocstring(),
         code="",
     )
 

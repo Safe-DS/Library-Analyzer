@@ -35,7 +35,7 @@ def test_similarity() -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocstring("This is a test"),
+        docstring=ClassDocstring("This is a test"),
         code=code_a,
         instance_attributes=[attribute_a],
     )
@@ -54,7 +54,7 @@ def test_similarity() -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocstring("This is a new test"),
+        docstring=ClassDocstring("This is a new test"),
         code=code_b,
         instance_attributes=[attribute_b],
     )
@@ -69,7 +69,7 @@ def test_similarity() -> None:
         default_value="'test_str_a'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocstring("'test_str_a'", "", ""),
+        docstring=ParameterDocstring("'test_str_a'", "", ""),
     )
     result_a = Result("config", ResultDocstring("dict", ""), function_id=function_id_a)
     code_function_a = cleandoc(
@@ -89,7 +89,7 @@ def test_similarity() -> None:
         results=[result_a],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocstring(
+        docstring=FunctionDocstring(
             "This test function is a for testing",
         ),
         code=code_function_a,
@@ -111,7 +111,7 @@ def test_similarity() -> None:
         default_value="'test_str_b'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocstring("'test_str_b'", "", ""),
+        docstring=ParameterDocstring("'test_str_b'", "", ""),
     )
     result_b = Result(
         "new_config",
@@ -126,7 +126,7 @@ def test_similarity() -> None:
         results=[result_b],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocstring(
+        docstring=FunctionDocstring(
             "This test function is a test",
         ),
         code=code_b,
