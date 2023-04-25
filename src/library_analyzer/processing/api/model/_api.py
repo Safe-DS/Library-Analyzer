@@ -11,7 +11,7 @@ from black.trans import CannotTransform
 
 from library_analyzer.utils import ensure_file_exists, parent_id
 
-from ._docstring import ClassDocstring, FunctionDocstring
+from ._docstring import ClassDocstring, FunctionDocstring, ResultDocstring
 from ._parameters import Parameter
 from ._types import AbstractType
 
@@ -417,19 +417,3 @@ class Result:
 
     def to_dict(self) -> dict[str, Any]:
         return {"name": self.name, "docstring": self.docstring.to_dict()}
-
-
-@dataclass(frozen=True)
-class ResultDocstring:
-    type: str
-    description: str
-
-    @staticmethod
-    def from_dict(d: dict[str, Any]) -> ResultDocstring:
-        return ResultDocstring(
-            d.get("type", ""),
-            d.get("description", ""),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        return {"type": self.type, "description": self.description}

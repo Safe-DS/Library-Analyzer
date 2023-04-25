@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
 @dataclass(frozen=True)
@@ -42,3 +46,19 @@ class ParameterDocstring:
 
     def to_dict(self) -> dict:
         return dataclasses.asdict(self)
+
+
+@dataclass(frozen=True)
+class ResultDocstring:
+    type: str
+    description: str
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> ResultDocstring:
+        return ResultDocstring(
+            d.get("type", ""),
+            d.get("description", ""),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"type": self.type, "description": self.description}

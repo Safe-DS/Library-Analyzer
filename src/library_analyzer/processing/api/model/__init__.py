@@ -10,12 +10,12 @@ from ._api import (
     Import,
     Module,
     Result,
-    ResultDocstring,
 )
 from ._docstring import (
     ClassDocstring,
     FunctionDocstring,
     ParameterDocstring,
+    ResultDocstring,
 )
 from ._parameters import Parameter, ParameterAssignment
 from ._purity import (
