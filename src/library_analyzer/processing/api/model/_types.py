@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
-    from ._documentation import ParameterDocstring
+    from ._docstring import ParameterDocstring
 
 
 class AbstractType(metaclass=ABCMeta):

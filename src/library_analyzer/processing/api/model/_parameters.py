@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from ._documentation import ParameterDocstring
+from ._docstring import ParameterDocstring
 from ._types import AbstractType, create_type
 
 

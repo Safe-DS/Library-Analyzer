@@ -11,7 +11,7 @@ from black.trans import CannotTransform
 
 from library_analyzer.utils import ensure_file_exists, parent_id
 
-from ._documentation import ClassDocstring, FunctionDocstring
+from ._docstring import ClassDocstring, FunctionDocstring
 from ._parameters import Parameter
 from ._types import AbstractType
 

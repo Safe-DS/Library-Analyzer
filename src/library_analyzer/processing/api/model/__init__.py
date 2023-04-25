@@ -12,7 +12,7 @@ from ._api import (
     Result,
     ResultDocstring,
 )
-from ._documentation import (
+from ._docstring import (
     ClassDocstring,
     FunctionDocstring,
     ParameterDocstring,
