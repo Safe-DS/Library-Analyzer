@@ -366,11 +366,13 @@ def test_handle_duplicates() -> None:
     todo_values.remove(todo_annotations[classv2.id].pop("newTodo"))
     assert todo_annotations[classv2.id] == {
         "authors": ["", "migration"],
-        "comment": "Conflicting Attribute during migration: {'newTodo': '"
-        + todo_values[0]
-        + "'}, {'newTodo': '"
-        + todo_values[1]
-        + "'}",
+        "comment": (
+            "Conflicting Attribute during migration: {'newTodo': '"
+            + todo_values[0]
+            + "'}, {'newTodo': '"
+            + todo_values[1]
+            + "'}"
+        ),
         "reviewResult": "unsure",
         "reviewers": [""],
         "target": "test/test.duplicate/TestClass",

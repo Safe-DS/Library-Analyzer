@@ -101,7 +101,10 @@ def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> Non
             },
         ),
         (
-            "Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [1, infinity].\n\n.. versionadded:: 0.18.0",
+            (
+                "Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [1,"
+                " infinity].\n\n.. versionadded:: 0.18.0"
+            ),
             {
                 "base_type": "float",
                 "kind": "BoundaryType",
@@ -203,7 +206,10 @@ def test_correct_hash() -> None:
     ("string", "expected"),
     [
         (
-            "float, default=0.0 Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [0.0, infinity).\n\n.. versionadded:: 0.18.0",
+            (
+                "float, default=0.0 Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range"
+                " [0.0, infinity).\n\n.. versionadded:: 0.18.0"
+            ),
             BoundaryType(
                 base_type="float",
                 min=0,
@@ -250,7 +256,10 @@ def test_correct_hash() -> None:
             ),
         ),
         (
-            "Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [-2, -1].\n\n.. versionadded:: 0.18.0",
+            (
+                "Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [-2, -1].\n\n.."
+                " versionadded:: 0.18.0"
+            ),
             BoundaryType(
                 base_type="float",
                 min=-2,

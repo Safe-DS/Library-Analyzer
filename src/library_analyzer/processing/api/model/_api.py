@@ -9,12 +9,11 @@ from black.brackets import BracketMatchError
 from black.linegen import CannotSplit
 from black.trans import CannotTransform
 
-from library_analyzer.utils import parent_id, ensure_file_exists
+from library_analyzer.utils import ensure_file_exists, parent_id
 
 from ._documentation import ClassDocumentation, FunctionDocumentation
 from ._parameters import Parameter
 from ._types import AbstractType
-from ... import api
 
 if TYPE_CHECKING:
     from pathlib import Path
