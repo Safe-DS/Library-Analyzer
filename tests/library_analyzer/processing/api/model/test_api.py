@@ -240,45 +240,32 @@ def test_cut_documentation_from_code(code: str, expected_code: str) -> None:
 class TestPublicAPI:
     def test_should_return_only_public_api_elements(self) -> None:
         public_function = Function.from_dict(
-            {
-                "id": "test/test/publicFunction",
-                "qname": "test.publicFunction",
-                "is_public": True
-            }
+            {"id": "test/test/publicFunction", "qname": "test.publicFunction", "is_public": True},
         )
         internal_function = Function.from_dict(
-            {
-                "id": "test/test/internalFunction",
-                "qname": "test.internalFunction",
-                "is_public": False
-            }
+            {"id": "test/test/internalFunction", "qname": "test.internalFunction", "is_public": False},
         )
         public_method = Function.from_dict(
-            {
-                "id": "test/test/PublicClass/publicMethod",
-                "qname": "test.PublicClass.publicMethod",
-                "is_public": True
-            }
+            {"id": "test/test/PublicClass/publicMethod", "qname": "test.PublicClass.publicMethod", "is_public": True},
         )
         internal_method = Function.from_dict(
             {
                 "id": "test/test/PublicClass/internalMethod",
                 "qname": "test.PublicClass.internalMethod",
-                "is_public": False
-            }
+                "is_public": False,
+            },
         )
-        public_class = Class.from_dict({
-            "id": "test/test/PublicClass",
-            "qname": "test.PublicClass",
-            "is_public": True,
-            "methods": [public_method.id, internal_method.id]
-        })
-        internal_class = Class.from_dict({
-            "id": "test/test/InternalClass",
-            "qname": "test.InternalClass",
-            "is_public": False,
-            "methods": []
-        })
+        public_class = Class.from_dict(
+            {
+                "id": "test/test/PublicClass",
+                "qname": "test.PublicClass",
+                "is_public": True,
+                "methods": [public_method.id, internal_method.id],
+            },
+        )
+        internal_class = Class.from_dict(
+            {"id": "test/test/InternalClass", "qname": "test.InternalClass", "is_public": False, "methods": []},
+        )
         api = API(
             distribution="test",
             package="test",
