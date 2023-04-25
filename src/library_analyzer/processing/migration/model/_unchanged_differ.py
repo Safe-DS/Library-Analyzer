@@ -44,24 +44,7 @@ class UnchangedDiffer(AbstractDiffer):
                 self.unchanged_api_mappings.append(
                     OneToOneMapping(1.0, parameterv1, parameterv2)
                 )
-
-        # for attributev1 in apiv1.attributes().values():
-        #     attributev2 = apiv2.attributes().get(
-        #         f"{attributev1.class_id}/{attributev1.name}", None
-        #     )
-        #     if attributev2 is not None and self.have_same_api(attributev1, attributev2):
-        #         self.unchanged_api_mappings.append(
-        #             OneToOneMapping(1.0, attributev1, attributev2)
-        #         )
-        #
-        # for resultv1 in apiv1.results().values():
-        #     resultv2 = apiv2.results().get(
-        #         f"{resultv1.function_id}/{resultv1.name}", None
-        #     )
-        #     if resultv2 is not None and self.have_same_api(resultv1, resultv2):
-        #         self.unchanged_api_mappings.append(
-        #             OneToOneMapping(1.0, resultv1, resultv2)
-        #         )
+        # Attribute und Result could be added here
 
     API_ELEMENTS = TypeVar(
         "API_ELEMENTS", Attribute, Class, Function, Parameter, Result

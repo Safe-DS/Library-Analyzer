@@ -147,9 +147,7 @@ def test_similarity() -> None:
 
     class_mapping = OneToOneMapping(1.0, class_a, class_a)
     function_mapping = OneToOneMapping(1.0, function_a, function_a)
-    attribute_mapping = OneToOneMapping(1.0, attribute_a, attribute_a)
     parameter_mapping = OneToOneMapping(1.0, parameter_a, parameter_a)
-    result_mapping = OneToOneMapping(1.0, result_a, result_a)
     class_mapping_changed_code = OneToOneMapping(1.0, class_c, class_d)
 
     unchanged_differ = UnchangedDiffer(None, [], apiv1, apiv2)
@@ -161,7 +159,5 @@ def test_similarity() -> None:
         class_mapping,
         function_mapping,
         parameter_mapping,
-        attribute_mapping,
-        result_mapping,
     ]
     assert unchanged_differ.get_additional_mappings() == expected_mappings
