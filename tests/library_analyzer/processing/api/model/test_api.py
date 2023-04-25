@@ -5,9 +5,9 @@ import pytest
 from library_analyzer.processing.api._ast_visitor import trim_code
 from library_analyzer.processing.api.model import (
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
 )
 
 
@@ -215,7 +215,7 @@ def test_cut_documentation_from_code(code: str, expected_code: str) -> None:
             superclasses=[],
             is_public=True,
             reexported_by=[],
-            documentation=ClassDocumentation(
+            docstring=ClassDocstring(
                 "this documentation string cannot be used",
             ),
             code=code,
@@ -230,7 +230,7 @@ def test_cut_documentation_from_code(code: str, expected_code: str) -> None:
             results=[],
             is_public=True,
             reexported_by=[],
-            documentation=FunctionDocumentation(),
+            docstring=FunctionDocstring(),
             code=code,
         )
     assert api_element.get_formatted_code(cut_documentation=True) == expected_code + "\n"

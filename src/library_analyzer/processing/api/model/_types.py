@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
-    from ._documentation import ParameterDocumentation
+    from ._docstring import ParameterDocstring
 
 
 class AbstractType(metaclass=ABCMeta):
@@ -235,7 +235,7 @@ class UnionType(AbstractType):
 
 
 def create_type(
-    parameter_documentation: ParameterDocumentation,
+    parameter_documentation: ParameterDocstring,
 ) -> AbstractType | None:
     type_string = parameter_documentation.type
     types: list[AbstractType] = []

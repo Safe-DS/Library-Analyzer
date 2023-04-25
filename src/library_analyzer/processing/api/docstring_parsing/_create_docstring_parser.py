@@ -8,7 +8,7 @@ from ._numpydoc_parser import NumpyDocParser
 from ._plaintext_docstring_parser import PlaintextDocstringParser
 
 if TYPE_CHECKING:
-    from ._abstract_documentation_parser import AbstractDocstringParser
+    from ._abstract_docstring_parser import AbstractDocstringParser
 
 
 def create_docstring_parser(style: DocstringStyle) -> AbstractDocstringParser:

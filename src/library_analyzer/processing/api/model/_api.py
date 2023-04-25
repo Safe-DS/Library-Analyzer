@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from enum import Enum
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 from black import FileMode, InvalidInput, format_str
 from black.brackets import BracketMatchError
@@ -11,9 +12,8 @@ from black.trans import CannotTransform
 
 from library_analyzer.utils import ensure_file_exists, parent_id
 
-from ._documentation import ClassDocumentation, FunctionDocumentation
-from ._parameters import Parameter
-from ._types import AbstractType
+from ._docstring import ClassDocstring, FunctionDocstring, ParameterDocstring, ResultDocstring
+from ._types import AbstractType, create_type
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -237,7 +237,7 @@ class Class:
     methods: list[str] = field(init=False)
     is_public: bool
     reexported_by: list[str]
-    documentation: ClassDocumentation
+    docstring: ClassDocstring
     code: str
     instance_attributes: list[Attribute]
 
@@ -250,7 +250,7 @@ class Class:
             d.get("superclasses", []),
             d.get("is_public", True),
             d.get("reexported_by", []),
-            ClassDocumentation(description=d.get("description", "")),
+            ClassDocstring(description=d.get("description", "")),
             d.get("code", ""),
             [
                 Attribute.from_dict(instance_attribute, d["id"])
@@ -283,7 +283,7 @@ class Class:
             "methods": self.methods,
             "is_public": self.is_public,
             "reexported_by": self.reexported_by,
-            "description": self.documentation.description,
+            "description": self.docstring.description,
             "code": self.code,
             "instance_attributes": [attribute.to_dict() for attribute in self.instance_attributes],
         }
@@ -359,7 +359,7 @@ class Function:
     results: list[Result]
     is_public: bool
     reexported_by: list[str]
-    documentation: FunctionDocumentation
+    docstring: FunctionDocstring
     code: str
 
     @staticmethod
@@ -372,7 +372,7 @@ class Function:
             [Result.from_dict(result_json) for result_json in d.get("results", [])],
             d.get("is_public", True),
             d.get("reexported_by", []),
-            FunctionDocumentation(description=d.get("description", "")),
+            FunctionDocstring(description=d.get("description", "")),
             d.get("code", ""),
         )
 
@@ -390,7 +390,7 @@ class Function:
             "results": [result.to_dict() for result in self.results],
             "is_public": self.is_public,
             "reexported_by": self.reexported_by,
-            "description": self.documentation.description,
+            "description": self.docstring.description,
             "code": self.code,
         }
 
@@ -399,6 +399,101 @@ class Function:
         if cut_documentation:
             formatted_code = _cut_documentation_from_code(formatted_code, self)
         return formatted_code
+
+
+class Parameter:
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> Parameter:
+        return Parameter(
+            d["id"],
+            d["name"],
+            d["qname"],
+            d.get("default_value", None),
+            ParameterAssignment[d.get("assigned_by", "POSITION_OR_NAME")],
+            d.get("is_public", True),
+            ParameterDocstring.from_dict(d.get("docstring", {})),
+        )
+
+    def __hash__(self) -> int:
+        return hash(
+            (
+                self.id,
+                self.name,
+                self.qname,
+                self.default_value,
+                self.assigned_by,
+                self.is_public,
+                self.docstring,
+            ),
+        )
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, Parameter)
+            and self.id == other.id
+            and self.name == other.name
+            and self.qname == other.qname
+            and self.default_value == other.default_value
+            and self.assigned_by == other.assigned_by
+            and self.is_public == other.is_public
+            and self.docstring == other.docstring
+            and self.type == other.type
+        )
+
+    def __init__(
+        self,
+        id_: str,
+        name: str,
+        qname: str,
+        default_value: str | None,
+        assigned_by: ParameterAssignment,
+        is_public: bool,
+        docstring: ParameterDocstring,
+    ) -> None:
+        self.id: str = id_
+        self.name: str = name
+        self.qname: str = qname
+        self.default_value: str | None = default_value
+        self.assigned_by: ParameterAssignment = assigned_by
+        self.is_public: bool = is_public
+        self.docstring = docstring
+        self.type: AbstractType | None = create_type(docstring)
+
+    def is_optional(self) -> bool:
+        return self.default_value is not None
+
+    def is_required(self) -> bool:
+        return self.default_value is None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "qname": self.qname,
+            "default_value": self.default_value,
+            "assigned_by": self.assigned_by.name,
+            "is_public": self.is_public,
+            "docstring": self.docstring.to_dict(),
+            "type": self.type.to_dict() if self.type is not None else {},
+        }
+
+
+class ParameterAssignment(Enum):
+    """
+    How arguments are assigned to parameters. The parameters must appear exactly in this order in a parameter list.
+
+    IMPLICIT parameters appear on instance methods (usually called "self") and on class methods (usually called "cls").
+    POSITION_ONLY parameters precede the "/" in a parameter list. NAME_ONLY parameters follow the "*" or the
+    POSITIONAL_VARARGS parameter ("*args"). Between the "/" and the "*" the POSITION_OR_NAME parameters reside. Finally,
+    the parameter list might optionally include a NAMED_VARARG parameter ("**kwargs").
+    """
+
+    IMPLICIT = "IMPLICIT"
+    POSITION_ONLY = "POSITION_ONLY"
+    POSITION_OR_NAME = "POSITION_OR_NAME"
+    POSITIONAL_VARARG = "POSITIONAL_VARARG"
+    NAME_ONLY = "NAME_ONLY"
+    NAMED_VARARG = "NAMED_VARARG"
 
 
 @dataclass(frozen=True)
@@ -419,17 +514,4 @@ class Result:
         return {"name": self.name, "docstring": self.docstring.to_dict()}
 
 
-@dataclass(frozen=True)
-class ResultDocstring:
-    type: str
-    description: str
-
-    @staticmethod
-    def from_dict(d: dict[str, Any]) -> ResultDocstring:
-        return ResultDocstring(
-            d.get("type", ""),
-            d.get("description", ""),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        return {"type": self.type, "description": self.description}
+ApiElement: TypeAlias = Module | Class | Attribute | Function | Parameter | Result

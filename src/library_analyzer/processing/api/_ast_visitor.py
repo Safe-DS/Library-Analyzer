@@ -150,7 +150,7 @@ class _AstVisitor:
             superclasses=class_node.basenames,
             is_public=self.is_public(class_node.name, qname),
             reexported_by=self.reexported.get(qname, []),
-            documentation=self.docstring_parser.get_class_documentation(class_node),
+            docstring=self.docstring_parser.get_class_documentation(class_node),
             code=code,
             instance_attributes=instance_attributes,
         )
@@ -197,7 +197,7 @@ class _AstVisitor:
             results=[],  # TODO: results
             is_public=is_public,
             reexported_by=self.reexported.get(qname, []),
-            documentation=self.docstring_parser.get_function_documentation(function_node),
+            docstring=self.docstring_parser.get_function_documentation(function_node),
             code=code,
         )
         self.__declaration_stack.append(function)

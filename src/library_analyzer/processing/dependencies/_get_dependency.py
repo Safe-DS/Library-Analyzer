@@ -186,7 +186,7 @@ def get_dependencies(api: API) -> APIDependencies:
         parameters = function.parameters
         all_dependencies[function_name] = {}
         for parameter in parameters:
-            docstring = parameter.documentation.description
+            docstring = parameter.docstring.description
             docstring_preprocessed = preprocess_docstring(docstring)
             doc = nlp(docstring_preprocessed)
             param_dependencies = []

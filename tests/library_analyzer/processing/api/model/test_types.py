@@ -9,7 +9,7 @@ from library_analyzer.processing.api.model import (
     NamedType,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
     create_type,
 )
 
@@ -79,7 +79,7 @@ from library_analyzer.processing.api.model import (
     ],
 )
 def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> None:
-    result = create_type(ParameterDocumentation(docstring_type, "", ""))
+    result = create_type(ParameterDocstring(docstring_type, "", ""))
     if result is None:
         assert expected == {}
     else:
@@ -118,7 +118,7 @@ def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> Non
     ],
 )
 def test_boundary_from_string(description: str, expected: dict[str, Any]) -> None:
-    result = create_type(ParameterDocumentation("", "", description))
+    result = create_type(ParameterDocstring("", "", description))
     if result is None:
         assert expected == {}
     else:
@@ -156,7 +156,7 @@ def test_boundary_and_union_from_string(
     expected: dict[str, Any],
 ) -> None:
     result = create_type(
-        ParameterDocumentation(type=docstring_type, default_value="", description=docstring_description),
+        ParameterDocstring(type=docstring_type, default_value="", description=docstring_description),
     )
 
     if result is None:
@@ -173,7 +173,7 @@ def test_correct_hash() -> None:
         default_value="'test_str'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("'hashvalue'", "r", "r"),
+        docstring=ParameterDocstring("'hashvalue'", "r", "r"),
     )
     assert hash(parameter) == hash(deepcopy(parameter))
     enum_values = frozenset({"a", "b", "c"})
