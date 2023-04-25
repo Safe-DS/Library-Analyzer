@@ -5,7 +5,7 @@ from library_analyzer.processing.api.docstring_parsing import (
 )
 from library_analyzer.processing.api.model import (
     ClassDocstring,
-    FunctionDocumentation,
+    FunctionDocstring,
     ParameterAssignment,
     ParameterDocumentation,
 )
@@ -90,14 +90,14 @@ def f(p: int):
     [
         (
             function_with_documentation,
-            FunctionDocumentation(
+            FunctionDocstring(
                 description="Lorem ipsum.\n\nDolor sit amet.",
                 full_docstring="Lorem ipsum.\n\nDolor sit amet.",
             ),
         ),
         (
             function_without_documentation,
-            FunctionDocumentation(description=""),
+            FunctionDocstring(description=""),
         ),
     ],
     ids=[
@@ -108,7 +108,7 @@ def f(p: int):
 def test_get_function_documentation(
     plaintext_docstring_parser: PlaintextDocstringParser,
     python_code: str,
-    expected_function_documentation: FunctionDocumentation,
+    expected_function_documentation: FunctionDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
 

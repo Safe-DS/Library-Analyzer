@@ -18,13 +18,13 @@ class ClassDocstring:
 
 
 @dataclass(frozen=True)
-class FunctionDocumentation:
+class FunctionDocstring:
     description: str = ""
     full_docstring: str = ""
 
     @staticmethod
-    def from_dict(d: dict) -> FunctionDocumentation:
-        return FunctionDocumentation(**d)
+    def from_dict(d: dict) -> FunctionDocstring:
+        return FunctionDocstring(**d)
 
     def to_dict(self) -> dict:
         return dataclasses.asdict(self)

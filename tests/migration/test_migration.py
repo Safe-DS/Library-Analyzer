@@ -15,7 +15,7 @@ from library_analyzer.processing.api.model import (
     Class,
     ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
 )
 from library_analyzer.processing.migration import Migration
 from library_analyzer.processing.migration.annotations._migrate_move_annotation import (
@@ -397,7 +397,7 @@ def test_was_moved() -> None:
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(),
+        documentation=FunctionDocstring(),
         code="",
     )
     assert _was_moved(function, function, move_annotation) is False
@@ -412,7 +412,7 @@ def test_was_moved() -> None:
                 results=[],
                 is_public=True,
                 reexported_by=[],
-                documentation=FunctionDocumentation(),
+                documentation=FunctionDocstring(),
                 code="",
             ),
             move_annotation,
@@ -430,7 +430,7 @@ def test_was_moved() -> None:
                 results=[],
                 is_public=True,
                 reexported_by=[],
-                documentation=FunctionDocumentation(),
+                documentation=FunctionDocstring(),
                 code="",
             ),
             move_annotation,

@@ -7,7 +7,7 @@ from library_analyzer.processing.api.model import (
     Class,
     ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
     NamedType,
     Parameter,
     ParameterAssignment,
@@ -85,7 +85,7 @@ def create_api_super() -> tuple[API, Class, Class, Attribute, Function, Paramete
         results=[result_super],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(
+        documentation=FunctionDocstring(
             "This is a test function",
         ),
         code=code_function_a,
@@ -163,7 +163,7 @@ def create_api_sub() -> tuple[API, Class, Class, Attribute, Function, Parameter,
         results=[result_sub],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(
+        documentation=FunctionDocstring(
             "This test function is only for testing",
         ),
         code=code_function_a,

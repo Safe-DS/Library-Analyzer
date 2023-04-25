@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
     from library_analyzer.processing.api.model import (
         ClassDocstring,
-        FunctionDocumentation,
+        FunctionDocstring,
         ParameterAssignment,
         ParameterDocumentation,
     )
@@ -20,7 +20,7 @@ class AbstractDocstringParser(ABC):
         pass
 
     @abstractmethod
-    def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocumentation:
+    def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocstring:
         pass
 
     @abstractmethod

@@ -7,7 +7,7 @@ from library_analyzer.processing.api.model import (
     Class,
     ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
     NamedType,
     Parameter,
     ParameterAssignment,
@@ -99,7 +99,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
         results=[result_a],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(
+        documentation=FunctionDocstring(
             "This test function is a for testing",
         ),
         code=code_function_a,
@@ -136,7 +136,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
         results=[result_b],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(
+        documentation=FunctionDocstring(
             "This test function is a test",
         ),
         code=code_b,

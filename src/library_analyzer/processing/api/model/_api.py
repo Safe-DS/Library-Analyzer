@@ -11,7 +11,7 @@ from black.trans import CannotTransform
 
 from library_analyzer.utils import ensure_file_exists, parent_id
 
-from ._documentation import ClassDocstring, FunctionDocumentation
+from ._documentation import ClassDocstring, FunctionDocstring
 from ._parameters import Parameter
 from ._types import AbstractType
 
@@ -359,7 +359,7 @@ class Function:
     results: list[Result]
     is_public: bool
     reexported_by: list[str]
-    documentation: FunctionDocumentation
+    documentation: FunctionDocstring
     code: str
 
     @staticmethod
@@ -372,7 +372,7 @@ class Function:
             [Result.from_dict(result_json) for result_json in d.get("results", [])],
             d.get("is_public", True),
             d.get("reexported_by", []),
-            FunctionDocumentation(description=d.get("description", "")),
+            FunctionDocstring(description=d.get("description", "")),
             d.get("code", ""),
         )
 

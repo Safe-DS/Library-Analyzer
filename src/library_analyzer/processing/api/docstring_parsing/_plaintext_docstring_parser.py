@@ -2,7 +2,7 @@ import astroid
 
 from library_analyzer.processing.api.model import (
     ClassDocstring,
-    FunctionDocumentation,
+    FunctionDocstring,
     ParameterAssignment,
     ParameterDocumentation,
 )
@@ -22,10 +22,10 @@ class PlaintextDocstringParser(AbstractDocstringParser):
             full_docstring=docstring,
         )
 
-    def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocumentation:
+    def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocstring:
         docstring = get_full_docstring(function_node)
 
-        return FunctionDocumentation(
+        return FunctionDocstring(
             description=docstring,
             full_docstring=docstring,
         )

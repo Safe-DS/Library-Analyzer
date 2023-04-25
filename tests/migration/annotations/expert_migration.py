@@ -8,7 +8,7 @@ from library_analyzer.processing.api.model import (
     Class,
     ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
     Parameter,
     ParameterAssignment,
     ParameterDocumentation,
@@ -40,7 +40,7 @@ def migrate_expert_annotation_data__function() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(),
+        documentation=FunctionDocstring(),
         code="",
     )
 
@@ -52,7 +52,7 @@ def migrate_expert_annotation_data__function() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(),
+        documentation=FunctionDocstring(),
         code="",
     )
 
@@ -112,7 +112,7 @@ def migrate_expert_annotation_data__class() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(),
+        documentation=FunctionDocstring(),
         code="",
     )
 
@@ -201,7 +201,7 @@ def migrate_expert_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(),
+        documentation=FunctionDocstring(),
         code="",
     )
     functionv1_2 = Function(
@@ -212,7 +212,7 @@ def migrate_expert_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(),
+        documentation=FunctionDocstring(),
         code="",
     )
 
@@ -224,7 +224,7 @@ def migrate_expert_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(),
+        documentation=FunctionDocstring(),
         code="",
     )
 

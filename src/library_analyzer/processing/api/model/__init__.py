@@ -14,7 +14,7 @@ from ._api import (
 )
 from ._documentation import (
     ClassDocstring,
-    FunctionDocumentation,
+    FunctionDocstring,
     ParameterDocumentation,
 )
 from ._parameters import Parameter, ParameterAssignment
@@ -65,7 +65,7 @@ __all__ = [
     "FileWrite",
     "FromImport",
     "Function",
-    "FunctionDocumentation",
+    "FunctionDocstring",
     "GlobalAccess",
     "Import",
     "ImpurityCertainty",

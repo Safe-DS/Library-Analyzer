@@ -8,7 +8,7 @@ from library_analyzer.processing.api.model import (
     Class,
     ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
 )
 from library_analyzer.processing.migration.annotations import (
     get_migration_text,
@@ -37,7 +37,7 @@ def migrate_remove_annotation_data_one_to_one_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(),
+        documentation=FunctionDocstring(),
         code="",
     )
 
@@ -49,7 +49,7 @@ def migrate_remove_annotation_data_one_to_one_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(),
+        documentation=FunctionDocstring(),
         code="",
     )
 
@@ -120,7 +120,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(),
+        documentation=FunctionDocstring(),
         code="",
     )
 
@@ -173,7 +173,7 @@ def migrate_remove_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(),
+        documentation=FunctionDocstring(),
         code="",
     )
     functionv1_2 = Function(
@@ -184,7 +184,7 @@ def migrate_remove_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(),
+        documentation=FunctionDocstring(),
         code="",
     )
 
@@ -196,7 +196,7 @@ def migrate_remove_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(),
+        documentation=FunctionDocstring(),
         code="",
     )
 

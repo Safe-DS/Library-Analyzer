@@ -3,7 +3,7 @@ import pytest
 from library_analyzer.processing.api.docstring_parsing import NumpyDocParser
 from library_analyzer.processing.api.model import (
     ClassDocstring,
-    FunctionDocumentation,
+    FunctionDocstring,
     ParameterAssignment,
     ParameterDocumentation,
 )
@@ -89,14 +89,14 @@ def f():
     [
         (
             function_with_documentation,
-            FunctionDocumentation(
+            FunctionDocstring(
                 description="Lorem ipsum. Code::\n\npass\n\nDolor sit amet.",
                 full_docstring="Lorem ipsum. Code::\n\n    pass\n\nDolor sit amet.",
             ),
         ),
         (
             function_without_documentation,
-            FunctionDocumentation(description=""),
+            FunctionDocstring(description=""),
         ),
     ],
     ids=[
@@ -107,7 +107,7 @@ def f():
 def test_get_function_documentation(
     numpydoc_parser: NumpyDocParser,
     python_code: str,
-    expected_function_documentation: FunctionDocumentation,
+    expected_function_documentation: FunctionDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
 

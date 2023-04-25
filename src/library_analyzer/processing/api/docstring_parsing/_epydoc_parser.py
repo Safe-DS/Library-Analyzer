@@ -4,7 +4,7 @@ from docstring_parser import parse as parse_docstring
 
 from library_analyzer.processing.api.model import (
     ClassDocstring,
-    FunctionDocumentation,
+    FunctionDocstring,
     ParameterAssignment,
     ParameterDocumentation,
 )
@@ -33,11 +33,11 @@ class EpydocParser(AbstractDocstringParser):
             full_docstring=docstring,
         )
 
-    def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocumentation:
+    def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocstring:
         docstring = get_full_docstring(function_node)
         docstring_obj = self.__get_cached_function_numpydoc_string(function_node, docstring)
 
-        return FunctionDocumentation(
+        return FunctionDocstring(
             description=get_description(docstring_obj),
             full_docstring=docstring,
         )
