@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 from black import FileMode, InvalidInput, format_str
 from black.brackets import BracketMatchError
@@ -331,7 +331,7 @@ def _cut_documentation_from_code(code: str, api_element: Class | Function) -> st
             if end_line >= 0:
                 if (end_line + 1) < len(lines) and lines[end_line + 1].lstrip() == "":
                     end_line += 1
-                return "\n".join(lines[:start_line]) + "\n" + "\n".join(lines[end_line + 1 :])
+                return "\n".join(lines[:start_line]) + "\n" + "\n".join(lines[end_line + 1:])
     return code
 
 
@@ -512,3 +512,6 @@ class Result:
 
     def to_dict(self) -> dict[str, Any]:
         return {"name": self.name, "docstring": self.docstring.to_dict()}
+
+
+ApiElement: TypeAlias = Module | Class | Attribute | Function | Parameter | Result
