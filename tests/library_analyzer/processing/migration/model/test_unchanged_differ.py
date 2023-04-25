@@ -27,7 +27,7 @@ def test_similarity() -> None:
         pass""",
     )
     class_id_a = "test/test/Test"
-    attribute_a = Attribute("new_test_string", NamedType("str"), class_id=class_id_a)
+    attribute_a = Attribute("test/test/Test/new_test_string", "new_test_string", NamedType("str"), class_id=class_id_a)
     class_a = Class(
         id=class_id_a,
         qname="test.Test",
@@ -46,7 +46,7 @@ def test_similarity() -> None:
         pass""",
     )
     class_id_b = "test/test/NewTest"
-    attribute_b = Attribute("test_string", NamedType("str"), class_id=class_id_b)
+    attribute_b = Attribute("test/test/NewTest/test_string", "test_string", NamedType("str"), class_id=class_id_b)
     class_b = Class(
         id=class_id_b,
         qname="test.newTest",

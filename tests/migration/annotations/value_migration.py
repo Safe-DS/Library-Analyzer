@@ -257,7 +257,7 @@ def migrate_constant_annotation_data_one_to_many_mapping() -> (
         is_public=True,
         docstring=ParameterDocstring("float", "3.0", ""),
     )
-    attribute = Attribute("test_attribute", NamedType("str"))
+    attribute = Attribute("test_attribute", "test_attribute", NamedType("str"))
 
     mapping = OneToManyMapping(
         1.0,

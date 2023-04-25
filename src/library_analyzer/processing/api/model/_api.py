@@ -337,17 +337,18 @@ def _cut_documentation_from_code(code: str, api_element: Class | Function) -> st
 
 @dataclass(frozen=True)
 class Attribute:
+    id: str
     name: str
     types: AbstractType | None
     class_id: str | None = None
 
     @staticmethod
     def from_dict(d: dict[str, Any], class_id: str | None = None) -> Attribute:
-        return Attribute(d["name"], AbstractType.from_dict(d.get("types", {})), class_id)
+        return Attribute(d["id"], d["name"], AbstractType.from_dict(d.get("types", {})), class_id)
 
     def to_dict(self) -> dict[str, Any]:
         types_json = self.types.to_dict() if self.types is not None else None
-        return {"name": self.name, "types": types_json}
+        return {"id": self.id, "name": self.name, "types": types_json}
 
 
 @dataclass(frozen=True)
