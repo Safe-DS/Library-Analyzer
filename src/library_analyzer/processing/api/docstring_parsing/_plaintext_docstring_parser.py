@@ -7,7 +7,7 @@ from library_analyzer.processing.api.model import (
     ParameterDocstring,
 )
 
-from ._abstract_documentation_parser import AbstractDocstringParser
+from ._abstract_docstring_parser import AbstractDocstringParser
 from ._helpers import get_full_docstring
 
 
