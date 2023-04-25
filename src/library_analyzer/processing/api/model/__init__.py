@@ -9,6 +9,8 @@ from ._api import (
     Function,
     Import,
     Module,
+    Parameter,
+    ParameterAssignment,
     Result,
 )
 from ._docstring import (
@@ -17,7 +19,6 @@ from ._docstring import (
     ParameterDocstring,
     ResultDocstring,
 )
-from ._parameters import Parameter, ParameterAssignment
 from ._purity import (
     AttributeAccess,
     BuiltInFunction,
