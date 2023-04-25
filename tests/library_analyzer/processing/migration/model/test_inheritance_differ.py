@@ -72,7 +72,7 @@ def create_api_super() -> tuple[API, Class, Class, Attribute, Function, Paramete
         is_public=True,
         docstring=ParameterDocstring("'test_str_a'", "", ""),
     )
-    result_super = Result("config", ResultDocstring("dict", ""), function_id=function_id_super)
+    result_super = Result("config", "config", ResultDocstring("dict", ""), function_id=function_id_super)
     code_function_a = cleandoc(
         """
     def test_function_super(test_parameter: str):
@@ -150,7 +150,7 @@ def create_api_sub() -> tuple[API, Class, Class, Attribute, Function, Parameter,
         is_public=True,
         docstring=ParameterDocstring("'test_str_a'", "", ""),
     )
-    result_sub = Result("config", ResultDocstring("dict", ""), function_id=function_id_sub)
+    result_sub = Result("config", "config", ResultDocstring("dict", ""), function_id=function_id_sub)
     code_function_a = cleandoc(
         """
     def test_function_sub(test_parameter: str):

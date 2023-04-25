@@ -213,10 +213,11 @@ def test_parameter_similarity(differ: AbstractDiffer) -> None:
     differ_list,
 )
 def test_result_similarity(differ: AbstractDiffer) -> None:
-    result_a = Result("config", ResultDocstring("dict", ""))
+    result_a = Result("config", "config", ResultDocstring("dict", ""))
     assert differ.compute_result_similarity(result_a, result_a) == 1
 
     result_b = Result(
+        "new_config",
         "new_config",
         ResultDocstring("dict", "A dictionary that includes the new configuration"),
     )
