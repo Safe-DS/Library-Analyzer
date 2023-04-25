@@ -238,7 +238,7 @@ def test_cut_documentation_from_code(code: str, expected_code: str) -> None:
 
 
 class TestPublicAPI:
-    def test_should_return_only_public_api_elements(self):
+    def test_should_return_only_public_api_elements(self) -> None:
         public_function = Function.from_dict(
             {
                 "id": "test/test/publicFunction",
