@@ -1,13 +1,12 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import pytest
 import astroid
 
 from library_analyzer.processing.api import (
     find_references,
-    get_name_nodes, create_references, NodeReference, calc_node_id, NodeScope, get_nodes_for_scope, MemberAccess,
+    get_name_nodes, create_references, NodeReference, calc_node_id, NodeScope, Scopes, get_scope, MemberAccess,
 )
-from library_analyzer.processing.api._resolve_references import Scopes, get_scope
 
 
 @pytest.mark.parametrize(
@@ -303,19 +302,22 @@ def transform_names_list(names_list):
         if isinstance(name, astroid.Name | astroid.AssignName):
             names_list_transformed.append(f"{name.__class__.__name__}.{name.name}")
         elif isinstance(name, MemberAccess):
-            attribute_names = []
-
-            while isinstance(name, MemberAccess):
-                attribute_names.append(name.value.name)
-                name = name.expression
-            if isinstance(name, astroid.Name):
-                attribute_names.append(name.name)
-
-            result = '.'.join(reversed(attribute_names))
+            result = transform_member_access(name)
             names_list_transformed.append(f"MemberAccess.{result}")
 
     return names_list_transformed
 
+
+def transform_member_access(member_access: MemberAccess):
+    attribute_names = []
+
+    while isinstance(member_access, MemberAccess):
+        attribute_names.append(member_access.value.name)
+        member_access = member_access.expression
+    if isinstance(member_access, astroid.Name):
+        attribute_names.append(member_access.name)
+
+    return '.'.join(reversed(attribute_names))
 
 @pytest.mark.parametrize(
     ("node", "expected"),
@@ -587,201 +589,201 @@ def test_find_references_local(code, expected):
         assert reference == expected
 
 
-@pytest.mark.parametrize(
-    ("code", "expected"),
-    [
-        (
-            """
-                def function_scope():
-                    res = 23
-                    return res
-            """,
-            [
-                ['FunctionDef.function_scope'],
-                [],
-                ['AssignName.res']
-            ]
-        ),
-        (
-            """
-                var1 = 10
-                def function_scope():
-                    res = var1
-                    return res
-            """,
-            [
-                ['AssignName.var1', 'FunctionDef.function_scope'],
-                [],
-                ['AssignName.res']
-            ]
-        ),
-        (
-            """
-                var1 = 10
-                def function_scope():
-                    global var1
-                    res = var1
-                    return res
-            """,
-            [
-                ['AssignName.var1', 'FunctionDef.function_scope'],
-                [],
-                ['AssignName.res']
-            ]
-        ),
-        (
-            """
-                class A:
-                    class_attr1 = 20
-
-                    def local_class_attr():
-                        var1 = A.class_attr1
-                        return var1
-            """,
-            [
-                ['ClassDef.A'],
-                ['AssignName.class_attr1', 'FunctionDef.local_class_attr'],
-                ['AssignName.var1']
-            ]
-        ),
-        (
-            """
-                class B:
-                    def __init__(self):
-                        self.instance_attr1 = 10
-
-                    def local_instance_attr():
-                        var1 = self.instance_attr1
-                        return var1
-            """,
-            [
-                ['ClassDef.B'],
-                ['FunctionDef.__init__', 'FunctionDef.local_instance_attr'],
-                ['MemberAccess.instance_attr1', 'AssignName.var1']
-            ]
-        ),
-        (
-            """
-                class B:
-                    def __init__(self):
-                        self.instance_attr1 = 10
-
-                def local_instance_attr():
-                    var1 = B().instance_attr1
-                    return var1
-            """,
-            [
-                ['ClassDef.B', 'FunctionDef.local_instance_attr'],
-                ['FunctionDef.__init__'],
-                ['MemberAccess.instance_attr1', 'AssignName.var1']
-            ]
-        ),
-        (
-            """
-                from collections.abc import Callable
-                from typing import Any
-
-                import astroid
-
-                _EnterAndLeaveFunctions = tuple[
-                    Callable[[astroid.NodeNG], None] | None,
-                    Callable[[astroid.NodeNG], None] | None,
-                ]
-
-
-                class ASTWalker:
-                    additional_locals = []
-
-                    def __init__(self, handler: Any) -> None:
-                        self._handler = handler
-                        self._cache: dict[type, _EnterAndLeaveFunctions] = {}
-
-                    def walk(self, node: astroid.NodeNG) -> None:
-                        self.__walk(node, set())
-
-                    def __walk(self, node: astroid.NodeNG, visited_nodes: set[astroid.NodeNG]) -> None:
-                        if node in visited_nodes:
-                            raise AssertionError("Node visited twice")
-                        visited_nodes.add(node)
-
-                        self.__enter(node)
-                        for child_node in node.get_children():
-                            self.__walk(child_node, visited_nodes)
-                        self.__leave(node)
-
-                    def __enter(self, node: astroid.NodeNG) -> None:
-                        method = self.__get_callbacks(node)[0]
-                        if method is not None:
-                            method(node)
-
-                    def __leave(self, node: astroid.NodeNG) -> None:
-                        method = self.__get_callbacks(node)[1]
-                        if method is not None:
-                            method(node)
-
-                    def __get_callbacks(self, node: astroid.NodeNG) -> _EnterAndLeaveFunctions:
-                        klass = node.__class__
-                        methods = self._cache.get(klass)
-
-                        if methods is None:
-                            handler = self._handler
-                            class_name = klass.__name__.lower()
-                            enter_method = getattr(handler, f"enter_{class_name}", getattr(handler, "enter_default", None))
-                            leave_method = getattr(handler, f"leave_{class_name}", getattr(handler, "leave_default", None))
-                            self._cache[klass] = (enter_method, leave_method)
-                        else:
-                            enter_method, leave_method = methods
-
-                        return enter_method, leave_method
-
-            """, [
-                ['ImportName.collections', 'ImportName.typing', 'ImportName.astroid', 'ClassDef.ASTWalker'],
-                ['AssignName.additional_locals', 'FunctionDef.__init__', 'FunctionDef.walk', 'FunctionDef.__walk', 'FunctionDef.__enter', 'FunctionDef.__leave', 'FunctionDef.__get_callbacks'],
-                ['MemberAccess.self._handler', 'MemberAccess.self._cache', 'Call.self.__walk', ]
-            ]
-        )
-    ],
-    ids=[
-        "Function Scope",
-        "Function Scope with variable",
-        "Function Scope with global variable",
-        "Class Scope with class attribute and Class function",
-        "Class Scope with instance attribute and Class function",
-        "Class Scope with instance attribute and Modul function",
-        "ASTWalker",
-    ]
-)
-def test_get_nodes_for_scope(code: str, expected) -> None:
-    module = astroid.parse(code)
-    # print(module.repr_tree(), "\n")
-    all_names_list = get_name_nodes(module)
-    references = []
-    for name in all_names_list:
-        references.append(find_references(name))
-
-    module_scope = []
-    class_scope = []
-    function_scope = []
-    for reference in references:
-        for ref in reference:
-            print(ref, "\n", ref.scope.scope.__class__.__name__, "\n")
-        scope_list = get_nodes_for_scope(reference)
-        module_scope.append(scope_list.module_scope)
-        class_scope.append(scope_list.class_scope)
-        function_scope.append(scope_list.function_scope)
-
-    print("Module: ")
-    for reference in module_scope:
-        for ref in reference:
-            print(ref)
-    print("ClassDef: ")
-    for reference in class_scope:
-        for ref in reference:
-            print(ref)
-    print("FunctionDef: ")
-    for reference in function_scope:
-        for ref in reference:
-            print(ref)
+# @pytest.mark.parametrize(
+#     ("code", "expected"),
+#     [
+#         (
+#             """
+#                 def function_scope():
+#                     res = 23
+#                     return res
+#             """,
+#             [
+#                 ['FunctionDef.function_scope'],
+#                 [],
+#                 ['AssignName.res']
+#             ]
+#         ),
+#         (
+#             """
+#                 var1 = 10
+#                 def function_scope():
+#                     res = var1
+#                     return res
+#             """,
+#             [
+#                 ['AssignName.var1', 'FunctionDef.function_scope'],
+#                 [],
+#                 ['AssignName.res']
+#             ]
+#         ),
+#         (
+#             """
+#                 var1 = 10
+#                 def function_scope():
+#                     global var1
+#                     res = var1
+#                     return res
+#             """,
+#             [
+#                 ['AssignName.var1', 'FunctionDef.function_scope'],
+#                 [],
+#                 ['AssignName.res']
+#             ]
+#         ),
+#         (
+#             """
+#                 class A:
+#                     class_attr1 = 20
+#
+#                     def local_class_attr():
+#                         var1 = A.class_attr1
+#                         return var1
+#             """,
+#             [
+#                 ['ClassDef.A'],
+#                 ['AssignName.class_attr1', 'FunctionDef.local_class_attr'],
+#                 ['AssignName.var1']
+#             ]
+#         ),
+#         (
+#             """
+#                 class B:
+#                     def __init__(self):
+#                         self.instance_attr1 = 10
+#
+#                     def local_instance_attr():
+#                         var1 = self.instance_attr1
+#                         return var1
+#             """,
+#             [
+#                 ['ClassDef.B'],
+#                 ['FunctionDef.__init__', 'FunctionDef.local_instance_attr'],
+#                 ['MemberAccess.instance_attr1', 'AssignName.var1']
+#             ]
+#         ),
+#         (
+#             """
+#                 class B:
+#                     def __init__(self):
+#                         self.instance_attr1 = 10
+#
+#                 def local_instance_attr():
+#                     var1 = B().instance_attr1
+#                     return var1
+#             """,
+#             [
+#                 ['ClassDef.B', 'FunctionDef.local_instance_attr'],
+#                 ['FunctionDef.__init__'],
+#                 ['MemberAccess.instance_attr1', 'AssignName.var1']
+#             ]
+#         ),
+#         (
+#             """
+#                 from collections.abc import Callable
+#                 from typing import Any
+#
+#                 import astroid
+#
+#                 _EnterAndLeaveFunctions = tuple[
+#                     Callable[[astroid.NodeNG], None] | None,
+#                     Callable[[astroid.NodeNG], None] | None,
+#                 ]
+#
+#
+#                 class ASTWalker:
+#                     additional_locals = []
+#
+#                     def __init__(self, handler: Any) -> None:
+#                         self._handler = handler
+#                         self._cache: dict[type, _EnterAndLeaveFunctions] = {}
+#
+#                     def walk(self, node: astroid.NodeNG) -> None:
+#                         self.__walk(node, set())
+#
+#                     def __walk(self, node: astroid.NodeNG, visited_nodes: set[astroid.NodeNG]) -> None:
+#                         if node in visited_nodes:
+#                             raise AssertionError("Node visited twice")
+#                         visited_nodes.add(node)
+#
+#                         self.__enter(node)
+#                         for child_node in node.get_children():
+#                             self.__walk(child_node, visited_nodes)
+#                         self.__leave(node)
+#
+#                     def __enter(self, node: astroid.NodeNG) -> None:
+#                         method = self.__get_callbacks(node)[0]
+#                         if method is not None:
+#                             method(node)
+#
+#                     def __leave(self, node: astroid.NodeNG) -> None:
+#                         method = self.__get_callbacks(node)[1]
+#                         if method is not None:
+#                             method(node)
+#
+#                     def __get_callbacks(self, node: astroid.NodeNG) -> _EnterAndLeaveFunctions:
+#                         klass = node.__class__
+#                         methods = self._cache.get(klass)
+#
+#                         if methods is None:
+#                             handler = self._handler
+#                             class_name = klass.__name__.lower()
+#                             enter_method = getattr(handler, f"enter_{class_name}", getattr(handler, "enter_default", None))
+#                             leave_method = getattr(handler, f"leave_{class_name}", getattr(handler, "leave_default", None))
+#                             self._cache[klass] = (enter_method, leave_method)
+#                         else:
+#                             enter_method, leave_method = methods
+#
+#                         return enter_method, leave_method
+#
+#             """, [
+#                 ['ImportName.collections', 'ImportName.typing', 'ImportName.astroid', 'ClassDef.ASTWalker'],
+#                 ['AssignName.additional_locals', 'FunctionDef.__init__', 'FunctionDef.walk', 'FunctionDef.__walk', 'FunctionDef.__enter', 'FunctionDef.__leave', 'FunctionDef.__get_callbacks'],
+#                 ['MemberAccess.self._handler', 'MemberAccess.self._cache', 'Call.self.__walk', ]
+#             ]
+#         )
+#     ],
+#     ids=[
+#         "Function Scope",
+#         "Function Scope with variable",
+#         "Function Scope with global variable",
+#         "Class Scope with class attribute and Class function",
+#         "Class Scope with instance attribute and Class function",
+#         "Class Scope with instance attribute and Modul function",
+#         "ASTWalker",
+#     ]
+# )
+# def test_get_nodes_for_scope(code: str, expected) -> None:
+#     module = astroid.parse(code)
+#     # print(module.repr_tree(), "\n")
+#     all_names_list = get_name_nodes(module)
+#     references = []
+#     for name in all_names_list:
+#         references.append(find_references(name))
+#
+#     module_scope = []
+#     class_scope = []
+#     function_scope = []
+#     for reference in references:
+#         for ref in reference:
+#             print(ref, "\n", ref.scope.scope.__class__.__name__, "\n")
+#         scope_list = get_nodes_for_scope(reference)
+#         module_scope.append(scope_list.module_scope)
+#         class_scope.append(scope_list.class_scope)
+#         function_scope.append(scope_list.function_scope)
+#
+#     print("Module: ")
+#     for reference in module_scope:
+#         for ref in reference:
+#             print(ref)
+#     print("ClassDef: ")
+#     for reference in class_scope:
+#         for ref in reference:
+#             print(ref)
+#     print("FunctionDef: ")
+#     for reference in function_scope:
+#         for ref in reference:
+#             print(ref)
 
     # assert module_scope == expected[0]
     # assert class_scope == expected[1]
@@ -885,7 +887,7 @@ class SimpleScope(Scopes):
             SimpleScope(
                 ['ClassDef.B', 'FunctionDef.local_instance_attr'],
                 ['FunctionDef.__init__'],
-                ['MemberAccess.B().instance_attr1', 'AssignName.var1']
+                ['MemberAccess.self.instance_attr1', 'AssignName.var1']
             )
         ),
         (
@@ -974,7 +976,7 @@ class SimpleScope(Scopes):
 
             """, [
                 SimpleScope(
-                    ['Import.collections.abc.Callable', 'Import.typing.Any', 'Import.astroid', 'AssignName._EnterAndLeaveFunctions', 'ClassDef.ASTWalker'],
+                    ['ImportFrom.collections.abc.Callable', 'ImportFrom.typing.Any', 'Import.astroid', 'AssignName._EnterAndLeaveFunctions', 'ClassDef.ASTWalker'],
                     ['AssignName.additional_locals', 'FunctionDef.__init__', 'FunctionDef.walk', 'FunctionDef.__walk', 'FunctionDef.__enter', 'FunctionDef.__leave', 'FunctionDef.__get_callbacks'],
                     ['MemberAccess.self._handler', 'MemberAccess.self._cache', 'Call.self.__walk', ]
                 )
@@ -993,13 +995,13 @@ class SimpleScope(Scopes):
         "ASTWalker",
     ]
 )
-def test_get_scope(code, expected):
+def test_get_scope(code, expected) -> None:
     result = get_scope(code)
     print(result)
     assert_test_get_scope(result, expected)
 
 
-def assert_test_get_scope(result, expected):
+def assert_test_get_scope(result, expected) -> None:
     """ The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
     The real results name and scope are objects and not strings"""
     result_transformed = SimpleScope([], [], [])
@@ -1013,9 +1015,12 @@ def assert_test_get_scope(result, expected):
     # assert result == expected
 
 
-def to_string(node):
+def to_string(node) -> str:
     if isinstance(node, astroid.Call):
-        return f"{node.func.__class__.__name__}.{node.func.name}"
+        return f"{node.func.__class__.__name__}.{node.func.name}.CALL"
+    elif isinstance(node, MemberAccess):
+        result = transform_member_access(node)
+        return f"MemberAccess.{result}"
     elif isinstance(node, astroid.Import):
         return f"{node.__class__.__name__}.{node.names[0][0]}"
     elif isinstance(node, astroid.ImportFrom):
