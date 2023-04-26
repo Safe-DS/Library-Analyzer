@@ -3,7 +3,7 @@ import spacy.cli
 from library_analyzer.processing.api.model import (
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 from library_analyzer.processing.dependencies import (
     Action,
@@ -43,7 +43,10 @@ def test_extract_action() -> None:
     assert ignored_action == ParameterIsIgnored(action="this parameter is ignored")
 
     action_is_illegal = nlp(
-        "Individual weights for each sample raises error if sample_weight is passed and base_estimator fit method does not support it. ",
+        (
+            "Individual weights for each sample raises error if sample_weight is passed and base_estimator fit method"
+            " does not support it. "
+        ),
     )
     action_is_illegal_action_token = action_is_illegal[5]
     action_is_illegal_condition_token = action_is_illegal[10]
@@ -90,7 +93,7 @@ def test_extract_dependencies_from_docstring_pattern_adverbial_clause() -> None:
         default_value=None,
         assigned_by=ParameterAssignment.NAME_ONLY,
         is_public=True,
-        documentation=ParameterDocumentation(
+        docstring=ParameterDocstring(
             type="param possible types",
             default_value="",
             description=param_docstring_nlp.text,
@@ -103,7 +106,7 @@ def test_extract_dependencies_from_docstring_pattern_adverbial_clause() -> None:
         default_value=None,
         assigned_by=ParameterAssignment.NAME_ONLY,
         is_public=True,
-        documentation=ParameterDocumentation(
+        docstring=ParameterDocstring(
             type="param possible types",
             default_value="",
             description="param probability docstring",

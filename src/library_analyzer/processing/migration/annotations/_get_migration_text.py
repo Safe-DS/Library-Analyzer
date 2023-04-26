@@ -36,7 +36,7 @@ def _get_further_information(annotation: AbstractAnnotation) -> str:
     ):
         return ""
     if isinstance(annotation, BoundaryAnnotation):
-        return " with the interval '" + str(annotation.interval.to_json()) + "'"
+        return " with the interval '" + str(annotation.interval.to_dict()) + "'"
     if isinstance(annotation, CalledAfterAnnotation):
         return " with the method '" + annotation.calledAfterName + "' that should be called before"
     if isinstance(annotation, DescriptionAnnotation):
@@ -75,7 +75,7 @@ def _get_further_information(annotation: AbstractAnnotation) -> str:
             )
         value += "'"
         return value
-    return " with the data '" + str(annotation.to_json()) + "'"
+    return " with the data '" + str(annotation.to_dict()) + "'"
 
 
 def get_migration_text(

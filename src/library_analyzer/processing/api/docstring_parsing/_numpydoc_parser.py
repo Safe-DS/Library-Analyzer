@@ -5,13 +5,13 @@ from docstring_parser import Docstring, DocstringParam, DocstringStyle
 from docstring_parser import parse as parse_docstring
 
 from library_analyzer.processing.api.model import (
-    ClassDocumentation,
-    FunctionDocumentation,
+    ClassDocstring,
+    FunctionDocstring,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 
-from ._abstract_documentation_parser import AbstractDocstringParser
+from ._abstract_docstring_parser import AbstractDocstringParser
 from ._helpers import get_description, get_full_docstring
 
 
@@ -32,20 +32,20 @@ class NumpyDocParser(AbstractDocstringParser):
         self.__cached_function_node: astroid.FunctionDef | None = None
         self.__cached_docstring: Docstring | None = None
 
-    def get_class_documentation(self, class_node: astroid.ClassDef) -> ClassDocumentation:
+    def get_class_documentation(self, class_node: astroid.ClassDef) -> ClassDocstring:
         docstring = get_full_docstring(class_node)
         docstring_obj = parse_docstring(docstring, style=DocstringStyle.NUMPYDOC)
 
-        return ClassDocumentation(
+        return ClassDocstring(
             description=get_description(docstring_obj),
             full_docstring=docstring,
         )
 
-    def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocumentation:
+    def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocstring:
         docstring = get_full_docstring(function_node)
         docstring_obj = self.__get_cached_function_numpydoc_string(function_node, docstring)
 
-        return FunctionDocumentation(
+        return FunctionDocstring(
             description=get_description(docstring_obj),
             full_docstring=docstring,
         )
@@ -55,7 +55,7 @@ class NumpyDocParser(AbstractDocstringParser):
         function_node: astroid.FunctionDef,
         parameter_name: str,
         parameter_assigned_by: ParameterAssignment,
-    ) -> ParameterDocumentation:
+    ) -> ParameterDocstring:
         # For constructors (__init__ functions) the parameters are described on the class
         if function_node.name == "__init__" and isinstance(function_node.parent, astroid.ClassDef):
             docstring = get_full_docstring(function_node.parent)
@@ -72,11 +72,11 @@ class NumpyDocParser(AbstractDocstringParser):
         ]
 
         if len(matching_parameters_numpydoc) == 0:
-            return ParameterDocumentation(type="", default_value="", description="")
+            return ParameterDocstring(type="", default_value="", description="")
 
         last_parameter_numpydoc = matching_parameters_numpydoc[-1]
         type_, default_value = _get_type_and_default_value(last_parameter_numpydoc)
-        return ParameterDocumentation(
+        return ParameterDocstring(
             type=type_,
             default_value=default_value,
             description=last_parameter_numpydoc.description,
