@@ -22,7 +22,7 @@ from library_analyzer.processing.api.model import (
     UnionType,
 )
 
-from ._get_not_mapped_api_elements import _get_not_mapped_api_elements
+from ._get_unmapped_api_elements import _get_unmapped_api_elements
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -228,7 +228,7 @@ class SimpleDiffer(AbstractDiffer):
         apiv2: API,
     ) -> None:
         super().__init__(previous_base_differ, previous_mappings, apiv1, apiv2)
-        self.related_mappings = _get_not_mapped_api_elements(self.previous_mappings, self.apiv1, self.apiv2)
+        self.related_mappings = _get_unmapped_api_elements(self.previous_mappings, self.apiv1, self.apiv2)
         distance_between_implicit_and_explicit = 0.3
         distance_between_vararg_and_normal = 0.3
         distance_between_position_and_named = 0.3
