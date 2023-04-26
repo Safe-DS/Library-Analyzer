@@ -27,7 +27,7 @@ def get_parameter_list(
                 default_value=_get_stringified_default_value(function_node, parameter_name),
                 assigned_by=parameter_assigned_by,
                 is_public=function_is_public,
-                documentation=docstring_parser.get_parameter_documentation(
+                docstring=docstring_parser.get_parameter_documentation(
                     function_node,
                     parameter_name,
                     parameter_assigned_by,

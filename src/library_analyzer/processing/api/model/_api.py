@@ -1,35 +1,46 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
-from typing import Any
+from enum import Enum
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 from black import FileMode, InvalidInput, format_str
 from black.brackets import BracketMatchError
 from black.linegen import CannotSplit
 from black.trans import CannotTransform
 
-from library_analyzer.utils import parent_id
+from library_analyzer.utils import ensure_file_exists, parent_id
 
-from ._documentation import ClassDocumentation, FunctionDocumentation
-from ._parameters import Parameter
-from ._types import AbstractType
+from ._docstring import ClassDocstring, FunctionDocstring, ParameterDocstring, ResultDocstring
+from ._types import AbstractType, create_type
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 API_SCHEMA_VERSION = 1
 
 
 class API:
     @staticmethod
-    def from_json(json: Any) -> API:
-        result = API(json["distribution"], json["package"], json["version"])
+    def from_json_file(path: Path) -> API:
+        with path.open(encoding="utf-8") as api_file:
+            api_json = json.load(api_file)
 
-        for module_json in json.get("modules", []):
-            result.add_module(Module.from_json(module_json))
+        return API.from_dict(api_json)
 
-        for class_json in json.get("classes", []):
-            result.add_class(Class.from_json(class_json))
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> API:
+        result = API(d["distribution"], d["package"], d["version"])
 
-        for function_json in json.get("functions", []):
-            result.add_function(Function.from_json(function_json))
+        for module_json in d.get("modules", []):
+            result.add_module(Module.from_dict(module_json))
+
+        for class_json in d.get("classes", []):
+            result.add_class(Class.from_dict(class_json))
+
+        for function_json in d.get("functions", []):
+            result.add_function(Function.from_dict(function_json))
 
         return result
 
@@ -126,32 +137,67 @@ class API:
 
         return None
 
-    def to_json(self) -> Any:
+    def get_public_api(self) -> API:
+        result = API(self.distribution, self.package, self.version)
+
+        for module in self.modules.values():
+            result.add_module(module)
+
+        for class_ in self.classes.values():
+            if class_.is_public:
+                copy = Class(
+                    id=class_.id,
+                    qname=class_.qname,
+                    decorators=class_.decorators,
+                    superclasses=class_.superclasses,
+                    is_public=class_.is_public,
+                    reexported_by=class_.reexported_by,
+                    docstring=class_.docstring,
+                    code=class_.code,
+                    instance_attributes=class_.instance_attributes,
+                )
+                for method in class_.methods:
+                    if self.is_public_function(method):
+                        copy.add_method(method)
+                result.add_class(copy)
+
+        for function in self.functions.values():
+            if function.is_public:
+                result.add_function(function)
+
+        return result
+
+    def to_json_file(self, path: Path) -> None:
+        ensure_file_exists(path)
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+    def to_dict(self) -> dict[str, Any]:
         return {
             "schemaVersion": API_SCHEMA_VERSION,
             "distribution": self.distribution,
             "package": self.package,
             "version": self.version,
-            "modules": [module.to_json() for module in sorted(self.modules.values(), key=lambda it: it.id)],
-            "classes": [class_.to_json() for class_ in sorted(self.classes.values(), key=lambda it: it.id)],
-            "functions": [function.to_json() for function in sorted(self.functions.values(), key=lambda it: it.id)],
+            "modules": [module.to_dict() for module in sorted(self.modules.values(), key=lambda it: it.id)],
+            "classes": [class_.to_dict() for class_ in sorted(self.classes.values(), key=lambda it: it.id)],
+            "functions": [function.to_dict() for function in sorted(self.functions.values(), key=lambda it: it.id)],
         }
 
 
 class Module:
     @staticmethod
-    def from_json(json: Any) -> Module:
+    def from_dict(d: dict[str, Any]) -> Module:
         result = Module(
-            json["id"],
-            json["name"],
-            [Import.from_json(import_json) for import_json in json.get("imports", [])],
-            [FromImport.from_json(from_import_json) for from_import_json in json.get("from_imports", [])],
+            d["id"],
+            d["name"],
+            [Import.from_dict(import_json) for import_json in d.get("imports", [])],
+            [FromImport.from_dict(from_import_json) for from_import_json in d.get("from_imports", [])],
         )
 
-        for class_id in json.get("classes", []):
+        for class_id in d.get("classes", []):
             result.add_class(class_id)
 
-        for function_id in json.get("functions", []):
+        for function_id in d.get("functions", []):
             result.add_function(function_id)
 
         return result
@@ -170,12 +216,12 @@ class Module:
     def add_function(self, function_id: str) -> None:
         self.functions.append(function_id)
 
-    def to_json(self) -> Any:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
-            "imports": [import_.to_json() for import_ in self.imports],
-            "from_imports": [from_import.to_json() for from_import in self.from_imports],
+            "imports": [import_.to_dict() for import_ in self.imports],
+            "from_imports": [from_import.to_dict() for from_import in self.from_imports],
             "classes": self.classes,
             "functions": self.functions,
         }
@@ -187,10 +233,10 @@ class Import:
     alias: str | None
 
     @staticmethod
-    def from_json(json: Any) -> Import:
-        return Import(json["module"], json["alias"])
+    def from_dict(d: dict[str, Any]) -> Import:
+        return Import(d["module"], d["alias"])
 
-    def to_json(self) -> Any:
+    def to_dict(self) -> dict[str, Any]:
         return {"module": self.module_name, "alias": self.alias}
 
 
@@ -201,10 +247,10 @@ class FromImport:
     alias: str | None
 
     @staticmethod
-    def from_json(json: Any) -> FromImport:
-        return FromImport(json["module"], json["declaration"], json["alias"])
+    def from_dict(d: dict[str, Any]) -> FromImport:
+        return FromImport(d["module"], d["declaration"], d["alias"])
 
-    def to_json(self) -> Any:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "module": self.module_name,
             "declaration": self.declaration_name,
@@ -221,28 +267,28 @@ class Class:
     methods: list[str] = field(init=False)
     is_public: bool
     reexported_by: list[str]
-    documentation: ClassDocumentation
+    docstring: ClassDocstring
     code: str
     instance_attributes: list[Attribute]
 
     @staticmethod
-    def from_json(json: Any) -> Class:
+    def from_dict(d: dict[str, Any]) -> Class:
         result = Class(
-            json["id"],
-            json["qname"],
-            json.get("decorators", []),
-            json.get("superclasses", []),
-            json.get("is_public", True),
-            json.get("reexported_by", []),
-            ClassDocumentation(description=json.get("description", "")),
-            json.get("code", ""),
+            d["id"],
+            d["qname"],
+            d.get("decorators", []),
+            d.get("superclasses", []),
+            d.get("is_public", True),
+            d.get("reexported_by", []),
+            ClassDocstring(description=d.get("description", "")),
+            d.get("code", ""),
             [
-                Attribute.from_json(instance_attribute, json["id"])
-                for instance_attribute in json.get("instance_attributes", [])
+                Attribute.from_dict(instance_attribute, d["id"])
+                for instance_attribute in d.get("instance_attributes", [])
             ],
         )
 
-        for method_id in json["methods"]:
+        for method_id in d["methods"]:
             result.add_method(method_id)
 
         return result
@@ -257,7 +303,7 @@ class Class:
     def add_method(self, method_id: str) -> None:
         self.methods.append(method_id)
 
-    def to_json(self) -> Any:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -267,9 +313,9 @@ class Class:
             "methods": self.methods,
             "is_public": self.is_public,
             "reexported_by": self.reexported_by,
-            "description": self.documentation.description,
+            "description": self.docstring.description,
             "code": self.code,
-            "instance_attributes": [attribute.to_json() for attribute in self.instance_attributes],
+            "instance_attributes": [attribute.to_dict() for attribute in self.instance_attributes],
         }
 
     def get_formatted_code(self, *, cut_documentation: bool = False) -> str:
@@ -321,17 +367,18 @@ def _cut_documentation_from_code(code: str, api_element: Class | Function) -> st
 
 @dataclass(frozen=True)
 class Attribute:
+    id: str
     name: str
     types: AbstractType | None
     class_id: str | None = None
 
-    def to_json(self) -> dict[str, Any]:
-        types_json = self.types.to_json() if self.types is not None else None
-        return {"name": self.name, "types": types_json}
-
     @staticmethod
-    def from_json(json: Any, class_id: str | None = None) -> Attribute:
-        return Attribute(json["name"], AbstractType.from_json(json.get("types", {})), class_id)
+    def from_dict(d: dict[str, Any], class_id: str | None = None) -> Attribute:
+        return Attribute(d["id"], d["name"], AbstractType.from_dict(d.get("types", {})), class_id)
+
+    def to_dict(self) -> dict[str, Any]:
+        types_json = self.types.to_dict() if self.types is not None else None
+        return {"id": self.id, "name": self.name, "types": types_json}
 
 
 @dataclass(frozen=True)
@@ -343,38 +390,38 @@ class Function:
     results: list[Result]
     is_public: bool
     reexported_by: list[str]
-    documentation: FunctionDocumentation
+    docstring: FunctionDocstring
     code: str
 
     @staticmethod
-    def from_json(json: Any) -> Function:
+    def from_dict(d: dict[str, Any]) -> Function:
         return Function(
-            json["id"],
-            json["qname"],
-            json.get("decorators", []),
-            [Parameter.from_json(parameter_json) for parameter_json in json.get("parameters", [])],
-            [Result.from_json(result_json) for result_json in json.get("results", [])],
-            json.get("is_public", True),
-            json.get("reexported_by", []),
-            FunctionDocumentation(description=json.get("description", "")),
-            json.get("code", ""),
+            d["id"],
+            d["qname"],
+            d.get("decorators", []),
+            [Parameter.from_dict(parameter_json) for parameter_json in d.get("parameters", [])],
+            [Result.from_dict(result_json) for result_json in d.get("results", [])],
+            d.get("is_public", True),
+            d.get("reexported_by", []),
+            FunctionDocstring(description=d.get("description", "")),
+            d.get("code", ""),
         )
 
     @property
     def name(self) -> str:
         return self.qname.rsplit(".", maxsplit=1)[-1]
 
-    def to_json(self) -> Any:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
             "qname": self.qname,
             "decorators": self.decorators,
-            "parameters": [parameter.to_json() for parameter in self.parameters],
-            "results": [result.to_json() for result in self.results],
+            "parameters": [parameter.to_dict() for parameter in self.parameters],
+            "results": [result.to_dict() for result in self.results],
             "is_public": self.is_public,
             "reexported_by": self.reexported_by,
-            "description": self.documentation.description,
+            "description": self.docstring.description,
             "code": self.code,
         }
 
@@ -385,35 +432,119 @@ class Function:
         return formatted_code
 
 
+class Parameter:
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> Parameter:
+        return Parameter(
+            d["id"],
+            d["name"],
+            d["qname"],
+            d.get("default_value", None),
+            ParameterAssignment[d.get("assigned_by", "POSITION_OR_NAME")],
+            d.get("is_public", True),
+            ParameterDocstring.from_dict(d.get("docstring", {})),
+        )
+
+    def __hash__(self) -> int:
+        return hash(
+            (
+                self.id,
+                self.name,
+                self.qname,
+                self.default_value,
+                self.assigned_by,
+                self.is_public,
+                self.docstring,
+            ),
+        )
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, Parameter)
+            and self.id == other.id
+            and self.name == other.name
+            and self.qname == other.qname
+            and self.default_value == other.default_value
+            and self.assigned_by == other.assigned_by
+            and self.is_public == other.is_public
+            and self.docstring == other.docstring
+            and self.type == other.type
+        )
+
+    def __init__(
+        self,
+        id_: str,
+        name: str,
+        qname: str,
+        default_value: str | None,
+        assigned_by: ParameterAssignment,
+        is_public: bool,
+        docstring: ParameterDocstring,
+    ) -> None:
+        self.id: str = id_
+        self.name: str = name
+        self.qname: str = qname
+        self.default_value: str | None = default_value
+        self.assigned_by: ParameterAssignment = assigned_by
+        self.is_public: bool = is_public
+        self.docstring = docstring
+        self.type: AbstractType | None = create_type(docstring)
+
+    def is_optional(self) -> bool:
+        return self.default_value is not None
+
+    def is_required(self) -> bool:
+        return self.default_value is None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "qname": self.qname,
+            "default_value": self.default_value,
+            "assigned_by": self.assigned_by.name,
+            "is_public": self.is_public,
+            "docstring": self.docstring.to_dict(),
+            "type": self.type.to_dict() if self.type is not None else {},
+        }
+
+
+class ParameterAssignment(Enum):
+    """
+    How arguments are assigned to parameters. The parameters must appear exactly in this order in a parameter list.
+
+    IMPLICIT parameters appear on instance methods (usually called "self") and on class methods (usually called "cls").
+    POSITION_ONLY parameters precede the "/" in a parameter list. NAME_ONLY parameters follow the "*" or the
+    POSITIONAL_VARARGS parameter ("*args"). Between the "/" and the "*" the POSITION_OR_NAME parameters reside. Finally,
+    the parameter list might optionally include a NAMED_VARARG parameter ("**kwargs").
+    """
+
+    IMPLICIT = "IMPLICIT"
+    POSITION_ONLY = "POSITION_ONLY"
+    POSITION_OR_NAME = "POSITION_OR_NAME"
+    POSITIONAL_VARARG = "POSITIONAL_VARARG"
+    NAME_ONLY = "NAME_ONLY"
+    NAMED_VARARG = "NAMED_VARARG"
+
+
 @dataclass(frozen=True)
 class Result:
+    id: str
     name: str
     docstring: ResultDocstring
     function_id: str | None = None
 
     @staticmethod
-    def from_json(json: Any, function_id: str | None = None) -> Result:
+    def from_dict(d: dict[str, Any], function_id: str | None = None) -> Result:
         return Result(
-            json["name"],
-            ResultDocstring.from_json(json.get("docstring", {})),
+            d["id"],
+            d["name"],
+            ResultDocstring.from_dict(d.get("docstring", {})),
             function_id,
         )
 
-    def to_json(self) -> Any:
-        return {"name": self.name, "docstring": self.docstring.to_json()}
+    def to_dict(self) -> dict[str, Any]:
+        return {"id": self.id, "name": self.name, "docstring": self.docstring.to_dict()}
 
 
-@dataclass(frozen=True)
-class ResultDocstring:
-    type: str
-    description: str
-
-    @staticmethod
-    def from_json(json: Any) -> ResultDocstring:
-        return ResultDocstring(
-            json.get("type", ""),
-            json.get("description", ""),
-        )
-
-    def to_json(self) -> Any:
-        return {"type": self.type, "description": self.description}
+ApiElement: TypeAlias = Module | Class | Attribute | Function | Parameter | Result

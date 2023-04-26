@@ -1,6 +1,6 @@
 from inspect import cleandoc
 
-from library_analyzer.processing.api.model import API, Class, ClassDocumentation
+from library_analyzer.processing.api.model import API, Class, ClassDocstring
 from library_analyzer.processing.migration.model import (
     APIMapping,
     ManyToManyMapping,
@@ -21,7 +21,7 @@ def test_one_to_one_mapping() -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test"),
+        docstring=ClassDocstring("This is a test"),
         code="",
         instance_attributes=[],
     )
@@ -81,7 +81,7 @@ def test_many_to_many_mapping() -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test"),
+        docstring=ClassDocstring("This is a test"),
         code="",
         instance_attributes=[],
     )
@@ -110,7 +110,7 @@ def test_too_different_mapping() -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test"),
+        docstring=ClassDocstring("This is a test"),
         code="",
         instance_attributes=[],
     )
@@ -123,7 +123,7 @@ def test_too_different_mapping() -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("not similar to the other class"),
+        docstring=ClassDocstring("not similar to the other class"),
         code=cleandoc(
             """
 
@@ -165,7 +165,7 @@ def create_apis() -> tuple[API, API, Class, Class, Class]:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test"),
+        docstring=ClassDocstring("This is a test"),
         code="",
         instance_attributes=[],
     )
@@ -178,7 +178,7 @@ def create_apis() -> tuple[API, API, Class, Class, Class]:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test"),
+        docstring=ClassDocstring("This is a test"),
         code="",
         instance_attributes=[],
     )
@@ -189,7 +189,7 @@ def create_apis() -> tuple[API, API, Class, Class, Class]:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test"),
+        docstring=ClassDocstring("This is a test"),
         code="",
         instance_attributes=[],
     )

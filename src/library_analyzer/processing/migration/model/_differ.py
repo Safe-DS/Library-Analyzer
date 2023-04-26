@@ -12,12 +12,12 @@ from library_analyzer.processing.api.model import (
     AbstractType,
     Attribute,
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
     Result,
     UnionType,
 )
@@ -237,54 +237,58 @@ class SimpleDiffer(AbstractDiffer):
         self.assigned_by_look_up_similarity = {
             ParameterAssignment.IMPLICIT: {
                 ParameterAssignment.IMPLICIT: 1.0,
-                ParameterAssignment.NAMED_VARARG: 1.0
-                - distance_between_implicit_and_explicit
-                - distance_between_vararg_and_normal
-                - distance_between_position_and_named,
-                ParameterAssignment.POSITIONAL_VARARG: 1.0
-                - distance_between_implicit_and_explicit
-                - distance_between_vararg_and_normal,
+                ParameterAssignment.NAMED_VARARG: (
+                    1.0
+                    - distance_between_implicit_and_explicit
+                    - distance_between_vararg_and_normal
+                    - distance_between_position_and_named
+                ),
+                ParameterAssignment.POSITIONAL_VARARG: (
+                    1.0 - distance_between_implicit_and_explicit - distance_between_vararg_and_normal
+                ),
                 ParameterAssignment.POSITION_OR_NAME: 1.0 - distance_between_implicit_and_explicit,
                 ParameterAssignment.NAME_ONLY: 1.0 - distance_between_implicit_and_explicit,
                 ParameterAssignment.POSITION_ONLY: 1.0 - distance_between_implicit_and_explicit,
             },
             ParameterAssignment.NAMED_VARARG: {
-                ParameterAssignment.IMPLICIT: 1.0
-                - distance_between_implicit_and_explicit
-                - distance_between_vararg_and_normal
-                - distance_between_position_and_named,
+                ParameterAssignment.IMPLICIT: (
+                    1.0
+                    - distance_between_implicit_and_explicit
+                    - distance_between_vararg_and_normal
+                    - distance_between_position_and_named
+                ),
                 ParameterAssignment.NAMED_VARARG: 1.0,
                 ParameterAssignment.POSITIONAL_VARARG: 1.0 - distance_between_position_and_named,
-                ParameterAssignment.POSITION_OR_NAME: 1.0
-                - distance_between_vararg_and_normal
-                - distance_between_one_to_both,
+                ParameterAssignment.POSITION_OR_NAME: (
+                    1.0 - distance_between_vararg_and_normal - distance_between_one_to_both
+                ),
                 ParameterAssignment.NAME_ONLY: 1.0 - distance_between_vararg_and_normal,
-                ParameterAssignment.POSITION_ONLY: 1.0
-                - distance_between_vararg_and_normal
-                - distance_between_position_and_named,
+                ParameterAssignment.POSITION_ONLY: (
+                    1.0 - distance_between_vararg_and_normal - distance_between_position_and_named
+                ),
             },
             ParameterAssignment.POSITIONAL_VARARG: {
-                ParameterAssignment.IMPLICIT: 1.0
-                - distance_between_implicit_and_explicit
-                - distance_between_vararg_and_normal,
+                ParameterAssignment.IMPLICIT: (
+                    1.0 - distance_between_implicit_and_explicit - distance_between_vararg_and_normal
+                ),
                 ParameterAssignment.NAMED_VARARG: 1.0 - distance_between_position_and_named,
                 ParameterAssignment.POSITIONAL_VARARG: 1.0,
-                ParameterAssignment.POSITION_OR_NAME: 1.0
-                - distance_between_vararg_and_normal
-                - distance_between_one_to_both,
-                ParameterAssignment.NAME_ONLY: 1.0
-                - distance_between_vararg_and_normal
-                - distance_between_position_and_named,
+                ParameterAssignment.POSITION_OR_NAME: (
+                    1.0 - distance_between_vararg_and_normal - distance_between_one_to_both
+                ),
+                ParameterAssignment.NAME_ONLY: (
+                    1.0 - distance_between_vararg_and_normal - distance_between_position_and_named
+                ),
                 ParameterAssignment.POSITION_ONLY: 1.0 - distance_between_vararg_and_normal,
             },
             ParameterAssignment.POSITION_OR_NAME: {
                 ParameterAssignment.IMPLICIT: 1.0 - distance_between_implicit_and_explicit,
-                ParameterAssignment.NAMED_VARARG: 1.0
-                - distance_between_vararg_and_normal
-                - distance_between_both_to_one,
-                ParameterAssignment.POSITIONAL_VARARG: 1.0
-                - distance_between_vararg_and_normal
-                - distance_between_both_to_one,
+                ParameterAssignment.NAMED_VARARG: (
+                    1.0 - distance_between_vararg_and_normal - distance_between_both_to_one
+                ),
+                ParameterAssignment.POSITIONAL_VARARG: (
+                    1.0 - distance_between_vararg_and_normal - distance_between_both_to_one
+                ),
                 ParameterAssignment.POSITION_OR_NAME: 1.0,
                 ParameterAssignment.NAME_ONLY: 1.0 - distance_between_both_to_one,
                 ParameterAssignment.POSITION_ONLY: 1.0 - distance_between_both_to_one,
@@ -292,18 +296,18 @@ class SimpleDiffer(AbstractDiffer):
             ParameterAssignment.NAME_ONLY: {
                 ParameterAssignment.IMPLICIT: 1.0 - distance_between_implicit_and_explicit,
                 ParameterAssignment.NAMED_VARARG: 1.0 - distance_between_vararg_and_normal,
-                ParameterAssignment.POSITIONAL_VARARG: 1.0
-                - distance_between_vararg_and_normal
-                - distance_between_position_and_named,
+                ParameterAssignment.POSITIONAL_VARARG: (
+                    1.0 - distance_between_vararg_and_normal - distance_between_position_and_named
+                ),
                 ParameterAssignment.POSITION_OR_NAME: 1.0 - distance_between_one_to_both,
                 ParameterAssignment.NAME_ONLY: 1.0,
                 ParameterAssignment.POSITION_ONLY: 1.0 - distance_between_position_and_named,
             },
             ParameterAssignment.POSITION_ONLY: {
                 ParameterAssignment.IMPLICIT: 1.0 - distance_between_implicit_and_explicit,
-                ParameterAssignment.NAMED_VARARG: 1.0
-                - distance_between_vararg_and_normal
-                - distance_between_position_and_named,
+                ParameterAssignment.NAMED_VARARG: (
+                    1.0 - distance_between_vararg_and_normal - distance_between_position_and_named
+                ),
                 ParameterAssignment.POSITIONAL_VARARG: 1.0 - distance_between_vararg_and_normal,
                 ParameterAssignment.POSITION_OR_NAME: 1.0 - distance_between_one_to_both,
                 ParameterAssignment.NAME_ONLY: 1.0 - distance_between_position_and_named,
@@ -348,7 +352,7 @@ class SimpleDiffer(AbstractDiffer):
 
         id_similarity = self._compute_id_similarity(classv1.id, classv2.id)
 
-        documentation_similarity = self._compute_documentation_similarity(classv1.documentation, classv2.documentation)
+        documentation_similarity = self._compute_documentation_similarity(classv1.docstring, classv2.docstring)
         if documentation_similarity < 0:
             documentation_similarity = 0
             normalize_similarity -= 1
@@ -433,8 +437,8 @@ class SimpleDiffer(AbstractDiffer):
         id_similarity = self._compute_id_similarity(functionv1.id, functionv2.id)
 
         documentation_similarity = self._compute_documentation_similarity(
-            functionv1.documentation,
-            functionv2.documentation,
+            functionv1.docstring,
+            functionv2.docstring,
         )
         if documentation_similarity < 0:
             documentation_similarity = 0
@@ -513,8 +517,8 @@ class SimpleDiffer(AbstractDiffer):
             parameter_default_value_similarity = 0
             normalize_similarity -= 1
         parameter_documentation_similarity = self._compute_documentation_similarity(
-            parameterv1.documentation,
-            parameterv2.documentation,
+            parameterv1.docstring,
+            parameterv2.docstring,
         )
         if parameter_documentation_similarity < 0:
             parameter_documentation_similarity = 0
@@ -635,8 +639,8 @@ class SimpleDiffer(AbstractDiffer):
 
     def _compute_documentation_similarity(
         self,
-        documentationv1: ClassDocumentation | FunctionDocumentation | ParameterDocumentation,
-        documentationv2: ClassDocumentation | FunctionDocumentation | ParameterDocumentation,
+        documentationv1: ClassDocstring | FunctionDocstring | ParameterDocstring,
+        documentationv2: ClassDocstring | FunctionDocstring | ParameterDocstring,
     ) -> float:
         if len(documentationv1.description) == len(documentationv2.description) == 0:
             return -1.0

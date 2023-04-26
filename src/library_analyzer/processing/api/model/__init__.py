@@ -9,15 +9,16 @@ from ._api import (
     Function,
     Import,
     Module,
+    Parameter,
+    ParameterAssignment,
     Result,
+)
+from ._docstring import (
+    ClassDocstring,
+    FunctionDocstring,
+    ParameterDocstring,
     ResultDocstring,
 )
-from ._documentation import (
-    ClassDocumentation,
-    FunctionDocumentation,
-    ParameterDocumentation,
-)
-from ._parameters import Parameter, ParameterAssignment
 from ._purity import (
     AttributeAccess,
     BuiltInFunction,
@@ -57,7 +58,7 @@ __all__ = [
     "BuiltInFunction",
     "Call",
     "Class",
-    "ClassDocumentation",
+    "ClassDocstring",
     "ConcreteImpurityIndicator",
     "EnumType",
     "Expression",
@@ -65,7 +66,7 @@ __all__ = [
     "FileWrite",
     "FromImport",
     "Function",
-    "FunctionDocumentation",
+    "FunctionDocstring",
     "GlobalAccess",
     "Import",
     "ImpurityCertainty",
@@ -76,7 +77,7 @@ __all__ = [
     "Parameter",
     "ParameterAccess",
     "ParameterAssignment",
-    "ParameterDocumentation",
+    "ParameterDocstring",
     "Reference",
     "Result",
     "ResultDocstring",

@@ -5,13 +5,13 @@ from library_analyzer.processing.api.model import (
     API,
     Attribute,
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
     NamedType,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
     Result,
     ResultDocstring,
     UnionType,
@@ -41,14 +41,14 @@ differ_list = [
     differ_list,
 )
 def test_attribute_similarity(differ: AbstractDiffer) -> None:
-    attribute_a = Attribute("test_string", NamedType("str"))
+    attribute_a = Attribute("test_string", "test_string", NamedType("str"))
     assert differ.compute_attribute_similarity(attribute_a, attribute_a) == 1
 
-    attribute_b = Attribute("new_test_string", NamedType("str"))
+    attribute_b = Attribute("new_test_string", "new_test_string", NamedType("str"))
     assert differ.compute_attribute_similarity(attribute_a, attribute_b) >= 0.5
 
-    attribute_a = Attribute("value", UnionType([NamedType("str"), NamedType("int")]))
-    attribute_b = Attribute("value", UnionType([NamedType("str"), NamedType("bool")]))
+    attribute_a = Attribute("value", "value", UnionType([NamedType("str"), NamedType("int")]))
+    attribute_b = Attribute("value", "value", UnionType([NamedType("str"), NamedType("bool")]))
     assert differ.compute_attribute_similarity(attribute_a, attribute_b) >= 0.5
 
 
@@ -69,7 +69,7 @@ def test_class_similarity(differ: AbstractDiffer) -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test"),
+        docstring=ClassDocstring("This is a test"),
         code=code_a,
         instance_attributes=[],
     )
@@ -87,7 +87,7 @@ def test_class_similarity(differ: AbstractDiffer) -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a new test"),
+        docstring=ClassDocstring("This is a new test"),
         code=code_b,
         instance_attributes=[],
     )
@@ -107,7 +107,7 @@ def test_function_similarity(differ: AbstractDiffer) -> None:
             default_value="'test_str'",
             assigned_by=ParameterAssignment.POSITION_OR_NAME,
             is_public=True,
-            documentation=ParameterDocumentation("'test_str'", "", ""),
+            docstring=ParameterDocstring("'test_str'", "", ""),
         ),
     ]
     results: list[Result] = []
@@ -128,7 +128,7 @@ def test_function_similarity(differ: AbstractDiffer) -> None:
         results=results,
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(
+        docstring=FunctionDocstring(
             "This test function is a proof of work",
         ),
         code=code_a,
@@ -152,7 +152,7 @@ def test_function_similarity(differ: AbstractDiffer) -> None:
             default_value="'test_str'",
             assigned_by=ParameterAssignment.POSITION_OR_NAME,
             is_public=True,
-            documentation=ParameterDocumentation("'test_str'", "", ""),
+            docstring=ParameterDocstring("'test_str'", "", ""),
         ),
     ]
     function_b = Function(
@@ -163,7 +163,7 @@ def test_function_similarity(differ: AbstractDiffer) -> None:
         results=results,
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(
+        docstring=FunctionDocstring(
             "This test function is a proof of concept.",
         ),
         code=code_b,
@@ -183,7 +183,7 @@ def test_parameter_similarity(differ: AbstractDiffer) -> None:
         default_value="'str'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("'str'", "", ""),
+        docstring=ParameterDocstring("'str'", "", ""),
     )
     parameter_b = Parameter(
         id_="test/test.Test/test_method/test_parameter",
@@ -192,7 +192,7 @@ def test_parameter_similarity(differ: AbstractDiffer) -> None:
         default_value="5",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "", ""),
+        docstring=ParameterDocstring("int", "", ""),
     )
     assert 0.45 < differ.compute_parameter_similarity(parameter_a, parameter_b) < 0.7
 
@@ -203,7 +203,7 @@ def test_parameter_similarity(differ: AbstractDiffer) -> None:
         default_value="9",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "", ""),
+        docstring=ParameterDocstring("int", "", ""),
     )
     assert 0.75 < differ.compute_parameter_similarity(parameter_a, parameter_b) < 0.9
 
@@ -213,10 +213,11 @@ def test_parameter_similarity(differ: AbstractDiffer) -> None:
     differ_list,
 )
 def test_result_similarity(differ: AbstractDiffer) -> None:
-    result_a = Result("config", ResultDocstring("dict", ""))
+    result_a = Result("config", "config", ResultDocstring("dict", ""))
     assert differ.compute_result_similarity(result_a, result_a) == 1
 
     result_b = Result(
+        "new_config",
         "new_config",
         ResultDocstring("dict", "A dictionary that includes the new configuration"),
     )

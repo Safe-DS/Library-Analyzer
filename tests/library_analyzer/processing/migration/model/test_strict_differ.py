@@ -5,13 +5,13 @@ from library_analyzer.processing.api.model import (
     API,
     Attribute,
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
     NamedType,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
     Result,
     ResultDocstring,
 )
@@ -37,7 +37,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
         pass""",
     )
     class_id_a = "test/test/Test"
-    attribute_a = Attribute("new_test_string", NamedType("str"), class_id=class_id_a)
+    attribute_a = Attribute("test/test/Test/new_test_string", "new_test_string", NamedType("str"), class_id=class_id_a)
     class_a = Class(
         id=class_id_a,
         qname="test.Test",
@@ -45,7 +45,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test"),
+        docstring=ClassDocstring("This is a test"),
         code=code_a,
         instance_attributes=[attribute_a],
     )
@@ -56,7 +56,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
         pass""",
     )
     class_id_b = "test/test/NewTest"
-    attribute_b = Attribute("test_string", NamedType("str"), class_id=class_id_b)
+    attribute_b = Attribute("test/test/NewTest/test_string", "test_string", NamedType("str"), class_id=class_id_b)
     class_b = Class(
         id=class_id_b,
         qname="test.newTest",
@@ -64,7 +64,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a new test"),
+        docstring=ClassDocstring("This is a new test"),
         code=code_b,
         instance_attributes=[attribute_b],
     )
@@ -79,9 +79,9 @@ def test_similarity(differ: AbstractDiffer) -> None:
         default_value="'test_str_a'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("'test_str_a'", "", ""),
+        docstring=ParameterDocstring("'test_str_a'", "", ""),
     )
-    result_a = Result("config", ResultDocstring("dict", ""), function_id=function_id_a)
+    result_a = Result("config", "config", ResultDocstring("dict", ""), function_id=function_id_a)
     code_function_a = cleandoc(
         """
     def test(test_parameter: str):
@@ -99,7 +99,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
         results=[result_a],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(
+        docstring=FunctionDocstring(
             "This test function is a for testing",
         ),
         code=code_function_a,
@@ -121,9 +121,10 @@ def test_similarity(differ: AbstractDiffer) -> None:
         default_value="'test_str_b'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("'test_str_b'", "", ""),
+        docstring=ParameterDocstring("'test_str_b'", "", ""),
     )
     result_b = Result(
+        "new_config",
         "new_config",
         ResultDocstring("dict", "A dictionary that includes the new configuration"),
         function_id=function_id_b,
@@ -136,7 +137,7 @@ def test_similarity(differ: AbstractDiffer) -> None:
         results=[result_b],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(
+        docstring=FunctionDocstring(
             "This test function is a test",
         ),
         code=code_b,

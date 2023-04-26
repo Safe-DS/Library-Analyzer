@@ -289,7 +289,7 @@ class Migration:
                     different_values = set()
                     first_annotation_and_value: tuple[AbstractAnnotation, str] | None = None
                     for annotation in sorted_duplicates:
-                        annotation_dict = annotation.to_json()
+                        annotation_dict = annotation.to_dict()
                         for key in [
                             "target",
                             "authors",

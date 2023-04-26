@@ -7,7 +7,7 @@ from astroid.nodes import Name, Subscript
 from library_analyzer.processing.api.model import Attribute, NamedType, UnionType
 
 
-def get_instance_attributes(class_node: astroid.ClassDef) -> list[Attribute]:
+def get_instance_attributes(class_node: astroid.ClassDef, class_id: str) -> list[Attribute]:
     attributes = []
     for name, assignments in class_node.instance_attrs.items():
         types = set()
@@ -79,11 +79,11 @@ def get_instance_attributes(class_node: astroid.ClassDef) -> list[Attribute]:
                             break
         types = types - remove_types
         if len(types) == 1:
-            attributes.append(Attribute(name, NamedType(types.pop())))
+            attributes.append(Attribute(f"{class_id}/{name}", name, NamedType(types.pop())))
         elif len(types) > 1:
-            attributes.append(Attribute(name, UnionType([NamedType(type_) for type_ in types])))
+            attributes.append(Attribute(f"{class_id}/{name}", name, UnionType([NamedType(type_) for type_ in types])))
         else:
-            attributes.append(Attribute(name, None))
+            attributes.append(Attribute(f"{class_id}/{name}", name, None))
     return attributes
 
 
