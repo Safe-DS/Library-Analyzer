@@ -388,7 +388,7 @@ def _create_at_least_boundary(match_string: Span, type_: str) -> BoundaryValueTy
         The boolean value of the extrema indicates whether the value is included in the value range.
 
     """
-    value = 0
+    value: Numeric = 0
     for token in match_string:
         if token.like_num:
             value = _get_type_value(type_, token.text)
