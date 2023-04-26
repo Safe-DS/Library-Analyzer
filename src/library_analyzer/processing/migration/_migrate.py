@@ -185,7 +185,6 @@ class Migration:
         print("**Similarity**|**APIV1**|**APIV2**|**comment**\n:-----:|:-----:|:-----:|:----:|")
         table_body = self._get_mappings_for_table()
         table_body.extend(self._get_unmapped_api_elements_for_table(apiv1, apiv2))
-        table_body.sort(key=lambda row: max(len(cell.split("/")) for cell in row.split("|")[:-1]))
         print("\n".join(table_body))
 
     def _handle_duplicates(self) -> None:
