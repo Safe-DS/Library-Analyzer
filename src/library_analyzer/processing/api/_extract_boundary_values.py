@@ -32,7 +32,7 @@ class BoundaryList:
             case "BOUNDARY_INTERVAL_RELATIONAL":
                 self._boundaries.add(_create_interval_relational_boundary(match_string, type_))
 
-    def get_boundaries(self):
+    def get_boundaries(self) -> set[BoundaryValueType]:
         return self._boundaries
 
 
@@ -205,7 +205,7 @@ def _check_negative_pattern(matcher: Matcher, doc: Doc, i: int, matches: list[tu
     if _nlp.vocab.strings[previous_id] == "BOUNDARY_NON_NEGATIVE":
         matches.remove(matches[i])
 
-    return
+    return None
 
 
 def _check_positive_pattern(matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]]) -> Any | None:
@@ -230,7 +230,7 @@ def _check_positive_pattern(matcher: Matcher, doc: Doc, i: int, matches: list[tu
     if _nlp.vocab.strings[previous_id] == "BOUNDARY_NON_POSITIVE":
         matches.remove(matches[i])
 
-    return
+    return None
 
 
 relational_patterns = [
@@ -388,7 +388,7 @@ def _create_at_least_boundary(match_string: Span, type_: str) -> BoundaryValueTy
         The boolean value of the extrema indicates whether the value is included in the value range.
 
     """
-    value = None
+    value = 0
     for token in match_string:
         if token.like_num:
             value = _get_type_value(type_, token.text)
@@ -434,7 +434,7 @@ def _create_interval_boundary(match_string: Span, type_: str) -> BoundaryValueTy
     return type_, minimum, maximum
 
 
-def _create_interval_relational_boundary(match_string: Span, type_: str):
+def _create_interval_relational_boundary(match_string: Span, type_: str) -> BoundaryValueType:
     """Create a BoundaryValueType with individual extrema.
 
     Create a BoundaryValueType whose extrema are extracted from the passed match string.
@@ -511,7 +511,7 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryValueTyp
     if type_matches:
         type_list = []  # Possible numeric data types that may be used with the parameter to be examined.
         restriction_list = [] # Restrictions of the type such as non-negative
-        match_label = None
+        match_label = ""
 
         for match in type_matches:
             if match[0] == "BOUNDARY_TYPE":
@@ -527,7 +527,6 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryValueTyp
         if type_length == 1:
             type_text = type_list[0]
             match_string = None
-
 
             if len(restriction_list) == 1:
                 match_label = restriction_list[0]
