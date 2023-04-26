@@ -26,13 +26,6 @@ def migrate_description_annotation(
     authors.append(migration_author)
     description_annotation.authors = authors
 
-    if isinstance(mapping, (ManyToOneMapping, OneToOneMapping)):
-        element = mapping.get_apiv2_elements()[0]
-        if isinstance(element, (Attribute, Result)):
-            return []
-        description_annotation.target = element.id
-        return [description_annotation]
-
     annotated_apiv1_element = get_annotated_api_element(
         description_annotation, mapping.get_apiv1_elements()
     )

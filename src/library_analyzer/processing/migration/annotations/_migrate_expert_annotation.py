@@ -26,13 +26,6 @@ def migrate_expert_annotation(
     authors.append(migration_author)
     expert_annotation.authors = authors
 
-    if isinstance(mapping, (ManyToOneMapping, OneToOneMapping)):
-        element = mapping.get_apiv2_elements()[0]
-        if isinstance(element, (Attribute, Result)):
-            return []
-        expert_annotation.target = element.id
-        return [expert_annotation]
-
     annotated_apiv1_element = get_annotated_api_element(
         expert_annotation, mapping.get_apiv1_elements()
     )

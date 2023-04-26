@@ -14,16 +14,15 @@ from ._get_migration_text import get_migration_text
 
 
 def migrate_group_annotation(
-    annotation: GroupAnnotation, mapping: Mapping, mappings: list[Mapping]
+    annotation_: GroupAnnotation, mapping: Mapping, mappings: list[Mapping]
 ) -> list[AbstractAnnotation]:
-    group_annotation = deepcopy(annotation)
-    authors = group_annotation.authors
-    authors.append(migration_author)
-    group_annotation.authors = authors
-
     migrated_annotations: list[AbstractAnnotation] = []
 
     for functionv2 in mapping.get_apiv2_elements():
+        group_annotation = deepcopy(annotation_)
+        authors = group_annotation.authors
+        authors.append(migration_author)
+        group_annotation.authors = authors
         if isinstance(functionv2, (Attribute, Result)):
             continue
         if not isinstance(functionv2, Function):
@@ -63,7 +62,7 @@ def migrate_group_annotation(
             ]
             grouped_parameters = remove_duplicates_and_preserve_order
 
-            if len(grouped_parameters) < 2 < len(group_annotation.parameters):
+            if len(grouped_parameters) < 2 <= len(group_annotation.parameters):
                 migrated_annotations.append(
                     TodoAnnotation(
                         target=functionv2.id,
@@ -101,17 +100,9 @@ def migrate_group_annotation(
                     )
                 )
             else:
-                migrated_annotations.append(
-                    GroupAnnotation(
-                        target=functionv2.id,
-                        authors=authors,
-                        reviewers=group_annotation.reviewers,
-                        comment=group_annotation.comment,
-                        reviewResult=EnumReviewResult.NONE,
-                        groupName=group_annotation.groupName,
-                        parameters=[parameter.name for parameter in grouped_parameters],
-                    )
-                )
+                group_annotation.target = functionv2.id
+                group_annotation.parameters = [parameter.name for parameter in grouped_parameters]
+                migrated_annotations.append(group_annotation)
 
     return migrated_annotations
 

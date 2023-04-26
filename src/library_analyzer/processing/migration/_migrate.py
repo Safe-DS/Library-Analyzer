@@ -34,8 +34,8 @@ from library_analyzer.processing.migration.model import ManyToManyMapping, Mappi
 class Migration:
     annotationsv1: AnnotationStore
     mappings: list[Mapping]
-    reliable_similarity: float = 0.9
-    unsure_similarity: float = 0.8
+    reliable_similarity: float = 0.85
+    unsure_similarity: float = 0.75
     migrated_annotation_store: AnnotationStore = field(init=False)
     unsure_migrated_annotation_store: AnnotationStore = field(init=False)
 

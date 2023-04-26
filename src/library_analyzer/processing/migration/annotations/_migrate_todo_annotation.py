@@ -19,28 +19,21 @@ from ._get_migration_text import get_migration_text
 
 # pylint: disable=duplicate-code
 def migrate_todo_annotation(
-    todo_annotation: TodoAnnotation, mapping: Mapping
+    todo_annotation_: TodoAnnotation, mapping: Mapping
 ) -> list[AbstractAnnotation]:
-    todo_annotation = deepcopy(todo_annotation)
-    authors = todo_annotation.authors
-    authors.append(migration_author)
-    todo_annotation.authors = authors
-
-    if isinstance(mapping, (ManyToOneMapping, OneToOneMapping)):
-        element = mapping.get_apiv2_elements()[0]
-        if isinstance(element, (Attribute, Result)):
-            return []
-        todo_annotation.target = element.id
-        return [todo_annotation]
 
     annotated_apiv1_element = get_annotated_api_element(
-        todo_annotation, mapping.get_apiv1_elements()
+        todo_annotation_, mapping.get_apiv1_elements()
     )
     if annotated_apiv1_element is None:
         return []
 
     todo_annotations: list[AbstractAnnotation] = []
     for element in mapping.get_apiv2_elements():
+        todo_annotation = deepcopy(todo_annotation_)
+        authors = todo_annotation.authors
+        authors.append(migration_author)
+        todo_annotation.authors = authors
         if isinstance(element, type(annotated_apiv1_element)) and not isinstance(
             element, (Attribute, Result)
         ):
@@ -61,7 +54,7 @@ def migrate_todo_annotation(
                     authors,
                     todo_annotation.reviewers,
                     todo_annotation.comment,
-                    EnumReviewResult.NONE,
+                    EnumReviewResult.UNSURE,
                     get_migration_text(
                         todo_annotation, mapping, for_todo_annotation=True
                     ),

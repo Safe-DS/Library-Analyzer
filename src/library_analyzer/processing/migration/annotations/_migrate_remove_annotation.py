@@ -29,41 +29,20 @@ def is_removeable(element: Attribute | Class | Function | Parameter | Result) ->
 
 
 def migrate_remove_annotation(
-    remove_annotation: RemoveAnnotation, mapping: Mapping
+    remove_annotation_: RemoveAnnotation, mapping: Mapping
 ) -> list[AbstractAnnotation]:
-    remove_annotation = deepcopy(remove_annotation)
-    authors = remove_annotation.authors
-    authors.append(migration_author)
-    remove_annotation.authors = authors
-
-    if isinstance(mapping, (ManyToOneMapping, OneToOneMapping)):
-        element = mapping.get_apiv2_elements()[0]
-        if isinstance(element, (Attribute, Result)):
-            return []
-        if not is_removeable(element):
-            return [
-                TodoAnnotation(
-                    element.id,
-                    authors,
-                    remove_annotation.reviewers,
-                    remove_annotation.comment,
-                    EnumReviewResult.NONE,
-                    get_migration_text(
-                        remove_annotation, mapping, for_todo_annotation=True
-                    ),
-                )
-            ]
-        remove_annotation.target = element.id
-        return [remove_annotation]
-
     annotated_apiv1_element = get_annotated_api_element(
-        remove_annotation, mapping.get_apiv1_elements()
+        remove_annotation_, mapping.get_apiv1_elements()
     )
     if annotated_apiv1_element is None:
         return []
 
     remove_annotations: list[AbstractAnnotation] = []
     for element in mapping.get_apiv2_elements():
+        remove_annotation = deepcopy(remove_annotation_)
+        authors = remove_annotation.authors
+        authors.append(migration_author)
+        remove_annotation.authors = authors
         if (
             isinstance(element, type(annotated_apiv1_element))
             and is_removeable(element)

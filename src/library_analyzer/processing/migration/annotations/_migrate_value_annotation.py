@@ -33,97 +33,57 @@ from ._get_migration_text import get_migration_text
 
 
 def migrate_value_annotation(
-    annotation: ValueAnnotation, mapping: Mapping
+    annotation_: ValueAnnotation, mapping: Mapping
 ) -> list[AbstractAnnotation]:
-    value_annotation = deepcopy(annotation)
-    authors = value_annotation.authors
-    authors.append(migration_author)
-    value_annotation.authors = authors
 
-    if isinstance(mapping, (OneToOneMapping, ManyToOneMapping)):
-        parameter = mapping.get_apiv2_elements()[0]
-        if isinstance(parameter, (Attribute, Result)):
-            return []
+    migrated_annotations: list[AbstractAnnotation] = []
+    for parameter in mapping.get_apiv2_elements():
+        value_annotation = deepcopy(annotation_)
+        authors = value_annotation.authors
+        authors.append(migration_author)
+        value_annotation.authors = authors
+        if isinstance(parameter, (Result, Attribute)):
+            continue
         if isinstance(parameter, Parameter):
             if isinstance(value_annotation, ConstantAnnotation):
                 migrated_constant_annotation = migrate_constant_annotation(
                     value_annotation, parameter, mapping
                 )
                 if migrated_constant_annotation is not None:
-                    return [migrated_constant_annotation]
-            if isinstance(value_annotation, OmittedAnnotation):
+                    migrated_annotations.append(migrated_constant_annotation)
+                    continue
+            elif isinstance(value_annotation, OmittedAnnotation):
                 migrated_omitted_annotation = migrate_omitted_annotation(
                     value_annotation, parameter, mapping
                 )
                 if migrated_omitted_annotation is not None:
-                    return [migrated_omitted_annotation]
-            if isinstance(value_annotation, OptionalAnnotation):
+                    migrated_annotations.append(migrated_omitted_annotation)
+                    continue
+            elif isinstance(value_annotation, OptionalAnnotation):
                 migrated_optional_annotation = migrate_optional_annotation(
                     value_annotation, parameter, mapping
                 )
                 if migrated_optional_annotation is not None:
-                    return [migrated_optional_annotation]
-            if isinstance(value_annotation, RequiredAnnotation):
+                    migrated_annotations.append(migrated_optional_annotation)
+                    continue
+            elif isinstance(value_annotation, RequiredAnnotation):
                 migrated_required_annotation = migrate_required_annotation(
                     value_annotation, parameter, mapping
                 )
                 if migrated_required_annotation is not None:
-                    return [migrated_required_annotation]
-        return [
-            TodoAnnotation(
-                parameter.id,
-                authors,
-                value_annotation.reviewers,
-                value_annotation.comment,
-                EnumReviewResult.NONE,
-                get_migration_text(value_annotation, mapping),
-            )
-        ]
-    migrated_annotations: list[AbstractAnnotation] = []
-    if isinstance(mapping, (OneToManyMapping, ManyToManyMapping)):
-        for parameter in mapping.get_apiv2_elements():
-            if isinstance(parameter, (Result, Attribute)):
-                continue
-            if isinstance(parameter, Parameter):
-                if isinstance(value_annotation, ConstantAnnotation):
-                    migrated_constant_annotation = migrate_constant_annotation(
-                        value_annotation, parameter, mapping
-                    )
-                    if migrated_constant_annotation is not None:
-                        migrated_annotations.append(migrated_constant_annotation)
-                        continue
-                elif isinstance(value_annotation, OmittedAnnotation):
-                    migrated_omitted_annotation = migrate_omitted_annotation(
-                        value_annotation, parameter, mapping
-                    )
-                    if migrated_omitted_annotation is not None:
-                        migrated_annotations.append(migrated_omitted_annotation)
-                        continue
-                elif isinstance(value_annotation, OptionalAnnotation):
-                    migrated_optional_annotation = migrate_optional_annotation(
-                        value_annotation, parameter, mapping
-                    )
-                    if migrated_optional_annotation is not None:
-                        migrated_annotations.append(migrated_optional_annotation)
-                        continue
-                elif isinstance(value_annotation, RequiredAnnotation):
-                    migrated_required_annotation = migrate_required_annotation(
-                        value_annotation, parameter, mapping
-                    )
-                    if migrated_required_annotation is not None:
-                        migrated_annotations.append(migrated_required_annotation)
-                        continue
-            if not isinstance(parameter, (Attribute, Result)):
-                migrated_annotations.append(
-                    TodoAnnotation(
-                        parameter.id,
-                        authors,
-                        value_annotation.reviewers,
-                        value_annotation.comment,
-                        EnumReviewResult.NONE,
-                        get_migration_text(value_annotation, mapping),
-                    )
+                    migrated_annotations.append(migrated_required_annotation)
+                    continue
+        if not isinstance(parameter, (Attribute, Result)):
+            migrated_annotations.append(
+                TodoAnnotation(
+                    parameter.id,
+                    authors,
+                    value_annotation.reviewers,
+                    value_annotation.comment,
+                    EnumReviewResult.NONE,
+                    get_migration_text(value_annotation, mapping),
                 )
+            )
     return migrated_annotations
 
 
