@@ -1,7 +1,7 @@
 import spacy
 from spacy.matcher import Matcher
-from spacy.tokens import Span
-from typing import Union
+from spacy.tokens import Span, Doc
+from typing import Union, Any
 from numpy import inf
 from dataclasses import dataclass, field
 
@@ -110,16 +110,54 @@ _boundary_type = [
 ]
 
 
-def _check_negative_pattern(matcher, doc, i, matches):
+def _check_negative_pattern(matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]]) -> Any | None:
+    """on-match function for the spaCy Matcher
+
+    Delete the BOUNDARY_NEGATIVE match if the BOUNDARY_NON_NEGATIVE rule has already been detected.
+
+    Parameters
+    ----------
+    matcher
+        Parameter is ignored.
+    doc
+        Parameter is ignored.
+    i
+        Index of the match that was recognized by the rule.
+
+    matches
+        List of matches found by the matcher
+
+    """
     previous_id, _, _ = matches[i - 1]
     if _nlp.vocab.strings[previous_id] == "BOUNDARY_NON_NEGATIVE":
         matches.remove(matches[i])
 
+    return
 
-def _check_positive_pattern(matcher, doc, i, matches):
+
+def _check_positive_pattern(matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]]) -> Any | None:
+    """on-match function for the spaCy Matcher
+
+    Delete the BOUNDARY_POSITIVE match if the BOUNDARY_NON_POSITIVE rule has already been detected.
+
+    Parameters
+    ----------
+    matcher
+        Parameter is ignored.
+    doc
+        Parameter is ignored.
+    i
+        Index of the match that was recognized by the rule.
+
+    matches
+        List of matches found by the matcher
+
+    """
     previous_id, _, _ = matches[i - 1]
     if _nlp.vocab.strings[previous_id] == "BOUNDARY_NON_POSITIVE":
         matches.remove(matches[i])
+
+    return
 
 
 _matcher.add("BOUNDARY_AT_LEAST", [_boundary_at_least, _boundary_min])
@@ -133,26 +171,118 @@ _matcher.add("BOUNDARY_TYPE", [_boundary_type])
 
 
 def _get_type_value(type_: str, value: Numeric | str) -> Numeric:
+    """Transform the passed value to the value matching type_.
+
+    Parameters
+    ----------
+    type_
+        Type to be transformed to.
+    value
+        Value to be transformed.
+
+    Returns
+    -------
+    Numeric
+        Transformed value.
+    """
     return type_funcs[type_](value)
 
 
 def _create_non_positive_boundary(type_: str) -> BoundaryValueType:
+    """Create a BoundaryValueType with predefined extrema.
+
+    Create a BoundaryValueType that describes the non-positive value range of the given type.
+
+    Parameters
+    ----------
+    type_
+        Boundary type
+
+    Returns
+    -------
+    BoundaryValueType
+        Triple consisting of the type, the minimum and the maximum of the boundary.
+        The boolean value of the extrema indicates whether the value is included in the value range.
+    """
     return type_, ("negative infinity", False), (_get_type_value(type_, 0), True)
 
 
 def _create_positive_boundary(type_: str) -> BoundaryValueType:
+    """Create a BoundaryValueType with predefined extrema.
+
+    Create a BoundaryValueType that describes the positive value range of the given type.
+
+    Parameters
+    ----------
+    type_
+        Boundary type
+
+    Returns
+    -------
+    BoundaryValueType
+        Triple consisting of the type, the minimum and the maximum of the boundary.
+        The boolean value of the extrema indicates whether the value is included in the value range.
+    """
     return type_, (_get_type_value(type_, 0), False), ("infinity", False)
 
 
 def _create_non_negative_boundary(type_: str) -> BoundaryValueType:
+    """Create a BoundaryValueType with predefined extrema.
+
+    Create a BoundaryValueType that describes the non-negative value range of the given type.
+
+    Parameters
+    ----------
+    type_
+        Boundary type
+
+    Returns
+    -------
+    BoundaryValueType
+        Triple consisting of the type, the minimum and the maximum of the boundary.
+        The boolean value of the extrema indicates whether the value is included in the value range.
+    """
     return type_, (_get_type_value(type_, 0), True), ("infinity", False)
 
 
 def _create_negative_boundary(type_: str) -> BoundaryValueType:
+    """Create a BoundaryValueType with predefined extrema.
+
+    Create a BoundaryValueType that describes the negative value range of the given type.
+
+    Parameters
+    ----------
+    type_
+        Boundary type
+
+    Returns
+    -------
+    BoundaryValueType
+        Triple consisting of the type, the minimum and the maximum of the boundary.
+        The boolean value of the extrema indicates whether the value is included in the value range.
+    """
     return type_, ("negative infinity", False), (_get_type_value(type_, 0), False)
 
 
 def _create_between_boundary(match_string: Span, type_: str) -> BoundaryValueType:
+    """Create a BoundaryValueType with individual extrema.
+
+    Create a 'between' BoundaryValueType whose extrema are extracted from the passed match string.
+
+    Parameters
+    ----------
+    match_string
+        Match string containing the extrema of the value range.
+    type_
+        Boundary Type
+
+    Returns
+    -------
+    BoundaryValueType
+        Triple consisting of the type, the minimum and the maximum of the boundary.
+        The boolean value of the extrema indicates whether the value is included in the value range.
+
+    """
     values = []
     for token in match_string:
         if token.like_num:
@@ -161,6 +291,24 @@ def _create_between_boundary(match_string: Span, type_: str) -> BoundaryValueTyp
 
 
 def _create_at_least_boundary(match_string: Span, type_: str) -> BoundaryValueType:
+    """Create a BoundaryValueType with individual minimum.
+
+    Create a BoundaryValueType whose minimum is extracted from the passed match string.
+
+    Parameters
+    ----------
+    match_string
+        Match string containing the minimum of the value range.
+    type_
+        Boundary Type
+
+    Returns
+    -------
+    BoundaryValueType
+        Triple consisting of the type, the minimum and the maximum of the boundary.
+        The boolean value of the extrema indicates whether the value is included in the value range.
+
+    """
     value = None
     for token in match_string:
         if token.like_num:
@@ -169,6 +317,24 @@ def _create_at_least_boundary(match_string: Span, type_: str) -> BoundaryValueTy
 
 
 def _create_interval_boundary(match_string: Span, type_: str) -> BoundaryValueType:
+    """Create a BoundaryValueType with individual extrema.
+
+    Create a BoundaryValueType whose extrema are extracted from the passed match string.
+
+    Parameters
+    ----------
+    match_string
+        Match string containing the extrema of the value range.
+    type_
+        Boundary Type
+
+    Returns
+    -------
+    BoundaryValueType
+        Triple consisting of the type, the minimum and the maximum of the boundary.
+        The boolean value of the extrema indicates whether the value is included in the value range.
+
+    """
     values = []
     brackets = []
     for token in match_string:
@@ -188,40 +354,61 @@ def _create_interval_boundary(match_string: Span, type_: str) -> BoundaryValueTy
     return type_, minimum, maximum
 
 
+def extract_boundary(description: str, type_string: str) -> set[BoundaryValueType]:
+    """Extract valid BoundaryValueTypes.
 
-def extract_boundary(type_string: str, description: str) -> set[BoundaryValueType]:
+    Extract valid BoundaryValueTypes described by predefined rules.
+
+    Parameters
+    ----------
+    description
+        Description string of the parameter to be examined.
+
+    type_string
+        Type string of the parameter to be examined.
+
+    Returns
+    -------
+    set[BoundaryValueType]
+        A set containing valid BoundaryValueTypes.
+    """
 
     boundaries = BoundaryList()
 
     type_doc = _nlp(type_string)
-    description_doc = _nlp(description)
-
     type_matches = _matcher(type_doc)
     type_matches = [(_nlp.vocab.strings[match_id], type_doc[start:end]) for match_id, start, end in type_matches]
+
+    description_doc = _nlp(description)
     desc_matches = _matcher(description_doc)
     desc_matches = [(_nlp.vocab.strings[match_id], description_doc[start:end])
                     for match_id, start, end in desc_matches]
 
     if type_matches:
-        type_list = []
-        other_list = []
+        type_list = []  # Possible numeric data types that may be used with the parameter to be examined.
+        restriction_list = [] # Restrictions of the type such as non-negative
         match_label = None
 
         for match in type_matches:
             if match[0] == "BOUNDARY_TYPE":
                 type_list.append(match[1].text)
             else:
-                other_list.append(match[0])
+                restriction_list.append(match[0])
 
         type_length = len(type_list)
+
+        # If the length of the found types is 1, the boundary type is described only in the type string
+        # and the value range only in the description string.
 
         if type_length == 1:
             type_text = type_list[0]
             match_string = None
 
-            if len(other_list) == 1:
-                match_label = other_list[0]
 
+            if len(restriction_list) == 1:
+                match_label = restriction_list[0]
+
+            # Checking the description for boundaries if no restriction was found in the type string
             elif len(desc_matches) > 0:
                 match_label, match_string = desc_matches[0]
                 if match_label == "BOUNDARY_TYPE":
@@ -235,6 +422,8 @@ def extract_boundary(type_string: str, description: str) -> set[BoundaryValueTyp
             other_id = 0
             matches = []
             found_type = False
+
+            # Assignment of the found boundaries to the corresponding data type
             for match_label, match_string in desc_matches:
                 if match_label == "BOUNDARY_TYPE":
                     if found_type:
@@ -249,6 +438,7 @@ def extract_boundary(type_string: str, description: str) -> set[BoundaryValueTyp
                     if found_type:
                         found_type = False
 
+            # Creation of the matching BoundaryValueTypes
             for i in range(max(type_id, other_id)):
                 same_id = [match for match in matches if match['id'] == i]
                 if len(same_id) == 2:

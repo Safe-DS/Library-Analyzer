@@ -39,9 +39,19 @@ BoundaryValueType = tuple[str, tuple[Numeric | str, bool], tuple[Numeric | str, 
             [("int", (0, True), ("infinity", False))]
         ),
         (
+            "int",
+            "The verbosity level. The default, zero, means silent mode. Range of values is at least 3.",
+            [("int", (3, True), ("infinity", False))]
+        ),
+        (
             "float",
             "Momentum for gradient descent update. Should be between 0 and 1. Only used when solver='sgd'.",
             [("float", (0.0, True), (1.0, True))]
+        ),
+        (
+            "float",
+            "Momentum for gradient descent update. Should be non-positive. Only used when solver='sgd'.",
+            [("float", ("negative infinity", False), (0.0, True))]
         ),
         (
             "float",
@@ -83,6 +93,6 @@ BoundaryValueType = tuple[str, tuple[Numeric | str, bool], tuple[Numeric | str, 
     ]
 )
 def test_extract_boundaries(type_string: str, description: str, expected_boundary: set[BoundaryValueType]) -> None:
-    assert extract_boundary(type_string, description) == set(expected_boundary)
+    assert extract_boundary(description, type_string) == set(expected_boundary)
 
 
