@@ -866,13 +866,11 @@ class SimpleScope(Scopes):
                         var1 = self.instance_attr1
                         return var1
             """,
-            [
-                SimpleScope(
-                    ['ClassDef.B'],
-                    ['FunctionDef.__init__', 'FunctionDef.local_instance_attr'],
-                    ['MemberAccess.self.instance_attr1', 'AssignName.var1']
-                ),
-            ]
+            SimpleScope(
+                ['ClassDef.B'],
+                ['FunctionDef.__init__', 'FunctionDef.local_instance_attr'],
+                ['MemberAccess.self.instance_attr1', 'AssignName.var1']
+            ),
         ),
         (
             """
@@ -884,13 +882,37 @@ class SimpleScope(Scopes):
                     var1 = B().instance_attr1
                     return var1
             """,
-            [
-                SimpleScope(
-                    ['ClassDef.B', 'FunctionDef.local_instance_attr'],
-                    ['FunctionDef.__init__'],
-                    ['MemberAccess.B().instance_attr1', 'AssignName.var1']
-                )
-            ]
+            SimpleScope(
+                ['ClassDef.B', 'FunctionDef.local_instance_attr'],
+                ['FunctionDef.__init__'],
+                ['MemberAccess.B().instance_attr1', 'AssignName.var1']
+            )
+        ),
+        (
+            """
+                import math
+
+                class A:
+                    value = math.pi
+            """,
+            SimpleScope(
+                ['Import.math', 'ClassDef.A'],
+                ['AssignName.value'],
+                []
+            )
+        ),
+        (
+            """
+                from math import pi
+
+                class B:
+                    value = pi
+            """,
+            SimpleScope(
+                ['ImportFrom.math.pi', 'ClassDef.B'],
+                ['AssignName.value'],
+                []
+            )
         ),
         (
             """
@@ -952,7 +974,7 @@ class SimpleScope(Scopes):
 
             """, [
                 SimpleScope(
-                    ['ImportName.collections', 'ImportName.typing', 'ImportName.astroid', 'ClassDef.ASTWalker'],
+                    ['Import.collections.abc.Callable', 'Import.typing.Any', 'Import.astroid', 'AssignName._EnterAndLeaveFunctions', 'ClassDef.ASTWalker'],
                     ['AssignName.additional_locals', 'FunctionDef.__init__', 'FunctionDef.walk', 'FunctionDef.__walk', 'FunctionDef.__enter', 'FunctionDef.__leave', 'FunctionDef.__get_callbacks'],
                     ['MemberAccess.self._handler', 'MemberAccess.self._cache', 'Call.self.__walk', ]
                 )
@@ -966,6 +988,8 @@ class SimpleScope(Scopes):
         "Class Scope with class attribute and Class function",
         "Class Scope with instance attribute and Class function",
         "Class Scope with instance attribute and Modul function",
+        "Import and ClassDef",
+        "ImportFrom and ClassDef",
         "ASTWalker",
     ]
 )
@@ -991,7 +1015,11 @@ def assert_test_get_scope(result, expected):
 
 def to_string(node):
     if isinstance(node, astroid.Call):
-        return node.func.as_string()
+        return f"{node.func.__class__.__name__}.{node.func.name}"
+    elif isinstance(node, astroid.Import):
+        return f"{node.__class__.__name__}.{node.names[0][0]}"
+    elif isinstance(node, astroid.ImportFrom):
+        return f"{node.__class__.__name__}.{node.modname}.{node.names[0][0]}"
     return f"{node.__class__.__name__}.{node.name}"
 
 # @pytest.mark.parametrize(

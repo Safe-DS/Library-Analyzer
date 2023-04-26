@@ -33,8 +33,7 @@ class NodeID:
 class NodeScope:
     node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.AssignName | astroid.Name | astroid.Call
     scope: str
-    parent_scope: NodeScope | None = field(default=None)
-    # TODO: how to deal with astroid.Lambda and astroid.GeneratorExp in scope?
+    parent_scope: str | None = None # TODO: add support for NodeScope, so that there is more info about the parent: NodeScope | None = field(default=None)
 
 
 @dataclass
@@ -62,28 +61,39 @@ class ScopeDepth(Enum):
     FUNCTION = auto()
 
 
+# TODO: how to deal with astroid.Lambda and astroid.GeneratorExp in scope?
+# TODO: fix parent_scope
 @dataclass
 class ScopeFinder:
-    depth: str
+    depth: list[str]
     scopes_list: Scopes = field(default_factory=lambda: Scopes(module_scope=[], class_scope=[], function_scope=[]))
 
     def enter_module(self, node: astroid.Module) -> None:
-        self.depth = ScopeDepth.MODULE.name
-        scope = self.depth
+        scope = self.depth[-1]
+        self.depth.append(ScopeDepth.MODULE.name)
         scope_node = NodeScope(node=node, scope=scope, parent_scope=None)
         self.add_scope_to_list(scope_node)
 
+    def leave_module(self, node: astroid.Module) -> None:
+        self.depth.pop()
+
     def enter_classdef(self, node: astroid.ClassDef) -> None:
-        self.depth = ScopeDepth.CLASS.name
-        scope = self.depth
-        scope_node = NodeScope(node=node, scope=scope, parent_scope=node.parent)
+        scope = self.depth[-1]
+        self.depth.append(ScopeDepth.CLASS.name)
+        scope_node = NodeScope(node=node, scope=scope, parent_scope=self.depth[-2])
         self.add_scope_to_list(scope_node)
 
+    def leave_classdef(self, node: astroid.ClassDef) -> None:
+        self.depth.pop()
+
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
-        self.depth = ScopeDepth.FUNCTION.name
-        scope = self.depth
-        scope_node = NodeScope(node=node, scope=scope, parent_scope=node.parent)
+        scope = self.depth[-1]
+        self.depth.append(ScopeDepth.FUNCTION.name)
+        scope_node = NodeScope(node=node, scope=scope, parent_scope=self.depth[-2])
         self.add_scope_to_list(scope_node)
+
+    def leave_functiondef(self, node: astroid.FunctionDef) -> None:
+        self.depth.pop()
 
     # def enter_lambda(self, node: astroid.Lambda) -> None:
     #     self.scopes.function_scope.append(NodeReference(name=node.name, node_id=node.name, scope=NodeScope(scope=node)))
@@ -93,18 +103,29 @@ class ScopeFinder:
 
     def enter_call(self, node: astroid.Call) -> None:
         if isinstance(node.func, astroid.Name):
-            scope = self.depth
-            self.scopes_list.function_scope.append(NodeScope(node=node, scope=scope, parent_scope=None))
-            # TODO: test this
+            scope = self.depth[-1]
+            self.scopes_list.function_scope.append(NodeScope(node=node, scope=scope, parent_scope=self.depth[-1]))
+            # TODO: implement and test this
 
     def enter_assignname(self, node: astroid.AssignName) -> None:
         if isinstance(node.parent, astroid.Assign | astroid.Arguments | astroid.AssignAttr | astroid.Attribute | astroid.AugAssign | astroid.AnnAssign | astroid.Return | astroid.Compare | astroid.For):
-            scope = self.depth
-            self.scopes_list.function_scope.append(NodeScope(node=node, scope=scope, parent_scope=None))  # TODO: parent_scope
+            scope = self.depth[-1]
+            scope_node = NodeScope(node=node, scope=scope, parent_scope=self.depth[-1])
+            self.add_scope_to_list(scope_node)
 
     # def enter_assignattr(self, node: astroid.AssignAttr) -> None:
     #     member_access = construct_member_access(node)
     #     self.scopes.function_scope.append(NodeReference(name=member_access, node_id=member_access, scope=NodeScope(scope=node)))
+
+    def enter_import(self, node: astroid.Import) -> None:
+        scope = self.depth[-1]
+        scope_node = NodeScope(node=node, scope=scope, parent_scope=self.depth[-1])
+        self.scopes_list.module_scope.append(scope_node)
+
+    def enter_importfrom(self, node: astroid.ImportFrom) -> None:
+        scope = self.depth[-1]
+        scope_node = NodeScope(node=node, scope=scope, parent_scope=self.depth[-1])
+        self.scopes_list.module_scope.append(scope_node)
 
     def add_scope_to_list(self, node):
         match node.scope:
@@ -288,7 +309,7 @@ def get_nodes_for_scope(reference_list: list[NodeReference]) -> Scopes:
 
 
 def get_scope(code: str) -> Scopes:
-    scope_handler = ScopeFinder(depth=ScopeDepth.MODULE)
+    scope_handler = ScopeFinder(['MODULE'])
     walker = ASTWalker(scope_handler)
     scopes: Scopes = Scopes([], [], [])
     module = astroid.parse(code)
@@ -297,7 +318,9 @@ def get_scope(code: str) -> Scopes:
         for node in module.body:
             # print(node.as_string())
             walker.walk(node)
-            scopes = scope_handler.scopes_list
+            scopes.module_scope += scope_handler.scopes_list.module_scope
+            scopes.class_scope += scope_handler.scopes_list.class_scope
+            scopes.function_scope += scope_handler.scopes_list.function_scope
             scope_handler.scopes_list = Scopes([], [], [])
 
     return scopes
