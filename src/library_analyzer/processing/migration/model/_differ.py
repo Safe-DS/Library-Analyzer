@@ -422,7 +422,6 @@ class SimpleDiffer(AbstractDiffer):
         )
         if parameter_assignment_similarity < 0:
             parameter_assignment_similarity = 0
-            normalize_similarity -= 1
         parameter_default_value_similarity = self._compute_default_value_similarity(
             parameterv1.default_value, parameterv2.default_value
         )
