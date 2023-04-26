@@ -69,6 +69,41 @@ BoundaryValueType = tuple[str, tuple[Numeric | str, bool], tuple[Numeric | str, 
             [("int", (0, True), (10, True)),("float", (0.0, False), (1.0, True))]
         ),
         (
+            "float",
+            "The Elastic Net mixing parameter, with 0 <= l1_ratio <= 1. l1_ratio=0 corresponds to L2 penalty, l1_ratio=1 to L1. Only used if penalty is 'elasticnet'.",
+            [("float", (0.0, True), (1.0, True))]
+        ),
+        (
+            "float",
+            "The Elastic Net mixing parameter, with 0 < l1_ratio <= 1. l1_ratio=0 corresponds to L2 penalty, l1_ratio=1 to L1. Only used if penalty is 'elasticnet'.",
+            [("float", (0.0, False), (1.0, True))]
+        ),
+        (
+            "float",
+            "The Elastic Net mixing parameter, with 0 <= l1_ratio < 1. l1_ratio=0 corresponds to L2 penalty, l1_ratio=1 to L1. Only used if penalty is 'elasticnet'.",
+            [("float", (0.0, True), (1.0, False))]
+        ),
+        (
+            "float",
+            "The Elastic Net mixing parameter, with 0 < l1_ratio < 1. l1_ratio=0 corresponds to L2 penalty, l1_ratio=1 to L1. Only used if penalty is 'elasticnet'.",
+            [("float", (0.0, False), (1.0, False))]
+        ),
+        (
+            "float",
+            "The Elastic Net mixing parameter, with 1 > l1_ratio > 0. l1_ratio=0 corresponds to L2 penalty, l1_ratio=1 to L1. Only used if penalty is 'elasticnet'.",
+            [("float", (0.0, False), (1.0, False))]
+        ),
+        (
+            "float",
+            "The Elastic Net mixing parameter, with l1_ratio > 0 and < 1. l1_ratio=0 corresponds to L2 penalty, l1_ratio=1 to L1. Only used if penalty is 'elasticnet'.",
+            [("float", (0.0, False), (1.0, False))]
+        ),
+        (
+            "float",
+            "The Elastic Net mixing parameter, with l1_ratio >= 0 and < 1. l1_ratio=0 corresponds to L2 penalty, l1_ratio=1 to L1. Only used if penalty is 'elasticnet'.",
+            [("float", (0.0, True), (1.0, False))]
+        ),
+        (
             "bool",
             "Whether to allow array.ndim > 2",
             []

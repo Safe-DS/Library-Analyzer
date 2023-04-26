@@ -29,6 +29,8 @@ class BoundaryList:
                 self._boundaries.add(_create_interval_boundary(match_string, type_))
             case "BOUNDARY_AT_LEAST":
                 self._boundaries.add(_create_at_least_boundary(match_string, type_))
+            case "BOUNDARY_INTERVAL_RELATIONAL":
+                self._boundaries.add(_create_interval_relational_boundary(match_string, type_))
 
     def get_boundaries(self):
         return self._boundaries
@@ -104,8 +106,79 @@ _boundary_between = [
     {"LIKE_NUM": True}
 ]
 
+_boundary_gtlt_gtlt = [
+    {"LIKE_NUM": True},
+    {"ORTH": {"IN": ["<", ">"]}},
+    {},
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"LIKE_NUM": True}
+]
+
+_boundary_geqleq_geqleq = [
+    {"LIKE_NUM": True},
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"ORTH": "="},
+    {},
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"ORTH": "="},
+    {"LIKE_NUM": True}
+]
+
+_boundary_gtlt_geqleq = [
+    {"LIKE_NUM": True},
+    {"ORTH": {"IN": ["<", ">"]}},
+    {},
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"ORTH": "="},
+    {"LIKE_NUM": True}
+]
+
+_boundary_geqleq_gtlt = [
+    {"LIKE_NUM": True},
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"ORTH": "="},
+    {},
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"LIKE_NUM": True}
+]
+
+_boundary_and_gtlt_gtlt = [
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"LIKE_NUM": True},
+    {"ORTH": {"IN": ["and", "or"]}},
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"LIKE_NUM": True}
+]
+
+_boundary_and_geqleq_geqleq = [
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"ORTH": "="},
+    {"LIKE_NUM": True},
+    {"ORTH": {"IN": ["and", "or"]}},
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"ORTH": "="},
+    {"LIKE_NUM": True}
+]
+
+_boundary_and_gtlt_geqleq = [
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"LIKE_NUM": True},
+    {"ORTH": {"IN": ["and", "or"]}},
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"ORTH": "="},
+    {"LIKE_NUM": True}
+]
+
+_boundary_and_geqleq_gtlt = [
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"ORTH": "="},
+    {"LIKE_NUM": True},
+    {"ORTH": {"IN": ["and", "or"]}},
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"LIKE_NUM": True}
+]
+
 _boundary_type = [
-    # {"LOWER": "if", "OP": "?"},
     {"LOWER": {"IN": ["float", "double", "int"]}}
 ]
 
@@ -160,6 +233,11 @@ def _check_positive_pattern(matcher: Matcher, doc: Doc, i: int, matches: list[tu
     return
 
 
+relational_patterns = [
+    _boundary_gtlt_gtlt, _boundary_geqleq_geqleq, _boundary_geqleq_gtlt, _boundary_gtlt_geqleq,
+    _boundary_and_gtlt_gtlt, _boundary_and_geqleq_geqleq, _boundary_and_geqleq_gtlt, _boundary_and_gtlt_geqleq
+]
+
 _matcher.add("BOUNDARY_AT_LEAST", [_boundary_at_least, _boundary_min])
 _matcher.add("BOUNDARY_INTERVAL", [_boundary_interval, _boundary_value_in])
 _matcher.add("BOUNDARY_POSITIVE", [_boundary_positive], on_match=_check_positive_pattern)
@@ -167,6 +245,7 @@ _matcher.add("BOUNDARY_NON_NEGATIVE", [_boundary_non_negative])
 _matcher.add("BOUNDARY_NEGATIVE", [_boundary_negative], on_match=_check_negative_pattern)
 _matcher.add("BOUNDARY_NON_POSITIVE", [_boundary_non_positive])
 _matcher.add("BOUNDARY_BETWEEN", [_boundary_between])
+_matcher.add("BOUNDARY_INTERVAL_RELATIONAL", relational_patterns)
 _matcher.add("BOUNDARY_TYPE", [_boundary_type])
 
 
@@ -348,8 +427,53 @@ def _create_interval_boundary(match_string: Span, type_: str) -> BoundaryValueTy
         elif token.text in ["negative inf", "negative infty", "negative infinity"]:
             values.append(-inf)
 
-    minimum = ("negative infinity", False) if -inf in values else (min(values), brackets[0] == "[")
-    maximum = ("infinity", False) if inf in values else (max(values), brackets[1] == "]")
+    type_func = type_funcs[type_]
+    minimum = ("negative infinity", False) if -inf in values else (type_func(min(values)), brackets[0] == "[")
+    maximum = ("infinity", False) if inf in values else (type_func(max(values)), brackets[1] == "]")
+
+    return type_, minimum, maximum
+
+
+def _create_interval_relational_boundary(match_string: Span, type_: str):
+    """Create a BoundaryValueType with individual extrema.
+
+    Create a BoundaryValueType whose extrema are extracted from the passed match string.
+
+    Parameters
+    ----------
+    match_string
+        Match string containing the extrema of the value range.
+    type_
+        Boundary Type
+
+    Returns
+    -------
+    BoundaryValueType
+        Triple consisting of the type, the minimum and the maximum of the boundary.
+        The boolean value of the extrema indicates whether the value is included in the value range.
+
+    """
+    relational_ops = []
+    values = []
+    and_or_found = False
+
+    for token in match_string:
+        if token.text in ["<", ">"]:
+            relational_ops.append(token.text)
+        elif token.text == "=":
+            relational_ops[len(relational_ops) - 1] += token.text
+        elif token.like_num:
+            values.append(token.text)
+        elif token.text in ["and", "or"]:
+            and_or_found = True
+    type_func = type_funcs[type_]
+
+    if not and_or_found:
+        minimum = (type_func(min(values)), (relational_ops[0] == "<=") or (relational_ops[1] == ">="))
+        maximum = (type_func(max(values)), (relational_ops[1] == "<=") or (relational_ops[0] == ">="))
+    else:
+        minimum = (type_func(min(values)), ">=" in relational_ops)
+        maximum = (type_func(max(values)), "<=" in relational_ops)
 
     return type_, minimum, maximum
 
