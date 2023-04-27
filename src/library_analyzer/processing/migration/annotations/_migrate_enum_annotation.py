@@ -74,7 +74,7 @@ def migrate_enum_annotation(
                 enum_annotation.target = parameter.id
                 migrated_annotations.append(enum_annotation)
                 continue
-            if isinstance(parameter.type, NamedType):
+            if isinstance(parameter.type, NamedType) and not _contains_string(parameter.type) and not (isinstance(annotated_apiv1_element.type, NamedType) and parameter.type.name == annotated_apiv1_element):
                 # assuming api has been chanced to an enum type:
                 # do not migrate annotation
                 continue

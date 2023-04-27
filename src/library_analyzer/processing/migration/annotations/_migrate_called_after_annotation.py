@@ -43,22 +43,7 @@ def migrate_called_after_annotation(
         called_before_functions = _get_function_called_before_replacements(
             called_after_annotation, mappings, element
         )
-        if len(called_before_functions) == 0:
-            migrated_annotations.append(
-                CalledAfterAnnotation(
-                    element.id,
-                    authors,
-                    called_after_annotation.reviewers,
-                    get_migration_text(
-                        called_after_annotation,
-                        mapping,
-                        additional_information=called_before_functions,
-                    ),
-                    EnumReviewResult.UNSURE,
-                    called_after_annotation.calledAfterName,
-                )
-            )
-        elif (
+        if (
             len(called_before_functions) == 1 and called_before_functions[0] != element
         ):
             migrated_annotations.append(

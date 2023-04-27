@@ -233,7 +233,9 @@ def migrate_omitted_annotation(
     )
     if parameterv1 is None:
         return None
-    if _have_same_type(parameterv1.type, parameterv2.type) and _have_same_value(
+    if not _have_same_type(parameterv1.type, parameterv2.type):
+        return None
+    if _have_same_value(
         parameterv1.default_value, parameterv2.default_value
     ):
         return OmittedAnnotation(
@@ -243,18 +245,13 @@ def migrate_omitted_annotation(
             omitted_annotation.comment,
             EnumReviewResult.NONE,
         )
-    if _have_same_type(parameterv1.type, parameterv2.type) and not _have_same_value(
-        parameterv1.default_value, parameterv2.default_value
-    ):
-        return OmittedAnnotation(
-            parameterv2.id,
-            omitted_annotation.authors,
-            omitted_annotation.reviewers,
-            get_migration_text(omitted_annotation, mapping),
-            EnumReviewResult.UNSURE,
-        )
-
-    return None
+    return OmittedAnnotation(
+        parameterv2.id,
+        omitted_annotation.authors,
+        omitted_annotation.reviewers,
+        get_migration_text(omitted_annotation, mapping),
+        EnumReviewResult.UNSURE,
+    )
 
 
 def migrate_optional_annotation(

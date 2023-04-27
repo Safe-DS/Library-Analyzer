@@ -357,7 +357,7 @@ class Migration:
                         if len(different_values) > 1:
                             different_values.remove(first_value)
                             comment = (
-                                "Conflicting Attribute during migration: "
+                                "Conflicting attribute found during migration: "
                                 + ", ".join(sorted(different_values))
                             )
                             first_annotation.comment = (
