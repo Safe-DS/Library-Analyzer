@@ -71,23 +71,6 @@ class APIMapping:
         if related_mappings is not None:
             for mapping in related_mappings:
                 new_mapping = None
-                # if isinstance(
-                #     mapping.get_apiv1_elements()[0], Attribute
-                # ) and isinstance(mapping.get_apiv2_elements()[0], Attribute):
-                #     new_mapping = self._get_mappings_for_api_elements(
-                #         [
-                #             element
-                #             for element in mapping.get_apiv1_elements()
-                #             if isinstance(element, Attribute)
-                #         ],
-                #         [
-                #             element
-                #             for element in mapping.get_apiv2_elements()
-                #             if isinstance(element, Attribute)
-                #         ],
-                #         self.differ.compute_attribute_similarity,
-                #     )
-                #     mappings.extend(new_mapping)el-
                 if isinstance(mapping.get_apiv1_elements()[0], Class) and isinstance(
                     mapping.get_apiv2_elements()[0], Class
                 ):
@@ -139,23 +122,7 @@ class APIMapping:
                         self.differ.compute_parameter_similarity,
                     )
                     mappings.extend(new_mapping)
-                # elif isinstance(mapping.get_apiv1_elements()[0], Result) and isinstance(
-                #     mapping.get_apiv2_elements()[0], Result
-                # ):
-                #     new_mapping = self._get_mappings_for_api_elements(
-                #         [
-                #             element
-                #             for element in mapping.get_apiv1_elements()
-                #             if isinstance(element, Result)
-                #         ],
-                #         [
-                #             element
-                #             for element in mapping.get_apiv2_elements()
-                #             if isinstance(element, Result)
-                #         ],
-                #         self.differ.compute_result_similarity,
-                #     )
-                #     mappings.extend(new_mapping)
+                # Attribute und Result could be added here
                 if new_mapping is not None and len(new_mapping) > 0:
                     self.differ.notify_new_mapping(new_mapping)
         else:
@@ -180,38 +147,7 @@ class APIMapping:
                     self.differ.compute_parameter_similarity,
                 )
             )
-
-            # mappings.extend(
-            #     self._get_mappings_for_api_elements(
-            #         [
-            #             attribute
-            #             for class_ in self.apiv1.classes.values()
-            #             for attribute in class_.instance_attributes
-            #         ],
-            #         [
-            #             attribute
-            #             for class_ in self.apiv2.classes.values()
-            #             for attribute in class_.instance_attributes
-            #         ],
-            #         self.differ.compute_attribute_similarity,
-            #     )
-            # )
-            #
-            # mappings.extend(
-            #     self._get_mappings_for_api_elements(
-            #         [
-            #             result
-            #             for function in self.apiv1.functions.values()
-            #             for result in function.results
-            #         ],
-            #         [
-            #             result
-            #             for function in self.apiv2.functions.values()
-            #             for result in function.results
-            #         ],
-            #         self.differ.compute_result_similarity,
-            #     )
-            # )
+            # Attribute und Result could be added here
         mappings.extend(self.differ.get_additional_mappings())
         mappings.sort(key=Mapping.get_similarity, reverse=True)
         return mappings
