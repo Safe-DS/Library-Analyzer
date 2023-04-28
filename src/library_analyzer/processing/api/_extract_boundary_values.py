@@ -88,7 +88,7 @@ _boundary_positive = [
     {"LOWER": "positive"}
 ]
 
-_boundary_non_positive =[
+_boundary_non_positive = [
     {"LOWER": {"IN": ["non", "not"]}},
     {"ORTH": {"IN": ["-", "_"]}, "OP": "?"},
     {"LOWER": "positive"}
@@ -183,7 +183,7 @@ _boundary_type = [
 ]
 
 
-def _check_negative_pattern(matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]]) -> Any | None:
+def _check_negative_pattern(matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]]) -> Any | None: # noqa: ARG001
     """on-match function for the spaCy Matcher
 
     Delete the BOUNDARY_NEGATIVE match if the BOUNDARY_NON_NEGATIVE rule has already been detected.
@@ -208,7 +208,7 @@ def _check_negative_pattern(matcher: Matcher, doc: Doc, i: int, matches: list[tu
     return None
 
 
-def _check_positive_pattern(matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]]) -> Any | None:
+def _check_positive_pattern(matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]]) -> Any | None: # noqa: ARG001
     """on-match function for the spaCy Matcher
 
     Delete the BOUNDARY_POSITIVE match if the BOUNDARY_NON_POSITIVE rule has already been detected.
