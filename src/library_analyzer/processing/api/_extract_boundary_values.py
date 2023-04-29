@@ -1,17 +1,19 @@
-import spacy
-from spacy.matcher import Matcher
-from spacy.tokens import Span, Doc
-from typing import Union, Any
-from numpy import inf
 from dataclasses import dataclass, field
+from typing import Any, TypeAlias
 
-Numeric = Union[int, float]
-BoundaryValueType = tuple[str, tuple[Numeric | str, bool], tuple[Numeric | str, bool]]
+import spacy
+from numpy import inf
+from spacy.matcher import Matcher
+from spacy.tokens import Doc, Span
+
+from .model import BoundaryType
+
+_Numeric: TypeAlias = int | float
 
 
 @dataclass
 class BoundaryList:
-    _boundaries: set[BoundaryValueType] = field(default_factory=set[BoundaryValueType])
+    _boundaries: set[BoundaryType] = field(default_factory=set[BoundaryType])
 
     def add_boundary(self, match_label: str, type_: str, match_string: Span = None) -> None:
         match match_label:
@@ -31,8 +33,10 @@ class BoundaryList:
                 self._boundaries.add(_create_at_least_boundary(match_string, type_))
             case "BOUNDARY_INTERVAL_RELATIONAL":
                 self._boundaries.add(_create_interval_relational_boundary(match_string, type_))
+            case "BOUNDARY_TYPE_REL_VAL":
+                self._boundaries.add(_create_type_rel_val_boundary(match_string, type_))
 
-    def get_boundaries(self) -> set[BoundaryValueType]:
+    def get_boundaries(self) -> set[BoundaryType]:
         return self._boundaries
 
 
@@ -40,6 +44,11 @@ type_funcs = {"float": float, "int": int}
 
 _nlp = spacy.load("en_core_web_sm")
 _matcher = Matcher(_nlp.vocab)
+
+_geq_leq_op = [
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"ORTH": "="}
+]
 
 _boundary_at_least = [
     {"LOWER": "at"},
@@ -106,6 +115,7 @@ _boundary_between = [
     {"LIKE_NUM": True}
 ]
 
+
 _boundary_gtlt_gtlt = [
     {"LIKE_NUM": True},
     {"ORTH": {"IN": ["<", ">"]}},
@@ -114,13 +124,12 @@ _boundary_gtlt_gtlt = [
     {"LIKE_NUM": True}
 ]
 
+
 _boundary_geqleq_geqleq = [
     {"LIKE_NUM": True},
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"ORTH": "="},
+    *_geq_leq_op,
     {},
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"ORTH": "="},
+    *_geq_leq_op,
     {"LIKE_NUM": True}
 ]
 
@@ -128,15 +137,13 @@ _boundary_gtlt_geqleq = [
     {"LIKE_NUM": True},
     {"ORTH": {"IN": ["<", ">"]}},
     {},
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"ORTH": "="},
+    *_geq_leq_op,
     {"LIKE_NUM": True}
 ]
 
 _boundary_geqleq_gtlt = [
     {"LIKE_NUM": True},
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"ORTH": "="},
+    *_geq_leq_op,
     {},
     {"ORTH": {"IN": ["<", ">"]}},
     {"LIKE_NUM": True}
@@ -151,12 +158,10 @@ _boundary_and_gtlt_gtlt = [
 ]
 
 _boundary_and_geqleq_geqleq = [
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"ORTH": "="},
+    *_geq_leq_op,
     {"LIKE_NUM": True},
     {"ORTH": {"IN": ["and", "or"]}},
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"ORTH": "="},
+    *_geq_leq_op,
     {"LIKE_NUM": True}
 ]
 
@@ -164,14 +169,12 @@ _boundary_and_gtlt_geqleq = [
     {"ORTH": {"IN": ["<", ">"]}},
     {"LIKE_NUM": True},
     {"ORTH": {"IN": ["and", "or"]}},
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"ORTH": "="},
+    *_geq_leq_op,
     {"LIKE_NUM": True}
 ]
 
 _boundary_and_geqleq_gtlt = [
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"ORTH": "="},
+    *_geq_leq_op,
     {"LIKE_NUM": True},
     {"ORTH": {"IN": ["and", "or"]}},
     {"ORTH": {"IN": ["<", ">"]}},
@@ -179,12 +182,29 @@ _boundary_and_geqleq_gtlt = [
 ]
 
 _boundary_type = [
-    {"LOWER": {"IN": ["float", "double", "int"]}}
+    {"LOWER": {"IN": ["float", "int"]}}
+]
+
+_boundary_type_gtlt_val = [
+    *_boundary_type,
+    {"ORTH": {"IN": ["<", ">"]}},
+    {"LIKE_NUM": True}
+]
+
+_boundary_type_geqleq_val = [
+    *_boundary_type,
+    *_geq_leq_op,
+    {"LIKE_NUM": True}
 ]
 
 
-def _check_negative_pattern(matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]]) -> Any | None: # noqa: ARG001
-    """on-match function for the spaCy Matcher
+def _check_negative_pattern(
+    matcher: Matcher,  # noqa: ARG001
+    doc: Doc,  # noqa: ARG001
+    i: int,
+    matches: list[tuple[Any, ...]]
+) -> Any | None:
+    """on-match function for the spaCy Matcher.
 
     Delete the BOUNDARY_NEGATIVE match if the BOUNDARY_NON_NEGATIVE rule has already been detected.
 
@@ -208,8 +228,13 @@ def _check_negative_pattern(matcher: Matcher, doc: Doc, i: int, matches: list[tu
     return None
 
 
-def _check_positive_pattern(matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]]) -> Any | None: # noqa: ARG001
-    """on-match function for the spaCy Matcher
+def _check_positive_pattern(
+    matcher: Matcher,  # noqa: ARG001
+    doc: Doc,  # noqa: ARG001
+    i: int,
+    matches: list[tuple[Any, ...]]
+) -> Any | None:
+    """on-match function for the spaCy Matcher.
 
     Delete the BOUNDARY_POSITIVE match if the BOUNDARY_NON_POSITIVE rule has already been detected.
 
@@ -247,9 +272,10 @@ _matcher.add("BOUNDARY_NON_POSITIVE", [_boundary_non_positive])
 _matcher.add("BOUNDARY_BETWEEN", [_boundary_between])
 _matcher.add("BOUNDARY_INTERVAL_RELATIONAL", relational_patterns)
 _matcher.add("BOUNDARY_TYPE", [_boundary_type])
+_matcher.add("BOUNDARY_TYPE_REL_VAL", [_boundary_type_gtlt_val, _boundary_type_geqleq_val])
 
 
-def _get_type_value(type_: str, value: Numeric | str) -> Numeric:
+def _get_type_value(type_: str, value: _Numeric | str) -> _Numeric:
     """Transform the passed value to the value matching type_.
 
     Parameters
@@ -267,151 +293,178 @@ def _get_type_value(type_: str, value: Numeric | str) -> Numeric:
     return type_funcs[type_](value)
 
 
-def _create_non_positive_boundary(type_: str) -> BoundaryValueType:
-    """Create a BoundaryValueType with predefined extrema.
+def _create_non_positive_boundary(type_: str) -> BoundaryType:
+    """Create a BoundaryType with predefined extrema.
 
-    Create a BoundaryValueType that describes the non-positive value range of the given type.
-
-    Parameters
-    ----------
-    type_
-        Boundary type
-
-    Returns
-    -------
-    BoundaryValueType
-        Triple consisting of the type, the minimum and the maximum of the boundary.
-        The boolean value of the extrema indicates whether the value is included in the value range.
-    """
-    return type_, ("negative infinity", False), (_get_type_value(type_, 0), True)
-
-
-def _create_positive_boundary(type_: str) -> BoundaryValueType:
-    """Create a BoundaryValueType with predefined extrema.
-
-    Create a BoundaryValueType that describes the positive value range of the given type.
+    Create a BoundaryType that describes the non-positive value range of the given type.
 
     Parameters
     ----------
     type_
-        Boundary type
+        Base type of Boundary
 
     Returns
     -------
-    BoundaryValueType
-        Triple consisting of the type, the minimum and the maximum of the boundary.
-        The boolean value of the extrema indicates whether the value is included in the value range.
+    BoundaryType
+
     """
-    return type_, (_get_type_value(type_, 0), False), ("infinity", False)
+    return BoundaryType(
+        type_,
+        min=BoundaryType.NEGATIVE_INFINITY,
+        max=_get_type_value(type_, 0),
+        min_inclusive=False,
+        max_inclusive=True
+    )
 
 
-def _create_non_negative_boundary(type_: str) -> BoundaryValueType:
-    """Create a BoundaryValueType with predefined extrema.
+def _create_positive_boundary(type_: str) -> BoundaryType:
+    """Create a BoundaryType with predefined extrema.
 
-    Create a BoundaryValueType that describes the non-negative value range of the given type.
+    Create a BoundaryType that describes the positive value range of the given type.
 
     Parameters
     ----------
     type_
-        Boundary type
+        Base type of Boundary
 
     Returns
     -------
-    BoundaryValueType
-        Triple consisting of the type, the minimum and the maximum of the boundary.
-        The boolean value of the extrema indicates whether the value is included in the value range.
+    BoundaryType
+
     """
-    return type_, (_get_type_value(type_, 0), True), ("infinity", False)
+    return BoundaryType(
+        type_,
+        min=_get_type_value(type_, 0),
+        max=BoundaryType.INFINITY,
+        min_inclusive=False,
+        max_inclusive=False
+    )
 
 
-def _create_negative_boundary(type_: str) -> BoundaryValueType:
-    """Create a BoundaryValueType with predefined extrema.
+def _create_non_negative_boundary(type_: str) -> BoundaryType:
+    """Create a BoundaryType with predefined extrema.
 
-    Create a BoundaryValueType that describes the negative value range of the given type.
+    Create a BoundaryType that describes the non-negative value range of the given type.
 
     Parameters
     ----------
     type_
-        Boundary type
+        Base type of Boundary
 
     Returns
     -------
-    BoundaryValueType
-        Triple consisting of the type, the minimum and the maximum of the boundary.
-        The boolean value of the extrema indicates whether the value is included in the value range.
+    BoundaryType
+
     """
-    return type_, ("negative infinity", False), (_get_type_value(type_, 0), False)
+    return BoundaryType(
+        type_,
+        min=_get_type_value(type_, 0),
+        max=BoundaryType.INFINITY,
+        min_inclusive=True,
+        max_inclusive=False
+    )
 
 
-def _create_between_boundary(match_string: Span, type_: str) -> BoundaryValueType:
-    """Create a BoundaryValueType with individual extrema.
+def _create_negative_boundary(type_: str) -> BoundaryType:
+    """Create a BoundaryType with predefined extrema.
 
-    Create a 'between' BoundaryValueType whose extrema are extracted from the passed match string.
+    Create a BoundaryType that describes the negative value range of the given type.
+
+    Parameters
+    ----------
+    type_
+        Base type of Boundary
+
+    Returns
+    -------
+    BoundaryType
+
+    """
+    # return type_, ("negative infinity", False), (_get_type_value(type_, 0), False)
+    return BoundaryType(
+        type_,
+        min=BoundaryType.NEGATIVE_INFINITY,
+        max=_get_type_value(type_, 0),
+        min_inclusive=False,
+        max_inclusive=False
+    )
+
+
+def _create_between_boundary(match_string: Span, type_: str) -> BoundaryType:
+    """Create a BoundaryType with individual extrema.
+
+    Create a BoundaryType whose extrema are extracted from the passed match string.
 
     Parameters
     ----------
     match_string
         Match string containing the extrema of the value range.
     type_
-        Boundary Type
+        Base type of Boundary
 
     Returns
     -------
-    BoundaryValueType
-        Triple consisting of the type, the minimum and the maximum of the boundary.
-        The boolean value of the extrema indicates whether the value is included in the value range.
+    BoundaryType
 
     """
     values = []
     for token in match_string:
         if token.like_num:
             values.append(_get_type_value(type_, token.text))
-    return type_, (min(values), True), (max(values), True)
+    return BoundaryType(
+        type_,
+        min=min(values),
+        max=max(values),
+        min_inclusive=True,
+        max_inclusive=True
+    )
 
 
-def _create_at_least_boundary(match_string: Span, type_: str) -> BoundaryValueType:
-    """Create a BoundaryValueType with individual minimum.
+def _create_at_least_boundary(match_string: Span, type_: str) -> BoundaryType:
+    """Create a BoundaryType with individual minimum.
 
-    Create a BoundaryValueType whose minimum is extracted from the passed match string.
+    Create a BoundaryType whose minimum is extracted from the passed match string.
 
     Parameters
     ----------
     match_string
         Match string containing the minimum of the value range.
     type_
-        Boundary Type
+        Base type of Boundary
 
     Returns
     -------
-    BoundaryValueType
-        Triple consisting of the type, the minimum and the maximum of the boundary.
-        The boolean value of the extrema indicates whether the value is included in the value range.
+    BoundaryType
 
     """
-    value: Numeric = 0
+    value: _Numeric = 0
     for token in match_string:
         if token.like_num:
             value = _get_type_value(type_, token.text)
-    return type_, (value, True), ("infinity", False)
+    return BoundaryType(
+        type_,
+        min=value,
+        max=BoundaryType.INFINITY,
+        min_inclusive=True,
+        max_inclusive=False
+    )
 
 
-def _create_interval_boundary(match_string: Span, type_: str) -> BoundaryValueType:
-    """Create a BoundaryValueType with individual extrema.
+def _create_interval_boundary(match_string: Span, type_: str) -> BoundaryType:
+    """Create a BoundaryType with individual extrema.
 
-    Create a BoundaryValueType whose extrema are extracted from the passed match string.
+    Create a BoundaryType whose extrema are extracted from the passed match string.
 
     Parameters
     ----------
     match_string
         Match string containing the extrema of the value range.
     type_
-        Boundary Type
+        Base type of Boundary
 
     Returns
     -------
-    BoundaryValueType
-        Triple consisting of the type, the minimum and the maximum of the boundary.
-        The boolean value of the extrema indicates whether the value is included in the value range.
+    BoundaryType
 
     """
     values = []
@@ -428,29 +481,44 @@ def _create_interval_boundary(match_string: Span, type_: str) -> BoundaryValueTy
             values.append(-inf)
 
     type_func = type_funcs[type_]
-    minimum = ("negative infinity", False) if -inf in values else (type_func(min(values)), brackets[0] == "[")
-    maximum = ("infinity", False) if inf in values else (type_func(max(values)), brackets[1] == "]")
+    if -inf in values:
+        minimum = BoundaryType.NEGATIVE_INFINITY
+        min_incl = False
+    else:
+        minimum = type_func(min(values))
+        min_incl = (brackets[0] == "[")
 
-    return type_, minimum, maximum
+    if inf in values:
+        maximum = BoundaryType.INFINITY
+        max_incl = False
+    else:
+        maximum = type_func(max(values))
+        max_incl = (brackets[1] == "]")
+
+    return BoundaryType(
+        type_,
+        min=minimum,
+        max=maximum,
+        min_inclusive=min_incl,
+        max_inclusive=max_incl
+    )
 
 
-def _create_interval_relational_boundary(match_string: Span, type_: str) -> BoundaryValueType:
-    """Create a BoundaryValueType with individual extrema.
+def _create_interval_relational_boundary(match_string: Span, type_: str) -> BoundaryType:
+    """Create a BoundaryType with individual extrema.
 
-    Create a BoundaryValueType whose extrema are extracted from the passed match string.
+    Create a BoundaryType whose extrema are extracted from the passed match string.
 
     Parameters
     ----------
     match_string
         Match string containing the extrema of the value range.
     type_
-        Boundary Type
+        Base type of Boundary
 
     Returns
     -------
-    BoundaryValueType
-        Triple consisting of the type, the minimum and the maximum of the boundary.
-        The boolean value of the extrema indicates whether the value is included in the value range.
+    BoundaryType
 
     """
     relational_ops = []
@@ -468,20 +536,124 @@ def _create_interval_relational_boundary(match_string: Span, type_: str) -> Boun
             and_or_found = True
     type_func = type_funcs[type_]
 
+    minimum = type_func(min(values))
+    maximum = type_func(max(values))
+
     if not and_or_found:
-        minimum = (type_func(min(values)), (relational_ops[0] == "<=") or (relational_ops[1] == ">="))
-        maximum = (type_func(max(values)), (relational_ops[1] == "<=") or (relational_ops[0] == ">="))
+        min_incl = (relational_ops[0] == "<=") or (relational_ops[1] == ">=")
+        max_incl = (relational_ops[1] == "<=") or (relational_ops[0] == ">=")
     else:
-        minimum = (type_func(min(values)), ">=" in relational_ops)
-        maximum = (type_func(max(values)), "<=" in relational_ops)
+        min_incl = ">=" in relational_ops
+        max_incl = "<=" in relational_ops
 
-    return type_, minimum, maximum
+    return BoundaryType(
+        type_,
+        min=minimum,
+        max=maximum,
+        min_inclusive=min_incl,
+        max_inclusive=max_incl
+    )
 
 
-def extract_boundary(description: str, type_string: str) -> set[BoundaryValueType]:
-    """Extract valid BoundaryValueTypes.
+def _create_type_rel_val_boundary(match_string: Span, type_: str) -> BoundaryType:
+    """Create a BoundaryType with individual minimum or maximum.
 
-    Extract valid BoundaryValueTypes described by predefined rules.
+    Create a BoundaryType whose minimum or maximum is extracted from the passed match string.
+
+    Parameters
+    ----------
+    match_string
+        Match string containing the extrema of the value range.
+    type_
+        Base type of Boundary
+
+    Returns
+    -------
+    BoundaryType
+
+    """
+    val: _Numeric = 0
+    min_: _Numeric | str = 0
+    max_: _Numeric | str = 0
+
+    rel_op = ""
+    type_func = type_funcs[type_]
+    min_incl = False
+    max_incl = False
+
+    for token in match_string:
+        if token.like_num:
+            val = type_func(token.text)
+        if token.text in [">", "<", "="]:
+            rel_op += token.text
+
+    # type (< | <=) val
+    if rel_op in ["<", "<="]:
+        min_ = BoundaryType.NEGATIVE_INFINITY
+        max_ = val
+        if rel_op == "<=":
+            max_incl = True
+
+    # type (> | >=) val
+    elif rel_op in [">", ">="]:
+        min_ = val
+        max_ = BoundaryType.INFINITY
+        if rel_op == ">=":
+            min_incl = True
+
+    return BoundaryType(
+        type_,
+        min=min_,
+        max=max_,
+        min_inclusive=min_incl,
+        max_inclusive=max_incl
+    )
+
+
+def _analyze_matches(matches: list[tuple[str, Span]], boundaries: BoundaryList) -> None:
+    type_id = 0
+    other_id = 0
+    processed_matches = []
+    found_type = False
+
+    # Assignment of the found boundaries to the corresponding data type
+    for match_label, match_string in matches:
+        if match_label == "BOUNDARY_TYPE":
+            if found_type:
+                other_id += 1
+            processed_matches.append({"id": type_id, "match_label": match_label, "match_string": match_string})
+            type_id += 1
+            found_type = True
+
+        else:
+            processed_matches.append({"id": other_id, "match_label": match_label, "match_string": match_string})
+            other_id += 1
+            if found_type:
+                found_type = False
+
+    # Creation of the matching BoundaryTypes
+    for i in range(max(type_id, other_id)):
+        same_id = [match for match in processed_matches if match["id"] == i]
+        if len(same_id) == 2:
+            type_ = ""
+            match_string = ""
+            match_label = ""
+
+            for match in same_id:
+
+                if match["match_label"] == "BOUNDARY_TYPE":
+                    type_ = match["match_string"].text
+                else:
+                    match_label = match["match_label"]
+                    match_string = match["match_string"]
+
+                boundaries.add_boundary(match_label, type_, match_string)
+
+
+def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
+    """Extract valid BoundaryTypes.
+
+    Extract valid BoundaryTypes described by predefined rules.
 
     Parameters
     ----------
@@ -493,10 +665,9 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryValueTyp
 
     Returns
     -------
-    set[BoundaryValueType]
-        A set containing valid BoundaryValueTypes.
+    set[BoundaryType]
+        A set containing valid BoundaryTypes.
     """
-
     boundaries = BoundaryList()
 
     type_doc = _nlp(type_string)
@@ -510,7 +681,7 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryValueTyp
 
     if type_matches:
         type_list = []  # Possible numeric data types that may be used with the parameter to be examined.
-        restriction_list = [] # Restrictions of the type such as non-negative
+        restriction_list = []  # Restrictions of the type such as non-negative
         match_label = ""
 
         for match in type_matches:
@@ -541,43 +712,12 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryValueTyp
             boundaries.add_boundary(match_label, type_text, match_string)
 
         elif type_length > 1:
-            type_id = 0
-            other_id = 0
-            matches = []
-            found_type = False
 
-            # Assignment of the found boundaries to the corresponding data type
-            for match_label, match_string in desc_matches:
-                if match_label == "BOUNDARY_TYPE":
-                    if found_type:
-                        other_id += 1
-                    matches.append({"id": type_id, "match_label": match_label, "match_string": match_string})
-                    type_id += 1
-                    found_type = True
+            found_type_rel_val = any(match[0] == "BOUNDARY_TYPE_REL_VAL" for match in type_matches)
 
-                else:
-                    matches.append({"id": other_id, "match_label": match_label, "match_string": match_string})
-                    other_id += 1
-                    if found_type:
-                        found_type = False
-
-            # Creation of the matching BoundaryValueTypes
-            for i in range(max(type_id, other_id)):
-                same_id = [match for match in matches if match['id'] == i]
-                if len(same_id) == 2:
-                    type_ = ""
-                    match_string = ""
-                    match_label = ""
-
-                    for match in same_id:
-
-                        if match["match_label"] == "BOUNDARY_TYPE":
-                            type_ = match["match_string"].text
-                        else:
-                            match_label = match["match_label"]
-                            match_string = match["match_string"]
-
-                        boundaries.add_boundary(match_label, type_, match_string)
+            if found_type_rel_val:
+                _analyze_matches(type_matches, boundaries)
+            else:
+                _analyze_matches(desc_matches, boundaries)
 
     return boundaries.get_boundaries()
-
