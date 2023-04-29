@@ -148,7 +148,7 @@ _boundary_type_geqleq_val = [*_boundary_type, *_geq_leq_op, {"LIKE_NUM": True}]
 
 
 def _check_negative_pattern(
-    matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]],  # noqa: ARG001  # noqa: ARG001
+    matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]],  # noqa: ARG001
 ) -> Any | None:
     """on-match function for the spaCy Matcher.
 
@@ -175,7 +175,7 @@ def _check_negative_pattern(
 
 
 def _check_positive_pattern(
-    matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]],  # noqa: ARG001  # noqa: ARG001
+    matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]],  # noqa: ARG001
 ) -> Any | None:
     """on-match function for the spaCy Matcher.
 
