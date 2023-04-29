@@ -45,22 +45,11 @@ type_funcs = {"float": float, "int": int}
 _nlp = spacy.load("en_core_web_sm")
 _matcher = Matcher(_nlp.vocab)
 
-_geq_leq_op = [
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"ORTH": "="}
-]
+_geq_leq_op = [{"ORTH": {"IN": ["<", ">"]}}, {"ORTH": "="}]
 
-_boundary_at_least = [
-    {"LOWER": "at"},
-    {"LOWER": "least"},
-    {"LIKE_NUM": True}
-]
+_boundary_at_least = [{"LOWER": "at"}, {"LOWER": "least"}, {"LIKE_NUM": True}]
 
-_boundary_min = [
-    {"LOWER": "min"},
-    {"ORTH": "."},
-    {"LIKE_NUM": True}
-]
+_boundary_min = [{"LOWER": "min"}, {"ORTH": "."}, {"LIKE_NUM": True}]
 
 _boundary_interval = [
     {"LOWER": "in"},
@@ -71,7 +60,7 @@ _boundary_interval = [
     {},
     {"ORTH": ","},
     {},
-    {"ORTH": {"IN": [")", "]"]}}
+    {"ORTH": {"IN": [")", "]"]}},
 ]
 
 _boundary_value_in = [
@@ -81,39 +70,27 @@ _boundary_value_in = [
     {},
     {"ORTH": ","},
     {},
-    {"ORTH": {"IN": [")", "]"]}}
-
+    {"ORTH": {"IN": [")", "]"]}},
 ]
 
 
 _boundary_non_negative = [
     {"LOWER": {"IN": ["non", "not"]}},
     {"ORTH": {"IN": ["-", "_"]}, "OP": "?"},
-    {"LOWER": "negative"}
- ]
-
-_boundary_positive = [
-    {"LOWER": "strictly", "OP": "?"},
-    {"LOWER": "positive"}
+    {"LOWER": "negative"},
 ]
+
+_boundary_positive = [{"LOWER": "strictly", "OP": "?"}, {"LOWER": "positive"}]
 
 _boundary_non_positive = [
     {"LOWER": {"IN": ["non", "not"]}},
     {"ORTH": {"IN": ["-", "_"]}, "OP": "?"},
-    {"LOWER": "positive"}
+    {"LOWER": "positive"},
 ]
 
-_boundary_negative = [
-    {"LOWER": "strictly", "OP": "?"},
-    {"LOWER": "negative"}
-]
+_boundary_negative = [{"LOWER": "strictly", "OP": "?"}, {"LOWER": "negative"}]
 
-_boundary_between = [
-    {"LOWER": "between"},
-    {"LIKE_NUM": True},
-    {"LOWER": "and"},
-    {"LIKE_NUM": True}
-]
+_boundary_between = [{"LOWER": "between"}, {"LIKE_NUM": True}, {"LOWER": "and"}, {"LIKE_NUM": True}]
 
 
 _boundary_gtlt_gtlt = [
@@ -121,40 +98,22 @@ _boundary_gtlt_gtlt = [
     {"ORTH": {"IN": ["<", ">"]}},
     {},
     {"ORTH": {"IN": ["<", ">"]}},
-    {"LIKE_NUM": True}
-]
-
-
-_boundary_geqleq_geqleq = [
     {"LIKE_NUM": True},
-    *_geq_leq_op,
-    {},
-    *_geq_leq_op,
-    {"LIKE_NUM": True}
 ]
 
-_boundary_gtlt_geqleq = [
-    {"LIKE_NUM": True},
-    {"ORTH": {"IN": ["<", ">"]}},
-    {},
-    *_geq_leq_op,
-    {"LIKE_NUM": True}
-]
 
-_boundary_geqleq_gtlt = [
-    {"LIKE_NUM": True},
-    *_geq_leq_op,
-    {},
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"LIKE_NUM": True}
-]
+_boundary_geqleq_geqleq = [{"LIKE_NUM": True}, *_geq_leq_op, {}, *_geq_leq_op, {"LIKE_NUM": True}]
+
+_boundary_gtlt_geqleq = [{"LIKE_NUM": True}, {"ORTH": {"IN": ["<", ">"]}}, {}, *_geq_leq_op, {"LIKE_NUM": True}]
+
+_boundary_geqleq_gtlt = [{"LIKE_NUM": True}, *_geq_leq_op, {}, {"ORTH": {"IN": ["<", ">"]}}, {"LIKE_NUM": True}]
 
 _boundary_and_gtlt_gtlt = [
     {"ORTH": {"IN": ["<", ">"]}},
     {"LIKE_NUM": True},
     {"ORTH": {"IN": ["and", "or"]}},
     {"ORTH": {"IN": ["<", ">"]}},
-    {"LIKE_NUM": True}
+    {"LIKE_NUM": True},
 ]
 
 _boundary_and_geqleq_geqleq = [
@@ -162,7 +121,7 @@ _boundary_and_geqleq_geqleq = [
     {"LIKE_NUM": True},
     {"ORTH": {"IN": ["and", "or"]}},
     *_geq_leq_op,
-    {"LIKE_NUM": True}
+    {"LIKE_NUM": True},
 ]
 
 _boundary_and_gtlt_geqleq = [
@@ -170,7 +129,7 @@ _boundary_and_gtlt_geqleq = [
     {"LIKE_NUM": True},
     {"ORTH": {"IN": ["and", "or"]}},
     *_geq_leq_op,
-    {"LIKE_NUM": True}
+    {"LIKE_NUM": True},
 ]
 
 _boundary_and_geqleq_gtlt = [
@@ -178,31 +137,18 @@ _boundary_and_geqleq_gtlt = [
     {"LIKE_NUM": True},
     {"ORTH": {"IN": ["and", "or"]}},
     {"ORTH": {"IN": ["<", ">"]}},
-    {"LIKE_NUM": True}
+    {"LIKE_NUM": True},
 ]
 
-_boundary_type = [
-    {"LOWER": {"IN": ["float", "int"]}}
-]
+_boundary_type = [{"LOWER": {"IN": ["float", "int"]}}]
 
-_boundary_type_gtlt_val = [
-    *_boundary_type,
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"LIKE_NUM": True}
-]
+_boundary_type_gtlt_val = [*_boundary_type, {"ORTH": {"IN": ["<", ">"]}}, {"LIKE_NUM": True}]
 
-_boundary_type_geqleq_val = [
-    *_boundary_type,
-    *_geq_leq_op,
-    {"LIKE_NUM": True}
-]
+_boundary_type_geqleq_val = [*_boundary_type, *_geq_leq_op, {"LIKE_NUM": True}]
 
 
 def _check_negative_pattern(
-    matcher: Matcher,  # noqa: ARG001
-    doc: Doc,  # noqa: ARG001
-    i: int,
-    matches: list[tuple[Any, ...]]
+    matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]],  # noqa: ARG001  # noqa: ARG001
 ) -> Any | None:
     """on-match function for the spaCy Matcher.
 
@@ -229,10 +175,7 @@ def _check_negative_pattern(
 
 
 def _check_positive_pattern(
-    matcher: Matcher,  # noqa: ARG001
-    doc: Doc,  # noqa: ARG001
-    i: int,
-    matches: list[tuple[Any, ...]]
+    matcher: Matcher, doc: Doc, i: int, matches: list[tuple[Any, ...]],  # noqa: ARG001  # noqa: ARG001
 ) -> Any | None:
     """on-match function for the spaCy Matcher.
 
@@ -259,8 +202,14 @@ def _check_positive_pattern(
 
 
 relational_patterns = [
-    _boundary_gtlt_gtlt, _boundary_geqleq_geqleq, _boundary_geqleq_gtlt, _boundary_gtlt_geqleq,
-    _boundary_and_gtlt_gtlt, _boundary_and_geqleq_geqleq, _boundary_and_geqleq_gtlt, _boundary_and_gtlt_geqleq
+    _boundary_gtlt_gtlt,
+    _boundary_geqleq_geqleq,
+    _boundary_geqleq_gtlt,
+    _boundary_gtlt_geqleq,
+    _boundary_and_gtlt_gtlt,
+    _boundary_and_geqleq_geqleq,
+    _boundary_and_geqleq_gtlt,
+    _boundary_and_gtlt_geqleq,
 ]
 
 _matcher.add("BOUNDARY_AT_LEAST", [_boundary_at_least, _boundary_min])
@@ -313,7 +262,7 @@ def _create_non_positive_boundary(type_: str) -> BoundaryType:
         min=BoundaryType.NEGATIVE_INFINITY,
         max=_get_type_value(type_, 0),
         min_inclusive=False,
-        max_inclusive=True
+        max_inclusive=True,
     )
 
 
@@ -333,11 +282,7 @@ def _create_positive_boundary(type_: str) -> BoundaryType:
 
     """
     return BoundaryType(
-        type_,
-        min=_get_type_value(type_, 0),
-        max=BoundaryType.INFINITY,
-        min_inclusive=False,
-        max_inclusive=False
+        type_, min=_get_type_value(type_, 0), max=BoundaryType.INFINITY, min_inclusive=False, max_inclusive=False,
     )
 
 
@@ -357,11 +302,7 @@ def _create_non_negative_boundary(type_: str) -> BoundaryType:
 
     """
     return BoundaryType(
-        type_,
-        min=_get_type_value(type_, 0),
-        max=BoundaryType.INFINITY,
-        min_inclusive=True,
-        max_inclusive=False
+        type_, min=_get_type_value(type_, 0), max=BoundaryType.INFINITY, min_inclusive=True, max_inclusive=False,
     )
 
 
@@ -386,7 +327,7 @@ def _create_negative_boundary(type_: str) -> BoundaryType:
         min=BoundaryType.NEGATIVE_INFINITY,
         max=_get_type_value(type_, 0),
         min_inclusive=False,
-        max_inclusive=False
+        max_inclusive=False,
     )
 
 
@@ -411,13 +352,7 @@ def _create_between_boundary(match_string: Span, type_: str) -> BoundaryType:
     for token in match_string:
         if token.like_num:
             values.append(_get_type_value(type_, token.text))
-    return BoundaryType(
-        type_,
-        min=min(values),
-        max=max(values),
-        min_inclusive=True,
-        max_inclusive=True
-    )
+    return BoundaryType(type_, min=min(values), max=max(values), min_inclusive=True, max_inclusive=True)
 
 
 def _create_at_least_boundary(match_string: Span, type_: str) -> BoundaryType:
@@ -441,13 +376,7 @@ def _create_at_least_boundary(match_string: Span, type_: str) -> BoundaryType:
     for token in match_string:
         if token.like_num:
             value = _get_type_value(type_, token.text)
-    return BoundaryType(
-        type_,
-        min=value,
-        max=BoundaryType.INFINITY,
-        min_inclusive=True,
-        max_inclusive=False
-    )
+    return BoundaryType(type_, min=value, max=BoundaryType.INFINITY, min_inclusive=True, max_inclusive=False)
 
 
 def _create_interval_boundary(match_string: Span, type_: str) -> BoundaryType:
@@ -486,22 +415,16 @@ def _create_interval_boundary(match_string: Span, type_: str) -> BoundaryType:
         min_incl = False
     else:
         minimum = type_func(min(values))
-        min_incl = (brackets[0] == "[")
+        min_incl = brackets[0] == "["
 
     if inf in values:
         maximum = BoundaryType.INFINITY
         max_incl = False
     else:
         maximum = type_func(max(values))
-        max_incl = (brackets[1] == "]")
+        max_incl = brackets[1] == "]"
 
-    return BoundaryType(
-        type_,
-        min=minimum,
-        max=maximum,
-        min_inclusive=min_incl,
-        max_inclusive=max_incl
-    )
+    return BoundaryType(type_, min=minimum, max=maximum, min_inclusive=min_incl, max_inclusive=max_incl)
 
 
 def _create_interval_relational_boundary(match_string: Span, type_: str) -> BoundaryType:
@@ -546,13 +469,7 @@ def _create_interval_relational_boundary(match_string: Span, type_: str) -> Boun
         min_incl = ">=" in relational_ops
         max_incl = "<=" in relational_ops
 
-    return BoundaryType(
-        type_,
-        min=minimum,
-        max=maximum,
-        min_inclusive=min_incl,
-        max_inclusive=max_incl
-    )
+    return BoundaryType(type_, min=minimum, max=maximum, min_inclusive=min_incl, max_inclusive=max_incl)
 
 
 def _create_type_rel_val_boundary(match_string: Span, type_: str) -> BoundaryType:
@@ -601,13 +518,7 @@ def _create_type_rel_val_boundary(match_string: Span, type_: str) -> BoundaryTyp
         if rel_op == ">=":
             min_incl = True
 
-    return BoundaryType(
-        type_,
-        min=min_,
-        max=max_,
-        min_inclusive=min_incl,
-        max_inclusive=max_incl
-    )
+    return BoundaryType(type_, min=min_, max=max_, min_inclusive=min_incl, max_inclusive=max_incl)
 
 
 def _analyze_matches(matches: list[tuple[str, Span]], boundaries: BoundaryList) -> None:
@@ -640,7 +551,6 @@ def _analyze_matches(matches: list[tuple[str, Span]], boundaries: BoundaryList) 
             match_label = ""
 
             for match in same_id:
-
                 if match["match_label"] == "BOUNDARY_TYPE":
                     type_ = match["match_string"].text
                 else:
@@ -676,8 +586,7 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
 
     description_doc = _nlp(description)
     desc_matches = _matcher(description_doc)
-    desc_matches = [(_nlp.vocab.strings[match_id], description_doc[start:end])
-                    for match_id, start, end in desc_matches]
+    desc_matches = [(_nlp.vocab.strings[match_id], description_doc[start:end]) for match_id, start, end in desc_matches]
 
     if type_matches:
         type_list = []  # Possible numeric data types that may be used with the parameter to be examined.
@@ -712,7 +621,6 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
             boundaries.add_boundary(match_label, type_text, match_string)
 
         elif type_length > 1:
-
             found_type_rel_val = any(match[0] == "BOUNDARY_TYPE_REL_VAL" for match in type_matches)
 
             if found_type_rel_val:
