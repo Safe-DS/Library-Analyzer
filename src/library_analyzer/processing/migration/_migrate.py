@@ -255,20 +255,7 @@ class Migration:
         for parameter in api.parameters().values():
             if not is_included(parameter):
                 not_mapped_api_elements.append(parameter.id)
-        # for attribute, class_ in [
-        #     (attribute, class_)
-        #     for class_ in api.classes.values()
-        #     for attribute in class_.instance_attributes
-        # ]:
-        #     if not is_included(attribute):
-        #         not_mapped_api_elements.append(class_.id + "/" + attribute.name)
-        # for result, function in [
-        #     (result, function)
-        #     for function in api.functions.values()
-        #     for result in function.results
-        # ]:
-        #     if not is_included(result):
-        #         not_mapped_api_elements.append(function.id + "/" + result.name)
+        # Attribute und Result could be added here
         return not_mapped_api_elements
 
     def print(self, apiv1: API, apiv2: API) -> None:

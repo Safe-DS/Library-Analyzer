@@ -26,23 +26,23 @@ class UnchangedDiffer(AbstractDiffer):
         self.unchanged_api_mappings: list[Mapping] = []
         for classv1 in apiv1.classes.values():
             classv2 = apiv2.classes.get(classv1.id, None)
-            if classv2 is not None and self.have_same_api(classv1, classv2):
+            if classv2 is not None:
                 self.unchanged_api_mappings.append(
-                    OneToOneMapping(1.0, classv1, classv2)
+                    OneToOneMapping(-1.0, classv1, classv2)
                 )
 
         for functionv1 in apiv1.functions.values():
             functionv2 = apiv2.functions.get(functionv1.id, None)
-            if functionv2 is not None and self.have_same_api(functionv1, functionv2):
+            if functionv2 is not None:
                 self.unchanged_api_mappings.append(
-                    OneToOneMapping(1.0, functionv1, functionv2)
+                    OneToOneMapping(-1.0, functionv1, functionv2)
                 )
 
         for parameterv1 in apiv1.parameters().values():
             parameterv2 = apiv2.parameters().get(parameterv1.id, None)
-            if parameterv2 is not None and self.have_same_api(parameterv1, parameterv2):
+            if parameterv2 is not None:
                 self.unchanged_api_mappings.append(
-                    OneToOneMapping(1.0, parameterv1, parameterv2)
+                    OneToOneMapping(-1.0, parameterv1, parameterv2)
                 )
         # Attribute und Result could be added here
 
@@ -65,26 +65,32 @@ class UnchangedDiffer(AbstractDiffer):
         return 0.0
 
     def compute_class_similarity(self, classv1: Class, classv2: Class) -> float:
+        if self.have_same_api(classv1, classv2):
+            return 1.0
         return 0.0
 
     def compute_function_similarity(
         self, functionv1: Function, functionv2: Function
     ) -> float:
+        if self.have_same_api(functionv1, functionv2):
+            return 1.0
         return 0.0
 
     def compute_parameter_similarity(
         self, parameterv1: Parameter, parameterv2: Parameter
     ) -> float:
+        if self.have_same_api(parameterv1, parameterv2):
+            return 1.0
         return 0.0
 
     def compute_result_similarity(self, resultv1: Result, resultv2: Result) -> float:
         return 0.0
 
     def get_related_mappings(self) -> Optional[list[Mapping]]:
-        return []
+        return self.unchanged_api_mappings
 
     def notify_new_mapping(self, mappings: list[Mapping]) -> None:
         pass
 
     def get_additional_mappings(self) -> list[Mapping]:
-        return self.unchanged_api_mappings
+        return []
