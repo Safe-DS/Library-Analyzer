@@ -37,8 +37,10 @@ def _read_usages_file(usages_file_path: Path) -> UsageCountStore:
     return UsageCountStore.from_json(usages_json)
 
 
-def _write_api_file(api: API, out_dir_path: Path) -> Path:
-    out_file_api = out_dir_path.joinpath(f"{api.package}__api.json")
+def _write_api_file(api: API, out_dir_path: Path, name=None) -> Path:
+    if name is None:
+        name = f"{api.package}__api.json"
+    out_file_api = out_dir_path.joinpath(name)
     ensure_file_exists(out_file_api)
     with out_file_api.open("w", encoding="utf-8") as f:
         json.dump(api.to_json(), f, indent=2, cls=CustomEncoder)

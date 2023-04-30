@@ -1,0 +1,884 @@
+{
+  "schemaVersion": 1,
+  "distribution": "",
+  "package": "stdlib",
+  "version": "",
+  "modules": [],
+  "classes": [
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/ColumnLengthMismatchError",
+      "name": "ColumnLengthMismatchError",
+      "qname": "safeds.data.tabular.exceptions._exceptions.ColumnLengthMismatchError",
+      "decorators": [],
+      "superclasses": [
+        "Exception"
+      ],
+      "methods": [
+        "stdlib/safeds.data.tabular.exceptions._exceptions/ColumnLengthMismatchError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised when the lengths of two or more columns do not match.",
+      "docstring": "Exception raised when the lengths of two or more columns do not match.",
+      "code": "class ColumnLengthMismatchError(Exception):\n    \"\"\"Exception raised when the lengths of two or more columns do not match.\"\"\"\n\n    def __init__(self, column_info: str):\n        super().__init__(f\"The length of at least one column differs: \\n{column_info}\")",
+      "instance_attributes": []
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/ColumnSizeError",
+      "name": "ColumnSizeError",
+      "qname": "safeds.data.tabular.exceptions._exceptions.ColumnSizeError",
+      "decorators": [],
+      "superclasses": [
+        "Exception"
+      ],
+      "methods": [
+        "stdlib/safeds.data.tabular.exceptions._exceptions/ColumnSizeError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised for trying to use a column of unsupported size.",
+      "docstring": "Exception raised for trying to use a column of unsupported size.\n\nParameters\n----------\nexpected_size : str\n    The expected size of the column as an expression (e.g. 2, >0, !=0).\nactual_size : str\n    The actual size of the column as an expression (e.g. 2, >0, !=0).",
+      "code": "class ColumnSizeError(Exception):\n    \"\"\"\n    Exception raised for trying to use a column of unsupported size.\n\n    Parameters\n    ----------\n    expected_size : str\n        The expected size of the column as an expression (e.g. 2, >0, !=0).\n    actual_size : str\n        The actual size of the column as an expression (e.g. 2, >0, !=0).\n    \"\"\"\n\n    def __init__(self, expected_size: str, actual_size: str):\n        super().__init__(f\"Expected a column of size {expected_size} but got column of size {actual_size}.\")",
+      "instance_attributes": []
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/DuplicateColumnNameError",
+      "name": "DuplicateColumnNameError",
+      "qname": "safeds.data.tabular.exceptions._exceptions.DuplicateColumnNameError",
+      "decorators": [],
+      "superclasses": [
+        "Exception"
+      ],
+      "methods": [
+        "stdlib/safeds.data.tabular.exceptions._exceptions/DuplicateColumnNameError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised for trying to modify a table resulting in a duplicate column name.",
+      "docstring": "Exception raised for trying to modify a table resulting in a duplicate column name.\n\nParameters\n----------\ncolumn_name : str\n    The name of the column that resulted in a duplicate.",
+      "code": "class DuplicateColumnNameError(Exception):\n    \"\"\"\n    Exception raised for trying to modify a table resulting in a duplicate column name.\n\n    Parameters\n    ----------\n    column_name : str\n        The name of the column that resulted in a duplicate.\n    \"\"\"\n\n    def __init__(self, column_name: str):\n        super().__init__(f\"Column '{column_name}' already exists.\")",
+      "instance_attributes": []
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/IndexOutOfBoundsError",
+      "name": "IndexOutOfBoundsError",
+      "qname": "safeds.data.tabular.exceptions._exceptions.IndexOutOfBoundsError",
+      "decorators": [],
+      "superclasses": [
+        "IndexError"
+      ],
+      "methods": [
+        "stdlib/safeds.data.tabular.exceptions._exceptions/IndexOutOfBoundsError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised for trying to access an element by an index that does not exist in the underlying data.",
+      "docstring": "Exception raised for trying to access an element by an index that does not exist in the underlying data.\n\nParameters\n----------\nindex : int\n    The wrongly used index.",
+      "code": "class IndexOutOfBoundsError(IndexError):\n    \"\"\"\n    Exception raised for trying to access an element by an index that does not exist in the underlying data.\n\n    Parameters\n    ----------\n    index : int\n        The wrongly used index.\n    \"\"\"\n\n    def __init__(self, index: int):\n        super().__init__(f\"There is no element at index '{index}'.\")",
+      "instance_attributes": []
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/MissingDataError",
+      "name": "MissingDataError",
+      "qname": "safeds.data.tabular.exceptions._exceptions.MissingDataError",
+      "decorators": [],
+      "superclasses": [
+        "Exception"
+      ],
+      "methods": [
+        "stdlib/safeds.data.tabular.exceptions._exceptions/MissingDataError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised if a function is not given enough data to succeed.",
+      "docstring": "Exception raised if a function is not given enough data to succeed.",
+      "code": "class MissingDataError(Exception):\n    \"\"\"Exception raised if a function is not given enough data to succeed.\"\"\"\n\n    def __init__(self, missing_data_info: str):\n        super().__init__(f\"The function is missing data: \\n{missing_data_info}\")",
+      "instance_attributes": []
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/MissingSchemaError",
+      "name": "MissingSchemaError",
+      "qname": "safeds.data.tabular.exceptions._exceptions.MissingSchemaError",
+      "decorators": [],
+      "superclasses": [
+        "Exception"
+      ],
+      "methods": [
+        "stdlib/safeds.data.tabular.exceptions._exceptions/MissingSchemaError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised when a required schema is missing.",
+      "docstring": "Exception raised when a required schema is missing.",
+      "code": "class MissingSchemaError(Exception):\n    \"\"\"Exception raised when a required schema is missing.\"\"\"\n\n    def __init__(self) -> None:\n        super().__init__(\"Failed because a required schema is missing.\")",
+      "instance_attributes": []
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/NonNumericColumnError",
+      "name": "NonNumericColumnError",
+      "qname": "safeds.data.tabular.exceptions._exceptions.NonNumericColumnError",
+      "decorators": [],
+      "superclasses": [
+        "Exception"
+      ],
+      "methods": [
+        "stdlib/safeds.data.tabular.exceptions._exceptions/NonNumericColumnError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised for trying to do numerical operations on a non-numerical column.",
+      "docstring": "Exception raised for trying to do numerical operations on a non-numerical column.",
+      "code": "class NonNumericColumnError(Exception):\n    \"\"\"Exception raised for trying to do numerical operations on a non-numerical column.\"\"\"\n\n    def __init__(self, column_info: str) -> None:\n        super().__init__(f\"Tried to do a numerical operation on one or multiple non numerical Columns: \\n{column_info}\")",
+      "instance_attributes": []
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/SchemaMismatchError",
+      "name": "SchemaMismatchError",
+      "qname": "safeds.data.tabular.exceptions._exceptions.SchemaMismatchError",
+      "decorators": [],
+      "superclasses": [
+        "Exception"
+      ],
+      "methods": [
+        "stdlib/safeds.data.tabular.exceptions._exceptions/SchemaMismatchError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised when schemas are unequal.",
+      "docstring": "Exception raised when schemas are unequal.",
+      "code": "class SchemaMismatchError(Exception):\n    \"\"\"Exception raised when schemas are unequal.\"\"\"\n\n    def __init__(self) -> None:\n        super().__init__(\"Failed because at least two schemas didn't match.\")",
+      "instance_attributes": []
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/TransformerNotFittedError",
+      "name": "TransformerNotFittedError",
+      "qname": "safeds.data.tabular.exceptions._exceptions.TransformerNotFittedError",
+      "decorators": [],
+      "superclasses": [
+        "Exception"
+      ],
+      "methods": [
+        "stdlib/safeds.data.tabular.exceptions._exceptions/TransformerNotFittedError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Raised when a transformer is used before fitting it.",
+      "docstring": "Raised when a transformer is used before fitting it.",
+      "code": "class TransformerNotFittedError(Exception):\n    \"\"\"Raised when a transformer is used before fitting it.\"\"\"\n\n    def __init__(self) -> None:\n        super().__init__(\"The transformer has not been fitted yet.\")",
+      "instance_attributes": []
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/UnknownColumnNameError",
+      "name": "UnknownColumnNameError",
+      "qname": "safeds.data.tabular.exceptions._exceptions.UnknownColumnNameError",
+      "decorators": [],
+      "superclasses": [
+        "KeyError"
+      ],
+      "methods": [
+        "stdlib/safeds.data.tabular.exceptions._exceptions/UnknownColumnNameError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised for trying to access an invalid column name.",
+      "docstring": "Exception raised for trying to access an invalid column name.\n\nParameters\n----------\ncolumn_names : list[str]\n    The name of the column that was tried to be accessed.",
+      "code": "class UnknownColumnNameError(KeyError):\n    \"\"\"\n    Exception raised for trying to access an invalid column name.\n\n    Parameters\n    ----------\n    column_names : list[str]\n        The name of the column that was tried to be accessed.\n    \"\"\"\n\n    def __init__(self, column_names: list[str]):\n        super().__init__(f\"Could not find column(s) '{', '.join(column_names)}'\")",
+      "instance_attributes": []
+    },
+    {
+      "id": "stdlib/safeds.ml.exceptions._exceptions/DatasetContainsTargetError",
+      "name": "DatasetContainsTargetError",
+      "qname": "safeds.ml.exceptions._exceptions.DatasetContainsTargetError",
+      "decorators": [],
+      "superclasses": [
+        "ValueError"
+      ],
+      "methods": [
+        "stdlib/safeds.ml.exceptions._exceptions/DatasetContainsTargetError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Raised when a dataset contains the target column already.",
+      "docstring": "Raised when a dataset contains the target column already.\n\nParameters\n----------\ntarget_name: str\n    The name of the target column.",
+      "code": "class DatasetContainsTargetError(ValueError):\n    \"\"\"\n    Raised when a dataset contains the target column already.\n\n    Parameters\n    ----------\n    target_name: str\n        The name of the target column.\n    \"\"\"\n\n    def __init__(self, target_name: str):\n        super().__init__(f\"Dataset already contains the target column '{target_name}'.\")",
+      "instance_attributes": []
+    },
+    {
+      "id": "stdlib/safeds.ml.exceptions._exceptions/DatasetMissesFeaturesError",
+      "name": "DatasetMissesFeaturesError",
+      "qname": "safeds.ml.exceptions._exceptions.DatasetMissesFeaturesError",
+      "decorators": [],
+      "superclasses": [
+        "ValueError"
+      ],
+      "methods": [
+        "stdlib/safeds.ml.exceptions._exceptions/DatasetMissesFeaturesError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Raised when a dataset misses feature columns.",
+      "docstring": "Raised when a dataset misses feature columns.\n\nParameters\n----------\nmissing_feature_names: list[str]\n    The names of the missing feature columns.",
+      "code": "class DatasetMissesFeaturesError(ValueError):\n    \"\"\"\n    Raised when a dataset misses feature columns.\n\n    Parameters\n    ----------\n    missing_feature_names: list[str]\n        The names of the missing feature columns.\n    \"\"\"\n\n    def __init__(self, missing_feature_names: list[str]):\n        super().__init__(f\"Dataset misses the feature columns '{missing_feature_names}'.\")",
+      "instance_attributes": []
+    },
+    {
+      "id": "stdlib/safeds.ml.exceptions._exceptions/LearningError",
+      "name": "LearningError",
+      "qname": "safeds.ml.exceptions._exceptions.LearningError",
+      "decorators": [],
+      "superclasses": [
+        "Exception"
+      ],
+      "methods": [
+        "stdlib/safeds.ml.exceptions._exceptions/LearningError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Raised when an error occurred while training a model.",
+      "docstring": "Raised when an error occurred while training a model.\n\nParameters\n----------\nreason: str | None\n    The reason for the error.",
+      "code": "class LearningError(Exception):\n    \"\"\"\n    Raised when an error occurred while training a model.\n\n    Parameters\n    ----------\n    reason: str | None\n        The reason for the error.\n    \"\"\"\n\n    def __init__(self, reason: str | None):\n        if reason is None:\n            super().__init__(\"Error occurred while learning\")\n        else:\n            super().__init__(f\"Error occurred while learning: {reason}\")",
+      "instance_attributes": []
+    },
+    {
+      "id": "stdlib/safeds.ml.exceptions._exceptions/ModelNotFittedError",
+      "name": "ModelNotFittedError",
+      "qname": "safeds.ml.exceptions._exceptions.ModelNotFittedError",
+      "decorators": [],
+      "superclasses": [
+        "Exception"
+      ],
+      "methods": [
+        "stdlib/safeds.ml.exceptions._exceptions/ModelNotFittedError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Raised when a model is used before fitting it.",
+      "docstring": "Raised when a model is used before fitting it.",
+      "code": "class ModelNotFittedError(Exception):\n    \"\"\"Raised when a model is used before fitting it.\"\"\"\n\n    def __init__(self) -> None:\n        super().__init__(\"The model has not been fitted yet.\")",
+      "instance_attributes": []
+    },
+    {
+      "id": "stdlib/safeds.ml.exceptions._exceptions/PredictionError",
+      "name": "PredictionError",
+      "qname": "safeds.ml.exceptions._exceptions.PredictionError",
+      "decorators": [],
+      "superclasses": [
+        "Exception"
+      ],
+      "methods": [
+        "stdlib/safeds.ml.exceptions._exceptions/PredictionError/__init__"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Raised when an error occurred while prediction a target vector using a model.",
+      "docstring": "Raised when an error occurred while prediction a target vector using a model.\n\nParameters\n----------\nreason: str | None\n    The reason for the error.",
+      "code": "class PredictionError(Exception):\n    \"\"\"\n    Raised when an error occurred while prediction a target vector using a model.\n\n    Parameters\n    ----------\n    reason: str | None\n        The reason for the error.\n    \"\"\"\n\n    def __init__(self, reason: str | None):\n        if reason is None:\n            super().__init__(\"Error occurred while predicting\")\n        else:\n            super().__init__(f\"Error occurred while predicting: {reason}\")",
+      "instance_attributes": []
+    }
+  ],
+  "functions": [
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/ColumnLengthMismatchError/__init__",
+      "name": "__init__",
+      "qname": "safeds.data.tabular.exceptions._exceptions.ColumnLengthMismatchError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/ColumnLengthMismatchError/__init__/self",
+          "name": "self",
+          "qname": "safeds.data.tabular.exceptions._exceptions.ColumnLengthMismatchError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/ColumnLengthMismatchError/__init__/column_info",
+          "name": "column_info",
+          "qname": "safeds.data.tabular.exceptions._exceptions.ColumnLengthMismatchError.__init__.column_info",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised when the lengths of two or more columns do not match.",
+      "docstring": "",
+      "code": "    def __init__(self, column_info: str):\n        super().__init__(f\"The length of at least one column differs: \\n{column_info}\")"
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/ColumnSizeError/__init__",
+      "name": "__init__",
+      "qname": "safeds.data.tabular.exceptions._exceptions.ColumnSizeError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/ColumnSizeError/__init__/self",
+          "name": "self",
+          "qname": "safeds.data.tabular.exceptions._exceptions.ColumnSizeError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/ColumnSizeError/__init__/expected_size",
+          "name": "expected_size",
+          "qname": "safeds.data.tabular.exceptions._exceptions.ColumnSizeError.__init__.expected_size",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "str",
+            "default_value": "",
+            "description": "The expected size of the column as an expression (e.g. 2, >0, !=0)."
+          },
+          "type": {
+            "kind": "NamedType",
+            "name": "str"
+          }
+        },
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/ColumnSizeError/__init__/actual_size",
+          "name": "actual_size",
+          "qname": "safeds.data.tabular.exceptions._exceptions.ColumnSizeError.__init__.actual_size",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "str",
+            "default_value": "",
+            "description": "The actual size of the column as an expression (e.g. 2, >0, !=0)."
+          },
+          "type": {
+            "kind": "NamedType",
+            "name": "str"
+          }
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised for trying to use a column of unsupported size.",
+      "docstring": "",
+      "code": "    def __init__(self, expected_size: str, actual_size: str):\n        super().__init__(f\"Expected a column of size {expected_size} but got column of size {actual_size}.\")"
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/DuplicateColumnNameError/__init__",
+      "name": "__init__",
+      "qname": "safeds.data.tabular.exceptions._exceptions.DuplicateColumnNameError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/DuplicateColumnNameError/__init__/self",
+          "name": "self",
+          "qname": "safeds.data.tabular.exceptions._exceptions.DuplicateColumnNameError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/DuplicateColumnNameError/__init__/column_name",
+          "name": "column_name",
+          "qname": "safeds.data.tabular.exceptions._exceptions.DuplicateColumnNameError.__init__.column_name",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "str",
+            "default_value": "",
+            "description": "The name of the column that resulted in a duplicate."
+          },
+          "type": {
+            "kind": "NamedType",
+            "name": "str"
+          }
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised for trying to modify a table resulting in a duplicate column name.",
+      "docstring": "",
+      "code": "    def __init__(self, column_name: str):\n        super().__init__(f\"Column '{column_name}' already exists.\")"
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/IndexOutOfBoundsError/__init__",
+      "name": "__init__",
+      "qname": "safeds.data.tabular.exceptions._exceptions.IndexOutOfBoundsError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/IndexOutOfBoundsError/__init__/self",
+          "name": "self",
+          "qname": "safeds.data.tabular.exceptions._exceptions.IndexOutOfBoundsError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/IndexOutOfBoundsError/__init__/index",
+          "name": "index",
+          "qname": "safeds.data.tabular.exceptions._exceptions.IndexOutOfBoundsError.__init__.index",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "int",
+            "default_value": "",
+            "description": "The wrongly used index."
+          },
+          "type": {
+            "kind": "NamedType",
+            "name": "int"
+          }
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised for trying to access an element by an index that does not exist in the underlying data.",
+      "docstring": "",
+      "code": "    def __init__(self, index: int):\n        super().__init__(f\"There is no element at index '{index}'.\")"
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/MissingDataError/__init__",
+      "name": "__init__",
+      "qname": "safeds.data.tabular.exceptions._exceptions.MissingDataError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/MissingDataError/__init__/self",
+          "name": "self",
+          "qname": "safeds.data.tabular.exceptions._exceptions.MissingDataError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/MissingDataError/__init__/missing_data_info",
+          "name": "missing_data_info",
+          "qname": "safeds.data.tabular.exceptions._exceptions.MissingDataError.__init__.missing_data_info",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised if a function is not given enough data to succeed.",
+      "docstring": "",
+      "code": "    def __init__(self, missing_data_info: str):\n        super().__init__(f\"The function is missing data: \\n{missing_data_info}\")"
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/MissingSchemaError/__init__",
+      "name": "__init__",
+      "qname": "safeds.data.tabular.exceptions._exceptions.MissingSchemaError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/MissingSchemaError/__init__/self",
+          "name": "self",
+          "qname": "safeds.data.tabular.exceptions._exceptions.MissingSchemaError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised when a required schema is missing.",
+      "docstring": "",
+      "code": "    def __init__(self) -> None:\n        super().__init__(\"Failed because a required schema is missing.\")"
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/NonNumericColumnError/__init__",
+      "name": "__init__",
+      "qname": "safeds.data.tabular.exceptions._exceptions.NonNumericColumnError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/NonNumericColumnError/__init__/self",
+          "name": "self",
+          "qname": "safeds.data.tabular.exceptions._exceptions.NonNumericColumnError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/NonNumericColumnError/__init__/column_info",
+          "name": "column_info",
+          "qname": "safeds.data.tabular.exceptions._exceptions.NonNumericColumnError.__init__.column_info",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised for trying to do numerical operations on a non-numerical column.",
+      "docstring": "",
+      "code": "    def __init__(self, column_info: str) -> None:\n        super().__init__(f\"Tried to do a numerical operation on one or multiple non numerical Columns: \\n{column_info}\")"
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/SchemaMismatchError/__init__",
+      "name": "__init__",
+      "qname": "safeds.data.tabular.exceptions._exceptions.SchemaMismatchError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/SchemaMismatchError/__init__/self",
+          "name": "self",
+          "qname": "safeds.data.tabular.exceptions._exceptions.SchemaMismatchError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised when schemas are unequal.",
+      "docstring": "",
+      "code": "    def __init__(self) -> None:\n        super().__init__(\"Failed because at least two schemas didn't match.\")"
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/TransformerNotFittedError/__init__",
+      "name": "__init__",
+      "qname": "safeds.data.tabular.exceptions._exceptions.TransformerNotFittedError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/TransformerNotFittedError/__init__/self",
+          "name": "self",
+          "qname": "safeds.data.tabular.exceptions._exceptions.TransformerNotFittedError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Raised when a transformer is used before fitting it.",
+      "docstring": "",
+      "code": "    def __init__(self) -> None:\n        super().__init__(\"The transformer has not been fitted yet.\")"
+    },
+    {
+      "id": "stdlib/safeds.data.tabular.exceptions._exceptions/UnknownColumnNameError/__init__",
+      "name": "__init__",
+      "qname": "safeds.data.tabular.exceptions._exceptions.UnknownColumnNameError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/UnknownColumnNameError/__init__/self",
+          "name": "self",
+          "qname": "safeds.data.tabular.exceptions._exceptions.UnknownColumnNameError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "stdlib/safeds.data.tabular.exceptions._exceptions/UnknownColumnNameError/__init__/column_names",
+          "name": "column_names",
+          "qname": "safeds.data.tabular.exceptions._exceptions.UnknownColumnNameError.__init__.column_names",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "list[str]",
+            "default_value": "",
+            "description": "The name of the column that was tried to be accessed."
+          },
+          "type": {
+            "kind": "NamedType",
+            "name": "list[str]"
+          }
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Exception raised for trying to access an invalid column name.",
+      "docstring": "",
+      "code": "    def __init__(self, column_names: list[str]):\n        super().__init__(f\"Could not find column(s) '{', '.join(column_names)}'\")"
+    },
+    {
+      "id": "stdlib/safeds.ml.exceptions._exceptions/DatasetContainsTargetError/__init__",
+      "name": "__init__",
+      "qname": "safeds.ml.exceptions._exceptions.DatasetContainsTargetError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.ml.exceptions._exceptions/DatasetContainsTargetError/__init__/self",
+          "name": "self",
+          "qname": "safeds.ml.exceptions._exceptions.DatasetContainsTargetError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "stdlib/safeds.ml.exceptions._exceptions/DatasetContainsTargetError/__init__/target_name",
+          "name": "target_name",
+          "qname": "safeds.ml.exceptions._exceptions.DatasetContainsTargetError.__init__.target_name",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Raised when a dataset contains the target column already.",
+      "docstring": "",
+      "code": "    def __init__(self, target_name: str):\n        super().__init__(f\"Dataset already contains the target column '{target_name}'.\")"
+    },
+    {
+      "id": "stdlib/safeds.ml.exceptions._exceptions/DatasetMissesFeaturesError/__init__",
+      "name": "__init__",
+      "qname": "safeds.ml.exceptions._exceptions.DatasetMissesFeaturesError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.ml.exceptions._exceptions/DatasetMissesFeaturesError/__init__/self",
+          "name": "self",
+          "qname": "safeds.ml.exceptions._exceptions.DatasetMissesFeaturesError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "stdlib/safeds.ml.exceptions._exceptions/DatasetMissesFeaturesError/__init__/missing_feature_names",
+          "name": "missing_feature_names",
+          "qname": "safeds.ml.exceptions._exceptions.DatasetMissesFeaturesError.__init__.missing_feature_names",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Raised when a dataset misses feature columns.",
+      "docstring": "",
+      "code": "    def __init__(self, missing_feature_names: list[str]):\n        super().__init__(f\"Dataset misses the feature columns '{missing_feature_names}'.\")"
+    },
+    {
+      "id": "stdlib/safeds.ml.exceptions._exceptions/LearningError/__init__",
+      "name": "__init__",
+      "qname": "safeds.ml.exceptions._exceptions.LearningError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.ml.exceptions._exceptions/LearningError/__init__/self",
+          "name": "self",
+          "qname": "safeds.ml.exceptions._exceptions.LearningError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "stdlib/safeds.ml.exceptions._exceptions/LearningError/__init__/reason",
+          "name": "reason",
+          "qname": "safeds.ml.exceptions._exceptions.LearningError.__init__.reason",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Raised when an error occurred while training a model.",
+      "docstring": "",
+      "code": "    def __init__(self, reason: str | None):\n        if reason is None:\n            super().__init__(\"Error occurred while learning\")\n        else:\n            super().__init__(f\"Error occurred while learning: {reason}\")"
+    },
+    {
+      "id": "stdlib/safeds.ml.exceptions._exceptions/ModelNotFittedError/__init__",
+      "name": "__init__",
+      "qname": "safeds.ml.exceptions._exceptions.ModelNotFittedError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.ml.exceptions._exceptions/ModelNotFittedError/__init__/self",
+          "name": "self",
+          "qname": "safeds.ml.exceptions._exceptions.ModelNotFittedError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Raised when a model is used before fitting it.",
+      "docstring": "",
+      "code": "    def __init__(self) -> None:\n        super().__init__(\"The model has not been fitted yet.\")"
+    },
+    {
+      "id": "stdlib/safeds.ml.exceptions._exceptions/PredictionError/__init__",
+      "name": "__init__",
+      "qname": "safeds.ml.exceptions._exceptions.PredictionError.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "stdlib/safeds.ml.exceptions._exceptions/PredictionError/__init__/self",
+          "name": "self",
+          "qname": "safeds.ml.exceptions._exceptions.PredictionError.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "stdlib/safeds.ml.exceptions._exceptions/PredictionError/__init__/reason",
+          "name": "reason",
+          "qname": "safeds.ml.exceptions._exceptions.PredictionError.__init__.reason",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Raised when an error occurred while prediction a target vector using a model.",
+      "docstring": "",
+      "code": "    def __init__(self, reason: str | None):\n        if reason is None:\n            super().__init__(\"Error occurred while predicting\")\n        else:\n            super().__init__(f\"Error occurred while predicting: {reason}\")"
+    }
+  ]
+}
