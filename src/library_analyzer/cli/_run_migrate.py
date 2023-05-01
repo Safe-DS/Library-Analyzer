@@ -15,9 +15,8 @@ from library_analyzer.processing.migration.model import (
 from ._read_and_write_file import (
     _read_annotations_file,
     _read_api_file,
-    _write_annotations_file, _write_api_file,
+    _write_annotations_file,
 )
-from ..processing.api.model import API
 
 
 def _run_migrate_command(
@@ -30,97 +29,15 @@ def _run_migrate_command(
     apiv2 = _read_api_file(apiv2_file_path)
     annotationsv1 = _read_annotations_file(annotations_file_path)
 
-    apiv1_ = API(apiv1.distribution, apiv1.package, apiv1.version)
-    apiv2_ = API(apiv2.distribution, apiv2.package, apiv2.version)
+    def get_anz(api):
+        return len(api.classes) + len(api.functions) + len(api.parameters())
 
-    prefix = "matplotlib/lib.matplotlib."
-    filter_list = [
-# "",
-#         "axes", "backends", "cbook",
-        # "compat", "mpl-data", "projections",
-        # "sphinxext",  "style", "testing",
-        # "tri", "afm", "animation", "artist", "axis",
-        # "backend_bases", "backend_managers", "backend_tools", "bezier", "blocking_input", "category",
-        # "cm", "collections", "colorbar", "colors", "container", "contour",
-        # "dates", "docstring", "dviread", "figure", "fontconfig_patte", "rn",
-        # "font_manager", "gridspec", "hatch", "image", "legend", "legend_handler",
-        # "lines", "markers", "mathtext", "mlab", "offsetbox", "patches",
-        # "path", "patheffects", "pylab", "pyplot", "quiver", "rcsetup",
-        # "sankey", "scale", "spines",  "stackplot", "streamplot", "table",
-        # "texmanager", "text", "textpath", "ticker", "tight_bbox", "tight_layout",
-        # "transforms","ttconv","type1font", "units","widgets","out",
-
-        # "matplotlib/lib.matplotlib.tests",no relevant API-Elements
-        # "ä",
-
-        # "stdlib/safeds.exceptions",        "stdlib/safeds.data.tabular.exceptions", "stdlib/safeds.ml.exceptions",
-        # "stdlib/safeds.data.tabular.containers",
-        # "stdlib/safeds.data.tabular.transformation",
-        # "stdlib/safeds.data.tabular.typing",
-        # "stdlib/safeds.ml.classification._", "stdlib/safeds.ml.classical.classification",
-        # "stdlib/safeds.ml.regression", "stdlib/safeds.ml.classical.regression",
-        # "stdlib/safeds.plotting",
-        # "stdlib/",
-
-        # "scikit-learn/sklearn.cluster",
-                 # "scikit-learn/sklearn.compose.",
-                 # "scikit-learn/sklearn.covariance",
-                 # "scikit-learn/sklearn.cross_decomposition",
-                 # "scikit-learn/sklearn.datasets",
-                 # "scikit-learn/sklearn.decomposition",
-                 # "scikit-learn/sklearn.ensemble",
-                 # #"scikit-learn/sklearn.experimental",no API-Elements
-                 # "scikit-learn/sklearn.externals",
-                 # "scikit-learn/sklearn.feature_extraction",
-                 # "scikit-learn/sklearn.feature_selection",
-                 # "scikit-learn/sklearn.gaussian_process",
-                 # "scikit-learn/sklearn.impute",
-                 # "scikit-learn/sklearn.inspection",
-                 # "scikit-learn/sklearn.linear_model",
-                 # "scikit-learn/sklearn.manifold",
-                 # "scikit-learn/sklearn.metrics",
-                 # "scikit-learn/sklearn.mixture",
-                 # "scikit-learn/sklearn.model_selection",
-                 # "scikit-learn/sklearn.neighbors",
-                 # "scikit-learn/sklearn.neural_network",
-                 # "scikit-learn/sklearn.preprocessing",
-                 # "scikit-learn/sklearn.semi_supervised",
-                 # "scikit-learn/sklearn.svm",
-                 # "scikit-learn/sklearn.tree",
-                 # "scikit-learn/sklearn.utils",
-                 # "scikit-learn/sklearn.tests",no API-Elements
-        # "scikit-learn",
-                 ]
-    name = str(len(filter_list))
-
-    for id_filter in filter_list:
-        id_filter = prefix + id_filter
-        for class_v1 in apiv1.classes.values():
-            if class_v1.id.startswith(id_filter) and (class_v1.is_public):
-                apiv1_.add_class(class_v1)
-        for func_v1 in apiv1.functions.values():
-            if func_v1.id.startswith(id_filter) and (func_v1.is_public):
-                apiv1_.add_function(func_v1)
-        for class_v2 in apiv2.classes.values():
-            if class_v2.id.startswith(id_filter) and (class_v2.is_public):
-                apiv2_.add_class(class_v2)
-        for func_v2 in apiv2.functions.values():
-            if func_v2.id.startswith(id_filter) and (func_v2.is_public):
-                apiv2_.add_function(func_v2)
-
-    apiv1 = apiv1_
-    apiv2 = apiv2_
-
-    _write_api_file(apiv1, apiv1_file_path.parent.joinpath(name), name=apiv1_file_path.name)
-    _write_api_file(apiv2, apiv1_file_path.parent.joinpath(name), name=apiv2_file_path.name)
+    print(apiv1_file_path.name + ": "+ str(get_anz(apiv1)))
+    print(apiv2_file_path.name + ": "+ str(get_anz(apiv2)))
     return
 
     threshold_of_similarity_for_creation_of_mappings = 0.61
     threshold_of_similarity_between_mappings = 0.23
-
-    print("-----------------------------")
-    print("i: " + str(threshold_of_similarity_for_creation_of_mappings) + " j:" + str(threshold_of_similarity_between_mappings))
-    print("-----------------------------")
 
     unchanged_differ = UnchangedDiffer(None, [], apiv1, apiv2)
     api_mapping = APIMapping(apiv1, apiv2, unchanged_differ, threshold_of_similarity_for_creation_of_mappings, threshold_of_similarity_between_mappings)
