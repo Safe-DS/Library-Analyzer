@@ -6,6 +6,9 @@ from library_analyzer.processing.api.model import (
     FunctionDocstring,
     ParameterAssignment,
     ParameterDocstring,
+    ResultDocstring,
+    AttributeDocstring,
+    AttributeAssignment
 )
 
 
@@ -14,6 +17,7 @@ def numpydoc_parser() -> NumpyDocParser:
     return NumpyDocParser()
 
 
+# language=python
 class_with_documentation = '''
 class C:
     """
@@ -25,6 +29,7 @@ class C:
     """
 '''
 
+# language=python
 class_without_documentation = """
 class C:
     pass
@@ -65,6 +70,7 @@ def test_get_class_documentation(
     assert numpydoc_parser.get_class_documentation(node) == expected_class_documentation
 
 
+# language=python
 function_with_documentation = '''
 def f():
     """
@@ -78,6 +84,7 @@ def f():
     pass
 '''
 
+# language=python
 function_without_documentation = """
 def f():
     pass
@@ -115,6 +122,7 @@ def test_get_function_documentation(
     assert numpydoc_parser.get_function_documentation(node) == expected_function_documentation
 
 
+# language=python
 class_with_parameters = '''
 # noinspection PyUnresolvedReferences,PyIncorrectDocstring
 class C:
@@ -133,6 +141,7 @@ class C:
         pass
 '''
 
+# language=python
 function_with_parameters = '''
 # noinspection PyUnresolvedReferences,PyIncorrectDocstring
 def f():
@@ -327,4 +336,170 @@ def test_get_parameter_documentation(
     assert (
         numpydoc_parser.get_parameter_documentation(node, parameter_name, parameter_assigned_by)
         == expected_parameter_documentation
+    )
+
+
+# language=python
+class_with_attributes = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+class C:
+    """
+    Lorem ipsum.
+
+    Dolor sit amet.
+
+    Attributes
+    ----------
+    p : int, default=1
+        foo
+    """
+
+    def __init__(self):
+        pass
+'''
+
+
+@pytest.mark.parametrize(
+    ("python_code", "attribute_name", "attribute_assigned_by", "expected_attribute_documentation"),
+    [
+        (
+            class_with_attributes,
+            "p",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="int",
+                default_value="1",
+                description="foo",
+            ),
+        ),
+        (
+            class_with_attributes,
+            "missing",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="",
+                default_value="",
+                description="",
+            ),
+        )
+    ],
+    ids=[
+        "existing class attribute",
+        "missing class attribute"
+    ],
+)
+def test_get_class_attribute_documentation(
+    numpydoc_parser: NumpyDocParser,
+    python_code: str,
+    attribute_name: str,
+    attribute_assigned_by: AttributeAssignment,
+    expected_attribute_documentation: AttributeDocstring,
+) -> None:
+    node = astroid.extract_node(python_code)
+    assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
+
+    # Find the constructor
+    if isinstance(node, astroid.ClassDef):
+        for method in node.mymethods():
+            if method.name == "__init__":
+                node = method
+
+    assert isinstance(node, astroid.FunctionDef)
+    assert (
+        numpydoc_parser.get_parameter_documentation(node, attribute_name, attribute_assigned_by)
+        == expected_attribute_documentation
+    )
+
+
+# language=python
+function_with_return_value_and_type = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+def f():
+    """
+    Lorem ipsum.
+
+    Dolor sit amet.
+
+    Returns
+    -------
+    int
+        this will be the return value
+    """
+
+    pass
+'''
+
+# language=python
+function_with_return_value_no_type = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+def f():
+    """
+    Lorem ipsum.
+
+    Dolor sit amet.
+
+    Returns
+    -------
+    int
+        this will be the return value
+    """
+
+    pass
+'''
+
+# language=python
+function_without_return_value = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+def f():
+    """
+    Lorem ipsum.
+
+    Dolor sit amet.
+    """
+
+    pass
+'''
+
+
+@pytest.mark.parametrize(
+    ("python_code", "expected_return_documentation"),
+    [
+        (
+            function_with_return_value_and_type,
+            ParameterDocstring(type="", description=""),
+        ),
+        (
+            function_with_return_value_no_type,
+            ParameterDocstring(type="", description=""),
+        ),
+        (
+            function_without_return_value,
+            ParameterDocstring(type="", description="")
+        ),
+    ],
+    ids=[
+        "existing return value and type",
+        "existing return value no type",
+        "function without return value"
+
+    ],
+)
+def test_get_return_documentation(
+    numpydoc_parser: NumpyDocParser,
+    python_code: str,
+    expected_return_documentation: ResultDocstring,
+) -> None:
+    node = astroid.extract_node(python_code)
+    assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
+
+    # Find the constructor
+    if isinstance(node, astroid.ClassDef):
+        for method in node.mymethods():
+            if method.name == "__init__":
+                node = method
+
+    assert isinstance(node, astroid.FunctionDef)
+    assert (
+        numpydoc_parser.get_return_documentation(node)
+        == expected_return_documentation
     )
