@@ -1,14 +1,13 @@
 import astroid
 import pytest
+
 from library_analyzer.processing.api.docstring_parsing import NumpyDocParser
 from library_analyzer.processing.api.model import (
     ClassDocstring,
     FunctionDocstring,
     ParameterAssignment,
     ParameterDocstring,
-    ResultDocstring,
-    AttributeDocstring,
-    AttributeAssignment
+    ResultDocstring
 )
 
 
@@ -177,6 +176,27 @@ def f():
     pass
 '''
 
+# language=python
+class_with_attributes = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+class C:
+    """
+    Lorem ipsum.
+
+    Dolor sit amet.
+
+    Attributes
+    ----------
+    p : int, default=1
+        foo
+    q
+        bar
+    """
+
+    def __init__(self):
+        pass
+'''
+
 
 @pytest.mark.parametrize(
     ("python_code", "parameter_name", "parameter_assigned_by", "expected_parameter_documentation"),
@@ -299,6 +319,36 @@ def f():
             ParameterAssignment.POSITION_OR_NAME,
             ParameterDocstring(type="", default_value="", description=""),
         ),
+        (
+            class_with_attributes,
+            "p",
+            ParameterAssignment.POSITION_OR_NAME,
+            ParameterDocstring(
+                type="int",
+                default_value="1",
+                description="foo",
+            ),
+        ),
+        (
+            class_with_attributes,
+            "missing",
+            ParameterAssignment.POSITION_OR_NAME,
+            ParameterDocstring(
+                type="",
+                default_value="",
+                description="",
+            ),
+        ),
+        (
+            class_with_attributes,
+            "q",
+            ParameterAssignment.POSITION_OR_NAME,
+            ParameterDocstring(
+                type="",
+                default_value="",
+                description="bar",
+            ),
+        )
     ],
     ids=[
         "existing class parameter",
@@ -314,6 +364,9 @@ def f():
         "function parameter with positional vararg",
         "function parameter with named vararg",
         "missing function parameter",
+        "existing class attribute",
+        "missing class attribute",
+        "existing class attribute without type"
     ],
 )
 def test_get_parameter_documentation(
@@ -336,78 +389,6 @@ def test_get_parameter_documentation(
     assert (
         numpydoc_parser.get_parameter_documentation(node, parameter_name, parameter_assigned_by)
         == expected_parameter_documentation
-    )
-
-
-# language=python
-class_with_attributes = '''
-# noinspection PyUnresolvedReferences,PyIncorrectDocstring
-class C:
-    """
-    Lorem ipsum.
-
-    Dolor sit amet.
-
-    Attributes
-    ----------
-    p : int, default=1
-        foo
-    """
-
-    def __init__(self):
-        pass
-'''
-
-
-@pytest.mark.parametrize(
-    ("python_code", "attribute_name", "attribute_assigned_by", "expected_attribute_documentation"),
-    [
-        (
-            class_with_attributes,
-            "p",
-            AttributeAssignment.POSITION_OR_NAME,
-            AttributeDocstring(
-                type="int",
-                default_value="1",
-                description="foo",
-            ),
-        ),
-        (
-            class_with_attributes,
-            "missing",
-            AttributeAssignment.POSITION_OR_NAME,
-            AttributeDocstring(
-                type="",
-                default_value="",
-                description="",
-            ),
-        )
-    ],
-    ids=[
-        "existing class attribute",
-        "missing class attribute"
-    ],
-)
-def test_get_class_attribute_documentation(
-    numpydoc_parser: NumpyDocParser,
-    python_code: str,
-    attribute_name: str,
-    attribute_assigned_by: AttributeAssignment,
-    expected_attribute_documentation: AttributeDocstring,
-) -> None:
-    node = astroid.extract_node(python_code)
-    assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
-
-    # Find the constructor
-    if isinstance(node, astroid.ClassDef):
-        for method in node.mymethods():
-            if method.name == "__init__":
-                node = method
-
-    assert isinstance(node, astroid.FunctionDef)
-    assert (
-        numpydoc_parser.get_parameter_documentation(node, attribute_name, attribute_assigned_by)
-        == expected_attribute_documentation
     )
 
 
