@@ -158,6 +158,22 @@ class C:
 '''
 
 # language=python
+class_with_attributes_no_type = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+class C:
+    """
+    Lorem ipsum.
+
+    Dolor sit amet.
+
+    @ivar p: foo defaults to 1
+    """
+
+    def __init__(self):
+        pass
+'''
+
+# language=python
 function_with_parameters = '''
 # noinspection PyUnresolvedReferences,PyIncorrectDocstring
 def f():
@@ -213,6 +229,16 @@ def f():
             ),
         ),
         (
+            class_with_attributes_no_type,
+            "p",
+            ParameterAssignment.POSITION_OR_NAME,
+            ParameterDocstring(
+                type="",
+                default_value="1",
+                description="foo defaults to 1",
+            ),
+        ),
+        (
             function_with_parameters,
             "no_type_no_default",
             ParameterAssignment.POSITION_OR_NAME,
@@ -253,6 +279,7 @@ def f():
         "existing class parameter",
         "missing class parameter",
         "existing class attributes",
+        "existing class attributes no type",
         "function parameter with no type and no default",
         "function parameter with type and no default",
         "function parameter with default",
