@@ -141,7 +141,7 @@ class C:
 '''
 
 # language=python
-class_with_parameters_2 = '''
+class_with_attributes = '''
 # noinspection PyUnresolvedReferences,PyIncorrectDocstring
 class C:
     """
@@ -203,7 +203,7 @@ def f():
             ),
         ),
         (
-            class_with_parameters_2,
+            class_with_attributes,
             "p",
             ParameterAssignment.POSITION_OR_NAME,
             ParameterDocstring(
@@ -252,6 +252,7 @@ def f():
     ids=[
         "existing class parameter",
         "missing class parameter",
+        "existing class attributes",
         "function parameter with no type and no default",
         "function parameter with type and no default",
         "function parameter with default",
@@ -281,7 +282,7 @@ def test_get_parameter_documentation(
     )
 
 # language=python
-function_with_return_value_and_type = '''
+function_with_result_value_and_type = '''
 # noinspection PyUnresolvedReferences,PyIncorrectDocstring
 def f():
     """
@@ -297,7 +298,7 @@ def f():
 '''
 
 # language=python
-function_with_return_value_no_type = '''
+function_with_result_value_no_type = '''
 # noinspection PyUnresolvedReferences,PyIncorrectDocstring
 def f():
     """
@@ -312,7 +313,7 @@ def f():
 '''
 
 # language=python
-function_without_return_value = '''
+function_without_result_value = '''
 # noinspection PyUnresolvedReferences,PyIncorrectDocstring
 def f():
     """
@@ -326,19 +327,19 @@ def f():
 
 
 @pytest.mark.parametrize(
-    ("python_code", "expected_return_documentation"),
+    ("python_code", "expected_result_documentation"),
     [
         (
-            function_with_return_value_and_type,
-            ParameterDocstring(type="", description=""),
+            function_with_result_value_and_type,
+            ResultDocstring(type="float", description="return value"),
         ),
         (
-            function_with_return_value_no_type,
-            ParameterDocstring(type="", description=""),
+            function_with_result_value_no_type,
+            ResultDocstring(type="", description="return value"),
         ),
         (
-            function_without_return_value,
-            ParameterDocstring(type="", description="")
+            function_without_result_value,
+            ResultDocstring(type="", description="")
         ),
     ],
     ids=[
@@ -347,10 +348,10 @@ def f():
         "function without return value"
     ],
 )
-def test_get_return_documentation(
+def test_get_result_documentation(
     epydoc_parser: EpydocParser,
     python_code: str,
-    expected_return_documentation: ResultDocstring,
+    expected_result_documentation: ResultDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
@@ -363,6 +364,6 @@ def test_get_return_documentation(
 
     assert isinstance(node, astroid.FunctionDef)
     assert (
-        epydoc_parser.get_return_documentation(node)
-        == expected_return_documentation
+        epydoc_parser.get_result_documentation(node)
+        == expected_result_documentation
     )

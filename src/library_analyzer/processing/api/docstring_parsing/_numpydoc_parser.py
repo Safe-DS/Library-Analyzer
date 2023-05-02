@@ -9,6 +9,7 @@ from library_analyzer.processing.api.model import (
     FunctionDocstring,
     ParameterAssignment,
     ParameterDocstring,
+    ResultDocstring
 )
 
 from ._abstract_docstring_parser import AbstractDocstringParser
@@ -80,6 +81,25 @@ class NumpyDocParser(AbstractDocstringParser):
             type=type_,
             default_value=default_value,
             description=last_parameter_numpydoc.description,
+        )
+
+    def get_result_documentation(self, function_node: astroid.FunctionDef):
+        # For constructors (__init__ functions) the parameters are described on the class
+        if function_node.name == "__init__" and isinstance(function_node.parent, astroid.ClassDef):
+            docstring = get_full_docstring(function_node.parent)
+        else:
+            docstring = get_full_docstring(function_node)
+
+        # Find matching parameter docstrings
+        function_numpydoc = self.__get_cached_function_numpydoc_string(function_node, docstring)
+        function_result = function_numpydoc.returns
+
+        if function_result is None:
+            return ResultDocstring(type="", description="")
+
+        return ResultDocstring(
+            type=function_result.type_name or "",
+            description=function_result.description or "",
         )
 
     def __get_cached_function_numpydoc_string(

@@ -7,6 +7,7 @@ from library_analyzer.processing.api.model import (
     FunctionDocstring,
     ParameterAssignment,
     ParameterDocstring,
+    ResultDocstring
 )
 
 from ._abstract_docstring_parser import AbstractDocstringParser
@@ -35,7 +36,7 @@ class EpydocParser(AbstractDocstringParser):
 
     def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocstring:
         docstring = get_full_docstring(function_node)
-        docstring_obj = self.__get_cached_function_numpydoc_string(function_node, docstring)
+        docstring_obj = self.__get_cached_function_epydoc_string(function_node, docstring)
 
         return FunctionDocstring(
             description=get_description(docstring_obj),
@@ -55,29 +56,47 @@ class EpydocParser(AbstractDocstringParser):
             docstring = get_full_docstring(function_node)
 
         # Find matching parameter docstrings
-        function_numpydoc = self.__get_cached_function_numpydoc_string(function_node, docstring)
-        all_parameters_numpydoc: list[DocstringParam] = function_numpydoc.params
-        matching_parameters_numpydoc = [it for it in all_parameters_numpydoc if it.arg_name == parameter_name]
+        function_epydoc = self.__get_cached_function_epydoc_string(function_node, docstring)
+        all_parameters_epydoc: list[DocstringParam] = function_epydoc.params
+        matching_parameters_epydoc = [it for it in all_parameters_epydoc if it.arg_name == parameter_name]
 
-        if len(matching_parameters_numpydoc) == 0:
+        if len(matching_parameters_epydoc) == 0:
             return ParameterDocstring(type="", default_value="", description="")
 
-        last_parameter_docstring_obj = matching_parameters_numpydoc[-1]
+        last_parameter_docstring_obj = matching_parameters_epydoc[-1]
         return ParameterDocstring(
             type=last_parameter_docstring_obj.type_name or "",
             default_value=last_parameter_docstring_obj.default or "",
             description=last_parameter_docstring_obj.description,
         )
 
-    def __get_cached_function_numpydoc_string(self, function_node: astroid.FunctionDef, docstring: str) -> Docstring:
+    def get_result_documentation(self, function_node: astroid.FunctionDef) -> ResultDocstring:
+        if function_node.name == "__init__" and isinstance(function_node.parent, astroid.ClassDef):
+            docstring = get_full_docstring(function_node.parent)
+        else:
+            docstring = get_full_docstring(function_node)
+
+        # Find matching parameter docstrings
+        function_epydoc = self.__get_cached_function_epydoc_string(function_node, docstring)
+        function_returns = function_epydoc.returns
+
+        if function_returns is None:
+            return ResultDocstring(type="", description="")
+
+        return ResultDocstring(
+            type=function_returns.type_name or "",
+            description=function_returns.description or ""
+        )
+
+    def __get_cached_function_epydoc_string(self, function_node: astroid.FunctionDef, docstring: str) -> Docstring:
         """
-        Return the NumpyDocString for the given function node.
+        Return the EpyDocString for the given function node.
 
         It is only recomputed when the function node differs from the previous one that was passed to this function.
         This avoids reparsing the docstring for the function itself and all of its parameters.
 
         On Lars's system this caused a significant performance improvement: Previously, 8.382s were spent inside the
-        function get_parameter_documentation when parsing sklearn. Afterwards, it was only 2.113s.
+        function get_parameter_documentation when parsing sklearn. Afterward, it was only 2.113s.
         """
         if self.__cached_function_node is not function_node:
             self.__cached_function_node = function_node

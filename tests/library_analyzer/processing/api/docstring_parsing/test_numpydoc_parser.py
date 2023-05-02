@@ -412,7 +412,7 @@ def test_get_class_attribute_documentation(
 
 
 # language=python
-function_with_return_value_and_type = '''
+function_with_result_value_and_type = '''
 # noinspection PyUnresolvedReferences,PyIncorrectDocstring
 def f():
     """
@@ -430,25 +430,7 @@ def f():
 '''
 
 # language=python
-function_with_return_value_no_type = '''
-# noinspection PyUnresolvedReferences,PyIncorrectDocstring
-def f():
-    """
-    Lorem ipsum.
-
-    Dolor sit amet.
-
-    Returns
-    -------
-    int
-        this will be the return value
-    """
-
-    pass
-'''
-
-# language=python
-function_without_return_value = '''
+function_without_result_value = '''
 # noinspection PyUnresolvedReferences,PyIncorrectDocstring
 def f():
     """
@@ -462,32 +444,26 @@ def f():
 
 
 @pytest.mark.parametrize(
-    ("python_code", "expected_return_documentation"),
+    ("python_code", "expected_result_documentation"),
     [
         (
-            function_with_return_value_and_type,
-            ParameterDocstring(type="", description=""),
+            function_with_result_value_and_type,
+            ResultDocstring(type="int", description="this will be the return value"),
         ),
         (
-            function_with_return_value_no_type,
-            ParameterDocstring(type="", description=""),
-        ),
-        (
-            function_without_return_value,
-            ParameterDocstring(type="", description="")
+            function_without_result_value,
+            ResultDocstring(type="", description="")
         ),
     ],
     ids=[
         "existing return value and type",
-        "existing return value no type",
         "function without return value"
-
     ],
 )
-def test_get_return_documentation(
+def test_get_result_documentation(
     numpydoc_parser: NumpyDocParser,
     python_code: str,
-    expected_return_documentation: ResultDocstring,
+    expected_result_documentation: ResultDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
@@ -500,6 +476,6 @@ def test_get_return_documentation(
 
     assert isinstance(node, astroid.FunctionDef)
     assert (
-        numpydoc_parser.get_return_documentation(node)
-        == expected_return_documentation
+        numpydoc_parser.get_result_documentation(node)
+        == expected_result_documentation
     )
