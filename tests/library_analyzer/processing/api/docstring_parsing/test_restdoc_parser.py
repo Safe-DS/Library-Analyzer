@@ -153,6 +153,10 @@ def f():
     :type type_no_default: int
     :param with_default: foo that defaults to 2
     :type with_default: int
+    :param *args: foo: *args
+    :type *args: int
+    :param **kwargs: foo: **kwargs
+    :type **kwargs: int
     """
 
     pass
@@ -214,6 +218,26 @@ def f():
         ),
         (
             function_with_parameters,
+            "*args",
+            ParameterAssignment.POSITIONAL_VARARG,
+            ParameterDocstring(
+                type="int",
+                default_value="",
+                description="foo: *args",
+            ),
+        ),
+        (
+            function_with_parameters,
+            "**kwargs",
+            ParameterAssignment.NAMED_VARARG,
+            ParameterDocstring(
+                type="int",
+                default_value="",
+                description="foo: **kwargs",
+            ),
+        ),
+        (
+            function_with_parameters,
             "missing",
             ParameterAssignment.POSITION_OR_NAME,
             ParameterDocstring(type="", default_value="", description=""),
@@ -225,6 +249,8 @@ def f():
         "function parameter with no type and no default",
         "function parameter with type and no default",
         "function parameter with default",
+        "function parameter with positional vararg",
+        "function parameter with named vararg",
         "missing function parameter",
     ],
 )
