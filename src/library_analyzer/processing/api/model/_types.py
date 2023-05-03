@@ -6,28 +6,28 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
-    from ._documentation import ParameterDocumentation
+    from ._docstring import ParameterDocstring
 
 
 class AbstractType(metaclass=ABCMeta):
-    @abstractmethod
-    def to_json(self) -> dict[str, Any]:
-        pass
-
     @classmethod
-    def from_json(cls, json: Any) -> AbstractType | None:
-        if json is None:
+    def from_dict(cls, d: dict[str, Any]) -> AbstractType | None:
+        if d is None:
             return None
-        value: AbstractType | None = NamedType.from_json(json)
+        value: AbstractType | None = NamedType.from_dict(d)
         if value is not None:
             return value
-        value = EnumType.from_json(json)
+        value = EnumType.from_dict(d)
         if value is not None:
             return value
-        value = BoundaryType.from_json(json)
+        value = BoundaryType.from_dict(d)
         if value is not None:
             return value
-        return UnionType.from_json(json)
+        return UnionType.from_dict(d)
+
+    @abstractmethod
+    def to_dict(self) -> dict[str, Any]:
+        pass
 
 
 @dataclass(frozen=True)
@@ -35,16 +35,16 @@ class NamedType(AbstractType):
     name: str
 
     @classmethod
-    def from_json(cls, json: Any) -> NamedType | None:
-        if json.get("kind", "") == cls.__name__:
-            return NamedType(json["name"])
+    def from_dict(cls, d: Any) -> NamedType | None:
+        if d.get("kind", "") == cls.__name__:
+            return NamedType(d["name"])
         return None
 
     @classmethod
     def from_string(cls, string: str) -> NamedType:
         return NamedType(string)
 
-    def to_json(self) -> dict[str, str]:
+    def to_dict(self) -> dict[str, str]:
         return {"kind": self.__class__.__name__, "name": self.name}
 
 
@@ -54,9 +54,9 @@ class EnumType(AbstractType):
     full_match: str = field(default="", compare=False)
 
     @classmethod
-    def from_json(cls, json: Any) -> EnumType | None:
-        if json["kind"] == cls.__name__:
-            return EnumType(json["values"])
+    def from_dict(cls, d: Any) -> EnumType | None:
+        if d["kind"] == cls.__name__:
+            return EnumType(d["values"])
         return None
 
     @classmethod
@@ -99,7 +99,7 @@ class EnumType(AbstractType):
         values.update(enum.values)
         return EnumType(frozenset(values))
 
-    def to_json(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {"kind": self.__class__.__name__, "values": set(self.values)}
 
 
@@ -125,14 +125,14 @@ class BoundaryType(AbstractType):
         raise ValueError(f"{bracket} is not one of []()")
 
     @classmethod
-    def from_json(cls, json: Any) -> BoundaryType | None:
-        if json["kind"] == cls.__name__:
+    def from_dict(cls, d: Any) -> BoundaryType | None:
+        if d["kind"] == cls.__name__:
             return BoundaryType(
-                json["base_type"],
-                json["min"],
-                json["max"],
-                json["min_inclusive"],
-                json["max_inclusive"],
+                d["base_type"],
+                d["min"],
+                d["max"],
+                d["min_inclusive"],
+                d["max_inclusive"],
             )
         return None
 
@@ -197,7 +197,7 @@ class BoundaryType(AbstractType):
                 return self.max_inclusive == __o.max_inclusive
         return False
 
-    def to_json(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "kind": self.__class__.__name__,
             "base_type": self.base_type,
@@ -213,20 +213,20 @@ class UnionType(AbstractType):
     types: list[AbstractType]
 
     @classmethod
-    def from_json(cls, json: Any) -> UnionType | None:
-        if json["kind"] == cls.__name__:
+    def from_dict(cls, d: Any) -> UnionType | None:
+        if d["kind"] == cls.__name__:
             types = []
-            for element in json["types"]:
-                type_ = AbstractType.from_json(element)
+            for element in d["types"]:
+                type_ = AbstractType.from_dict(element)
                 if type_ is not None:
                     types.append(type_)
             return UnionType(types)
         return None
 
-    def to_json(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         type_list = []
         for t in self.types:
-            type_list.append(t.to_json())
+            type_list.append(t.to_dict())
 
         return {"kind": self.__class__.__name__, "types": type_list}
 
@@ -235,7 +235,7 @@ class UnionType(AbstractType):
 
 
 def create_type(
-    parameter_documentation: ParameterDocumentation,
+    parameter_documentation: ParameterDocstring,
 ) -> AbstractType | None:
     type_string = parameter_documentation.type
     types: list[AbstractType] = []

@@ -1,12 +1,8 @@
 from pathlib import Path
 
 from library_analyzer.processing.annotations import generate_annotations
-
-from ._read_and_write_file import (
-    _read_api_file,
-    _read_usages_file,
-    _write_annotations_file,
-)
+from library_analyzer.processing.api.model import API
+from library_analyzer.processing.usages.model import UsageCountStore
 
 
 def _run_annotations(api_file_path: Path, usages_file_path: Path, annotations_file_path: Path) -> None:
@@ -15,11 +11,16 @@ def _run_annotations(api_file_path: Path, usages_file_path: Path, annotations_fi
 
     Annotations that are generated are: remove, constant, required, optional, enum and boundary.
 
-    :param api_file_path: API file Path
-    :param usages_file_path: UsageStore file Path
-    :param annotations_file_path: Output file Path.
+    Parameters
+    ----------
+    api_file_path : Path
+        API file Path
+    usages_file_path : Path
+        UsageStore file Path
+    annotations_file_path : Path
+        Output file Path.
     """
-    api = _read_api_file(api_file_path)
-    usages = _read_usages_file(usages_file_path)
+    api = API.from_json_file(api_file_path)
+    usages = UsageCountStore.from_json_file(usages_file_path)
     annotations = generate_annotations(api, usages)
-    _write_annotations_file(annotations, annotations_file_path)
+    annotations.to_json_file(annotations_file_path)

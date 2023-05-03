@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+from library_analyzer.utils import ensure_file_exists
 
 from ._annotations import (
     ANNOTATION_SCHEMA_VERSION,
@@ -21,6 +24,9 @@ from ._annotations import (
     ValueAnnotation,
 )
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 
 @dataclass
 class AnnotationStore:
@@ -39,61 +45,68 @@ class AnnotationStore:
     valueAnnotations: list[ValueAnnotation] = field(default_factory=list)  # noqa: N815
 
     @staticmethod
-    def from_json(json: Any) -> AnnotationStore:
-        if json["schemaVersion"] == 1:
+    def from_json_file(path: Path) -> AnnotationStore:
+        with path.open(encoding="utf-8") as annotations_file:
+            annotations_json = json.load(annotations_file)
+
+        return AnnotationStore.from_dict(annotations_json)
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> AnnotationStore:
+        if d["schemaVersion"] == 1:
             raise ValueError("Incompatible Annotation File: This file is not compatible with the current version.")
 
         boundary_annotations = []
-        for annotation in json["boundaryAnnotations"].values():
-            boundary_annotations.append(BoundaryAnnotation.from_json(annotation))
+        for annotation in d["boundaryAnnotations"].values():
+            boundary_annotations.append(BoundaryAnnotation.from_dict(annotation))
 
         called_after_annotations = []
-        for annotation in json["calledAfterAnnotations"].values():
-            called_after_annotations.append(CalledAfterAnnotation.from_json(annotation))
+        for annotation in d["calledAfterAnnotations"].values():
+            called_after_annotations.append(CalledAfterAnnotation.from_dict(annotation))
 
         complete_annotations = []
-        for annotation in json["completeAnnotations"].values():
-            complete_annotations.append(CompleteAnnotation.from_json(annotation))
+        for annotation in d["completeAnnotations"].values():
+            complete_annotations.append(CompleteAnnotation.from_dict(annotation))
 
         description_annotations = []
-        for annotation in json["descriptionAnnotations"].values():
-            description_annotations.append(DescriptionAnnotation.from_json(annotation))
+        for annotation in d["descriptionAnnotations"].values():
+            description_annotations.append(DescriptionAnnotation.from_dict(annotation))
 
         enum_annotations = []
-        for annotation in json["enumAnnotations"].values():
-            enum_annotations.append(EnumAnnotation.from_json(annotation))
+        for annotation in d["enumAnnotations"].values():
+            enum_annotations.append(EnumAnnotation.from_dict(annotation))
 
         expert_annotations = []
-        for annotation in json["expertAnnotations"].values():
-            expert_annotations.append(ExpertAnnotation.from_json(annotation))
+        for annotation in d["expertAnnotations"].values():
+            expert_annotations.append(ExpertAnnotation.from_dict(annotation))
 
         group_annotations = []
-        for annotation in json["groupAnnotations"].values():
-            group_annotations.append(GroupAnnotation.from_json(annotation))
+        for annotation in d["groupAnnotations"].values():
+            group_annotations.append(GroupAnnotation.from_dict(annotation))
 
         move_annotations = []
-        for annotation in json["moveAnnotations"].values():
-            move_annotations.append(MoveAnnotation.from_json(annotation))
+        for annotation in d["moveAnnotations"].values():
+            move_annotations.append(MoveAnnotation.from_dict(annotation))
 
         pure_annotations = []
-        for annotation in json["pureAnnotations"].values():
-            pure_annotations.append(PureAnnotation.from_json(annotation))
+        for annotation in d["pureAnnotations"].values():
+            pure_annotations.append(PureAnnotation.from_dict(annotation))
 
         remove_annotations = []
-        for annotation in json["removeAnnotations"].values():
-            remove_annotations.append(RemoveAnnotation.from_json(annotation))
+        for annotation in d["removeAnnotations"].values():
+            remove_annotations.append(RemoveAnnotation.from_dict(annotation))
 
         rename_annotations = []
-        for annotation in json["renameAnnotations"].values():
-            rename_annotations.append(RenameAnnotation.from_json(annotation))
+        for annotation in d["renameAnnotations"].values():
+            rename_annotations.append(RenameAnnotation.from_dict(annotation))
 
         todo_annotations = []
-        for annotation in json["todoAnnotations"].values():
-            todo_annotations.append(TodoAnnotation.from_json(annotation))
+        for annotation in d["todoAnnotations"].values():
+            todo_annotations.append(TodoAnnotation.from_dict(annotation))
 
         value_annotations = []
-        for annotation in json["valueAnnotations"].values():
-            value_annotations.append(ValueAnnotation.from_json(annotation))
+        for annotation in d["valueAnnotations"].values():
+            value_annotations.append(ValueAnnotation.from_dict(annotation))
 
         return AnnotationStore(
             boundary_annotations,
@@ -139,24 +152,29 @@ class AnnotationStore:
         elif isinstance(annotation, ValueAnnotation):
             self.valueAnnotations.append(annotation)
 
-    def to_json(self) -> dict:
+    def to_json_file(self, path: Path) -> None:
+        ensure_file_exists(path)
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+    def to_dict(self) -> dict:
         return {
             "schemaVersion": ANNOTATION_SCHEMA_VERSION,
-            "boundaryAnnotations": {annotation.target: annotation.to_json() for annotation in self.boundaryAnnotations},
+            "boundaryAnnotations": {annotation.target: annotation.to_dict() for annotation in self.boundaryAnnotations},
             "calledAfterAnnotations": {
-                annotation.target: annotation.to_json() for annotation in self.calledAfterAnnotations
+                annotation.target: annotation.to_dict() for annotation in self.calledAfterAnnotations
             },
-            "completeAnnotations": {annotation.target: annotation.to_json() for annotation in self.completeAnnotations},
+            "completeAnnotations": {annotation.target: annotation.to_dict() for annotation in self.completeAnnotations},
             "descriptionAnnotations": {
-                annotation.target: annotation.to_json() for annotation in self.descriptionAnnotations
+                annotation.target: annotation.to_dict() for annotation in self.descriptionAnnotations
             },
-            "enumAnnotations": {annotation.target: annotation.to_json() for annotation in self.enumAnnotations},
-            "expertAnnotations": {annotation.target: annotation.to_json() for annotation in self.expertAnnotations},
-            "groupAnnotations": {annotation.target: annotation.to_json() for annotation in self.groupAnnotations},
-            "moveAnnotations": {annotation.target: annotation.to_json() for annotation in self.moveAnnotations},
-            "pureAnnotations": {annotation.target: annotation.to_json() for annotation in self.pureAnnotations},
-            "renameAnnotations": {annotation.target: annotation.to_json() for annotation in self.renameAnnotations},
-            "removeAnnotations": {annotation.target: annotation.to_json() for annotation in self.removeAnnotations},
-            "todoAnnotations": {annotation.target: annotation.to_json() for annotation in self.todoAnnotations},
-            "valueAnnotations": {annotation.target: annotation.to_json() for annotation in self.valueAnnotations},
+            "enumAnnotations": {annotation.target: annotation.to_dict() for annotation in self.enumAnnotations},
+            "expertAnnotations": {annotation.target: annotation.to_dict() for annotation in self.expertAnnotations},
+            "groupAnnotations": {annotation.target: annotation.to_dict() for annotation in self.groupAnnotations},
+            "moveAnnotations": {annotation.target: annotation.to_dict() for annotation in self.moveAnnotations},
+            "pureAnnotations": {annotation.target: annotation.to_dict() for annotation in self.pureAnnotations},
+            "renameAnnotations": {annotation.target: annotation.to_dict() for annotation in self.renameAnnotations},
+            "removeAnnotations": {annotation.target: annotation.to_dict() for annotation in self.removeAnnotations},
+            "todoAnnotations": {annotation.target: annotation.to_dict() for annotation in self.todoAnnotations},
+            "valueAnnotations": {annotation.target: annotation.to_dict() for annotation in self.valueAnnotations},
         }

@@ -7,7 +7,7 @@ from library_analyzer.processing.annotations.model import (
 from library_analyzer.processing.api.model import (
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 from library_analyzer.processing.migration.annotations import (
     get_migration_text,
@@ -35,7 +35,7 @@ def migrate_enum_annotation_data_one_to_one_mapping() -> (
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "value", "docstring"),
+        docstring=ParameterDocstring("str", "value", "docstring"),
     )
     parameterv2 = Parameter(
         id_="test/test.enum.test1.TestB",
@@ -44,7 +44,7 @@ def migrate_enum_annotation_data_one_to_one_mapping() -> (
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "value", "docstring"),
+        docstring=ParameterDocstring("str", "value", "docstring"),
     )
     mapping = OneToOneMapping(1.0, parameterv1, parameterv2)
     enum_annotation = EnumAnnotation(
@@ -82,7 +82,7 @@ def migrate_enum_annotation_data_one_to_many_mapping() -> (
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "value", "docstring"),
+        docstring=ParameterDocstring("str", "value", "docstring"),
     )
     parameterv2_a = Parameter(
         id_="test/test.enum.test2.TestA",
@@ -91,7 +91,7 @@ def migrate_enum_annotation_data_one_to_many_mapping() -> (
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "value", "docstring"),
+        docstring=ParameterDocstring("str", "value", "docstring"),
     )
     parameterv2_b = Parameter(
         id_="test/test.enum.test2.TestB",
@@ -100,7 +100,7 @@ def migrate_enum_annotation_data_one_to_many_mapping() -> (
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "value", "docstring"),
+        docstring=ParameterDocstring("str", "value", "docstring"),
     )
     mapping = OneToManyMapping(1.0, parameterv1, [parameterv2_a, parameterv2_b])
     enum_annotation = EnumAnnotation(
@@ -151,7 +151,7 @@ def migrate_enum_annotation_data_one_to_many_mapping__only_one_relevant_mapping(
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "value", "docstring"),
+        docstring=ParameterDocstring("str", "value", "docstring"),
     )
     parameterv2_a = Parameter(
         id_="test/test.enum.test3.TestA",
@@ -160,7 +160,7 @@ def migrate_enum_annotation_data_one_to_many_mapping__only_one_relevant_mapping(
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        docstring=ParameterDocstring("", "", ""),
     )
     parameterv2_b = Parameter(
         id_="test/test.enum.test3.TestB",
@@ -169,7 +169,7 @@ def migrate_enum_annotation_data_one_to_many_mapping__only_one_relevant_mapping(
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "value", "docstring"),
+        docstring=ParameterDocstring("str", "value", "docstring"),
     )
     parameterv2_c = Parameter(
         id_="test/test.enum.test3.TestC",
@@ -178,7 +178,7 @@ def migrate_enum_annotation_data_one_to_many_mapping__only_one_relevant_mapping(
         default_value="0",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "0", "docstring"),
+        docstring=ParameterDocstring("int", "0", "docstring"),
     )
     mapping = OneToManyMapping(1.0, parameterv1, [parameterv2_a, parameterv2_b, parameterv2_c])
     enum_annotation = EnumAnnotation(
@@ -229,7 +229,7 @@ def migrate_enum_annotation_data_duplicated() -> (
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "value", "docstring"),
+        docstring=ParameterDocstring("str", "value", "docstring"),
     )
     parameterv1_2 = Parameter(
         id_="test/test.enum.duplicate.TestA_2",
@@ -238,7 +238,7 @@ def migrate_enum_annotation_data_duplicated() -> (
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "value", "docstring"),
+        docstring=ParameterDocstring("str", "value", "docstring"),
     )
     parameterv2 = Parameter(
         id_="test/test.enum.duplicate.TestB",
@@ -247,7 +247,7 @@ def migrate_enum_annotation_data_duplicated() -> (
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "value", "docstring"),
+        docstring=ParameterDocstring("str", "value", "docstring"),
     )
     mapping = ManyToOneMapping(1.0, [parameterv1, parameterv1_2], parameterv2)
     enum_annotation = EnumAnnotation(
