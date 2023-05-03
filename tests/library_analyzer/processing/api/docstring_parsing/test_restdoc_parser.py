@@ -1,19 +1,19 @@
 # Todo Function with return value
 import astroid
 import pytest
-from library_analyzer.processing.api.docstring_parsing import RestdocParser
+from library_analyzer.processing.api.docstring_parsing import RestDocParser
 from library_analyzer.processing.api.model import (
-    ClassDocumentation,
-    FunctionDocumentation,
+    ClassDocstring,
+    FunctionDocstring,
     ParameterAssignment,
-    ParameterDocumentation,
-    ReturnDocumentation
+    ParameterDocstring,
+    ResultDocstring
 )
 
 
 @pytest.fixture()
-def restdoc_parser() -> RestdocParser:
-    return RestdocParser()
+def restdoc_parser() -> RestDocParser:
+    return RestDocParser()
 
 
 class_with_documentation = '''
@@ -38,14 +38,14 @@ class C:
     [
         (
             class_with_documentation,
-            ClassDocumentation(
+            ClassDocstring(
                 description="Lorem ipsum. Code::\n\npass\n\nDolor sit amet.",
                 full_docstring="Lorem ipsum. Code::\n\n    pass\n\nDolor sit amet.",
             ),
         ),
         (
             class_without_documentation,
-            ClassDocumentation(
+            ClassDocstring(
                 description="",
                 full_docstring="",
             ),
@@ -57,9 +57,9 @@ class C:
     ],
 )
 def test_get_class_documentation(
-    restdoc_parser: RestdocParser,
+    restdoc_parser: RestDocParser,
     python_code: str,
-    expected_class_documentation: ClassDocumentation,
+    expected_class_documentation: ClassDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
 
@@ -93,14 +93,14 @@ def f():
     [
         (
             function_with_documentation,
-            FunctionDocumentation(
+            FunctionDocstring(
                 description="Lorem ipsum. Code::\n\npass\n\nDolor sit amet.",
                 full_docstring="Lorem ipsum. Code::\n\n    pass\n\nDolor sit amet.",
             ),
         ),
         (
             function_without_documentation,
-            FunctionDocumentation(
+            FunctionDocstring(
                 description="",
                 full_docstring="",
             ),
@@ -112,9 +112,9 @@ def f():
     ],
 )
 def test_get_function_documentation(
-    restdoc_parser: RestdocParser,
+    restdoc_parser: RestDocParser,
     python_code: str,
-    expected_function_documentation: FunctionDocumentation,
+    expected_function_documentation: FunctionDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
 
@@ -166,7 +166,7 @@ def f():
             class_with_parameters,
             "p",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="1",
                 description="foo defaults to 1",
@@ -176,7 +176,7 @@ def f():
             class_with_parameters,
             "missing",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="",
                 default_value="",
                 description="",
@@ -186,7 +186,7 @@ def f():
             function_with_parameters,
             "no_type_no_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="",
                 default_value="",
                 description="no type and no default",
@@ -196,7 +196,7 @@ def f():
             function_with_parameters,
             "type_no_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="",
                 description="type but no default",
@@ -206,7 +206,7 @@ def f():
             function_with_parameters,
             "with_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="2",
                 description="foo that defaults to 2",
@@ -216,7 +216,7 @@ def f():
             function_with_parameters,
             "missing",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(type="", default_value="", description=""),
+            ParameterDocstring(type="", default_value="", description=""),
         ),
     ],
     ids=[
@@ -229,11 +229,11 @@ def f():
     ],
 )
 def test_get_parameter_documentation(
-    restdoc_parser: RestdocParser,
+    restdoc_parser: RestDocParser,
     python_code: str,
     parameter_name: str,
     parameter_assigned_by: ParameterAssignment,
-    expected_parameter_documentation: ParameterDocumentation,
+    expected_parameter_documentation: ParameterDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
@@ -277,7 +277,6 @@ def f():
     Dolor sit amet.
 
     :return: return value
-    :rtype: bool
     """
 
     pass
@@ -302,15 +301,15 @@ def f():
     [
         (
             function_with_return_value_and_type,
-            ParameterDocumentation(type="", description=""),
+            ResultDocstring(type="bool", description="return value"),
         ),
         (
             function_with_return_value_no_type,
-            ParameterDocumentation(type="", description=""),
+            ResultDocstring(type="", description="return value"),
         ),
         (
             function_without_return_value,
-            ParameterDocumentation(type="", description="")
+            ResultDocstring(type="", description="")
         ),
     ],
     ids=[
@@ -319,10 +318,10 @@ def f():
         "function without return value"
     ],
 )
-def test_get_return_documentation(
-    restdoc_parser: RestdocParser,
+def test_get_result_documentation(
+    restdoc_parser: RestDocParser,
     python_code: str,
-    expected_return_documentation: ReturnDocumentation,
+    expected_return_documentation: ResultDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
@@ -335,6 +334,6 @@ def test_get_return_documentation(
 
     assert isinstance(node, astroid.FunctionDef)
     assert (
-        restdoc_parser.get_return_documentation(node)
+        restdoc_parser.get_result_documentation(node)
         == expected_return_documentation
     )

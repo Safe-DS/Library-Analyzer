@@ -1,18 +1,18 @@
 import astroid
 import pytest
-from library_analyzer.processing.api.docstring_parsing import GooglestyledocParser
+from library_analyzer.processing.api.docstring_parsing import GoogleDocParser
 from library_analyzer.processing.api.model import (
-    ClassDocumentation,
-    FunctionDocumentation,
+    ClassDocstring,
+    FunctionDocstring,
     ParameterAssignment,
-    ParameterDocumentation,
-    ReturnDocumentation
+    ParameterDocstring,
+    ResultDocstring
 )
 
 
 @pytest.fixture()
-def googlestyledoc_parser() -> GooglestyledocParser:
-    return GooglestyledocParser()
+def googlestyledoc_parser() -> GoogleDocParser:
+    return GoogleDocParser()
 
 
 # language=python
@@ -39,14 +39,14 @@ class C:
     [
         (
             class_with_documentation,
-            ClassDocumentation(
+            ClassDocstring(
                 description="Lorem ipsum. Code::\n\npass\n\nDolor sit amet.",
                 full_docstring="Lorem ipsum. Code::\n\n    pass\n\nDolor sit amet.",
             ),
         ),
         (
             class_without_documentation,
-            ClassDocumentation(
+            ClassDocstring(
                 description="",
                 full_docstring="",
             ),
@@ -58,9 +58,9 @@ class C:
     ],
 )
 def test_get_class_documentation(
-    googlestyledoc_parser: GooglestyledocParser,
+    googlestyledoc_parser: GoogleDocParser,
     python_code: str,
-    expected_class_documentation: ClassDocumentation,
+    expected_class_documentation: ClassDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
 
@@ -94,14 +94,14 @@ def f():
     [
         (
             function_with_documentation,
-            FunctionDocumentation(
+            FunctionDocstring(
                 description="Lorem ipsum. Code::\n\npass\n\nDolor sit amet.",
                 full_docstring="Lorem ipsum. Code::\n\n    pass\n\nDolor sit amet.",
             ),
         ),
         (
             function_without_documentation,
-            FunctionDocumentation(
+            FunctionDocstring(
                 description="",
                 full_docstring="",
             ),
@@ -113,9 +113,9 @@ def f():
     ],
 )
 def test_get_function_documentation(
-    googlestyledoc_parser: GooglestyledocParser,
+    googlestyledoc_parser: GoogleDocParser,
     python_code: str,
-    expected_function_documentation: FunctionDocumentation,
+    expected_function_documentation: FunctionDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
 
@@ -132,7 +132,7 @@ class C:
     Dolor sit amet.
 
     Attributes:
-        p (int): foo defaults to 1
+        p (int): foo. Defaults to 1.
     """
 
     def __init__(self):
@@ -148,9 +148,9 @@ def f():
     Dolor sit amet.
 
     Args:
-        no_type_no_default: no type and no default
-        type_no_default (int): type but no default
-        with_default (int): foo that defaults to 2
+        no_type_no_default: no type and no default.
+        type_no_default (int): type but no default.
+        with_default (int): foo. Defaults to 2.
     """
 
     pass
@@ -164,17 +164,17 @@ def f():
             class_with_parameters,
             "p",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="1",
-                description="foo defaults to 1",
+                description="foo. Defaults to 1.",
             ),
         ),
         (
             class_with_parameters,
             "missing",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="",
                 default_value="",
                 description="",
@@ -184,37 +184,37 @@ def f():
             function_with_parameters,
             "no_type_no_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="",
                 default_value="",
-                description="no type and no default",
+                description="no type and no default.",
             ),
         ),
         (
             function_with_parameters,
             "type_no_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="",
-                description="type but no default",
+                description="type but no default.",
             ),
         ),
         (
             function_with_parameters,
             "with_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="2",
-                description="foo that defaults to 2",
+                description="foo. Defaults to 2.",
             ),
         ),
         (
             function_with_parameters,
             "missing",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(type="", default_value="", description=""),
+            ParameterDocstring(type="", default_value="", description=""),
         ),
     ],
     ids=[
@@ -227,11 +227,11 @@ def f():
     ],
 )
 def test_get_parameter_documentation(
-    googlestyledoc_parser: GooglestyledocParser,
+    googlestyledoc_parser: GoogleDocParser,
     python_code: str,
     parameter_name: str,
     parameter_assigned_by: ParameterAssignment,
-    expected_parameter_documentation: ParameterDocumentation,
+    expected_parameter_documentation: ParameterDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
@@ -258,7 +258,7 @@ def f():
     Dolor sit amet.
 
     Returns:
-        int: this will be the return value
+        int: this will be the return value.
     """
 
     pass
@@ -273,7 +273,7 @@ def f():
     Dolor sit amet.
 
     Returns:
-        int: this will be the return value
+        int
     """
 
     pass
@@ -297,27 +297,27 @@ def f():
     [
         (
             function_with_return_value_and_type,
-            ParameterDocumentation(type="", description=""),
+            ResultDocstring(type="int", description="this will be the return value."),
         ),
         (
             function_with_return_value_no_type,
-            ParameterDocumentation(type="", description=""),
+            ResultDocstring(type="", description="int"),
         ),
         (
             function_without_return_value,
-            ParameterDocumentation(type="", description="")
+            ResultDocstring(type="", description="")
         ),
     ],
     ids=[
         "existing return value and type",
-        "existing return value no type",
+        "existing return value no description",
         "function without return value"
     ],
 )
-def test_get_return_documentation(
-    googlestyledoc_parser: GooglestyledocParser,
+def test_get_result_documentation(
+    googlestyledoc_parser: GoogleDocParser,
     python_code: str,
-    expected_return_documentation: ReturnDocumentation,
+    expected_return_documentation: ResultDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
@@ -330,6 +330,6 @@ def test_get_return_documentation(
 
     assert isinstance(node, astroid.FunctionDef)
     assert (
-        googlestyledoc_parser.get_return_documentation(node)
+        googlestyledoc_parser.get_result_documentation(node)
         == expected_return_documentation
     )
