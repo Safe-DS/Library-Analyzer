@@ -197,6 +197,29 @@ class C:
         pass
 '''
 
+# language=python
+class_and_function_with_attributes = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+class C:
+    """
+    Parameters
+    ----------
+    x: str
+        Lorem ipsum 1.
+    z: int, default=5
+        Lorem ipsum 3.
+    """
+
+    def __init__(self, x, y, z):
+        """
+        Parameters
+        ----------
+        y: str
+            Lorem ipsum 2.
+        z: str
+            Lorem ipsum 4.
+        """
+'''
 
 @pytest.mark.parametrize(
     ("python_code", "parameter_name", "parameter_assigned_by", "expected_parameter_documentation"),
@@ -348,7 +371,37 @@ class C:
                 default_value="",
                 description="bar",
             ),
-        )
+        ),
+        (
+            class_and_function_with_attributes,
+            "x",
+            ParameterAssignment.POSITION_OR_NAME,
+            ParameterDocstring(
+                type="str",
+                default_value="",
+                description="Lorem ipsum 1.",
+            ),
+        ),
+        (
+            class_and_function_with_attributes,
+            "y",
+            ParameterAssignment.POSITION_OR_NAME,
+            ParameterDocstring(
+                type="str",
+                default_value="",
+                description="Lorem ipsum 2.",
+            ),
+        ),
+        (
+            class_and_function_with_attributes,
+            "z",
+            ParameterAssignment.POSITION_OR_NAME,
+            ParameterDocstring(
+                type="int",
+                default_value="5",
+                description="Lorem ipsum 3.",
+            ),
+        ),
     ],
     ids=[
         "existing class parameter",
@@ -366,7 +419,10 @@ class C:
         "missing function parameter",
         "existing class attribute",
         "missing class attribute",
-        "existing class attribute without type"
+        "existing class attribute without type",
+        "class and __init__ with params 1",
+        "class and __init__ with params 2",
+        "class and __init__ with params 3"
     ],
 )
 def test_get_parameter_documentation(

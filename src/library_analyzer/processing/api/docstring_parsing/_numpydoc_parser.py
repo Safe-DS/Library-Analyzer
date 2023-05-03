@@ -73,6 +73,21 @@ class NumpyDocParser(AbstractDocstringParser):
         ]
 
         if len(matching_parameters_numpydoc) == 0:
+            # If we have a constructor we have to check both, the class and then the constructor (see issue #10)
+            if function_node.name == "__init__":
+                docstring_constructor = get_full_docstring(function_node)
+                # Find matching parameter docstrings
+                function_numpydoc = parse_docstring(docstring_constructor, style=DocstringStyle.NUMPYDOC)
+                all_parameters_numpydoc: list[DocstringParam] = function_numpydoc.params
+
+                # Overwrite previous matching_parameters_numpydoc list
+                matching_parameters_numpydoc = [
+                    it
+                    for it in all_parameters_numpydoc
+                    if _is_matching_parameter_numpydoc(it, parameter_name, parameter_assigned_by)
+                ]
+
+        if len(matching_parameters_numpydoc) == 0:
             return ParameterDocstring(type="", default_value="", description="")
 
         last_parameter_numpydoc = matching_parameters_numpydoc[-1]
