@@ -170,7 +170,7 @@ _boundary_interval_in_brackets = [
     {"ORTH": ","},
     {},
     {"ORTH": {"IN": [")", "]"]}},
-    {"ORTH": ")"}
+    {"ORTH": ")"},
 ]
 
 
@@ -232,6 +232,7 @@ def _check_positive_pattern(
         matches.remove(matches[i])
 
     return None
+
 
 def _check_interval_relational_pattern(
     matcher: Matcher,  # noqa: ARG001
@@ -628,7 +629,6 @@ def _create_interval_in_brackets_boundary(match_string: Span, type_: str) -> Bou
     return _create_interval_boundary(span_, type_)
 
 
-
 def _analyze_matches(matches: list[tuple[str, Span]], boundaries: BoundaryList) -> None:
     """Analyze the passed match list for boundaries to be created.
 
@@ -648,7 +648,6 @@ def _analyze_matches(matches: list[tuple[str, Span]], boundaries: BoundaryList) 
 
     # Assignment of the found boundaries to the corresponding data type
     for match_label, match_string in matches:
-
         if match_label == "BOUNDARY_TYPE":
             if found_type:
                 other_id += 1
