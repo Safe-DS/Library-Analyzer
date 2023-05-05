@@ -726,7 +726,7 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
 
         if type_length == 1:
             type_text = type_list[0]
-            match_string = ""
+            match_string: Span | None = None
 
             if len(restriction_list) == 1:
                 match_label = restriction_list[0][0]
@@ -742,7 +742,6 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
             boundaries.add_boundary(match_label, type_text, match_string)
 
         elif type_length > 1:
-            print(desc_matches)
             found_type_rel_val = any(match[0] == "BOUNDARY_TYPE_REL_VAL" for match in type_matches)
 
             if found_type_rel_val:
