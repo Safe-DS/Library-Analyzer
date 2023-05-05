@@ -16,6 +16,19 @@ class BoundaryList:
     _boundaries: set[BoundaryType] = field(default_factory=set[BoundaryType])
 
     def add_boundary(self, match_label: str, type_: str, match_string: Span = None) -> None:
+        """Add a boundary according to the matched rule.
+
+        Parameters
+        ----------
+        match_label
+            Label of the matched rule
+        type_
+            Base type of the boundary to be created
+        match_string
+            Span containing the string matched by the corresponding rule.
+            This parameter is not required for every rule.
+
+        """
         match match_label:
             case "BOUNDARY_NON_POSITIVE":
                 self._boundaries.add(_create_non_positive_boundary(type_))
@@ -536,6 +549,17 @@ def _create_type_rel_val_boundary(match_string: Span, type_: str) -> BoundaryTyp
 
 
 def _analyze_matches(matches: list[tuple[str, Span]], boundaries: BoundaryList) -> None:
+    """Analyze the passed match list for boundaries to be created.
+
+    Parameters
+    ----------
+    matches
+        Matches found by spaCy Matcher.
+
+    boundaries
+        BoundaryList object that creates and contains the matching boundary objects.
+
+    """
     type_id = 0
     other_id = 0
     processed_matches = []
