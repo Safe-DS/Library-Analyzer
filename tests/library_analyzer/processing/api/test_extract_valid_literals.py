@@ -1,5 +1,5 @@
 import pytest
-from library_analyzer.processing.api._extract_valid_values import extract_valid_literals, extract
+from library_analyzer.processing.api._extract_valid_values import extract_valid_literals
 
 
 @pytest.mark.parametrize(
@@ -75,4 +75,4 @@ from library_analyzer.processing.api._extract_valid_values import extract_valid_
     ],
 )
 def test_extract_values(type_: str, description: str, expected_literals: list) -> None:
-    assert extract(description, type_) == set(expected_literals)
+    assert extract_valid_literals(description, type_) == set(expected_literals)
