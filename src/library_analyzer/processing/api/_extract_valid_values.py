@@ -18,15 +18,15 @@ _enum_when_set_to = [
     {"LOWER": "to"}
 ]
 
-_enum_indented_if_listing = [
+_enum_if_listing = [
     {"LOWER": "if"},
-    {"ORTH": {"IN": ["'", '"', "True", "False", "None"]}},
-    # {}
+    {"ORTH": {"IN": [",", '"']}, "OP": "?"}
+
 ]
 
 _enum_type_curly = [
     {"ORTH": "{"},
-    {"IS_ASCII": True, "OP": "+"},
+    {"OP": "+"},
     {"ORTH": "}"}
 ]
 
@@ -56,7 +56,7 @@ class MatcherConfiguration:
     when_set_to: bool = True
     valid_values_are: bool = True
     type_curly: bool = True
-    indented_if_listings: bool = True
+    if_listings: bool = True
     single_vals: bool = True
 
     def __post_init__(self) -> None:
@@ -66,13 +66,13 @@ class MatcherConfiguration:
         self._matcher.add("ENUM_STR", [_enum_str])
 
         if self.when_set_to:
-            self._matcher.add("ENUM_WHEN_SET_TO", [_enum_when_set_to], on_match=_extract_single_value)
+            self._matcher.add("ENUM_SINGLE_VAL", [_enum_when_set_to], on_match=_extract_single_value)
+        if self.if_listings:
+            self._matcher.add("ENUM_SINGLE_VAL", [_enum_if_listing], on_match=_extract_single_value)
         if self.valid_values_are:
             self._matcher.add("ENUM_VALID_VALUES_ARE", [_enum_valid_values_are], on_match=_extract_list)
         if self.type_curly:
             self._matcher.add("ENUM_TYPE_CURLY", [_enum_type_curly], on_match=_extract_list)
-        if self.indented_if_listings:
-            self._matcher.add("ENUM_INDENTED_IF_LISTING", [_enum_indented_if_listing], on_match=_extract_indented_value)
         if self.single_vals:
             self._matcher.add("ENUM_SINGLE_VALS", [_enum_single_val_quoted, _enum_single_val_bool_none],
                               on_match=_extract_indented_single_value)
@@ -93,6 +93,22 @@ def _extract_list(
     i: int,  # noqa : ARG001
     nlp_matches: list[tuple[Any, ...]],  # noqa : ARG001
 ) -> Any | None:
+    """on-match function for the spaCy Matcher.
+
+    Extract the first collection of valid string values that occurs after the matched string.
+
+    Parameters
+    ----------
+    nlp_matcher
+        Parameter is ignored.
+    doc
+        Doc object that is checked for the active rules.
+    i
+        Parameter is ignored.
+    nlp_matches
+        List of matches found by the matcher
+
+    """
     found_list = False
     found_minus = False
     ex = []
@@ -130,6 +146,22 @@ def _extract_single_value(
     doc: Doc, i: int,
     nlp_matches: list[tuple[Any, ...]]
 ) -> Any | None:
+    """on-match function for the spaCy Matcher.
+
+    Extract the first value that occurs after the matched string.
+
+    Parameters
+    ----------
+    nlp_matcher
+        Parameter is ignored.
+    doc
+        Doc object that is checked for the active rules.
+    i
+        Index of the match that was recognized by the rule.
+    nlp_matches
+        List of matches found by the matcher.
+
+    """
     _, _, end = nlp_matches[i]
     next_token = doc[end]
     text = ""
@@ -149,13 +181,29 @@ def _extract_single_value(
 
     return None
 
+
 def _extract_indented_single_value(
     nlp_matcher: Matcher,  # noqa : ARG001
     doc: Doc,
     i: int,
     nlp_matches: list[tuple[Any, ...]]
 ) -> Any | None:
+    """on-match function for the spaCy Matcher.
 
+    Extract the standalone indented values.
+
+    Parameters
+    ----------
+    nlp_matcher
+        Parameter is ignored.
+    doc
+        Doc object that is checked for the active rules.
+    i
+        Index of the match that was recognized by the rule.
+    nlp_matches
+        List of matches found by the matcher.
+
+    """
     _, start, end = nlp_matches[i]
     value = doc[start:end-1]
     value = value.text
@@ -168,38 +216,41 @@ def _extract_indented_single_value(
     return None
 
 
-def _extract_indented_value(
-    nlp_matcher: Matcher, # noqa : ARG001
-    doc: Doc,
-    i: int,
-    nlp_matches: list[tuple[Any, ...]]
-) -> Any | None:
-    _, start, end = nlp_matches[i]
-
-    span_ = doc[start:end]
-    found_quotes = False
-
-    for token in span_:
-        if token.text == "None":
-            _extracted.append("None")
-        elif token.text in ["True", "False"]:
-            _extracted.append("True")
-            _extracted.append("False")
-        elif token.text in ["'", '"']:
-            found_quotes = not found_quotes
-        elif found_quotes:
-            _extracted.append('"' + token.text + '"')
-
-    return None
-
-
 def _nlp_matches_to_readable_matches(
     nlp_matches: list[tuple[int, int, int]], nlp_: Language, doc_: Doc
 ) -> list[tuple[str, Span]]:
+    """Transform the matches list into a readable list.
+
+    Parameters
+    ----------
+    nlp_matches
+        list of spaCy matches
+    nlp_
+        spaCy natural language pipeline
+    doc_
+        Doc object that is checked for the active rules.
+
+    """
     return [(nlp_.vocab.strings[match_id], doc_[start:end]) for match_id, start, end in nlp_matches]
 
 
 def extract_valid_literals(description: str, type_string: str) -> set[str]:
+    """Extract all valid literals.
+
+    Parameters
+    ----------
+    description
+        Description string of the parameter to be examined.
+    type_string
+        Type string of the prameter to be examined.
+
+
+    Returns
+    -------
+    set[str]
+        Set of extracted literals.
+
+    """
     _extracted.clear()
 
     nlp = MATCHER_CONFIG.get_nlp()
@@ -210,8 +261,7 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
     desc_doc = nlp.make_doc(" ".join(description.split()))
     type_doc = nlp.make_doc(type_string)
 
-    desc_matches = matcher(desc_doc)
-    desc_matches = _nlp_matches_to_readable_matches(desc_matches, nlp, desc_doc)
+    matcher(desc_doc)
 
     type_matches = matcher(type_doc)
     type_matches = _nlp_matches_to_readable_matches(type_matches, nlp, type_doc)
