@@ -88,10 +88,10 @@ _extracted = []
 
 
 def _extract_list(
-    nlp_matcher: Matcher,  # noqa : ARG001
+    nlp_matcher: Matcher,  # noqa: ARG001
     doc: Doc,
-    i: int,  # noqa : ARG001
-    nlp_matches: list[tuple[Any, ...]],  # noqa : ARG001
+    i: int,  # noqa: ARG001
+    nlp_matches: list[tuple[Any, ...]],  # noqa: ARG001
 ) -> Any | None:
     """on-match function for the spaCy Matcher.
 
@@ -142,9 +142,9 @@ def _extract_list(
 
 
 def _extract_single_value(
-    nlp_matcher: Matcher,  # noqa : ARG001
+    nlp_matcher: Matcher,  # noqa: ARG001
     doc: Doc, i: int,
-    nlp_matches: list[tuple[Any, ...]]
+    nlp_matches: list[tuple[Any, ...]],
 ) -> Any | None:
     """on-match function for the spaCy Matcher.
 
@@ -183,10 +183,10 @@ def _extract_single_value(
 
 
 def _extract_indented_single_value(
-    nlp_matcher: Matcher,  # noqa : ARG001
+    nlp_matcher: Matcher,  # noqa: ARG001
     doc: Doc,
     i: int,
-    nlp_matches: list[tuple[Any, ...]]
+    nlp_matches: list[tuple[Any, ...]],
 ) -> Any | None:
     """on-match function for the spaCy Matcher.
 
