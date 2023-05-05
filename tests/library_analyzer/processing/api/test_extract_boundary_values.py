@@ -8,6 +8,7 @@ _Numeric: TypeAlias = int | float
 BoundaryValueType = tuple[str, tuple[_Numeric | str, bool], tuple[_Numeric | str, bool]]
 
 
+# @pytest.mark.skip(reason="Currently not testting this")
 @pytest.mark.parametrize(
     ("type_string", "description", "expected_boundary"),
     [
@@ -171,6 +172,7 @@ BoundaryValueType = tuple[str, tuple[_Numeric | str, bool], tuple[_Numeric | str
             ),
             [("int", (1, False), ("Infinity", False)), ("float", (0.0, True), (1.0, True))],
         ),
+        ("float ([0, 1])", "abc", [("float", (0.0, True), (1.0, True))]),
         ("bool", "Whether to allow array.ndim > 2", []),
         (
             'dict, list of dicts, "balanced", or None',
@@ -212,7 +214,6 @@ BoundaryValueType = tuple[str, tuple[_Numeric | str, bool], tuple[_Numeric | str
             ),
             []
         )
-
     ],
 )
 def test_extract_boundaries(type_string: str, description: str, expected_boundary: list[BoundaryValueType]) -> None:

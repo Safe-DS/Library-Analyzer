@@ -48,6 +48,8 @@ class BoundaryList:
                 self._boundaries.add(_create_interval_relational_boundary(match_string, type_))
             case "BOUNDARY_TYPE_REL_VAL":
                 self._boundaries.add(_create_type_rel_val_boundary(match_string, type_))
+            case "BOUNDARY_INTERVAL_IN_BRACKETS":
+                self._boundaries.add(_create_interval_in_brackets_boundary(match_string, type_))
 
     def get_boundaries(self) -> set[BoundaryType]:
         return self._boundaries
@@ -65,9 +67,9 @@ _boundary_at_least = [{"LOWER": "at"}, {"LOWER": "least"}, {"LIKE_NUM": True}]
 _boundary_min = [{"LOWER": "min"}, {"ORTH": "."}, {"LIKE_NUM": True}]
 
 _boundary_interval = [
-    {"LOWER": "in"},
-    {"LOWER": "the"},
-    {"LOWER": {"IN": ["range", "interval"]}},
+    {"LOWER": {"IN": ["in", "within"]}},
+    {"LOWER": "the", "OP": "?"},
+    {"LOWER": {"IN": ["range", "interval"]}, "OP": "?"},
     {"LOWER": "of", "OP": "?"},
     {"ORTH": {"IN": ["(", "["]}},
     {},
@@ -75,6 +77,7 @@ _boundary_interval = [
     {},
     {"ORTH": {"IN": [")", "]"]}},
 ]
+
 
 _boundary_value_in = [
     {"LOWER": {"FUZZY": "value"}},
@@ -159,6 +162,17 @@ _boundary_type_gtlt_val = [*_boundary_type, {"ORTH": {"IN": ["<", ">"]}}, {"LIKE
 
 _boundary_type_geqleq_val = [*_boundary_type, *_geq_leq_op, {"LIKE_NUM": True}]
 
+_boundary_interval_in_brackets = [
+    *_boundary_type,
+    {"ORTH": "("},
+    {"ORTH": {"IN": ["(", "["]}},
+    {},
+    {"ORTH": ","},
+    {},
+    {"ORTH": {"IN": [")", "]"]}},
+    {"ORTH": ")"}
+]
+
 
 def _check_negative_pattern(
     matcher: Matcher,  # noqa: ARG001
@@ -219,6 +233,65 @@ def _check_positive_pattern(
 
     return None
 
+def _check_interval_relational_pattern(
+    matcher: Matcher,  # noqa: ARG001
+    doc: Doc,  # noqa: ARG001
+    i: int,
+    matches: list[tuple[Any, ...]],
+) -> Any | None:
+    """on-match function for the spaCy Matcher.
+
+    Delete the BOUNDARY_TYPE_REL_VAL match if the BOUNDARY_INTERVAL_RELATIONAL rule has been detected.
+
+    Parameters
+    ----------
+    matcher
+        Parameter is ignored.
+    doc
+        Parameter is ignored.
+    i
+        Index of the match that was recognized by the rule.
+
+    matches
+        List of matches found by the matcher
+
+    """
+    previous_id, _, _ = matches[i - 1]
+    if _nlp.vocab.strings[previous_id] == "BOUNDARY_TYPE_REL_VAL":
+        matches.remove(matches[i - 1])
+
+    return None
+
+
+def _check_interval(
+    matcher: Matcher,  # noqa: ARG001
+    doc: Doc,  # noqa: ARG001
+    i: int,
+    matches: list[tuple[Any, ...]],
+) -> Any | None:
+    """on-match function for the spaCy Matcher.
+
+    Delete the BOUNDARY_INTERVAL match if the BOUNDARY_INTERVAL rule has been already detected.
+
+    Parameters
+    ----------
+    matcher
+        Parameter is ignored.
+    doc
+        Parameter is ignored.
+    i
+        Index of the match that was recognized by the rule.
+
+    matches
+        List of matches found by the matcher
+
+    """
+    previous_id, _, _ = matches[i - 1]
+    if _nlp.vocab.strings[previous_id] == "BOUNDARY_INTERVAL" and (len(matches) > 1):
+        matches.remove(matches[i - 1])
+
+    return None
+
 
 relational_patterns = [
     _boundary_gtlt_gtlt,
@@ -232,15 +305,16 @@ relational_patterns = [
 ]
 
 _matcher.add("BOUNDARY_AT_LEAST", [_boundary_at_least, _boundary_min])
-_matcher.add("BOUNDARY_INTERVAL", [_boundary_interval, _boundary_value_in])
+_matcher.add("BOUNDARY_INTERVAL", [_boundary_interval, _boundary_value_in], on_match=_check_interval)
 _matcher.add("BOUNDARY_POSITIVE", [_boundary_positive], on_match=_check_positive_pattern)
 _matcher.add("BOUNDARY_NON_NEGATIVE", [_boundary_non_negative])
 _matcher.add("BOUNDARY_NEGATIVE", [_boundary_negative], on_match=_check_negative_pattern)
 _matcher.add("BOUNDARY_NON_POSITIVE", [_boundary_non_positive])
 _matcher.add("BOUNDARY_BETWEEN", [_boundary_between])
-_matcher.add("BOUNDARY_INTERVAL_RELATIONAL", relational_patterns)
+_matcher.add("BOUNDARY_INTERVAL_RELATIONAL", relational_patterns, on_match=_check_interval_relational_pattern)
 _matcher.add("BOUNDARY_TYPE", [_boundary_type])
 _matcher.add("BOUNDARY_TYPE_REL_VAL", [_boundary_type_gtlt_val, _boundary_type_geqleq_val])
+_matcher.add("BOUNDARY_INTERVAL_IN_BRACKETS", [_boundary_interval_in_brackets])
 
 
 def _get_type_value(type_: str, value: _Numeric | str) -> _Numeric:
@@ -548,6 +622,13 @@ def _create_type_rel_val_boundary(match_string: Span, type_: str) -> BoundaryTyp
     return BoundaryType(type_, min=min_, max=max_, min_inclusive=min_incl, max_inclusive=max_incl)
 
 
+def _create_interval_in_brackets_boundary(match_string: Span, type_: str) -> BoundaryType:
+    span_ = match_string[2:-1]
+
+    return _create_interval_boundary(span_, type_)
+
+
+
 def _analyze_matches(matches: list[tuple[str, Span]], boundaries: BoundaryList) -> None:
     """Analyze the passed match list for boundaries to be created.
 
@@ -567,6 +648,7 @@ def _analyze_matches(matches: list[tuple[str, Span]], boundaries: BoundaryList) 
 
     # Assignment of the found boundaries to the corresponding data type
     for match_label, match_string in matches:
+
         if match_label == "BOUNDARY_TYPE":
             if found_type:
                 other_id += 1
@@ -660,6 +742,7 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
             boundaries.add_boundary(match_label, type_text, match_string)
 
         elif type_length > 1:
+            print(desc_matches)
             found_type_rel_val = any(match[0] == "BOUNDARY_TYPE_REL_VAL" for match in type_matches)
 
             if found_type_rel_val:
