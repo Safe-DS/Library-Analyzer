@@ -195,7 +195,9 @@ def _extract_indented_single_value(
 
 
 def _nlp_matches_to_readable_matches(
-    nlp_matches: list[tuple[int, int, int]], nlp_: Language, doc_: Doc,
+    nlp_matches: list[tuple[int, int, int]],
+    nlp_: Language,
+    doc_: Doc,
 ) -> list[tuple[str, Span]]:
     """Transform the matches list into a readable list.
 
