@@ -67,6 +67,13 @@ BoundaryValueType = tuple[str, tuple[_Numeric | str, bool], tuple[_Numeric | str
             [("float", (0.0, True), (1.0, True))],
         ),
         (
+            "float between 0 and 1",
+            "Determines the minimum steepness on the reachability plot that constitutes a cluster boundary. For "
+            "example, an upwards point in the reachability plot is defined by the ratio from one point to its "
+            "successor being at most 1-xi. Used only when cluster_method='xi'.",
+            [("float", (0.0, True), (1.0, True))]
+        ),
+        (
             "float",
             "Momentum for gradient descent update. Should be non-positive. Only used when solver='sgd'.",
             [("float", ("NegativeInfinity", False), (0.0, True))],
@@ -203,8 +210,9 @@ BoundaryValueType = tuple[str, tuple[_Numeric | str, bool], tuple[_Numeric | str
                 " decision_function_shape is 'ovr' by default.\n\n.. versionadded: 0.17 decision_function_shape='ovr'"
                 " is recommended.\n\n.. versionchanged: 0.17 Deprecated decision_function_shape='ovo' and None."
             ),
-            [],
-        ),
+            []
+        )
+
     ],
 )
 def test_extract_boundaries(type_string: str, description: str, expected_boundary: list[BoundaryValueType]) -> None:
