@@ -6,45 +6,19 @@ from spacy import Language
 from spacy.matcher import Matcher
 from spacy.tokens import Doc, Span
 
-_enum_valid_values_are = [
-    {"LOWER": "valid"},
-    {"LOWER": "values"},
-    {"LOWER": "are"}
-]
+_enum_valid_values_are = [{"LOWER": "valid"}, {"LOWER": "values"}, {"LOWER": "are"}]
 
-_enum_when_set_to = [
-    {"LOWER": "when"},
-    {"LOWER": "set"},
-    {"LOWER": "to"}
-]
+_enum_when_set_to = [{"LOWER": "when"}, {"LOWER": "set"}, {"LOWER": "to"}]
 
-_enum_if_listing = [
-    {"LOWER": "if"},
-    {"ORTH": {"IN": [",", '"']}, "OP": "?"}
+_enum_if_listing = [{"LOWER": "if"}, {"ORTH": {"IN": [",", '"']}, "OP": "?"}]
 
-]
+_enum_type_curly = [{"ORTH": "{"}, {"OP": "+"}, {"ORTH": "}"}]
 
-_enum_type_curly = [
-    {"ORTH": "{"},
-    {"OP": "+"},
-    {"ORTH": "}"}
-]
+_enum_str = [{"LOWER": "str"}]
 
-_enum_str = [
-    {"LOWER": "str"}
-]
+_enum_single_val_bool_none = [{"ORTH": {"IN": ["True", "False", "None"]}}, {"ORTH": ":"}]
 
-_enum_single_val_bool_none = [
-    {"ORTH": {"IN": ["True", "False", "None"]}},
-    {"ORTH": ":"}
-]
-
-_enum_single_val_quoted = [
-    {"ORTH": {"IN": ["'", '"']}},
-    {"OP": "+"},
-    {"ORTH": {"IN": ["'", '"']}},
-    {"ORTH": ":"}
-]
+_enum_single_val_quoted = [{"ORTH": {"IN": ["'", '"']}}, {"OP": "+"}, {"ORTH": {"IN": ["'", '"']}}, {"ORTH": ":"}]
 
 
 @dataclass
@@ -74,8 +48,11 @@ class MatcherConfiguration:
         if self.type_curly:
             self._matcher.add("ENUM_TYPE_CURLY", [_enum_type_curly], on_match=_extract_list)
         if self.single_vals:
-            self._matcher.add("ENUM_SINGLE_VALS", [_enum_single_val_quoted, _enum_single_val_bool_none],
-                              on_match=_extract_indented_single_value)
+            self._matcher.add(
+                "ENUM_SINGLE_VALS",
+                [_enum_single_val_quoted, _enum_single_val_bool_none],
+                on_match=_extract_indented_single_value,
+            )
 
     def get_matcher(self) -> Matcher:
         return self._matcher
@@ -143,7 +120,8 @@ def _extract_list(
 
 def _extract_single_value(
     nlp_matcher: Matcher,  # noqa: ARG001
-    doc: Doc, i: int,
+    doc: Doc,
+    i: int,
     nlp_matches: list[tuple[Any, ...]],
 ) -> Any | None:
     """on-match function for the spaCy Matcher.
@@ -172,7 +150,7 @@ def _extract_single_value(
     elif next_token.text == "None":
         _extracted.append("None")
     elif next_token.text in ["'", '"']:
-        for token in doc[end+1:]:
+        for token in doc[end + 1 :]:
             if token.text in ["'", '"']:
                 break
             else:
@@ -205,7 +183,7 @@ def _extract_indented_single_value(
 
     """
     _, start, end = nlp_matches[i]
-    value = doc[start:end-1]
+    value = doc[start : end - 1]
     value = value.text
 
     if value[0] in ["'", '"']:
@@ -217,7 +195,9 @@ def _extract_indented_single_value(
 
 
 def _nlp_matches_to_readable_matches(
-    nlp_matches: list[tuple[int, int, int]], nlp_: Language, doc_: Doc
+    nlp_matches: list[tuple[int, int, int]],
+    nlp_: Language,
+    doc_: Doc,
 ) -> list[tuple[str, Span]]:
     """Transform the matches list into a readable list.
 
@@ -275,6 +255,3 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
 
 
 MATCHER_CONFIG = MatcherConfiguration()
-
-
-
