@@ -14,6 +14,11 @@ from library_analyzer.processing.api._extract_valid_values import extract_valid_
             ['"mean"', '"median"', '"most_frequent"', '"constant"'],
         ),
         (
+            "str or bool",
+            "Valid values are [False, None, 'allow-nan']",
+            ['"True"', '"False"', '"None"', '"allow-nan"']
+        ),
+        (
             "str",
             "If 'mean', then replace missing values using the mean along each column."
             "If 'median', then replace "
