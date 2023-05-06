@@ -15,8 +15,9 @@ from library_analyzer.processing.migration.model import (
 from ._read_and_write_file import (
     _read_annotations_file,
     _read_api_file,
-    _write_annotations_file,
+    _write_annotations_file, _write_api_file,
 )
+from ..processing.api.model import API
 
 
 def _run_migrate_command(
@@ -29,12 +30,12 @@ def _run_migrate_command(
     apiv2 = _read_api_file(apiv2_file_path)
     annotationsv1 = _read_annotations_file(annotations_file_path)
 
-    def get_anz(api):
-        return len(api.classes) + len(api.functions) + len(api.parameters())
-
-    print(apiv1_file_path.name + ": "+ str(get_anz(apiv1)))
-    print(apiv2_file_path.name + ": "+ str(get_anz(apiv2)))
-    return
+    # def get_anz(api):
+    #     return len(api.classes) + len(api.functions) + len(api.parameters())
+    #
+    # print(apiv1_file_path.name + ": "+ str(get_anz(apiv1)))
+    # print(apiv2_file_path.name + ": "+ str(get_anz(apiv2)))
+    # return
 
     threshold_of_similarity_for_creation_of_mappings = 0.61
     threshold_of_similarity_between_mappings = 0.23
