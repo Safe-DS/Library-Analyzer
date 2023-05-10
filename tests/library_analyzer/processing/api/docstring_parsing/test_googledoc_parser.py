@@ -2,6 +2,8 @@ import astroid
 import pytest
 from library_analyzer.processing.api.docstring_parsing import GoogleDocParser
 from library_analyzer.processing.api.model import (
+    AttributeAssignment,
+    AttributeDocstring,
     ClassDocstring,
     FunctionDocstring,
     ParameterAssignment,
@@ -131,7 +133,7 @@ class C:
 
     Dolor sit amet.
 
-    Attributes:
+    Args:
         p (int): foo. Defaults to 1.
     """
 
@@ -158,6 +160,24 @@ def f():
     pass
 '''
 
+# language=python
+function_with_attributes_and_parameters = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+def f():
+    """Lorem ipsum.
+
+    Dolor sit amet.
+
+    Attributes:
+        p (int): foo. Defaults to 2.
+
+    Args:
+        q (int): foo. Defaults to 2.
+
+    """
+
+    pass
+'''
 
 @pytest.mark.parametrize(
     ("python_code", "parameter_name", "parameter_assigned_by", "expected_parameter_documentation"),
@@ -238,6 +258,26 @@ def f():
             ParameterAssignment.POSITION_OR_NAME,
             ParameterDocstring(type="", default_value="", description=""),
         ),
+        (
+            function_with_attributes_and_parameters,
+            "q",
+            ParameterAssignment.POSITION_OR_NAME,
+            ParameterDocstring(
+                type="int",
+                default_value="2",
+                description="foo. Defaults to 2.",
+            ),
+        ),
+        (
+            function_with_attributes_and_parameters,
+            "p",
+            ParameterAssignment.POSITION_OR_NAME,
+            ParameterDocstring(
+                type="",
+                default_value="",
+                description="",
+            ),
+        )
     ],
     ids=[
         "existing class parameter",
@@ -248,6 +288,8 @@ def f():
         "function parameter with positional vararg",
         "function parameter with named vararg",
         "missing function parameter",
+        "function with attributes and parameters existing parameter",
+        "function with attributes and parameters missing parameter"
     ],
 )
 def test_get_parameter_documentation(
@@ -270,6 +312,177 @@ def test_get_parameter_documentation(
     assert (
         googlestyledoc_parser.get_parameter_documentation(node, parameter_name, parameter_assigned_by)
         == expected_parameter_documentation
+    )
+
+
+# language=python
+class_with_attributes = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+class C:
+    """Lorem ipsum.
+
+    Dolor sit amet.
+
+    Attributes:
+        p (int): foo. Defaults to 1.
+    """
+
+    def __init__(self):
+        pass
+'''
+
+# language=python
+function_with_attributes = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+def f():
+    """Lorem ipsum.
+
+    Dolor sit amet.
+
+    Attributes:
+        no_type_no_default: no type and no default.
+        type_no_default (int): type but no default.
+        with_default (int): foo. Defaults to 2.
+        *args (int): foo: *args
+        **kwargs (int): foo: **kwargs
+    """
+
+    pass
+'''
+
+@pytest.mark.parametrize(
+    ("python_code", "attribute_name", "attribute_assigned_by", "expected_attribute_documentation"),
+    [
+        (
+            class_with_attributes,
+            "p",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="int",
+                default_value="1",
+                description="foo. Defaults to 1.",
+            ),
+        ),
+        (
+            class_with_attributes,
+            "missing",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="",
+                default_value="",
+                description="",
+            ),
+        ),
+        (
+            function_with_attributes,
+            "no_type_no_default",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="",
+                default_value="",
+                description="no type and no default.",
+            ),
+        ),
+        (
+            function_with_attributes,
+            "type_no_default",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="int",
+                default_value="",
+                description="type but no default.",
+            ),
+        ),
+        (
+            function_with_attributes,
+            "with_default",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="int",
+                default_value="2",
+                description="foo. Defaults to 2.",
+            ),
+        ),
+        (
+            function_with_attributes,
+            "*args",
+            AttributeAssignment.POSITIONAL_VARARG,
+            AttributeDocstring(
+                type="int",
+                default_value="",
+                description="foo: *args",
+            ),
+        ),
+        (
+            function_with_attributes,
+            "**kwargs",
+            AttributeAssignment.NAMED_VARARG,
+            AttributeDocstring(
+                type="int",
+                default_value="",
+                description="foo: **kwargs",
+            ),
+        ),
+        (
+            function_with_attributes,
+            "missing",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(type="", default_value="", description=""),
+        ),
+        (
+            function_with_attributes_and_parameters,
+            "p",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="int",
+                default_value="2",
+                description="foo. Defaults to 2.",
+            ),
+        ),
+        (
+            function_with_attributes_and_parameters,
+            "q",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="",
+                default_value="",
+                description="",
+            ),
+        )
+    ],
+    ids=[
+        "existing class attribute",
+        "missing class attribute",
+        "function attribute with no type and no default",
+        "function attribute with type and no default",
+        "function attribute with default",
+        "function attribute with positional vararg",
+        "function attribute with named vararg",
+        "missing function attribute",
+        "function with attributes and parameters existing attribute",
+        "function with attributes and parameters missing attribute"
+    ],
+)
+def test_get_attribute_documentation(
+    googlestyledoc_parser: GoogleDocParser,
+    python_code: str,
+    attribute_name: str,
+    attribute_assigned_by: AttributeAssignment,
+    expected_attribute_documentation: AttributeDocstring,
+) -> None:
+    node = astroid.extract_node(python_code)
+    assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
+
+    # Find the constructor
+    if isinstance(node, astroid.ClassDef):
+        for method in node.mymethods():
+            if method.name == "__init__":
+                node = method
+
+    assert isinstance(node, astroid.FunctionDef)
+    assert (
+        googlestyledoc_parser.get_attribute_documentation(node, attribute_name, attribute_assigned_by)
+        == expected_attribute_documentation
     )
 
 

@@ -3,6 +3,8 @@ from docstring_parser import Docstring, DocstringParam, DocstringStyle
 from docstring_parser import parse as parse_docstring
 
 from library_analyzer.processing.api.model import (
+    AttributeAssignment,
+    AttributeDocstring,
     ClassDocstring,
     FunctionDocstring,
     ParameterAssignment,
@@ -59,7 +61,10 @@ class GoogleDocParser(AbstractDocstringParser):
         # Find matching parameter docstrings
         function_googledoc = self.__get_cached_function_googledoc_string(function_node, docstring)
         all_parameters_googledoc: list[DocstringParam] = function_googledoc.params
-        matching_parameters_googledoc = [it for it in all_parameters_googledoc if it.arg_name == parameter_name]
+        matching_parameters_googledoc = [
+            it for it in all_parameters_googledoc
+            if it.arg_name == parameter_name and it.args[0] == 'param'
+        ]
 
         if len(matching_parameters_googledoc) == 0:
             return ParameterDocstring(type="", default_value="", description="")
@@ -69,6 +74,36 @@ class GoogleDocParser(AbstractDocstringParser):
             type=last_parameter_docstring_obj.type_name or "",
             default_value=last_parameter_docstring_obj.default or "",
             description=last_parameter_docstring_obj.description,
+        )
+
+    def get_attribute_documentation(
+        self,
+        function_node: astroid.FunctionDef,
+        attribute_name: str,
+        attribute_assigned_by: AttributeAssignment,  # noqa: ARG002
+    ) -> AttributeDocstring:
+        # For constructors (__init__ functions) the attributes are described on the class
+        if function_node.name == "__init__" and isinstance(function_node.parent, astroid.ClassDef):
+            docstring = get_full_docstring(function_node.parent)
+        else:
+            docstring = get_full_docstring(function_node)
+
+        # Find matching attribute docstrings
+        function_googledoc = self.__get_cached_function_googledoc_string(function_node, docstring)
+        all_attributes_googledoc: list[DocstringParam] = function_googledoc.params
+        matching_attributes_googledoc = [
+            it for it in all_attributes_googledoc
+            if it.arg_name == attribute_name and it.args[0] == 'attribute'
+        ]
+
+        if len(matching_attributes_googledoc) == 0:
+            return AttributeDocstring(type="", default_value="", description="")
+
+        last_attribute_docstring_obj = matching_attributes_googledoc[-1]
+        return AttributeDocstring(
+            type=last_attribute_docstring_obj.type_name or "",
+            default_value=last_attribute_docstring_obj.default or "",
+            description=last_attribute_docstring_obj.description,
         )
 
     def get_result_documentation(self, function_node: astroid.FunctionDef) -> ResultDocstring:
