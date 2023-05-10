@@ -43,9 +43,6 @@ class EpydocParser(AbstractDocstringParser):
             full_docstring=docstring,
         )
 
-    # Todo: 1. Should we seperate params and attributes?
-    #   A Problem with 1. is that the params parser ignores @ivar but takes theire @type and adds it to params
-    #   2. Parse default value of attributes
     def get_parameter_documentation(
         self,
         function_node: astroid.FunctionDef,
@@ -63,41 +60,14 @@ class EpydocParser(AbstractDocstringParser):
         all_parameters_epydoc: list[DocstringParam] = function_epydoc.params
         matching_parameters_epydoc = [it for it in all_parameters_epydoc if it.arg_name == parameter_name]
 
-        # Find matching attribute docstrings
-        all_attributes_epydoc: list[DocstringMeta] = function_epydoc.meta
-        matching_attributes_epydoc = [
-            it for it in all_attributes_epydoc
-            if it.args[0] == "ivar" and it.args[1] == parameter_name
-        ]
-
-        if len(matching_parameters_epydoc) == 0 and len(matching_attributes_epydoc) == 0:
+        if len(matching_parameters_epydoc) == 0:
             return ParameterDocstring(type="", default_value="", description="")
 
-        # Only found parameters
-        if len(matching_parameters_epydoc) != 0 and len(matching_attributes_epydoc) == 0:
-            last_parameter_docstring_obj = matching_parameters_epydoc[-1]
-            return ParameterDocstring(
-                type=last_parameter_docstring_obj.type_name or "",
-                default_value=last_parameter_docstring_obj.default or "",
-                description=last_parameter_docstring_obj.description,
-            )
-
-        # Only found attributes
-        if len(matching_parameters_epydoc) == 0 and len(matching_attributes_epydoc) != 0:
-            last_attribute_docstring_obj = matching_attributes_epydoc[-1]
-            return ParameterDocstring(
-                type="",
-                default_value="", # todo default value of attr
-                description=last_attribute_docstring_obj.description,
-            )
-
-        # Found both, parameters and attributes
-        last_attribute_docstring_obj = matching_attributes_epydoc[-1]
         last_parameter_docstring_obj = matching_parameters_epydoc[-1]
         return ParameterDocstring(
             type=last_parameter_docstring_obj.type_name or "",
-            default_value=last_parameter_docstring_obj.default or "", # todo default value of attr
-            description=last_attribute_docstring_obj.description,
+            default_value=last_parameter_docstring_obj.default or "",
+            description=last_parameter_docstring_obj.description,
         )
 
     def get_result_documentation(self, function_node: astroid.FunctionDef) -> ResultDocstring:

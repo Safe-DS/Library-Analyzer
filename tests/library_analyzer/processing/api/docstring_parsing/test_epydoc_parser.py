@@ -140,38 +140,38 @@ class C:
         pass
 '''
 
-# language=python
-class_with_attributes = '''
-# noinspection PyUnresolvedReferences,PyIncorrectDocstring
-class C:
-    """
-    Lorem ipsum.
-
-    Dolor sit amet.
-
-    @ivar p: foo defaults to 1
-    @type p: int
-    """
-
-    def __init__(self):
-        pass
-'''
-
-# language=python
-class_with_attributes_no_type = '''
-# noinspection PyUnresolvedReferences,PyIncorrectDocstring
-class C:
-    """
-    Lorem ipsum.
-
-    Dolor sit amet.
-
-    @ivar p: foo defaults to 1
-    """
-
-    def __init__(self):
-        pass
-'''
+# # language=python
+# class_with_attributes = '''
+# # noinspection PyUnresolvedReferences,PyIncorrectDocstring
+# class C:
+#     """
+#     Lorem ipsum.
+#
+#     Dolor sit amet.
+#
+#     @ivar p: foo defaults to 1
+#     @type p: int
+#     """
+#
+#     def __init__(self):
+#         pass
+# '''
+#
+# # language=python
+# class_with_attributes_no_type = '''
+# # noinspection PyUnresolvedReferences,PyIncorrectDocstring
+# class C:
+#     """
+#     Lorem ipsum.
+#
+#     Dolor sit amet.
+#
+#     @ivar p: foo defaults to 1
+#     """
+#
+#     def __init__(self):
+#         pass
+# '''
 
 # language=python
 function_with_parameters = '''
@@ -218,26 +218,26 @@ def f():
                 description="",
             ),
         ),
-        (
-            class_with_attributes,
-            "p",
-            ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocstring(
-                type="int",
-                default_value="1",
-                description="foo defaults to 1",
-            ),
-        ),
-        (
-            class_with_attributes_no_type,
-            "p",
-            ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocstring(
-                type="",
-                default_value="1",
-                description="foo defaults to 1",
-            ),
-        ),
+        # (
+        #     class_with_attributes,
+        #     "p",
+        #     ParameterAssignment.POSITION_OR_NAME,
+        #     ParameterDocstring(
+        #         type="int",
+        #         default_value="1",
+        #         description="foo defaults to 1",
+        #     ),
+        # ),
+        # (
+        #     class_with_attributes_no_type,
+        #     "p",
+        #     ParameterAssignment.POSITION_OR_NAME,
+        #     ParameterDocstring(
+        #         type="",
+        #         default_value="1",
+        #         description="foo defaults to 1",
+        #     ),
+        # ),
         (
             function_with_parameters,
             "no_type_no_default",
@@ -278,8 +278,8 @@ def f():
     ids=[
         "existing class parameter",
         "missing class parameter",
-        "existing class attributes",
-        "existing class attributes no type",
+        # "existing class attributes",
+        # "existing class attributes no type",
         "function parameter with no type and no default",
         "function parameter with type and no default",
         "function parameter with default",

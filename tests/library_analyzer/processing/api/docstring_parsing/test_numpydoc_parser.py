@@ -3,6 +3,8 @@ import pytest
 
 from library_analyzer.processing.api.docstring_parsing import NumpyDocParser
 from library_analyzer.processing.api.model import (
+    AttributeAssignment,
+    AttributeDocstring,
     ClassDocstring,
     FunctionDocstring,
     ParameterAssignment,
@@ -177,28 +179,7 @@ def f():
 '''
 
 # language=python
-class_with_attributes = '''
-# noinspection PyUnresolvedReferences,PyIncorrectDocstring
-class C:
-    """
-    Lorem ipsum.
-
-    Dolor sit amet.
-
-    Attributes
-    ----------
-    p : int, default=1
-        foo
-    q
-        bar
-    """
-
-    def __init__(self):
-        pass
-'''
-
-# language=python
-class_and_function_with_attributes = '''
+class_and_function_with_parameters = '''
 # noinspection PyUnresolvedReferences,PyIncorrectDocstring
 class C:
     """
@@ -219,6 +200,30 @@ class C:
         z: str
             Lorem ipsum 4.
         """
+'''
+
+# language=python
+class_with_parameters_and_attributes = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+class C:
+    """
+    Lorem ipsum.
+
+    Dolor sit amet.
+
+    Parameters
+    ----------
+    p : int, default=1
+        foo
+
+    Attributes
+    ----------
+    q : int, default=1
+        foo
+    """
+
+    def __init__(self):
+        pass
 '''
 
 @pytest.mark.parametrize(
@@ -343,37 +348,7 @@ class C:
             ParameterDocstring(type="", default_value="", description=""),
         ),
         (
-            class_with_attributes,
-            "p",
-            ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocstring(
-                type="int",
-                default_value="1",
-                description="foo",
-            ),
-        ),
-        (
-            class_with_attributes,
-            "missing",
-            ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocstring(
-                type="",
-                default_value="",
-                description="",
-            ),
-        ),
-        (
-            class_with_attributes,
-            "q",
-            ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocstring(
-                type="",
-                default_value="",
-                description="bar",
-            ),
-        ),
-        (
-            class_and_function_with_attributes,
+            class_and_function_with_parameters,
             "x",
             ParameterAssignment.POSITION_OR_NAME,
             ParameterDocstring(
@@ -383,7 +358,7 @@ class C:
             ),
         ),
         (
-            class_and_function_with_attributes,
+            class_and_function_with_parameters,
             "y",
             ParameterAssignment.POSITION_OR_NAME,
             ParameterDocstring(
@@ -393,7 +368,7 @@ class C:
             ),
         ),
         (
-            class_and_function_with_attributes,
+            class_and_function_with_parameters,
             "z",
             ParameterAssignment.POSITION_OR_NAME,
             ParameterDocstring(
@@ -402,6 +377,26 @@ class C:
                 description="Lorem ipsum 3.",
             ),
         ),
+        (
+            class_with_parameters_and_attributes,
+            "p",
+            ParameterAssignment.POSITION_OR_NAME,
+            ParameterDocstring(
+                type="int",
+                default_value="1",
+                description="foo",
+            ),
+        ),
+        (
+            class_with_parameters_and_attributes,
+            "q",
+            ParameterAssignment.POSITION_OR_NAME,
+            ParameterDocstring(
+                type="",
+                default_value="",
+                description="",
+            ),
+        )
     ],
     ids=[
         "existing class parameter",
@@ -417,12 +412,11 @@ class C:
         "function parameter with positional vararg",
         "function parameter with named vararg",
         "missing function parameter",
-        "existing class attribute",
-        "missing class attribute",
-        "existing class attribute without type",
         "class and __init__ with params 1",
         "class and __init__ with params 2",
-        "class and __init__ with params 3"
+        "class and __init__ with params 3",
+        "class with parameter and attribute existing parameter",
+        "class with parameter and attribute missing parameter"
     ],
 )
 def test_get_parameter_documentation(
@@ -445,6 +439,178 @@ def test_get_parameter_documentation(
     assert (
         numpydoc_parser.get_parameter_documentation(node, parameter_name, parameter_assigned_by)
         == expected_parameter_documentation
+    )
+
+
+# language=python
+class_with_attributes = '''
+# noinspection PyUnresolvedReferences,PyIncorrectDocstring
+class C:
+    """
+    Lorem ipsum.
+
+    Dolor sit amet.
+
+    Attributes
+    ----------
+    no_type_no_default
+        foo: no_type_no_default. Code::
+
+            pass
+    type_no_default : int
+        foo: type_no_default
+    optional_unknown_default : int, optional
+        foo: optional_unknown_default
+    with_default_syntax_1 : int, default 1
+        foo: with_default_syntax_1
+    with_default_syntax_2 : int, default: 2
+        foo: with_default_syntax_2
+    with_default_syntax_3 : int, default=3
+        foo: with_default_syntax_3
+    grouped_attribute_1, grouped_attribute_2 : int, default=4
+        foo: grouped_attribute_1 and grouped_attribute_2
+    """
+
+    def __init__(self):
+        pass
+'''
+
+@pytest.mark.parametrize(
+    ("python_code", "attribute_name", "attribute_assigned_by", "expected_attribute_documentation"),
+    [
+        (
+            class_with_attributes,
+            "no_type_no_default",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="",
+                default_value="",
+                description="foo: no_type_no_default. Code::\n\n    pass",
+            ),
+        ),
+        (
+            class_with_attributes,
+            "type_no_default",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="int",
+                default_value="",
+                description="foo: type_no_default",
+            ),
+        ),
+        (
+            class_with_attributes,
+            "optional_unknown_default",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="int",
+                default_value="",
+                description="foo: optional_unknown_default",
+            ),
+        ),
+        (
+            class_with_attributes,
+            "with_default_syntax_1",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="int",
+                default_value="1",
+                description="foo: with_default_syntax_1",
+            ),
+        ),
+        (
+            class_with_attributes,
+            "with_default_syntax_2",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(type="int", default_value="2", description="foo: with_default_syntax_2"),
+        ),
+        (
+            class_with_attributes,
+            "with_default_syntax_3",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(type="int", default_value="3", description="foo: with_default_syntax_3"),
+        ),
+        (
+            class_with_attributes,
+            "grouped_attribute_1",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="int",
+                default_value="4",
+                description="foo: grouped_attribute_1 and grouped_attribute_2",
+            ),
+        ),
+        (
+            class_with_attributes,
+            "grouped_attribute_2",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="int",
+                default_value="4",
+                description="foo: grouped_attribute_1 and grouped_attribute_2",
+            ),
+        ),
+        (
+            class_with_attributes,
+            "missing",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(type="", default_value="", description=""),
+        ),
+        (
+            class_with_parameters_and_attributes,
+            "p",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="",
+                default_value="",
+                description="",
+            ),
+        ),
+        (
+            class_with_parameters_and_attributes,
+            "q",
+            AttributeAssignment.POSITION_OR_NAME,
+            AttributeDocstring(
+                type="int",
+                default_value="1",
+                description="foo",
+            ),
+        )
+    ],
+    ids=[
+        "class attribute with no type and no default",
+        "class attribute with type and no default",
+        "class attribute with optional unknown default",
+        "class attribute with default syntax 1 (just space)",
+        "class attribute with default syntax 2 (colon)",
+        "class attribute with default syntax 3 (equals)",
+        "class attribute with grouped attributes 1",
+        "class attribute with grouped attributes 2",
+        "missing function parameter",
+        "class with parameter and attribute missing attribute",
+        "class with parameter and attribute existing attribute"
+    ],
+)
+def test_get_attribute_documentation(
+    numpydoc_parser: NumpyDocParser,
+    python_code: str,
+    attribute_name: str,
+    attribute_assigned_by: AttributeAssignment,
+    expected_attribute_documentation: AttributeDocstring,
+) -> None:
+    node = astroid.extract_node(python_code)
+    assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)
+
+    # Find the constructor
+    if isinstance(node, astroid.ClassDef):
+        for method in node.mymethods():
+            if method.name == "__init__":
+                node = method
+
+    assert isinstance(node, astroid.FunctionDef)
+    assert (
+        numpydoc_parser.get_attribute_documentation(node, attribute_name, attribute_assigned_by)
+        == expected_attribute_documentation
     )
 
 

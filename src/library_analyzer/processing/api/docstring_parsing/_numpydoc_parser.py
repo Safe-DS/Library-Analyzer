@@ -5,6 +5,8 @@ from docstring_parser import Docstring, DocstringParam, DocstringStyle
 from docstring_parser import parse as parse_docstring
 
 from library_analyzer.processing.api.model import (
+    AttributeAssignment,
+    AttributeDocstring,
     ClassDocstring,
     FunctionDocstring,
     ParameterAssignment,
@@ -69,7 +71,8 @@ class NumpyDocParser(AbstractDocstringParser):
         matching_parameters_numpydoc = [
             it
             for it in all_parameters_numpydoc
-            if _is_matching_parameter_numpydoc(it, parameter_name, parameter_assigned_by)
+            if it.args[0] == "param"
+            and _is_matching_parameter_numpydoc(it, parameter_name, parameter_assigned_by)
         ]
 
         if len(matching_parameters_numpydoc) == 0:
@@ -96,6 +99,54 @@ class NumpyDocParser(AbstractDocstringParser):
             type=type_,
             default_value=default_value,
             description=last_parameter_numpydoc.description,
+        )
+
+    def get_attribute_documentation(
+        self,
+        function_node: astroid.FunctionDef,
+        attribute_name: str,
+        attribute_assigned_by: AttributeAssignment,
+    ) -> AttributeDocstring:
+        # For constructors (__init__ functions) the attributes are described on the class
+        if function_node.name == "__init__" and isinstance(function_node.parent, astroid.ClassDef):
+            docstring = get_full_docstring(function_node.parent)
+        else:
+            docstring = get_full_docstring(function_node)
+
+        # Find matching attribute docstrings
+        function_numpydoc = self.__get_cached_function_numpydoc_string(function_node, docstring)
+        all_attributes_numpydoc: list[DocstringParam] = function_numpydoc.params
+        matching_attributes_numpydoc = [
+            it
+            for it in all_attributes_numpydoc
+            if it.args[0] == "attribute"
+               and _is_matching_parameter_numpydoc(it, attribute_name, attribute_assigned_by)
+        ]
+
+        if len(matching_attributes_numpydoc) == 0:
+            # If we have a constructor we have to check both, the class and then the constructor (see issue #10)
+            if function_node.name == "__init__":
+                docstring_constructor = get_full_docstring(function_node)
+                # Find matching attribute docstrings
+                function_numpydoc = parse_docstring(docstring_constructor, style=DocstringStyle.NUMPYDOC)
+                all_attributes_numpydoc: list[DocstringParam] = function_numpydoc.params
+
+                # Overwrite previous matching_attributes_numpydoc list
+                matching_attributes_numpydoc = [
+                    it
+                    for it in all_attributes_numpydoc
+                    if _is_matching_parameter_numpydoc(it, attribute_name, attribute_assigned_by)
+                ]
+
+        if len(matching_attributes_numpydoc) == 0:
+            return AttributeDocstring(type="", default_value="", description="")
+
+        last_attribute_numpydoc = matching_attributes_numpydoc[-1]
+        type_, default_value = _get_type_and_default_value(last_attribute_numpydoc)
+        return AttributeDocstring(
+            type=type_,
+            default_value=default_value,
+            description=last_attribute_numpydoc.description,
         )
 
     def get_result_documentation(self, function_node: astroid.FunctionDef):
@@ -141,7 +192,7 @@ class NumpyDocParser(AbstractDocstringParser):
 def _is_matching_parameter_numpydoc(
     parameter_docstring_obj: DocstringParam,
     parameter_name: str,
-    parameter_assigned_by: ParameterAssignment,
+    parameter_assigned_by: ParameterAssignment|AttributeAssignment,
 ) -> bool:
     """Return whether the given docstring object applies to the parameter with the given name."""
     if parameter_assigned_by == ParameterAssignment.POSITIONAL_VARARG:
