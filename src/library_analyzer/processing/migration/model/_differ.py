@@ -157,8 +157,8 @@ class SimpleDiffer(AbstractDiffer):
         distance_between_implicit_and_explicit = 0.3
         distance_between_vararg_and_normal = 0.3
         distance_between_position_and_named = 0.3
-        distance_between_both_to_one = 0.15
-        distance_between_one_to_both = 0.15
+        distance_between_both_to_one = distance_between_position_and_named / 2
+        distance_between_one_to_both = distance_between_position_and_named / 2
         self.assigned_by_look_up_similarity = {
             ParameterAssignment.IMPLICIT: {
                 ParameterAssignment.IMPLICIT: 1.0,

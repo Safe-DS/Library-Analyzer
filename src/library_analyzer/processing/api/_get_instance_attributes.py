@@ -28,7 +28,7 @@ def get_instance_attributes(class_node: astroid.ClassDef) -> list[Attribute]:
                 assignment.parent, astroid.AnnAssign
             ):
                 annotation = assignment.parent.annotation
-                if annotation is not None and isinstance(annotation, (Attribute, Name, Subscript)):
+                if annotation is not None and isinstance(annotation, (astroid.Attribute, Name, Subscript)):
                     types_, remove_types_ = get_type_from_type_hint(annotation)
                     types = types.union(types_)
                     remove_types = remove_types.union(remove_types_)
@@ -74,7 +74,7 @@ def get_instance_attributes(class_node: astroid.ClassDef) -> list[Attribute]:
     return attributes
 
 
-def get_type_from_type_hint(type_hint: Attribute | Name | Subscript) -> tuple[set, set]:
+def get_type_from_type_hint(type_hint: astroid.Attribute | Name | Subscript) -> tuple[set, set]:
     types = set()
     remove_types = set()
     if isinstance(type_hint, Name):
