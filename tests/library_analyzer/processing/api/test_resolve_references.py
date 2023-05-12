@@ -171,7 +171,7 @@ from library_analyzer.processing.api import (
                     var1 = math.pi
                     return var1
             """,
-            ["ImportName.math", "AssignName.var1", "MemberAccess.math.pi", "Name.var1"]
+            ["Import.math", "AssignName.var1", "MemberAccess.math.pi", "Name.var1"]
         ),
         (
             """
@@ -181,7 +181,7 @@ from library_analyzer.processing.api import (
                     var1 = pi
                     return var1
             """,
-            ["ImportName.math.pi", "AssignName.var1", "Name.test", "Name.var1"]
+            ["ImportFrom.math.pi", "AssignName.var1", "Name.test", "Name.var1"]
         ),
         (
             """
@@ -191,7 +191,7 @@ from library_analyzer.processing.api import (
                     var1 = test
                     return var1
             """,
-            ["ImportName.math.pi.test", "AssignName.var1", "Name.test", "Name.var1"]
+            ["ImportFrom.math.pi.test", "AssignName.var1", "Name.test", "Name.var1"]
         ),
         (
             """
@@ -319,6 +319,7 @@ def transform_member_access(member_access: MemberAccess):
 
     return '.'.join(reversed(attribute_names))
 
+
 @pytest.mark.parametrize(
     ("node", "expected"),
     [
@@ -429,8 +430,8 @@ def test_construct_reference_list(node: list[astroid.Name | astroid.AssignName],
 def assert_reference_list_equal(result: list[NodeReference], expected: list[NodeReference]) -> None:
     """ The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
     The real results name and scope are objects and not strings"""
-    result = [NodeReference(name.name.name, name.node_id, name.scope.scope.__class__.__name__, name.potential_references, name.list_is_complete) for name in result]
-    expected = [NodeReference(name.name.name, name.node_id, name.scope.scope.__class__.__name__, name.potential_references, name.list_is_complete) for name in expected]
+    result = [NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.potential_references, name.list_is_complete) for name in result]
+    expected = [NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.potential_references, name.list_is_complete) for name in expected]
     assert result == expected
 
 
@@ -791,10 +792,10 @@ def test_find_references_local(code, expected):
 
 
 @dataclass
-class SimpleScope(Scopes):
-    module_scope: list[str]
-    class_scope: list[str]
-    function_scope: list[str]
+class SimpleScope:
+    node_name: str
+    children: list[str] | None
+    parent_scope: str
 
 
 @pytest.mark.parametrize(
@@ -806,12 +807,11 @@ class SimpleScope(Scopes):
                     res = 23
                     return res
             """,
-            SimpleScope(
-                ['FunctionDef.function_scope'],
-                [],
-                ['AssignName.res']
-            )
-
+            [SimpleScope(
+                'FunctionDef.function_scope',
+                ['AssignName.res'],
+                'Module'
+            )]
         ),
         (
             """
@@ -820,12 +820,15 @@ class SimpleScope(Scopes):
                     res = var1
                     return res
             """,
+            [SimpleScope(
+                'AssignName.var1',
+                None,
+                'Module'),
             SimpleScope(
-                ['AssignName.var1', 'FunctionDef.function_scope'],
-                [],
-                ['AssignName.res']
-            )
-
+                'FunctionDef.function_scope',
+                ['AssignName.var1', 'AssignName.res'],
+                'Module'
+            )]
         ),
         (
             """
@@ -835,11 +838,15 @@ class SimpleScope(Scopes):
                     res = var1
                     return res
             """,
+            [SimpleScope(
+                'AssignName.var1',
+                None,
+                'Module'),
             SimpleScope(
-                ['AssignName.var1', 'FunctionDef.function_scope'],
-                [],
-                ['AssignName.res']
-            )
+                'FunctionDef.function_scope',
+                ['AssignName.res'],
+                'Module'
+            )]
 
         ),
         (
@@ -851,11 +858,16 @@ class SimpleScope(Scopes):
                         var1 = A.class_attr1
                         return var1
             """,
-            SimpleScope(
-                ['ClassDef.A'],
+            [SimpleScope(
+                'ClassDef.A',
                 ['AssignName.class_attr1', 'FunctionDef.local_class_attr'],
-                ['AssignName.var1']
-            )
+                'Module'
+            ),
+            SimpleScope(
+                'FunctionDef.local_class_attr',
+                ['AssignName.var1'],
+                'ClassDef.A'
+            )]
 
         ),
         (
@@ -868,11 +880,22 @@ class SimpleScope(Scopes):
                         var1 = self.instance_attr1
                         return var1
             """,
-            SimpleScope(
-                ['ClassDef.B'],
+            [SimpleScope(
+                'ClassDef.B',
                 ['FunctionDef.__init__', 'FunctionDef.local_instance_attr'],
-                ['MemberAccess.self.instance_attr1', 'AssignName.var1']
+                'Module'
             ),
+            SimpleScope(
+                'FunctionDef.__init__',
+                ['MemberAccess.self.instance_attr1'],
+                'ClassDef.B'
+            ),
+            SimpleScope(
+                'FunctionDef.local_instance_attr',
+                ['AssignName.var1'],
+                'ClassDef.B'
+            )]
+
         ),
         (
             """
@@ -884,11 +907,78 @@ class SimpleScope(Scopes):
                     var1 = B().instance_attr1
                     return var1
             """,
-            SimpleScope(
-                ['ClassDef.B', 'FunctionDef.local_instance_attr'],
+            [SimpleScope(
+                'ClassDef.B',
                 ['FunctionDef.__init__'],
-                ['MemberAccess.self.instance_attr1', 'AssignName.var1']
-            )
+                'Module'
+            ),
+            SimpleScope(
+                'FunctionDef.__init__',
+                ['MemberAccess.self.instance_attr1'],
+                'ClassDef.B'
+            ),
+            SimpleScope(
+                'FunctionDef.local_instance_attr',
+                ['AssignName.var1'],
+                'Module'
+            )]
+        ),
+        (
+            """
+                class A:
+                    var1 = 10
+
+                    class B:
+                        var2 = 20
+            """,
+            [SimpleScope(
+                'ClassDef.A',
+                ['AssignName.var1', 'ClassDef.B'],
+                'Module'
+            ),
+            SimpleScope(
+                'ClassDef.B',
+                ['AssignName.var2'],
+                'ClassDef.A'
+            )]
+        ),
+        (
+            """
+                def function_scope():
+                    var1 = 10
+
+                    class B:
+                        var2 = 20
+            """,
+            [SimpleScope(
+                'FunctionDef.function_scope',
+                ['AssignName.var1', 'ClassDef.B'],
+                'Module'
+            ),
+            SimpleScope(
+                'ClassDef.B',
+                ['AssignName.var2'],
+                'FunctionDef.function_scope'
+            )]
+        ),
+        (
+            """
+                def function_scope():
+                    var1 = 10
+
+                    def local_function_scope():
+                        var2 = 20
+            """,
+            [SimpleScope(
+                'FunctionDef.function_scope',
+                ['AssignName.var1', 'FunctionDef.local_function_scope'],
+                'Module'
+            ),
+            SimpleScope(
+                'FunctionDef.local_function_scope',
+                ['AssignName.var2'],
+                'FunctionDef.function_scope'
+            )]
         ),
         (
             """
@@ -897,11 +987,18 @@ class SimpleScope(Scopes):
                 class A:
                     value = math.pi
             """,
-            SimpleScope(
-                ['Import.math', 'ClassDef.A'],
-                ['AssignName.value'],
-                []
-            )
+            [
+                SimpleScope(
+                    'Import.math',
+                    None,
+                    'Module'
+                ),
+                SimpleScope(
+                    'ClassDef.A',
+                    ['AssignName.value'],
+                    'Module'
+                )
+            ]
         ),
         (
             """
@@ -910,11 +1007,18 @@ class SimpleScope(Scopes):
                 class B:
                     value = pi
             """,
-            SimpleScope(
-                ['ImportFrom.math.pi', 'ClassDef.B'],
-                ['AssignName.value'],
-                []
-            )
+            [
+                SimpleScope(
+                    'ImportFrom.math.pi',
+                    None,
+                    'Module'
+                ),
+                SimpleScope(
+                    'ClassDef.B',
+                    ['AssignName.value'],
+                    'Module'
+                )
+            ]
         ),
         (
             """
@@ -976,10 +1080,36 @@ class SimpleScope(Scopes):
 
             """, [
                 SimpleScope(
-                    ['ImportFrom.collections.abc.Callable', 'ImportFrom.typing.Any', 'Import.astroid', 'AssignName._EnterAndLeaveFunctions', 'ClassDef.ASTWalker'],
+                    'ImportFrom.collections.abc.Callable',
+                    None,
+                    'Module'
+                ),
+                SimpleScope(
+                    'ImportFrom.typing.Any',
+                    None,
+                    'Module'
+                ),
+                SimpleScope(
+                    'Import.astroid',
+                    None,
+                    'Module'
+                ),
+                SimpleScope(
+                    'AssignName._EnterAndLeaveFunctions',
+                    None,
+                    'Module'
+                ),
+                SimpleScope(
+                    'ClassDef.ASTWalker',
                     ['AssignName.additional_locals', 'FunctionDef.__init__', 'FunctionDef.walk', 'FunctionDef.__walk', 'FunctionDef.__enter', 'FunctionDef.__leave', 'FunctionDef.__get_callbacks'],
-                    ['MemberAccess.self._handler', 'MemberAccess.self._cache', 'Call.self.__walk', ]
-                )
+                    'Module'
+                ),
+                SimpleScope(
+                    'FunctionDef.__init__',
+                    ['AssignName.self.handler', 'AssignName.self._cache'],
+                    'ClassDef.ASTWalker'
+                ),
+                ...
             ]  # TODO: complete the expected data
         )
     ],
@@ -990,6 +1120,9 @@ class SimpleScope(Scopes):
         "Class Scope with class attribute and Class function",
         "Class Scope with instance attribute and Class function",
         "Class Scope with instance attribute and Modul function",
+        "Class Scope within Class Scope",
+        "Class Scope within Function Scope",
+        "Function Scope within Function Scope",
         "Import and ClassDef",
         "ImportFrom and ClassDef",
         "ASTWalker",
@@ -998,21 +1131,22 @@ class SimpleScope(Scopes):
 def test_get_scope(code, expected) -> None:
     result = get_scope(code)
     print(result)
+    assert result == expected
     assert_test_get_scope(result, expected)
 
 
 def assert_test_get_scope(result, expected) -> None:
     """ The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
     The real results name and scope are objects and not strings"""
-    result_transformed = SimpleScope([], [], [])
+    result_transformed = SimpleScope("", [], "")
     for scope in result.module_scope:
         result_transformed.module_scope.append(to_string(scope.node))
     for scope in result.class_scope:
         result_transformed.class_scope.append(to_string(scope.node))
     for scope in result.function_scope:
         result_transformed.function_scope.append(to_string(scope.node))
-    assert result_transformed == expected
-    # assert result == expected
+    # assert result_transformed == expected
+    assert result == expected
 
 
 def to_string(node) -> str:
