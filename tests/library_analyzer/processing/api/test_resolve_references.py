@@ -805,11 +805,12 @@ class SimpleScope:
             """
                 def function_scope():
                     res = 23
+                    test = 10
                     return res
             """,
             [SimpleScope(
                 'FunctionDef.function_scope',
-                ['AssignName.res'],
+                ['AssignName.res', 'AssignName.test'],
                 'Module'
             )]
         ),
@@ -1130,7 +1131,10 @@ class SimpleScope:
 )
 def test_get_scope(code, expected) -> None:
     result = get_scope(code)
-    print(result)
+    #print(result)
+    # for ns in result:
+    #     for child in ns.children if ns.children is not None else []:
+    #         print(child)
     assert result == expected
     assert_test_get_scope(result, expected)
 

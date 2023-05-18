@@ -32,7 +32,7 @@ class NodeID:
 @dataclass
 class NodeScope:
     node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.AssignName | astroid.Name | astroid.Call | astroid.Import | astroid.ImportFrom | MemberAccess
-    children: NodeScope | None = None
+    children: list[NodeScope] | None = None
     parent_scope: astroid.NodeNG | None = None
     # parent_scope: str | None = None  # TODO: add support for NodeScope, so that there is more info about the parent: NodeScope | None = field(default=None)
 
@@ -77,9 +77,9 @@ class ScopeFinder:
         #self.scopes.append(scope_node)
 
     def leave_module(self, node: astroid.Module) -> None:
-        scope_node = NodeScope(node=node, children=self.children[-1], parent_scope=None)
-        self.children.append(scope_node)
         self.current_parent.pop()
+        scope_node = NodeScope(node=node, children=self.children, parent_scope=None)
+        self.children.append(scope_node)
 
     def enter_classdef(self, node: astroid.ClassDef) -> None:
         #scope = self.scopes[-1]
@@ -90,9 +90,9 @@ class ScopeFinder:
 
 
     def leave_classdef(self, node: astroid.ClassDef) -> None:
-        scope_node = NodeScope(node=node, children=self.children[-1], parent_scope=self.current_parent[-1])
-        self.children.append(scope_node)
         self.current_parent.pop()
+        scope_node = NodeScope(node=node, children=self.children, parent_scope=self.current_parent[-1])
+        self.children.append(scope_node)
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
         ##scope = self.scopes[-1]
@@ -103,9 +103,13 @@ class ScopeFinder:
 
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
-        scope_node = NodeScope(node=node, children=self.children[-1], parent_scope=self.current_parent[-1])
-        self.children.append(scope_node)
         self.current_parent.pop()
+        scope_node = NodeScope(node=node, children=self.children, parent_scope=self.current_parent[-1])
+        for child in self.children:
+            print(child)
+            if child.parent_scope.__class__.__name__ == "FunctionDef":
+                self.children.pop(self.children.index(child))
+        self.children.append(scope_node)
 
     # def enter_lambda(self, node: astroid.Lambda) -> None:
     #     self.scopes.function_scope.append(NodeReference(name=node.name, node_id=node.name, scope=NodeScope(scope=node)))
