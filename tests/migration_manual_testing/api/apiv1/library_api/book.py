@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional
 
 from .persons import LibraryUser
 from .position import Bookshelf, Room
@@ -8,7 +7,7 @@ from .position import Bookshelf, Room
 
 
 class Book:
-    """A Class for Books
+    """A Class for Books.
 
     Parameters
     ----------
@@ -29,8 +28,8 @@ class Book:
 
     def __init__(
         self,
-        borrow_until: Optional[date],
-        borrow_by: Optional[LibraryUser],
+        borrow_until: date | None,
+        borrow_by: LibraryUser | None,
         genre: str,
         isbn: str,
         author: str,
@@ -39,15 +38,13 @@ class Book:
         room: Room,
         number_of_times_this_book_was_borrowed: int = 0,
     ) -> None:
-        self.borrow_until: Optional[date] = borrow_until
+        self.borrow_until: date | None = borrow_until
         self.borrow_by = borrow_by
         self.genre = genre
         self.isbn = isbn
         self.author = author
         self.release_date = release_date
-        self.number_of_times_this_book_was_borrowed = (
-            number_of_times_this_book_was_borrowed
-        )
+        self.number_of_times_this_book_was_borrowed = number_of_times_this_book_was_borrowed
         fee_for_each_genre: dict[str, float] = {
             "fiction": 1.0,
             "nonfiction": 2.0,

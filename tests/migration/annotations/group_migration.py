@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
     EnumReviewResult,
@@ -8,12 +6,12 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import (
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 from library_analyzer.processing.migration.annotations import (
     get_migration_text,
@@ -28,9 +26,8 @@ from library_analyzer.processing.migration.model import (
 )
 
 
-# pylint: disable=duplicate-code
 def migrate_group_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         list[Mapping],
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -43,7 +40,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "1", "int in the range of (0, 10)"),
     )
     parameterv1_b = Parameter(
         id_="test/test.group.test1.test/TestClass/test/parameter_b",
@@ -52,7 +49,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         default_value="'test'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test'", "str"),
+        docstring=ParameterDocstring("str", "'test'", "str"),
     )
     parameterv1_c = Parameter(
         id_="test/test.group.test1.test/TestClass/test/parameter_c",
@@ -61,7 +58,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         default_value="'test_c'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test_c'", "str"),
+        docstring=ParameterDocstring("str", "'test_c'", "str"),
     )
     functionv1 = Function(
         id="test/test.group.test1.test/TestClass/test",
@@ -71,7 +68,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -82,7 +79,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "1", "int in the range of (0, 10)"),
     )
     parameterv2_b = Parameter(
         id_="test/test.group.test1.test/NewTestClass/test/new_parameter_b",
@@ -91,7 +88,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         default_value="'test'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test'", "str"),
+        docstring=ParameterDocstring("str", "'test'", "str"),
     )
     parameterv2_c = Parameter(
         id_="test/test.group.test1.test/NewTestClass/test/new_parameter_c",
@@ -100,7 +97,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         default_value="'test_c'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test_c'", "str"),
+        docstring=ParameterDocstring("str", "'test_c'", "str"),
     )
     functionv2 = Function(
         id="test/test.group.test1.test/NewTestClass/test",
@@ -110,7 +107,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -121,7 +118,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "1", "int in the range of (0, 10)"),
     )
     parameterv2_2_c = Parameter(
         id_="test/test.group.test2.test/NewTestClass/test/new_parameter_c",
@@ -130,7 +127,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         default_value="test",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "test_c", "str"),
+        docstring=ParameterDocstring("str", "test_c", "str"),
     )
     functionv2_2 = Function(
         id="test/test.group.test2.test/NewTestClass/test",
@@ -140,7 +137,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -151,7 +148,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         default_value="'test'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test'", "str"),
+        docstring=ParameterDocstring("str", "'test'", "str"),
     )
     parameterv2_3_c = Parameter(
         id_="test/test.group.test3.test/NewTestClass/test/new_parameter_c",
@@ -160,7 +157,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         default_value="test",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "test_c", "str"),
+        docstring=ParameterDocstring("str", "test_c", "str"),
     )
     functionv2_3 = Function(
         id="test/test.group.test3.test/NewTestClass/test",
@@ -170,7 +167,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     parameterv2_4_b = Parameter(
@@ -180,7 +177,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         default_value="'test'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test'", "str"),
+        docstring=ParameterDocstring("str", "'test'", "str"),
     )
     functionv2_4 = Function(
         id="test/test.group.test4.test/NewTestClass/test",
@@ -190,7 +187,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_5 = Function(
@@ -201,7 +198,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     classv2_6 = Class(
@@ -211,7 +208,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        docstring=ClassDocstring(),
         code="class NewClass:\n    pass",
         instance_attributes=[],
     )
@@ -221,15 +218,9 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         functionv1,
         [functionv2, functionv2_2, functionv2_3, functionv2_4, functionv2_5, classv2_6],
     )
-    mapping_parameter_a = OneToManyMapping(
-        1.0, parameterv1_a, [parameterv2_a, parameterv2_2_a]
-    )
-    mapping_parameter_b = OneToManyMapping(
-        1.0, parameterv1_b, [parameterv2_b, parameterv2_3_b, parameterv2_4_b]
-    )
-    mapping_parameter_c = OneToManyMapping(
-        1.0, parameterv1_c, [parameterv2_c, parameterv2_2_c, parameterv2_3_c]
-    )
+    mapping_parameter_a = OneToManyMapping(1.0, parameterv1_a, [parameterv2_a, parameterv2_2_a])
+    mapping_parameter_b = OneToManyMapping(1.0, parameterv1_b, [parameterv2_b, parameterv2_3_b, parameterv2_4_b])
+    mapping_parameter_c = OneToManyMapping(1.0, parameterv1_c, [parameterv2_c, parameterv2_2_c, parameterv2_3_c])
     annotation = GroupAnnotation(
         target="test/test.group.test1.test/TestClass/test",
         authors=["testauthor"],
@@ -293,9 +284,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         reviewers=[],
         comment="",
         reviewResult=EnumReviewResult.NONE,
-        newTodo=get_migration_text(
-            annotation, mapping_function, for_todo_annotation=True
-        ),
+        newTodo=get_migration_text(annotation, mapping_function, for_todo_annotation=True),
     )
     migrated_annotation_6 = TodoAnnotation(
         target="test/test.group.test6.test/NewClass",
@@ -303,9 +292,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
         reviewers=[],
         comment="",
         reviewResult=EnumReviewResult.NONE,
-        newTodo=get_migration_text(
-            annotation, mapping_function, for_todo_annotation=True
-        ),
+        newTodo=get_migration_text(annotation, mapping_function, for_todo_annotation=True),
     )
     return (
         [
@@ -327,7 +314,7 @@ def migrate_group_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_group_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         list[Mapping],
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -341,7 +328,7 @@ def migrate_group_annotation_data_one_to_one_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     parameterv1_a = Parameter(
@@ -351,7 +338,7 @@ def migrate_group_annotation_data_one_to_one_mapping() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "1", "int in the range of (0, 10)"),
     )
     parameterv1_b = Parameter(
         id_="test/test.group.test6.test/TestClass/test/parameter_b",
@@ -360,7 +347,7 @@ def migrate_group_annotation_data_one_to_one_mapping() -> (
         default_value="'test'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test'", "str"),
+        docstring=ParameterDocstring("str", "'test'", "str"),
     )
 
     functionv2 = Function(
@@ -371,7 +358,7 @@ def migrate_group_annotation_data_one_to_one_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     parameterv2_a = Parameter(
@@ -381,7 +368,7 @@ def migrate_group_annotation_data_one_to_one_mapping() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "1", "int in the range of (0, 10)"),
     )
     parameterv2_b = Parameter(
         id_="test/test.group.test6.test/NewTestClass/test/new_parameter_b",
@@ -390,7 +377,7 @@ def migrate_group_annotation_data_one_to_one_mapping() -> (
         default_value="'test'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test'", "str"),
+        docstring=ParameterDocstring("str", "'test'", "str"),
     )
 
     mapping_function = OneToOneMapping(1.0, functionv1, functionv2)
@@ -422,7 +409,7 @@ def migrate_group_annotation_data_one_to_one_mapping() -> (
 
 
 def migrate_group_annotation_data_one_to_one_mapping__one_mapping_for_parameters() -> (
-    Tuple[
+    tuple[
         list[Mapping],
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -436,7 +423,7 @@ def migrate_group_annotation_data_one_to_one_mapping__one_mapping_for_parameters
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     parameterv1_a = Parameter(
@@ -446,7 +433,7 @@ def migrate_group_annotation_data_one_to_one_mapping__one_mapping_for_parameters
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "1", "int in the range of (0, 10)"),
     )
     parameterv1_b = Parameter(
         id_="test/test.group.test7.test/TestClass/test/parameter_b",
@@ -455,7 +442,7 @@ def migrate_group_annotation_data_one_to_one_mapping__one_mapping_for_parameters
         default_value="'test'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test'", "str"),
+        docstring=ParameterDocstring("str", "'test'", "str"),
     )
 
     functionv2 = Function(
@@ -466,7 +453,7 @@ def migrate_group_annotation_data_one_to_one_mapping__one_mapping_for_parameters
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     parameterv2_a = Parameter(
@@ -476,7 +463,7 @@ def migrate_group_annotation_data_one_to_one_mapping__one_mapping_for_parameters
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "1", "int in the range of (0, 10)"),
     )
     parameterv2_b = Parameter(
         id_="test/test.group.test7.test/NewTestClass/test/new_parameter_b",
@@ -485,13 +472,11 @@ def migrate_group_annotation_data_one_to_one_mapping__one_mapping_for_parameters
         default_value="'test'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test'", "str"),
+        docstring=ParameterDocstring("str", "'test'", "str"),
     )
 
     mapping_function = OneToOneMapping(1.0, functionv1, functionv2)
-    mapping_parameters = ManyToManyMapping(
-        1.0, [parameterv1_a, parameterv1_b], [parameterv2_a, parameterv2_b]
-    )
+    mapping_parameters = ManyToManyMapping(1.0, [parameterv1_a, parameterv1_b], [parameterv2_a, parameterv2_b])
     annotation = GroupAnnotation(
         target="test/test.group.test7.test/TestClass/test",
         authors=["testauthor"],
@@ -518,7 +503,7 @@ def migrate_group_annotation_data_one_to_one_mapping__one_mapping_for_parameters
 
 
 def migrate_group_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         list[Mapping],
         list[AbstractAnnotation],
         list[AbstractAnnotation],
@@ -531,7 +516,7 @@ def migrate_group_annotation_data_duplicated() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "1", "int in the range of (0, 10)"),
     )
     parameterv1_b = Parameter(
         id_="test/test.group.duplicate.test/TestClass/test/parameter_b",
@@ -540,7 +525,7 @@ def migrate_group_annotation_data_duplicated() -> (
         default_value="'test'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test'", "str"),
+        docstring=ParameterDocstring("str", "'test'", "str"),
     )
     parameterv1_c = Parameter(
         id_="test/test.group.duplicate.test/TestClass/test/parameter_c",
@@ -549,7 +534,7 @@ def migrate_group_annotation_data_duplicated() -> (
         default_value="'test_c'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test_c'", "str"),
+        docstring=ParameterDocstring("str", "'test_c'", "str"),
     )
     parameterv1_a_2 = Parameter(
         id_="test/test.group.duplicate.test/TestClass/test_2/parameter_a_2",
@@ -558,7 +543,7 @@ def migrate_group_annotation_data_duplicated() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "1", "int in the range of (0, 10)"),
     )
     parameterv1_b_2 = Parameter(
         id_="test/test.group.duplicate.test/TestClass/test_2/parameter_b_2",
@@ -567,7 +552,7 @@ def migrate_group_annotation_data_duplicated() -> (
         default_value="'test'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test'", "str"),
+        docstring=ParameterDocstring("str", "'test'", "str"),
     )
     parameterv1_c_2 = Parameter(
         id_="test/test.group.duplicate.test/TestClass/test_2/parameter_c_2",
@@ -576,7 +561,7 @@ def migrate_group_annotation_data_duplicated() -> (
         default_value="'test_c'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test_c'", "str"),
+        docstring=ParameterDocstring("str", "'test_c'", "str"),
     )
     functionv1 = Function(
         id="test/test.group.duplicate.test/TestClass/test",
@@ -586,7 +571,7 @@ def migrate_group_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv1_2 = Function(
@@ -597,7 +582,7 @@ def migrate_group_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -608,7 +593,7 @@ def migrate_group_annotation_data_duplicated() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "1", "int in the range of (0, 10)"),
     )
     parameterv2_b = Parameter(
         id_="test/test.group.duplicate.test/NewTestClass/test/new_parameter_b",
@@ -617,7 +602,7 @@ def migrate_group_annotation_data_duplicated() -> (
         default_value="'test'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test'", "str"),
+        docstring=ParameterDocstring("str", "'test'", "str"),
     )
     parameterv2_c = Parameter(
         id_="test/test.group.duplicate.test/NewTestClass/test/new_parameter_c",
@@ -626,7 +611,7 @@ def migrate_group_annotation_data_duplicated() -> (
         default_value="'test_c'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test_c'", "str"),
+        docstring=ParameterDocstring("str", "'test_c'", "str"),
     )
     functionv2 = Function(
         id="test/test.group.duplicate.test/NewTestClass/test",
@@ -636,7 +621,7 @@ def migrate_group_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -645,15 +630,9 @@ def migrate_group_annotation_data_duplicated() -> (
         [functionv1, functionv1_2],
         functionv2,
     )
-    mapping_parameter_a = ManyToOneMapping(
-        1.0, [parameterv1_a, parameterv1_a_2], parameterv2_a
-    )
-    mapping_parameter_b = ManyToOneMapping(
-        1.0, [parameterv1_b, parameterv1_b_2], parameterv2_b
-    )
-    mapping_parameter_c = ManyToOneMapping(
-        1.0, [parameterv1_c, parameterv1_c_2], parameterv2_c
-    )
+    mapping_parameter_a = ManyToOneMapping(1.0, [parameterv1_a, parameterv1_a_2], parameterv2_a)
+    mapping_parameter_b = ManyToOneMapping(1.0, [parameterv1_b, parameterv1_b_2], parameterv2_b)
+    mapping_parameter_c = ManyToOneMapping(1.0, [parameterv1_c, parameterv1_c_2], parameterv2_c)
     annotation = GroupAnnotation(
         target="test/test.group.duplicate.test/TestClass/test",
         authors=["testauthor"],

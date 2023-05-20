@@ -25,7 +25,7 @@ def migrate_called_after_annotation(
         authors.append(migration_author)
         called_after_annotation.authors = authors
         if not isinstance(element, Function):
-            if not isinstance(element, (Attribute, Result)):
+            if not isinstance(element, Attribute | Result):
                 migrated_annotations.append(
                     TodoAnnotation(
                         element.id,
@@ -33,16 +33,12 @@ def migrate_called_after_annotation(
                         called_after_annotation.reviewers,
                         called_after_annotation.comment,
                         EnumReviewResult.NONE,
-                        get_migration_text(
-                            called_after_annotation, mapping, for_todo_annotation=True
-                        ),
-                    )
+                        get_migration_text(called_after_annotation, mapping, for_todo_annotation=True),
+                    ),
                 )
             continue
 
-        called_before_functions = _get_function_called_before_replacements(
-            called_after_annotation, mappings, element
-        )
+        called_before_functions = _get_function_called_before_replacements(called_after_annotation, mappings, element)
         if (
             len(called_before_functions) == 1 and called_before_functions[0] != element
         ):
@@ -81,9 +77,7 @@ def _get_function_called_before_replacements(
     functionv2: Function,
 ) -> list[Function]:
     called_before_idv1 = (
-        "/".join(called_after_annotation.target.split("/")[:-1])
-        + "/"
-        + called_after_annotation.calledAfterName
+        "/".join(called_after_annotation.target.split("/")[:-1]) + "/" + called_after_annotation.calledAfterName
     )
     called_before_idv2_prefix = "/".join(functionv2.id.split("/")[:-1]) + "/"
     functions_in_same_class: list[Function] = []
@@ -96,9 +90,7 @@ def _get_function_called_before_replacements(
 
         if found_mapped_function_in_same_class:
             for replacement in mapping.get_apiv2_elements():
-                if isinstance(replacement, Function) and replacement.id.startswith(
-                    called_before_idv2_prefix
-                ):
+                if isinstance(replacement, Function) and replacement.id.startswith(called_before_idv2_prefix):
                     functions_in_same_class.append(replacement)
             break
     return functions_in_same_class

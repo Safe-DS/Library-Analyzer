@@ -3,13 +3,9 @@
 [![PyPI](https://img.shields.io/pypi/v/library-analyzer)](https://pypi.org/project/library-analyzer)
 [![Main](https://github.com/Safe-DS/Library-Analyzer/actions/workflows/main.yml/badge.svg)](https://github.com/Safe-DS/Library-Analyzer/actions/workflows/main.yml)
 [![codecov](https://codecov.io/gh/Safe-DS/Library-Analyzer/branch/main/graph/badge.svg?token=UyCUY59HKM)](https://codecov.io/gh/Safe-DS/Library-Analyzer)
-[![Documentation Status](https://readthedocs.org/projects/library-analyzer/badge/?version=stable)](https://library-analyzer.safe-ds.com)
+[![Documentation Status](https://readthedocs.org/projects/library-analyzer/badge/?version=stable)](https://library-analyzer.safeds.com)
 
 Analysis of Python libraries and code that uses them.
-
-## Documentation
-
-You can find the full documentation [here](https://library-analyzer.safe-ds.com).
 
 ## Installation
 
@@ -18,6 +14,10 @@ Get the latest version from [PyPI](https://pypi.org/project/library-analyzer):
 ```shell
 pip install library-analyzer
 ```
+
+## Documentation
+
+You can find the full documentation [here](https://library-analyzer.safeds.com).
 
 ## Example usage
 

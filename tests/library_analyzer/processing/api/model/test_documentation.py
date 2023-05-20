@@ -1,54 +1,45 @@
 import pytest
 from library_analyzer.processing.api.model import (
-    ClassDocumentation,
-    FunctionDocumentation,
-    ParameterDocumentation,
+    ClassDocstring,
+    FunctionDocstring,
+    ParameterDocstring,
 )
 
 
 @pytest.mark.parametrize(
     "class_documentation",
     [
-        ClassDocumentation(),
-        ClassDocumentation(description="foo", full_docstring="foo bar"),
+        ClassDocstring(),
+        ClassDocstring(description="foo"),
     ],
 )
 def test_dict_conversion_for_class_documentation(
-    class_documentation: ClassDocumentation,
+    class_documentation: ClassDocstring,
 ) -> None:
-    assert (
-        ClassDocumentation.from_dict(class_documentation.to_dict())
-        == class_documentation
-    )
+    assert ClassDocstring.from_dict(class_documentation.to_dict()) == class_documentation
 
 
 @pytest.mark.parametrize(
     "function_documentation",
     [
-        FunctionDocumentation(),
-        FunctionDocumentation(description="foo", full_docstring="foo bar"),
+        FunctionDocstring(),
+        FunctionDocstring(description="foo"),
     ],
 )
 def test_dict_conversion_for_function_documentation(
-    function_documentation: FunctionDocumentation,
+    function_documentation: FunctionDocstring,
 ) -> None:
-    assert (
-        FunctionDocumentation.from_dict(function_documentation.to_dict())
-        == function_documentation
-    )
+    assert FunctionDocstring.from_dict(function_documentation.to_dict()) == function_documentation
 
 
 @pytest.mark.parametrize(
     "parameter_documentation",
     [
-        ParameterDocumentation(),
-        ParameterDocumentation(type="int", default_value="1", description="foo bar"),
+        ParameterDocstring(),
+        ParameterDocstring(type="int", default_value="1", description="foo bar"),
     ],
 )
 def test_dict_conversion_for_parameter_documentation(
-    parameter_documentation: ParameterDocumentation,
+    parameter_documentation: ParameterDocstring,
 ) -> None:
-    assert (
-        ParameterDocumentation.from_dict(parameter_documentation.to_dict())
-        == parameter_documentation
-    )
+    assert ParameterDocstring.from_dict(parameter_documentation.to_dict()) == parameter_documentation

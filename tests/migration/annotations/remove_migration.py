@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
     EnumReviewResult,
@@ -8,9 +6,9 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import (
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
 )
 from library_analyzer.processing.migration.annotations import (
     get_migration_text,
@@ -24,9 +22,8 @@ from library_analyzer.processing.migration.model import (
 )
 
 
-# pylint: disable=duplicate-code
 def migrate_remove_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -40,7 +37,7 @@ def migrate_remove_annotation_data_one_to_one_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -52,7 +49,7 @@ def migrate_remove_annotation_data_one_to_one_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -75,9 +72,8 @@ def migrate_remove_annotation_data_one_to_one_mapping() -> (
     return mapping, annotationv1, [annotationv2]
 
 
-# pylint: disable=duplicate-code
 def migrate_remove_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -90,7 +86,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        docstring=ClassDocstring(),
         code="class RemoveTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -101,7 +97,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        docstring=ClassDocstring(),
         code="class NewRemoveTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -112,7 +108,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        docstring=ClassDocstring(),
         code="class NewRemoveTestClass2:\n    pass",
         instance_attributes=[],
     )
@@ -124,7 +120,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -163,7 +159,7 @@ def migrate_remove_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_remove_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],
@@ -177,7 +173,7 @@ def migrate_remove_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv1_2 = Function(
@@ -188,7 +184,7 @@ def migrate_remove_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -200,7 +196,7 @@ def migrate_remove_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 

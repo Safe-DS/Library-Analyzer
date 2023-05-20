@@ -2,7 +2,7 @@
 
 
 class Bookshelf:
-    """A Bookshelf holds multiple books and is used to point to where a book should be placed
+    """A Bookshelf holds multiple books and is used to point to where a book should be placed.
 
     Parameters
     ----------
@@ -19,7 +19,7 @@ class Bookshelf:
 
 
 class Room:
-    """A Room holds multiple bookshelves and is used to point to where a book should be placed
+    """A Room holds multiple bookshelves and is used to point to where a book should be placed.
 
     Parameters
     ----------

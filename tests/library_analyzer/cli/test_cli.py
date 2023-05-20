@@ -1,7 +1,7 @@
-import os
 import subprocess
+from pathlib import Path
 
-_project_root = os.path.join(os.path.dirname(__file__), "..", "..", "..")
+_project_root = Path(__file__).parent / ".." / ".." / ".."
 
 
 def test_cli_api() -> None:
@@ -55,27 +55,6 @@ def test_cli_annotations() -> None:
             "tests/data/removeAnnotations/usage_data.json",
             "-o",
             "out/annotations.json",
-        ],
-        check=True,
-        cwd=_project_root,
-    )
-
-
-def test_cli_all() -> None:
-    subprocess.run(
-        [
-            "poetry",
-            "run",
-            "analyze-library",
-            "all",
-            "-p",
-            "library_analyzer",
-            "-s",
-            "src",
-            "-c",
-            "library_analyzer",
-            "-o",
-            "out",
         ],
         check=True,
         cwd=_project_root,

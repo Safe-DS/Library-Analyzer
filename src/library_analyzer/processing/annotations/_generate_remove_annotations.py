@@ -9,14 +9,18 @@ from library_analyzer.processing.usages.model import UsageCountStore
 from ._constants import autogen_author
 
 
-def _generate_remove_annotations(
-    api: API, usages: UsageCountStore, annotations: AnnotationStore
-) -> None:
+def _generate_remove_annotations(api: API, usages: UsageCountStore, annotations: AnnotationStore) -> None:
     """
     Collect all functions and classes that are never used.
-    :param usages: UsageStore object
-    :param api: API object for usages
-    :param annotations: AnnotationStore object
+
+    Parameters
+    ----------
+    api: API
+        Description of the API
+    usages: UsageCountStore
+        UsageStore object
+    annotations: AnnotationStore
+        AnnotationStore, that holds all annotations.
     """
     for class_ in api.classes.values():
         n_class_usages = usages.n_class_usages(class_.id)
@@ -28,7 +32,7 @@ def _generate_remove_annotations(
                     reviewers=[],
                     comment=_create_explanation("class", n_class_usages),
                     reviewResult=EnumReviewResult.NONE,
-                )
+                ),
             )
 
     for function in api.functions.values():
@@ -41,7 +45,7 @@ def _generate_remove_annotations(
                     reviewers=[],
                     comment=_create_explanation("function", n_function_usages),
                     reviewResult=EnumReviewResult.NONE,
-                )
+                ),
             )
 
 

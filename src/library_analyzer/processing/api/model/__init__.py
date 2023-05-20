@@ -1,3 +1,5 @@
+"""Model classes to store API information."""
+
 from ._api import (
     API,
     API_SCHEMA_VERSION,
@@ -7,15 +9,36 @@ from ._api import (
     Function,
     Import,
     Module,
+    Parameter,
+    ParameterAssignment,
     Result,
+)
+from ._docstring import (
+    ClassDocstring,
+    FunctionDocstring,
+    ParameterDocstring,
     ResultDocstring,
 )
-from ._documentation import (
-    ClassDocumentation,
-    FunctionDocumentation,
-    ParameterDocumentation,
+from ._purity import (
+    AttributeAccess,
+    BuiltInFunction,
+    Call,
+    ConcreteImpurityIndicator,
+    Expression,
+    FileRead,
+    FileWrite,
+    GlobalAccess,
+    ImpurityCertainty,
+    ImpurityIndicator,
+    InstanceAccess,
+    ParameterAccess,
+    Reference,
+    StringLiteral,
+    SystemInteraction,
+    UnknownCallTarget,
+    VariableRead,
+    VariableWrite,
 )
-from ._parameters import Parameter, ParameterAssignment
 from ._types import (
     AbstractType,
     BoundaryType,
@@ -24,3 +47,45 @@ from ._types import (
     UnionType,
     create_type,
 )
+
+__all__ = [
+    "API",
+    "API_SCHEMA_VERSION",
+    "AbstractType",
+    "Attribute",
+    "AttributeAccess",
+    "BoundaryType",
+    "BuiltInFunction",
+    "Call",
+    "Class",
+    "ClassDocstring",
+    "ConcreteImpurityIndicator",
+    "EnumType",
+    "Expression",
+    "FileRead",
+    "FileWrite",
+    "FromImport",
+    "Function",
+    "FunctionDocstring",
+    "GlobalAccess",
+    "Import",
+    "ImpurityCertainty",
+    "ImpurityIndicator",
+    "InstanceAccess",
+    "Module",
+    "NamedType",
+    "Parameter",
+    "ParameterAccess",
+    "ParameterAssignment",
+    "ParameterDocstring",
+    "Reference",
+    "Result",
+    "ResultDocstring",
+    "StringLiteral",
+    "SystemInteraction",
+    "UnknownCallTarget",
+    "UnionType",
+    "VariableRead",
+    "VariableWrite",
+    "create_type",
+]

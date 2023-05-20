@@ -1,4 +1,3 @@
-# pylint: disable=duplicate-code
 import datetime
 
 # apiv2: introduce superclass person with first_name, last_name and address, and get_name(), and participate()
@@ -6,7 +5,7 @@ import datetime
 
 
 class Person:
-    """A Class for Persons
+    """A Class for Persons.
 
     Parameters
     ----------
@@ -25,7 +24,7 @@ class Person:
         self.address = address
 
     def get_name(self) -> str:
-        """get full name of the person
+        """Get full name of the person.
 
         Returns
         -------
@@ -38,7 +37,7 @@ class Person:
 
 
 class LibraryMember(Person):
-    """A Member of the Library extends a Person
+    """A Member of the Library extends a Person.
 
     Parameters
     ----------
@@ -69,7 +68,7 @@ class LibraryMember(Person):
         self.member_until = member_until
 
     def give_back(self, late_fee: float) -> None:
-        """Gives book back and add late_fee is it is too late
+        """Give book back and add late_fee is it is too late.
 
         Parameters
         ----------
@@ -79,12 +78,12 @@ class LibraryMember(Person):
         self.pending_fees = self.pending_fees + late_fee
 
     def extend_membership(self) -> None:
-        """Extend membership by one year"""
+        """Extend membership by one year."""
         self.member_until = self.member_until.replace(year=self.member_until.year + 1)
         # apiv2: change to self.member_until.replace(year=self.member_until.year+1)
 
     def pay(self, money: float) -> float:
-        """pay the library
+        """Pay the library.
 
         Parameters
         ----------
@@ -98,7 +97,7 @@ class LibraryMember(Person):
 
 
 class Employee(Person):
-    """An Employee of the Library extends a Person
+    """An Employee of the Library extends a Person.
 
     Parameters
     ----------
@@ -110,8 +109,6 @@ class Employee(Person):
 
     wage: float
 
-    def __init__(
-        self, first_name: str, last_name: str, address: str, wage: float
-    ) -> None:
+    def __init__(self, first_name: str, last_name: str, address: str, wage: float) -> None:
         super().__init__(first_name, last_name, address)
         self.wage = wage

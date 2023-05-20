@@ -1,7 +1,7 @@
 import json
-import os
+from collections.abc import Sequence
 from copy import deepcopy
-from typing import Sequence, Union
+from pathlib import Path
 
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
@@ -13,19 +13,21 @@ from library_analyzer.processing.annotations.model import (
 from library_analyzer.processing.api.model import (
     API,
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
 )
-from library_analyzer.processing.migration import APIMapping, Migration
+from library_analyzer.processing.migration import Migration
 from library_analyzer.processing.migration.annotations._migrate_move_annotation import (
     _was_moved,
 )
 from library_analyzer.processing.migration.model import (
+    APIMapping,
     ManyToOneMapping,
     Mapping,
     SimpleDiffer,
 )
+
 from tests.migration.annotations.boundary_migration import (
     migrate_boundary_annotation_data_duplicated,
     migrate_boundary_annotation_data_one_to_many_mapping,
@@ -104,8 +106,8 @@ from tests.migration.annotations.value_migration import (
 
 test_data: Sequence[
     tuple[
-        Union[Mapping, list[Mapping]],
-        Union[list[AbstractAnnotation], AbstractAnnotation],
+        Mapping | list[Mapping],
+        list[AbstractAnnotation] | AbstractAnnotation,
         list[AbstractAnnotation],
     ],
 ] = [
@@ -197,10 +199,10 @@ def test_migrate_all_annotations() -> None:
     migration = Migration(annotation_store, mappings)
     migration.migrate_annotations()
 
-    unsure_migrated_annotations = migration.unsure_migrated_annotation_store.to_json()
+    unsure_migrated_annotations = migration.unsure_migrated_annotation_store.to_dict()
     assert len(unsure_migrated_annotations["todoAnnotations"]) == 3
     migration.migrated_annotation_store.todoAnnotations.extend(
-        migration.unsure_migrated_annotation_store.todoAnnotations
+        migration.unsure_migrated_annotation_store.todoAnnotations,
     )
     unsure_migrated_annotations["todoAnnotations"] = []
 
@@ -208,131 +210,127 @@ def test_migrate_all_annotations() -> None:
         if isinstance(value, dict):
             assert len(value) == 0
 
-    _assert_annotation_stores_are_equal(
-        migration.migrated_annotation_store, expected_annotation_store
-    )
+    _assert_annotation_stores_are_equal(migration.migrated_annotation_store, expected_annotation_store)
 
 
 def test_migrate_command_and_both_annotation_stores() -> None:
-    data_path = os.path.join(os.path.dirname(__file__), "..", "data")
+    data_path = Path(__file__).parent / ".." / "data"
 
-    apiv1_json_path = os.path.join(data_path, "migration", "apiv1_data.json")
-    apiv2_json_path = os.path.join(data_path, "migration", "apiv2_data.json")
-    annotationsv1_json_path = os.path.join(data_path, "migration", "annotationv1.json")
-    annotationsv2_json_path = os.path.join(data_path, "migration", "annotationv2.json")
-    unsure_annotationsv2_json_path = os.path.join(
-        data_path, "migration", "unsure_annotationv2.json"
-    )
-    with open(apiv1_json_path, "r", encoding="utf-8") as apiv1_file, open(
-        apiv2_json_path, "r", encoding="utf-8"
-    ) as apiv2_file, open(
-        annotationsv1_json_path, "r", encoding="utf-8"
-    ) as annotationsv1_file, open(
-        annotationsv2_json_path, "r", encoding="utf-8"
-    ) as annotationsv2_file, open(
-        unsure_annotationsv2_json_path, "r", encoding="utf-8"
+    apiv1_json_path = data_path / "migration" / "apiv1_data.json"
+    apiv2_json_path = data_path / "migration" / "apiv2_data.json"
+    annotationsv1_json_path = data_path / "migration" / "annotationv1.json"
+    annotationsv2_json_path = data_path / "migration" / "annotationv2.json"
+    unsure_annotationsv2_json_path = data_path / "migration" / "unsure_annotationv2.json"
+    with apiv1_json_path.open(encoding="utf-8") as apiv1_file, apiv2_json_path.open(
+        encoding="utf-8",
+    ) as apiv2_file, annotationsv1_json_path.open(encoding="utf-8") as annotationsv1_file, annotationsv2_json_path.open(
+        encoding="utf-8",
+    ) as annotationsv2_file, unsure_annotationsv2_json_path.open(
+        encoding="utf-8",
     ) as unsure_annotationsv2_file:
         apiv1_json = json.load(apiv1_file)
-        apiv1 = API.from_json(apiv1_json)
+        apiv1 = API.from_dict(apiv1_json)
         apiv2_json = json.load(apiv2_file)
-        apiv2 = API.from_json(apiv2_json)
+        apiv2 = API.from_dict(apiv2_json)
         annotationsv1_json = json.load(annotationsv1_file)
-        annotationsv1 = AnnotationStore.from_json(annotationsv1_json)
+        annotationsv1 = AnnotationStore.from_dict(annotationsv1_json)
         expected_annotationsv2_json = json.load(annotationsv2_file)
-        annotationsv2 = AnnotationStore.from_json(expected_annotationsv2_json)
+        annotationsv2 = AnnotationStore.from_dict(expected_annotationsv2_json)
         expected_unsure_annotationsv2_json = json.load(unsure_annotationsv2_file)
-        unsure_annotationsv2 = AnnotationStore.from_json(
-            expected_unsure_annotationsv2_json
-        )
+        unsure_annotationsv2 = AnnotationStore.from_dict(expected_unsure_annotationsv2_json)
 
         differ = SimpleDiffer(None, [], apiv1, apiv2)
-        api_mapping = APIMapping(
-            apiv1, apiv2, differ, threshold_of_similarity_between_mappings=0.3
-        )
+        api_mapping = APIMapping(apiv1, apiv2, differ, threshold_of_similarity_between_mappings=0.3)
         mappings = api_mapping.map_api()
-        migration = Migration(
-            annotationsv1, mappings, reliable_similarity=0.9, unsure_similarity=0.75
-        )
+        migration = Migration(annotationsv1, mappings, reliable_similarity=0.9, unsure_similarity=0.75)
         migration.migrate_annotations()
 
-        _assert_annotation_stores_are_equal(
-            migration.migrated_annotation_store, annotationsv2
-        )
-        _assert_annotation_stores_are_equal(
-            migration.unsure_migrated_annotation_store, unsure_annotationsv2
-        )
+        _assert_annotation_stores_are_equal(migration.migrated_annotation_store, annotationsv2)
+        _assert_annotation_stores_are_equal(migration.unsure_migrated_annotation_store, unsure_annotationsv2)
 
 
 def _assert_annotation_stores_are_equal(
-    actual_annotations: AnnotationStore, expected_annotation_store: AnnotationStore
+    actual_annotations: AnnotationStore,
+    expected_annotation_store: AnnotationStore,
 ) -> None:
     def get_key(annotation: AbstractAnnotation) -> str:
         return annotation.target
 
     assert sorted(actual_annotations.boundaryAnnotations, key=get_key) == sorted(
-        expected_annotation_store.boundaryAnnotations, key=get_key
+        expected_annotation_store.boundaryAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.calledAfterAnnotations, key=get_key) == sorted(
-        expected_annotation_store.calledAfterAnnotations, key=get_key
+        expected_annotation_store.calledAfterAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.completeAnnotations, key=get_key) == sorted(
-        expected_annotation_store.completeAnnotations, key=get_key
+        expected_annotation_store.completeAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.descriptionAnnotations, key=get_key) == sorted(
-        expected_annotation_store.descriptionAnnotations, key=get_key
+        expected_annotation_store.descriptionAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.enumAnnotations, key=get_key) == sorted(
-        expected_annotation_store.enumAnnotations, key=get_key
+        expected_annotation_store.enumAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.groupAnnotations, key=get_key) == sorted(
-        expected_annotation_store.groupAnnotations, key=get_key
+        expected_annotation_store.groupAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.moveAnnotations, key=get_key) == sorted(
-        expected_annotation_store.moveAnnotations, key=get_key
+        expected_annotation_store.moveAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.pureAnnotations, key=get_key) == sorted(
-        expected_annotation_store.pureAnnotations, key=get_key
+        expected_annotation_store.pureAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.removeAnnotations, key=get_key) == sorted(
-        expected_annotation_store.removeAnnotations, key=get_key
+        expected_annotation_store.removeAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.renameAnnotations, key=get_key) == sorted(
-        expected_annotation_store.renameAnnotations, key=get_key
+        expected_annotation_store.renameAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.todoAnnotations, key=get_key) == sorted(
-        expected_annotation_store.todoAnnotations, key=get_key
+        expected_annotation_store.todoAnnotations,
+        key=get_key,
     )
     assert sorted(actual_annotations.valueAnnotations, key=get_key) == sorted(
-        expected_annotation_store.valueAnnotations, key=get_key
+        expected_annotation_store.valueAnnotations,
+        key=get_key,
     )
 
 
 def test_handle_duplicates() -> None:
     classv1_a = Class(
-        "test/test.duplicate/TestClass",
-        "Test",
-        [],
-        [],
-        True,
-        [],
-        ClassDocumentation("", ""),
-        "",
-        [],
+        id="test/test.duplicate/TestClass",
+        qname="Test",
+        decorators=[],
+        superclasses=[],
+        is_public=True,
+        reexported_by=[],
+        docstring=ClassDocstring(),
+        code="",
+        instance_attributes=[],
     )
     classv1_b = deepcopy(classv1_a)
     classv1_b.id = "test/test.duplicate/TestClass2"
     classv2 = deepcopy(classv1_a)
-    base_annotation = TodoAnnotation(
-        classv1_a.id, [""], [""], "", EnumReviewResult.NONE, "todo"
-    )
-    duplicate_in_apiv2 = TodoAnnotation(
-        classv1_b.id, [""], [""], "", EnumReviewResult.NONE, "todo"
-    )
-    same_target_and_type_in_apiv2 = TodoAnnotation(
-        classv1_b.id, [""], [""], "", EnumReviewResult.NONE, "lightbringer"
-    )
+    base_annotation = TodoAnnotation(classv1_a.id, [""], [""], "", EnumReviewResult.NONE, "todo")
+    duplicate_in_apiv2 = TodoAnnotation(classv1_b.id, [""], [""], "", EnumReviewResult.NONE, "todo")
+    same_target_and_type_in_apiv2 = TodoAnnotation(classv1_b.id, [""], [""], "", EnumReviewResult.NONE, "lightbringer")
     same_target_and_type_in_both_api_versions = TodoAnnotation(
-        classv1_a.id, [""], [""], "", EnumReviewResult.NONE, "darkage"
+        classv1_a.id,
+        [""],
+        [""],
+        "",
+        EnumReviewResult.NONE,
+        "darkage",
     )
     annotation_store = AnnotationStore()
     annotation_store.todoAnnotations = [
@@ -341,13 +339,11 @@ def test_handle_duplicates() -> None:
         same_target_and_type_in_apiv2,
         same_target_and_type_in_both_api_versions,
     ]
-    migration = Migration(
-        annotation_store, [ManyToOneMapping(1.0, [classv1_a, classv1_b], classv2)]
-    )
+    migration = Migration(annotation_store, [ManyToOneMapping(1.0, [classv1_a, classv1_b], classv2)])
     migration.migrate_annotations()
     store = AnnotationStore()
     store.add_annotation(
-        TodoAnnotation.from_json(
+        TodoAnnotation.from_dict(
             {
                 "authors": ["", "migration"],
                 "comment": "Conflicting attribute found during migration: {'newTodo': 'lightbringer'}, {'newTodo': 'todo'}",
@@ -355,28 +351,28 @@ def test_handle_duplicates() -> None:
                 "reviewResult": "unsure",
                 "reviewers": [""],
                 "target": "test/test.duplicate/TestClass",
-            }
-        )
+            },
+        ),
     )
-    migrated_annotation_store = migration.migrated_annotation_store.to_json()
-    todoAnnotations = migrated_annotation_store.pop("todoAnnotations")
+    migrated_annotation_store = migration.migrated_annotation_store.to_dict()
+    todo_annotations = migrated_annotation_store.pop("todoAnnotations")
     migrated_annotation_store["todoAnnotations"] = {}
     assert (
-        migrated_annotation_store
-        == migration.unsure_migrated_annotation_store.to_json()
-        == AnnotationStore().to_json()
+        migrated_annotation_store == migration.unsure_migrated_annotation_store.to_dict() == AnnotationStore().to_dict()
     )
-    assert len(todoAnnotations) == 1
+    assert len(todo_annotations) == 1
     todo_values = ["darkage", "lightbringer", "todo"]
-    assert todoAnnotations[classv2.id]["newTodo"] in todo_values
-    todo_values.remove(todoAnnotations[classv2.id].pop("newTodo"))
-    assert todoAnnotations[classv2.id] == {
+    assert todo_annotations[classv2.id]["newTodo"] in todo_values
+    todo_values.remove(todo_annotations[classv2.id].pop("newTodo"))
+    assert todo_annotations[classv2.id] == {
         "authors": ["", "migration"],
-        "comment": "Conflicting attribute found during migration: {'newTodo': '"
-        + todo_values[0]
-        + "'}, {'newTodo': '"
-        + todo_values[1]
-        + "'}",
+        "comment": (
+            "Conflicting attribute found during migration: {'newTodo': '"
+            + todo_values[0]
+            + "'}, {'newTodo': '"
+            + todo_values[1]
+            + "'}"
+        ),
         "reviewResult": "unsure",
         "reviewers": [""],
         "target": "test/test.duplicate/TestClass",
@@ -401,7 +397,7 @@ def test_was_moved() -> None:
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     assert _was_moved(function, function, move_annotation) is False
@@ -416,7 +412,7 @@ def test_was_moved() -> None:
                 results=[],
                 is_public=True,
                 reexported_by=[],
-                documentation=FunctionDocumentation("", ""),
+                docstring=FunctionDocstring(),
                 code="",
             ),
             move_annotation,
@@ -434,7 +430,7 @@ def test_was_moved() -> None:
                 results=[],
                 is_public=True,
                 reexported_by=[],
-                documentation=FunctionDocumentation("", ""),
+                docstring=FunctionDocstring(),
                 code="",
             ),
             move_annotation,

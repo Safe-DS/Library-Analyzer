@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
     ConstantAnnotation,
@@ -15,7 +13,7 @@ from library_analyzer.processing.api.model import (
     NamedType,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 from library_analyzer.processing.migration.annotations import (
     get_migration_text,
@@ -30,7 +28,7 @@ from library_analyzer.processing.migration.model import (
 
 
 def migrate_constant_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -43,7 +41,7 @@ def migrate_constant_annotation_data_one_to_one_mapping() -> (
         default_value="'this is a string'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "this is a string", ""),
+        docstring=ParameterDocstring("str", "this is a string", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.value.test1.testB",
@@ -52,7 +50,7 @@ def migrate_constant_annotation_data_one_to_one_mapping() -> (
         default_value="'test string'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test string'", ""),
+        docstring=ParameterDocstring("str", "'test string'", ""),
     )
     mapping = OneToOneMapping(1.0, parameterv1, parameterv2)
     annotation = ConstantAnnotation(
@@ -77,7 +75,7 @@ def migrate_constant_annotation_data_one_to_one_mapping() -> (
 
 
 def migrate_omitted_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -90,7 +88,7 @@ def migrate_omitted_annotation_data_one_to_one_mapping() -> (
         default_value="True",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("bool", "True", ""),
+        docstring=ParameterDocstring("bool", "True", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.value.test2.testB",
@@ -99,7 +97,7 @@ def migrate_omitted_annotation_data_one_to_one_mapping() -> (
         default_value="True",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("bool", "True", ""),
+        docstring=ParameterDocstring("bool", "True", ""),
     )
     annotation = OmittedAnnotation(
         target="test/test.value.test2.testA",
@@ -119,7 +117,7 @@ def migrate_omitted_annotation_data_one_to_one_mapping() -> (
 
 
 def migrate_optional_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -132,7 +130,7 @@ def migrate_optional_annotation_data_one_to_one_mapping() -> (
         default_value="True",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("bool", "True", ""),
+        docstring=ParameterDocstring("bool", "True", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.value.test3.testB",
@@ -141,7 +139,7 @@ def migrate_optional_annotation_data_one_to_one_mapping() -> (
         default_value="False",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("bool", "False", ""),
+        docstring=ParameterDocstring("bool", "False", ""),
     )
     annotation = OptionalAnnotation(
         target="test/test.value.test3.testA",
@@ -165,7 +163,7 @@ def migrate_optional_annotation_data_one_to_one_mapping() -> (
 
 
 def migrate_required_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -178,7 +176,7 @@ def migrate_required_annotation_data_one_to_one_mapping() -> (
         default_value="'test'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test'", ""),
+        docstring=ParameterDocstring("str", "'test'", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.value.test4.testB",
@@ -187,7 +185,7 @@ def migrate_required_annotation_data_one_to_one_mapping() -> (
         default_value="'test_string'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test_string'", ""),
+        docstring=ParameterDocstring("str", "'test_string'", ""),
     )
     annotation = RequiredAnnotation(
         target="test/test.value.test4.testA",
@@ -207,7 +205,7 @@ def migrate_required_annotation_data_one_to_one_mapping() -> (
 
 
 def migrate_constant_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -220,7 +218,7 @@ def migrate_constant_annotation_data_one_to_many_mapping() -> (
         default_value="2.0",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("float", "2.0", ""),
+        docstring=ParameterDocstring("float", "2.0", ""),
     )
 
     parameterv2_a = Parameter(
@@ -230,7 +228,7 @@ def migrate_constant_annotation_data_one_to_many_mapping() -> (
         default_value="5",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "5", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "5", "int in the range of (0, 10)"),
     )
     parameterv2_b = Parameter(
         id_="test/test.value.test5.testB",
@@ -239,7 +237,7 @@ def migrate_constant_annotation_data_one_to_many_mapping() -> (
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        docstring=ParameterDocstring("", "", ""),
     )
     parameterv2_c = Parameter(
         id_="test/test.value.test5.testC",
@@ -248,7 +246,7 @@ def migrate_constant_annotation_data_one_to_many_mapping() -> (
         default_value="test_value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test_string'", ""),
+        docstring=ParameterDocstring("str", "'test_string'", ""),
     )
     parameterv2_d = Parameter(
         id_="test/test.value.test5.testD",
@@ -257,9 +255,9 @@ def migrate_constant_annotation_data_one_to_many_mapping() -> (
         default_value="3.0",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("float", "3.0", ""),
+        docstring=ParameterDocstring("float", "3.0", ""),
     )
-    attribute = Attribute("test_attribute", NamedType("str"))
+    attribute = Attribute("test_attribute", "test_attribute", NamedType("str"))
 
     mapping = OneToManyMapping(
         1.0,
@@ -318,7 +316,7 @@ def migrate_constant_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_optional_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -331,7 +329,7 @@ def migrate_optional_annotation_data_one_to_many_mapping() -> (
         default_value="2",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "2", ""),
+        docstring=ParameterDocstring("int", "2", ""),
     )
 
     parameterv2_a = Parameter(
@@ -341,7 +339,7 @@ def migrate_optional_annotation_data_one_to_many_mapping() -> (
         default_value="5",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("float", "5.0", "float"),
+        docstring=ParameterDocstring("float", "5.0", "float"),
     )
     parameterv2_b = Parameter(
         id_="test/test.value.test6.testB",
@@ -350,7 +348,7 @@ def migrate_optional_annotation_data_one_to_many_mapping() -> (
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        docstring=ParameterDocstring("", "", ""),
     )
     parameterv2_c = Parameter(
         id_="test/test.value.test6.testC",
@@ -359,7 +357,7 @@ def migrate_optional_annotation_data_one_to_many_mapping() -> (
         default_value="test_value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "test_string", ""),
+        docstring=ParameterDocstring("str", "test_string", ""),
     )
     parameterv2_d = Parameter(
         id_="test/test.value.test6.testD",
@@ -368,12 +366,10 @@ def migrate_optional_annotation_data_one_to_many_mapping() -> (
         default_value="5",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "5", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "5", "int in the range of (0, 10)"),
     )
 
-    mapping = OneToManyMapping(
-        1.0, parameterv1, [parameterv2_a, parameterv2_b, parameterv2_c, parameterv2_d]
-    )
+    mapping = OneToManyMapping(1.0, parameterv1, [parameterv2_a, parameterv2_b, parameterv2_c, parameterv2_d])
 
     annotation = OptionalAnnotation(
         target="test/test.value.test6.test",
@@ -427,7 +423,7 @@ def migrate_optional_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_required_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -440,7 +436,7 @@ def migrate_required_annotation_data_one_to_many_mapping() -> (
         default_value="1.0",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("float", "1.0", ""),
+        docstring=ParameterDocstring("float", "1.0", ""),
     )
     parameterv2_a = Parameter(
         id_="test/test.value.test7.testA",
@@ -449,7 +445,7 @@ def migrate_required_annotation_data_one_to_many_mapping() -> (
         default_value="2",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "2", ""),
+        docstring=ParameterDocstring("int", "2", ""),
     )
 
     parameterv2_b = Parameter(
@@ -459,7 +455,7 @@ def migrate_required_annotation_data_one_to_many_mapping() -> (
         default_value="2.0",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("float", "2.0", ""),
+        docstring=ParameterDocstring("float", "2.0", ""),
     )
     parameterv2_c = Parameter(
         id_="test/test.value.test7.testC",
@@ -468,7 +464,7 @@ def migrate_required_annotation_data_one_to_many_mapping() -> (
         default_value='"value"',
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("string", '"value"', ""),
+        docstring=ParameterDocstring("string", '"value"', ""),
     )
     parameterv2_d = Parameter(
         id_="test/test.value.test7.testD",
@@ -477,7 +473,7 @@ def migrate_required_annotation_data_one_to_many_mapping() -> (
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        docstring=ParameterDocstring("", "", ""),
     )
     parameterv2_e = Parameter(
         id_="test/test.value.test7.testE",
@@ -486,7 +482,7 @@ def migrate_required_annotation_data_one_to_many_mapping() -> (
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        docstring=ParameterDocstring("", "", ""),
     )
     parameterv2_f = Parameter(
         id_="test/test.value.test7.testF",
@@ -495,7 +491,7 @@ def migrate_required_annotation_data_one_to_many_mapping() -> (
         default_value="3.0",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("float", "3.0", ""),
+        docstring=ParameterDocstring("float", "3.0", ""),
     )
 
     mapping = OneToManyMapping(
@@ -581,9 +577,8 @@ def migrate_required_annotation_data_one_to_many_mapping() -> (
     )
 
 
-# pylint: disable=duplicate-code
 def migrate_omitted_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -596,7 +591,7 @@ def migrate_omitted_annotation_data_one_to_many_mapping() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", ""),
+        docstring=ParameterDocstring("int", "1", ""),
     )
     parameterv2_a = Parameter(
         id_="test/test.value.test8.testA",
@@ -605,7 +600,7 @@ def migrate_omitted_annotation_data_one_to_many_mapping() -> (
         default_value="2",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "2", ""),
+        docstring=ParameterDocstring("int", "2", ""),
     )
 
     parameterv2_b = Parameter(
@@ -615,7 +610,7 @@ def migrate_omitted_annotation_data_one_to_many_mapping() -> (
         default_value="2.0",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("float", "2.0", ""),
+        docstring=ParameterDocstring("float", "2.0", ""),
     )
     parameterv2_c = Parameter(
         id_="test/test.value.test8.testC",
@@ -624,7 +619,7 @@ def migrate_omitted_annotation_data_one_to_many_mapping() -> (
         default_value='"value"',
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("string", '"value"', ""),
+        docstring=ParameterDocstring("string", '"value"', ""),
     )
     parameterv2_d = Parameter(
         id_="test/test.value.test8.testD",
@@ -633,7 +628,7 @@ def migrate_omitted_annotation_data_one_to_many_mapping() -> (
         default_value="None",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "None", ""),
+        docstring=ParameterDocstring("", "None", ""),
     )
     parameterv2_e = Parameter(
         id_="test/test.value.test8.testE",
@@ -642,7 +637,7 @@ def migrate_omitted_annotation_data_one_to_many_mapping() -> (
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        docstring=ParameterDocstring("", "", ""),
     )
 
     mapping = OneToManyMapping(
@@ -713,7 +708,7 @@ def migrate_omitted_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_constant_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],
@@ -726,7 +721,7 @@ def migrate_constant_annotation_data_duplicated() -> (
         default_value="'this is a string'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "this is a string", ""),
+        docstring=ParameterDocstring("str", "this is a string", ""),
     )
     parameterv1_2 = Parameter(
         id_="test/test.value.duplicate.testA_2",
@@ -735,7 +730,7 @@ def migrate_constant_annotation_data_duplicated() -> (
         default_value="'this is a string'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "this is a string", ""),
+        docstring=ParameterDocstring("str", "this is a string", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.value.duplicate.testB",
@@ -744,7 +739,7 @@ def migrate_constant_annotation_data_duplicated() -> (
         default_value="'test string'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test string'", ""),
+        docstring=ParameterDocstring("str", "'test string'", ""),
     )
     mapping = ManyToOneMapping(1.0, [parameterv1, parameterv1_2], parameterv2)
     annotation = ConstantAnnotation(
@@ -778,7 +773,7 @@ def migrate_constant_annotation_data_duplicated() -> (
 
 
 def migrate_omitted_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],
@@ -791,7 +786,7 @@ def migrate_omitted_annotation_data_duplicated() -> (
         default_value="True",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("bool", "True", ""),
+        docstring=ParameterDocstring("bool", "True", ""),
     )
     parameterv1_2 = Parameter(
         id_="test/test.value.duplicate2.testA_2",
@@ -800,7 +795,7 @@ def migrate_omitted_annotation_data_duplicated() -> (
         default_value="True",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("bool", "True", ""),
+        docstring=ParameterDocstring("bool", "True", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.value.duplicate2.testB",
@@ -809,7 +804,7 @@ def migrate_omitted_annotation_data_duplicated() -> (
         default_value="True",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("bool", "True", ""),
+        docstring=ParameterDocstring("bool", "True", ""),
     )
     annotation = OmittedAnnotation(
         target="test/test.value.duplicate2.testA",
@@ -840,7 +835,7 @@ def migrate_omitted_annotation_data_duplicated() -> (
 
 
 def migrate_optional_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],
@@ -853,7 +848,7 @@ def migrate_optional_annotation_data_duplicated() -> (
         default_value="True",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("bool", "True", ""),
+        docstring=ParameterDocstring("bool", "True", ""),
     )
     parameterv1_2 = Parameter(
         id_="test/test.value.duplicate3.testA_2",
@@ -862,7 +857,7 @@ def migrate_optional_annotation_data_duplicated() -> (
         default_value="True",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("bool", "True", ""),
+        docstring=ParameterDocstring("bool", "True", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.value.duplicate3.testB",
@@ -871,7 +866,7 @@ def migrate_optional_annotation_data_duplicated() -> (
         default_value="False",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("bool", "False", ""),
+        docstring=ParameterDocstring("bool", "False", ""),
     )
     annotation = OptionalAnnotation(
         target="test/test.value.duplicate3.testA",
@@ -908,7 +903,7 @@ def migrate_optional_annotation_data_duplicated() -> (
 
 
 def migrate_required_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],
@@ -921,7 +916,7 @@ def migrate_required_annotation_data_duplicated() -> (
         default_value="'test'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test'", ""),
+        docstring=ParameterDocstring("str", "'test'", ""),
     )
     parameterv1_2 = Parameter(
         id_="test/test.value.duplicate4.testA_2",
@@ -930,7 +925,7 @@ def migrate_required_annotation_data_duplicated() -> (
         default_value="'test'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test'", ""),
+        docstring=ParameterDocstring("str", "'test'", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.value.duplicate4.testB",
@@ -939,7 +934,7 @@ def migrate_required_annotation_data_duplicated() -> (
         default_value="'test_string'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test_string'", ""),
+        docstring=ParameterDocstring("str", "'test_string'", ""),
     )
     annotation = RequiredAnnotation(
         target="test/test.value.duplicate4.testA",

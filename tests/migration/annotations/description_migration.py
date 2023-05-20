@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
     DescriptionAnnotation,
@@ -8,12 +6,12 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import (
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 from library_analyzer.processing.migration.annotations import (
     get_migration_text,
@@ -27,9 +25,8 @@ from library_analyzer.processing.migration.model import (
 )
 
 
-# pylint: disable=duplicate-code
 def migrate_description_annotation_data_one_to_one_mapping__function() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -43,7 +40,7 @@ def migrate_description_annotation_data_one_to_one_mapping__function() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -55,7 +52,7 @@ def migrate_description_annotation_data_one_to_one_mapping__function() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -80,9 +77,8 @@ def migrate_description_annotation_data_one_to_one_mapping__function() -> (
     return mapping, annotationv1, [annotationv2]
 
 
-# pylint: disable=duplicate-code
 def migrate_description_annotation_data_one_to_many_mapping__class() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -95,7 +91,7 @@ def migrate_description_annotation_data_one_to_many_mapping__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        docstring=ClassDocstring(),
         code="class DescriptionTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -106,7 +102,7 @@ def migrate_description_annotation_data_one_to_many_mapping__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        docstring=ClassDocstring(),
         code="class NewDescriptionTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -117,7 +113,7 @@ def migrate_description_annotation_data_one_to_many_mapping__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        docstring=ClassDocstring(),
         code="class NewDescriptionTestClass2:\n    pass",
         instance_attributes=[],
     )
@@ -129,7 +125,7 @@ def migrate_description_annotation_data_one_to_many_mapping__class() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -171,7 +167,7 @@ def migrate_description_annotation_data_one_to_many_mapping__class() -> (
 
 
 def migrate_description_annotation_data_one_to_one_mapping__parameter() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -184,7 +180,7 @@ def migrate_description_annotation_data_one_to_one_mapping__parameter() -> (
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "value", "docstring"),
+        docstring=ParameterDocstring("str", "value", "docstring"),
     )
 
     parameterv2 = Parameter(
@@ -194,7 +190,7 @@ def migrate_description_annotation_data_one_to_one_mapping__parameter() -> (
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "value", "docstring"),
+        docstring=ParameterDocstring("str", "value", "docstring"),
     )
 
     mapping = OneToOneMapping(1.0, parameterv1, parameterv2)
@@ -219,7 +215,7 @@ def migrate_description_annotation_data_one_to_one_mapping__parameter() -> (
 
 
 def migrate_description_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],
@@ -233,7 +229,7 @@ def migrate_description_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv1_2 = Function(
@@ -244,7 +240,7 @@ def migrate_description_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -256,7 +252,7 @@ def migrate_description_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 

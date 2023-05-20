@@ -32,6 +32,9 @@ htmlcov/
 .coverage
 coverage.xml
 
+# ruff
+.ruff_cache/
+
 # mkdocs
 /site/
 /docs/reference/safeds/
@@ -42,5 +45,5 @@ report/
 megalinter-reports/
 
 # Other
-.DS_Store/
+.DS_Store
 *.log

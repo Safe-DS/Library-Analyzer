@@ -1,12 +1,10 @@
-from typing import Tuple
-
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
     CalledAfterAnnotation,
     EnumReviewResult,
     TodoAnnotation,
 )
-from library_analyzer.processing.api.model import Function, FunctionDocumentation
+from library_analyzer.processing.api.model import Function, FunctionDocstring
 from library_analyzer.processing.migration.annotations import (
     get_migration_text,
     migration_author,
@@ -19,9 +17,8 @@ from library_analyzer.processing.migration.model import (
 )
 
 
-# pylint: disable=duplicate-code
 def migrate_called_after_annotation_data_one_to_one_mapping() -> (
-    Tuple[
+    tuple[
         list[Mapping],
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -35,7 +32,7 @@ def migrate_called_after_annotation_data_one_to_one_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv1_before = Function(
@@ -46,7 +43,7 @@ def migrate_called_after_annotation_data_one_to_one_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_after = Function(
@@ -57,7 +54,7 @@ def migrate_called_after_annotation_data_one_to_one_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_before = Function(
@@ -68,7 +65,7 @@ def migrate_called_after_annotation_data_one_to_one_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     mapping_after = OneToOneMapping(1.0, functionv1_after, functionv2_after)
@@ -93,7 +90,7 @@ def migrate_called_after_annotation_data_one_to_one_mapping() -> (
 
 
 def migrate_called_after_annotation_data_one_to_many_mapping() -> (
-    Tuple[
+    tuple[
         list[Mapping],
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -107,7 +104,7 @@ def migrate_called_after_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv1_before = Function(
@@ -118,7 +115,7 @@ def migrate_called_after_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_after_a = Function(
@@ -129,7 +126,7 @@ def migrate_called_after_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_after_b = Function(
@@ -140,7 +137,7 @@ def migrate_called_after_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_before = Function(
@@ -151,12 +148,10 @@ def migrate_called_after_annotation_data_one_to_many_mapping() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
-    mapping_after = OneToManyMapping(
-        1.0, functionv1_after, [functionv2_after_a, functionv2_after_b]
-    )
+    mapping_after = OneToManyMapping(1.0, functionv1_after, [functionv2_after_a, functionv2_after_b])
     mapping_before = OneToOneMapping(1.0, functionv1_before, functionv2_before)
     annotationv1 = CalledAfterAnnotation(
         target="test/test.called_after.test2.test/OldClass/test_after",
@@ -190,7 +185,7 @@ def migrate_called_after_annotation_data_one_to_many_mapping() -> (
 
 
 def migrate_called_after_annotation_data_one_to_one_mapping__no_mapping_found() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -204,7 +199,7 @@ def migrate_called_after_annotation_data_one_to_one_mapping__no_mapping_found() 
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_after = Function(
@@ -215,7 +210,7 @@ def migrate_called_after_annotation_data_one_to_one_mapping__no_mapping_found() 
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     mapping_after = OneToOneMapping(1.0, functionv1_after, functionv2_after)
@@ -239,7 +234,7 @@ def migrate_called_after_annotation_data_one_to_one_mapping__no_mapping_found() 
 
 
 def migrate_called_after_annotation_data_one_to_one_mapping__before_splits() -> (
-    Tuple[
+    tuple[
         list[Mapping],
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -253,7 +248,7 @@ def migrate_called_after_annotation_data_one_to_one_mapping__before_splits() -> 
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv1_before = Function(
@@ -264,7 +259,7 @@ def migrate_called_after_annotation_data_one_to_one_mapping__before_splits() -> 
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_after = Function(
@@ -275,7 +270,7 @@ def migrate_called_after_annotation_data_one_to_one_mapping__before_splits() -> 
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_before_a = Function(
@@ -286,7 +281,7 @@ def migrate_called_after_annotation_data_one_to_one_mapping__before_splits() -> 
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_before_b = Function(
@@ -297,13 +292,11 @@ def migrate_called_after_annotation_data_one_to_one_mapping__before_splits() -> 
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     mapping_after = OneToOneMapping(1.0, functionv1_after, functionv2_after)
-    mapping_before = OneToManyMapping(
-        1.0, functionv1_before, [functionv2_before_a, functionv2_before_b]
-    )
+    mapping_before = OneToManyMapping(1.0, functionv1_before, [functionv2_before_a, functionv2_before_b])
     annotationv1 = CalledAfterAnnotation(
         target="test/test.called_after.test4.test/OldClass/test_after",
         authors=["testauthor"],
@@ -328,7 +321,7 @@ def migrate_called_after_annotation_data_one_to_one_mapping__before_splits() -> 
 
 
 def migrate_called_after_annotation_data_one_to_many_mapping__two_classes() -> (
-    Tuple[
+    tuple[
         list[Mapping],
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -342,7 +335,7 @@ def migrate_called_after_annotation_data_one_to_many_mapping__two_classes() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv1_before = Function(
@@ -353,7 +346,7 @@ def migrate_called_after_annotation_data_one_to_many_mapping__two_classes() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_after_a = Function(
@@ -364,7 +357,7 @@ def migrate_called_after_annotation_data_one_to_many_mapping__two_classes() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_after_b = Function(
@@ -375,7 +368,7 @@ def migrate_called_after_annotation_data_one_to_many_mapping__two_classes() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_before_a = Function(
@@ -386,7 +379,7 @@ def migrate_called_after_annotation_data_one_to_many_mapping__two_classes() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_before_b = Function(
@@ -397,15 +390,11 @@ def migrate_called_after_annotation_data_one_to_many_mapping__two_classes() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
-    mapping_after = OneToManyMapping(
-        1.0, functionv1_after, [functionv2_after_a, functionv2_after_b]
-    )
-    mapping_before = OneToManyMapping(
-        1.0, functionv1_before, [functionv2_before_a, functionv2_before_b]
-    )
+    mapping_after = OneToManyMapping(1.0, functionv1_after, [functionv2_after_a, functionv2_after_b])
+    mapping_before = OneToManyMapping(1.0, functionv1_before, [functionv2_before_a, functionv2_before_b])
     annotationv1 = CalledAfterAnnotation(
         target="test/test.called_after.test5.test/OldClass/test_after",
         authors=["testauthor"],
@@ -438,7 +427,7 @@ def migrate_called_after_annotation_data_one_to_many_mapping__two_classes() -> (
 
 
 def migrate_called_after_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         list[Mapping],
         list[AbstractAnnotation],
         list[AbstractAnnotation],
@@ -452,7 +441,7 @@ def migrate_called_after_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv1_after_2 = Function(
@@ -463,7 +452,7 @@ def migrate_called_after_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv1_before = Function(
@@ -474,7 +463,7 @@ def migrate_called_after_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_after = Function(
@@ -485,7 +474,7 @@ def migrate_called_after_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv2_before = Function(
@@ -496,12 +485,10 @@ def migrate_called_after_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
-    mapping_after = ManyToOneMapping(
-        1.0, [functionv1_after, functionv1_after_2], functionv2_after
-    )
+    mapping_after = ManyToOneMapping(1.0, [functionv1_after, functionv1_after_2], functionv2_after)
     mapping_before = OneToManyMapping(1.0, functionv1_before, [functionv2_before])
     annotationv1 = CalledAfterAnnotation(
         target="test/test.called_after.duplicate.test/OldClass/test_after",

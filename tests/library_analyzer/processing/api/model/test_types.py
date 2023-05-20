@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from library_analyzer.processing.api.model import (
@@ -9,13 +9,13 @@ from library_analyzer.processing.api.model import (
     NamedType,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
     create_type,
 )
 
 
 @pytest.mark.parametrize(
-    "docstring_type,expected",
+    ("docstring_type", "expected"),
     [
         ("", {}),
         (
@@ -71,24 +71,23 @@ from library_analyzer.processing.api.model import (
                     {"kind": "NamedType", "name": "array-like"},
                     {
                         "kind": "NamedType",
-                        "name": "shape (n_samples, n_classes) or (n_samples, 1) when "
-                        "binary.",
+                        "name": "shape (n_samples, n_classes) or (n_samples, 1) when binary.",
                     },
                 ],
             },
         ),
     ],
-)  # type: ignore
+)
 def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> None:
-    result = create_type(ParameterDocumentation(docstring_type, "", ""))
+    result = create_type(ParameterDocstring(docstring_type, "", ""))
     if result is None:
         assert expected == {}
     else:
-        assert result.to_json() == expected
+        assert result.to_dict() == expected
 
 
 @pytest.mark.parametrize(
-    "description,expected",
+    ("description", "expected"),
     [
         (
             "Scale factor between inner and outer circle in the range `[0, 1)`",
@@ -102,7 +101,10 @@ def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> Non
             },
         ),
         (
-            "Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [1, infinity].\n\n.. versionadded:: 0.18.0",
+            (
+                "Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [1,"
+                " infinity].\n\n.. versionadded:: 0.18.0"
+            ),
             {
                 "base_type": "float",
                 "kind": "BoundaryType",
@@ -114,17 +116,17 @@ def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> Non
         ),
         ("", {}),
     ],
-)  # type: ignore
+)
 def test_boundary_from_string(description: str, expected: dict[str, Any]) -> None:
-    result = create_type(ParameterDocumentation("", "", description))
+    result = create_type(ParameterDocstring("", "", description))
     if result is None:
         assert expected == {}
     else:
-        assert result.to_json() == expected
+        assert result.to_dict() == expected
 
 
 @pytest.mark.parametrize(
-    "docstring_type,docstring_description,expected",
+    ("docstring_type", "docstring_description", "expected"),
     [
         (
             "int or 'Auto', or {'today', 'yesterday'}",
@@ -147,31 +149,31 @@ def test_boundary_from_string(description: str, expected: dict[str, Any]) -> Non
             },
         ),
     ],
-)  # type: ignore
+)
 def test_boundary_and_union_from_string(
-    docstring_type: str, docstring_description: str, expected: dict[str, Any]
+    docstring_type: str,
+    docstring_description: str,
+    expected: dict[str, Any],
 ) -> None:
     result = create_type(
-        ParameterDocumentation(
-            type=docstring_type, default_value="", description=docstring_description
-        )
+        ParameterDocstring(type=docstring_type, default_value="", description=docstring_description),
     )
 
     if result is None:
         assert expected == {}
     else:
-        assert result.to_json() == expected
+        assert result.to_dict() == expected
 
 
 def test_correct_hash() -> None:
     parameter = Parameter(
-        "test/test.Test/test/test_parameter_for_hashing",
-        "test_parameter_for_hashing",
-        "test.Test.test.test_parameter_for_hashing",
-        "'test_str'",
-        ParameterAssignment.POSITION_OR_NAME,
-        True,
-        ParameterDocumentation("'hashvalue'", "r", "r"),
+        id_="test/test.Test/test/test_parameter_for_hashing",
+        name="test_parameter_for_hashing",
+        qname="test.Test.test.test_parameter_for_hashing",
+        default_value="'test_str'",
+        assigned_by=ParameterAssignment.POSITION_OR_NAME,
+        is_public=True,
+        docstring=ParameterDocstring("'hashvalue'", "r", "r"),
     )
     assert hash(parameter) == hash(deepcopy(parameter))
     enum_values = frozenset({"a", "b", "c"})
@@ -186,48 +188,106 @@ def test_correct_hash() -> None:
     assert hash(NamedType("a")) == hash(NamedType("a"))
     assert NamedType("a") != NamedType("b")
     assert hash(NamedType("a")) != hash(NamedType("b"))
-    attribute = Attribute("boundary", BoundaryType("int", 0, 1, True, True))
+    attribute = Attribute(
+        "boundary",
+        "boundary",
+        BoundaryType(
+            base_type="int",
+            min=0,
+            max=1,
+            min_inclusive=True,
+            max_inclusive=True,
+        ),
+    )
     assert attribute == deepcopy(attribute)
     assert hash(attribute) == hash(deepcopy(attribute))
 
 
 @pytest.mark.parametrize(
-    "string,expected",
+    ("string", "expected"),
     [
         (
-            "float, default=0.0 Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [0.0, infinity).\n\n.. versionadded:: 0.18.0",
-            BoundaryType("float", 0, "Infinity", True, True),
+            (
+                "float, default=0.0 Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range"
+                " [0.0, infinity).\n\n.. versionadded:: 0.18.0"
+            ),
+            BoundaryType(
+                base_type="float",
+                min=0,
+                max="Infinity",
+                min_inclusive=True,
+                max_inclusive=True,
+            ),
         ),
         (
             """If bootstrap is True, the number of samples to draw from X\nto train each base estimator.\n\n
             - If None (default), then draw `X.shape[0]` samples.\n- If int, then draw `max_samples` samples.\n
             - If float, then draw `max_samples * X.shape[0]` samples. Thus,\n  `max_samples` should be in the interval `(0.0, 1.0]`.\n\n..
             versionadded:: 0.22""",
-            BoundaryType("float", 0, 1, False, True),
+            BoundaryType(
+                base_type="float",
+                min=0,
+                max=1,
+                min_inclusive=False,
+                max_inclusive=True,
+            ),
         ),
         (
             """When building the vocabulary ignore terms that have a document\nfrequency strictly lower than the given threshold. This value is also\n
             called cut-off in the literature.\nIf float in range of [0.0, 1.0], the parameter represents a proportion\nof documents, integer absolute counts.\n
             This parameter is ignored if vocabulary is not None.""",
-            BoundaryType("float", 0, 1, True, True),
+            BoundaryType(
+                base_type="float",
+                min=0,
+                max=1,
+                min_inclusive=True,
+                max_inclusive=True,
+            ),
         ),
         (
             """float in range [0.0, 1.0] or int, default=1.0 When building the vocabulary ignore terms that have a document\n
             frequency strictly higher than the given threshold (corpus-specific\nstop words).\nIf float, the parameter represents a proportion of documents, integer\n
             absolute counts.\nThis parameter is ignored if vocabulary is not None.""",
-            BoundaryType("float", 0, 1, True, True),
+            BoundaryType(
+                base_type="float",
+                min=0,
+                max=1,
+                min_inclusive=True,
+                max_inclusive=True,
+            ),
         ),
         (
-            "Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [-2, -1].\n\n.. versionadded:: 0.18.0",
-            BoundaryType("float", -2, -1, True, True),
+            (
+                "Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [-2, -1].\n\n.."
+                " versionadded:: 0.18.0"
+            ),
+            BoundaryType(
+                base_type="float",
+                min=-2,
+                max=-1,
+                min_inclusive=True,
+                max_inclusive=True,
+            ),
         ),
         (
             "Damping factor in the range (-1, -0.5)",
-            BoundaryType("float", -1, -0.5, False, False),
+            BoundaryType(
+                base_type="float",
+                min=-1,
+                max=-0.5,
+                min_inclusive=False,
+                max_inclusive=False,
+            ),
         ),
         (
             "'max_samples' should be in the interval (-1.0, -0.5]",
-            BoundaryType("float", -1.0, -0.5, False, True),
+            BoundaryType(
+                base_type="float",
+                min=-1.0,
+                max=-0.5,
+                min_inclusive=False,
+                max_inclusive=True,
+            ),
         ),
     ],
 )
@@ -237,7 +297,7 @@ def test_boundaries_from_string(string: str, expected: BoundaryType) -> None:
 
 
 @pytest.mark.parametrize(
-    "docstring_type,expected",
+    ("docstring_type", "expected"),
     [
         ('{"frobenius", "spectral"}, default="frobenius"', {"frobenius", "spectral"}),
         (
@@ -265,7 +325,7 @@ def test_boundaries_from_string(string: str, expected: BoundaryType) -> None:
         ("""{'best\\', \\'random'}""", {"best', 'random"}),
     ],
 )
-def test_enum_from_string(docstring_type: str, expected: Optional[set[str]]) -> None:
+def test_enum_from_string(docstring_type: str, expected: set[str] | None) -> None:
     result = EnumType.from_string(docstring_type)
     if result is not None:
         assert result.values == expected

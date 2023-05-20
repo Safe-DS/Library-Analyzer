@@ -1,10 +1,6 @@
-import json
 from pathlib import Path
-from typing import Optional
 
-from library_analyzer.cli._shared_constants import _USAGES_KEY
 from library_analyzer.processing.usages import find_usages
-from library_analyzer.utils import ensure_file_exists
 
 
 def _run_usages_command(
@@ -13,14 +9,23 @@ def _run_usages_command(
     out_dir_path: Path,
     n_processes: int,
     batch_size: int,
-    result_dict: Optional[dict] = None,
 ) -> None:
+    """
+    Find usages of API elements.
+
+    Parameters
+    ----------
+    package : str
+        The name of the package.
+    client_dir_path : Path
+        The path to the directory with the client code
+    out_dir_path : Path
+        The path to the output directory.
+    n_processes : int
+        The number of processes to use.
+    batch_size : int
+        The batch size to use.
+    """
     usages = find_usages(package, client_dir_path, n_processes, batch_size)
-
     out_file_usage_count = out_dir_path.joinpath(f"{package}__usage_counts.json")
-    ensure_file_exists(out_file_usage_count)
-    with out_file_usage_count.open("w") as f:
-        json.dump(usages.to_json(), f, indent=2)
-
-    if result_dict is not None:
-        result_dict[_USAGES_KEY] = out_file_usage_count
+    usages.to_json_file(out_file_usage_count)

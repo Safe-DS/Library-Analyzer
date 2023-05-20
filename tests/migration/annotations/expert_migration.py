@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from library_analyzer.processing.annotations.model import (
     AbstractAnnotation,
     EnumReviewResult,
@@ -8,12 +6,12 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import (
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 from library_analyzer.processing.migration.annotations import (
     get_migration_text,
@@ -27,9 +25,8 @@ from library_analyzer.processing.migration.model import (
 )
 
 
-# pylint: disable=duplicate-code
 def migrate_expert_annotation_data__function() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -43,7 +40,7 @@ def migrate_expert_annotation_data__function() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -55,7 +52,7 @@ def migrate_expert_annotation_data__function() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -78,9 +75,8 @@ def migrate_expert_annotation_data__function() -> (
     return mapping, annotationv1, [annotationv2]
 
 
-# pylint: disable=duplicate-code
 def migrate_expert_annotation_data__class() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -93,7 +89,7 @@ def migrate_expert_annotation_data__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        docstring=ClassDocstring(),
         code="class ExpertTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -104,7 +100,7 @@ def migrate_expert_annotation_data__class() -> (
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("", ""),
+        docstring=ClassDocstring(),
         code="class NewExpertTestClass:\n    pass",
         instance_attributes=[],
     )
@@ -116,7 +112,7 @@ def migrate_expert_annotation_data__class() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -148,7 +144,7 @@ def migrate_expert_annotation_data__class() -> (
 
 
 def migrate_expert_annotation_data__parameter() -> (
-    Tuple[
+    tuple[
         Mapping,
         AbstractAnnotation,
         list[AbstractAnnotation],
@@ -161,7 +157,7 @@ def migrate_expert_annotation_data__parameter() -> (
         default_value="'this is a string'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "this is a string", ""),
+        docstring=ParameterDocstring("str", "this is a string", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.expert/test3/testB",
@@ -170,7 +166,7 @@ def migrate_expert_annotation_data__parameter() -> (
         default_value="'test string'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("str", "'test string'", ""),
+        docstring=ParameterDocstring("str", "'test string'", ""),
     )
     mapping = OneToOneMapping(1.0, parameterv1, parameterv2)
     annotationv1 = ExpertAnnotation(
@@ -191,7 +187,7 @@ def migrate_expert_annotation_data__parameter() -> (
 
 
 def migrate_expert_annotation_data_duplicated() -> (
-    Tuple[
+    tuple[
         Mapping,
         list[AbstractAnnotation],
         list[AbstractAnnotation],
@@ -205,7 +201,7 @@ def migrate_expert_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
     functionv1_2 = Function(
@@ -216,7 +212,7 @@ def migrate_expert_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
@@ -228,7 +224,7 @@ def migrate_expert_annotation_data_duplicated() -> (
         results=[],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation("", ""),
+        docstring=FunctionDocstring(),
         code="",
     )
 
