@@ -1,0 +1,1379 @@
+{
+  "schemaVersion": 1,
+  "distribution": "",
+  "package": "package-parser",
+  "version": "",
+  "modules": [],
+  "classes": [
+    {
+      "id": "package-parser/package_parser.cli._json_encoder/CustomEncoder",
+      "name": "CustomEncoder",
+      "qname": "package_parser.cli._json_encoder.CustomEncoder",
+      "decorators": [],
+      "superclasses": [
+        "JSONEncoder"
+      ],
+      "methods": [
+        "package-parser/package_parser.cli._json_encoder/CustomEncoder/default"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "class CustomEncoder(JSONEncoder):\n    def default(self, o: Any) -> Any:\n        if isinstance(o, set):\n            return list(o)\n        return super().default(o)",
+      "instance_attributes": []
+    },
+    {
+      "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker",
+      "name": "ASTWalker",
+      "qname": "package_parser.utils._ASTWalker.ASTWalker",
+      "decorators": [],
+      "superclasses": [],
+      "methods": [
+        "package-parser/package_parser.utils._ASTWalker/ASTWalker/__init__",
+        "package-parser/package_parser.utils._ASTWalker/ASTWalker/walk",
+        "package-parser/package_parser.utils._ASTWalker/ASTWalker/__walk",
+        "package-parser/package_parser.utils._ASTWalker/ASTWalker/__enter",
+        "package-parser/package_parser.utils._ASTWalker/ASTWalker/__leave",
+        "package-parser/package_parser.utils._ASTWalker/ASTWalker/__get_callbacks"
+      ],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "A walker visiting a tree in preorder, calling on the handler:\n\n* enter_<class_name> on entering a node, where class name is the class of\nthe node in lower case.\n\n* leave_<class_name> on leaving a node, where class name is the class of\nthe node in lower case.",
+      "docstring": "A walker visiting a tree in preorder, calling on the handler:\n\n* enter_<class_name> on entering a node, where class name is the class of\nthe node in lower case.\n\n* leave_<class_name> on leaving a node, where class name is the class of\nthe node in lower case.",
+      "code": "class ASTWalker:\n    \"\"\"A walker visiting a tree in preorder, calling on the handler:\n\n    * enter_<class_name> on entering a node, where class name is the class of\n    the node in lower case.\n\n    * leave_<class_name> on leaving a node, where class name is the class of\n    the node in lower case.\n    \"\"\"\n\n    def __init__(self, handler: Any) -> None:\n        self._handler = handler\n        self._cache: dict[Type, _EnterAndLeaveFunctions] = {}\n\n    def walk(self, node: astroid.NodeNG) -> None:\n        self.__walk(node, set())\n\n    def __walk(self, node: astroid.NodeNG, visited_nodes: set[astroid.NodeNG]) -> None:\n        if node in visited_nodes:\n            raise AssertionError(\"Node visited twice\")\n        visited_nodes.add(node)\n\n        self.__enter(node)\n        for child_node in node.get_children():\n            self.__walk(child_node, visited_nodes)\n        self.__leave(node)\n\n    def __enter(self, node: astroid.NodeNG) -> None:\n        method = self.__get_callbacks(node)[0]\n        if method is not None:\n            method(node)\n\n    def __leave(self, node: astroid.NodeNG) -> None:\n        method = self.__get_callbacks(node)[1]\n        if method is not None:\n            method(node)\n\n    def __get_callbacks(self, node: astroid.NodeNG) -> _EnterAndLeaveFunctions:\n        klass = node.__class__\n        methods = self._cache.get(klass)\n\n        if methods is None:\n            handler = self._handler\n            class_name = klass.__name__.lower()\n            enter_method = getattr(\n                handler, f\"enter_{class_name}\", getattr(handler, \"enter_default\", None)\n            )\n            leave_method = getattr(\n                handler, f\"leave_{class_name}\", getattr(handler, \"leave_default\", None)\n            )\n            self._cache[klass] = (enter_method, leave_method)\n        else:\n            enter_method, leave_method = methods\n\n        return enter_method, leave_method",
+      "instance_attributes": [
+        {
+          "name": "_handler",
+          "types": {
+            "kind": "NamedType",
+            "name": "Any"
+          }
+        },
+        {
+          "name": "_cache",
+          "types": {
+            "kind": "NamedType",
+            "name": "dict"
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "id": "package-parser/package_parser.cli._cli/_add_all_subparser",
+      "name": "_add_all_subparser",
+      "qname": "package_parser.cli._cli._add_all_subparser",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._cli/_add_all_subparser/subparsers",
+          "name": "subparsers",
+          "qname": "package_parser.cli._cli._add_all_subparser.subparsers",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def _add_all_subparser(subparsers: _SubParsersAction) -> None:\n    all_parser = subparsers.add_parser(\n        _ALL_COMMAND,\n        help=\"Run api and usages command in parallel and then run annotations command.\",\n    )\n    all_parser.add_argument(\n        \"-p\",\n        \"--package\",\n        help=\"The name of the package.\",\n        type=str,\n        required=True,\n    )\n    all_parser.add_argument(\n        \"-s\",\n        \"--src\",\n        help=\"Directory containing the Python code of the package. If this is omitted, we try to locate the package \"\n        \"with the given name in the current Python interpreter.\",\n        type=Path,\n        required=False,\n        default=None,\n    )\n    all_parser.add_argument(\n        \"-c\",\n        \"--client\",\n        help=\"Directory containing Python code that uses the package.\",\n        type=Path,\n        required=True,\n    )\n    all_parser.add_argument(\n        \"-o\", \"--out\", help=\"Output directory.\", type=Path, required=True\n    )\n    all_parser.add_argument(\n        \"--processes\",\n        help=\"How many processes should be spawned during processing.\",\n        type=int,\n        required=False,\n        default=4,\n    )\n    all_parser.add_argument(\n        \"--batchsize\",\n        help=\"How many files to process in one go. Higher values lead to higher memory usage but better performance.\",\n        type=int,\n        required=False,\n        default=100,\n    )"
+    },
+    {
+      "id": "package-parser/package_parser.cli._cli/_add_annotations_subparser",
+      "name": "_add_annotations_subparser",
+      "qname": "package_parser.cli._cli._add_annotations_subparser",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._cli/_add_annotations_subparser/subparsers",
+          "name": "subparsers",
+          "qname": "package_parser.cli._cli._add_annotations_subparser.subparsers",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def _add_annotations_subparser(subparsers) -> None:\n    generate_parser = subparsers.add_parser(\n        _ANNOTATIONS_COMMAND, help=\"Generate Annotations automatically.\"\n    )\n    generate_parser.add_argument(\n        \"-a\",\n        \"--api\",\n        help=\"File created by the 'api' command.\",\n        type=Path,\n        required=True,\n    )\n    generate_parser.add_argument(\n        \"-u\",\n        \"--usages\",\n        help=\"File created by the 'usages' command that contains usage counts.\",\n        type=Path,\n        required=True,\n    )\n    generate_parser.add_argument(\n        \"-o\", \"--out\", help=\"Output directory.\", type=Path, required=True\n    )"
+    },
+    {
+      "id": "package-parser/package_parser.cli._cli/_add_api_subparser",
+      "name": "_add_api_subparser",
+      "qname": "package_parser.cli._cli._add_api_subparser",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._cli/_add_api_subparser/subparsers",
+          "name": "subparsers",
+          "qname": "package_parser.cli._cli._add_api_subparser.subparsers",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def _add_api_subparser(subparsers: _SubParsersAction) -> None:\n    api_parser = subparsers.add_parser(_API_COMMAND, help=\"List the API of a package.\")\n    api_parser.add_argument(\n        \"-p\",\n        \"--package\",\n        help=\"The name of the package.\",\n        type=str,\n        required=True,\n    )\n    api_parser.add_argument(\n        \"-s\",\n        \"--src\",\n        help=\"Directory containing the Python code of the package. If this is omitted, we try to locate the package \"\n        \"with the given name in the current Python interpreter.\",\n        type=Path,\n        required=False,\n        default=None,\n    )\n    api_parser.add_argument(\n        \"-o\", \"--out\", help=\"Output directory.\", type=Path, required=True\n    )"
+    },
+    {
+      "id": "package-parser/package_parser.cli._cli/_add_usages_subparser",
+      "name": "_add_usages_subparser",
+      "qname": "package_parser.cli._cli._add_usages_subparser",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._cli/_add_usages_subparser/subparsers",
+          "name": "subparsers",
+          "qname": "package_parser.cli._cli._add_usages_subparser.subparsers",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def _add_usages_subparser(subparsers: _SubParsersAction) -> None:\n    usages_parser = subparsers.add_parser(\n        _USAGES_COMMAND, help=\"Find usages of API elements.\"\n    )\n    usages_parser.add_argument(\n        \"-p\",\n        \"--package\",\n        help=\"The name of the package. It must be installed in the current interpreter.\",\n        type=str,\n        required=True,\n    )\n    usages_parser.add_argument(\n        \"-c\",\n        \"--client\",\n        help=\"Directory containing Python code that uses the package.\",\n        type=Path,\n        required=True,\n    )\n    usages_parser.add_argument(\n        \"--processes\",\n        help=\"How many processes should be spawned during processing.\",\n        type=int,\n        required=False,\n        default=4,\n    ),\n    usages_parser.add_argument(\n        \"--batchsize\",\n        help=\"How many files to process in one go. Higher values lead to higher memory usage but better performance.\",\n        type=int,\n        required=False,\n        default=100,\n    )\n    usages_parser.add_argument(\n        \"-o\", \"--out\", help=\"Output directory.\", type=Path, required=True\n    )"
+    },
+    {
+      "id": "package-parser/package_parser.cli._cli/_get_args",
+      "name": "_get_args",
+      "qname": "package_parser.cli._cli._get_args",
+      "decorators": [],
+      "parameters": [],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def _get_args() -> argparse.Namespace:\n    parser = argparse.ArgumentParser(description=\"Analyze Python code.\")\n    parser.add_argument(\n        \"-v\", \"--verbose\", help=\"show info messages\", action=\"store_true\"\n    )\n\n    # Commands\n    subparsers = parser.add_subparsers(dest=\"command\")\n    _add_api_subparser(subparsers)\n    _add_usages_subparser(subparsers)\n    _add_annotations_subparser(subparsers)\n    _add_all_subparser(subparsers)\n\n    return parser.parse_args()"
+    },
+    {
+      "id": "package-parser/package_parser.cli._cli/cli",
+      "name": "cli",
+      "qname": "package_parser.cli._cli.cli",
+      "decorators": [],
+      "parameters": [],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def cli() -> None:\n    args = _get_args()\n    if args.verbose:\n        logging.basicConfig(level=logging.INFO)\n\n    if args.command == _API_COMMAND:\n        _run_api_command(args.package, args.src, args.out)\n    elif args.command == _USAGES_COMMAND:\n        _run_usages_command(\n            args.package, args.client, args.out, args.processes, args.batchsize\n        )\n    elif args.command == _ANNOTATIONS_COMMAND:\n        _run_annotations(args.api, args.usages, args.out)\n    elif args.command == _ALL_COMMAND:\n        _run_all_command(\n            args.package,\n            args.src,\n            args.client,\n            args.out,\n            args.processes,\n            args.batchsize,\n        )"
+    },
+    {
+      "id": "package-parser/package_parser.cli._json_encoder/CustomEncoder/default",
+      "name": "default",
+      "qname": "package_parser.cli._json_encoder.CustomEncoder.default",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._json_encoder/CustomEncoder/default/self",
+          "name": "self",
+          "qname": "package_parser.cli._json_encoder.CustomEncoder.default.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._json_encoder/CustomEncoder/default/o",
+          "name": "o",
+          "qname": "package_parser.cli._json_encoder.CustomEncoder.default.o",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "    def default(self, o: Any) -> Any:\n        if isinstance(o, set):\n            return list(o)\n        return super().default(o)"
+    },
+    {
+      "id": "package-parser/package_parser.cli._run_all/_run_all_command",
+      "name": "_run_all_command",
+      "qname": "package_parser.cli._run_all._run_all_command",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._run_all/_run_all_command/package",
+          "name": "package",
+          "qname": "package_parser.cli._run_all._run_all_command.package",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_all/_run_all_command/src_dir_path",
+          "name": "src_dir_path",
+          "qname": "package_parser.cli._run_all._run_all_command.src_dir_path",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_all/_run_all_command/client_dir_path",
+          "name": "client_dir_path",
+          "qname": "package_parser.cli._run_all._run_all_command.client_dir_path",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_all/_run_all_command/out_dir_path",
+          "name": "out_dir_path",
+          "qname": "package_parser.cli._run_all._run_all_command.out_dir_path",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_all/_run_all_command/n_processes",
+          "name": "n_processes",
+          "qname": "package_parser.cli._run_all._run_all_command.n_processes",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_all/_run_all_command/batch_size",
+          "name": "batch_size",
+          "qname": "package_parser.cli._run_all._run_all_command.batch_size",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def _run_all_command(\n    package: str,\n    src_dir_path: Path,\n    client_dir_path: Path,\n    out_dir_path: Path,\n    n_processes: int,\n    batch_size: int,\n) -> None:\n    out_file_annotations = out_dir_path.joinpath(\"annotations.json\")\n    results = _run_in_parallel(\n        partial(_run_api_command, package, src_dir_path, out_dir_path),\n        partial(\n            _run_usages_command,\n            package,\n            client_dir_path,\n            out_dir_path,\n            n_processes,\n            batch_size,\n        ),\n    )\n    _run_annotations(results[_API_KEY], results[_USAGES_KEY], out_file_annotations)"
+    },
+    {
+      "id": "package-parser/package_parser.cli._run_all/_run_in_parallel",
+      "name": "_run_in_parallel",
+      "qname": "package_parser.cli._run_all._run_in_parallel",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._run_all/_run_in_parallel/fns",
+          "name": "fns",
+          "qname": "package_parser.cli._run_all._run_in_parallel.fns",
+          "default_value": null,
+          "assigned_by": "POSITIONAL_VARARG",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def _run_in_parallel(*fns) -> dict:\n    manager = multiprocessing.Manager()\n    return_dict: dict[str, str] = manager.dict()\n    proc = []\n    for fn in fns:\n        p = multiprocessing.Process(target=fn, args=(return_dict,))\n        proc.append(p)\n        p.start()\n\n    for p in proc:\n        p.join()\n\n    return return_dict"
+    },
+    {
+      "id": "package-parser/package_parser.cli._run_annotations/_read_api_file",
+      "name": "_read_api_file",
+      "qname": "package_parser.cli._run_annotations._read_api_file",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._run_annotations/_read_api_file/api_file_path",
+          "name": "api_file_path",
+          "qname": "package_parser.cli._run_annotations._read_api_file.api_file_path",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def _read_api_file(api_file_path: Path) -> API:\n    with open(api_file_path) as api_file:\n        api_json = json.load(api_file)\n\n    return API.from_json(api_json)"
+    },
+    {
+      "id": "package-parser/package_parser.cli._run_annotations/_read_usages_file",
+      "name": "_read_usages_file",
+      "qname": "package_parser.cli._run_annotations._read_usages_file",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._run_annotations/_read_usages_file/usages_file_path",
+          "name": "usages_file_path",
+          "qname": "package_parser.cli._run_annotations._read_usages_file.usages_file_path",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def _read_usages_file(usages_file_path: Path) -> UsageCountStore:\n    with open(usages_file_path) as usages_file:\n        usages_json = json.load(usages_file)\n\n    return UsageCountStore.from_json(usages_json)"
+    },
+    {
+      "id": "package-parser/package_parser.cli._run_annotations/_run_annotations",
+      "name": "_run_annotations",
+      "qname": "package_parser.cli._run_annotations._run_annotations",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._run_annotations/_run_annotations/api_file_path",
+          "name": "api_file_path",
+          "qname": "package_parser.cli._run_annotations._run_annotations.api_file_path",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_annotations/_run_annotations/usages_file_path",
+          "name": "usages_file_path",
+          "qname": "package_parser.cli._run_annotations._run_annotations.usages_file_path",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_annotations/_run_annotations/annotations_file_path",
+          "name": "annotations_file_path",
+          "qname": "package_parser.cli._run_annotations._run_annotations.annotations_file_path",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Generates an annotation file from the given API and UsageStore files, and writes it to the given output file.\nAnnotations that are generated are: remove, constant, required, optional, enum and boundary.\n:param api_file_path: API file Path\n:param usages_file_path: UsageStore file Path\n:param annotations_file_path: Output file Path",
+      "docstring": "Generates an annotation file from the given API and UsageStore files, and writes it to the given output file.\nAnnotations that are generated are: remove, constant, required, optional, enum and boundary.\n:param api_file_path: API file Path\n:param usages_file_path: UsageStore file Path\n:param annotations_file_path: Output file Path",
+      "code": "def _run_annotations(\n    api_file_path: Path, usages_file_path: Path, annotations_file_path: Path\n) -> None:\n    \"\"\"\n    Generates an annotation file from the given API and UsageStore files, and writes it to the given output file.\n    Annotations that are generated are: remove, constant, required, optional, enum and boundary.\n    :param api_file_path: API file Path\n    :param usages_file_path: UsageStore file Path\n    :param annotations_file_path: Output file Path\n    \"\"\"\n\n    api = _read_api_file(api_file_path)\n    usages = _read_usages_file(usages_file_path)\n    annotations = generate_annotations(api, usages)\n    _write_annotations_file(annotations, annotations_file_path)"
+    },
+    {
+      "id": "package-parser/package_parser.cli._run_annotations/_write_annotations_file",
+      "name": "_write_annotations_file",
+      "qname": "package_parser.cli._run_annotations._write_annotations_file",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._run_annotations/_write_annotations_file/annotations",
+          "name": "annotations",
+          "qname": "package_parser.cli._run_annotations._write_annotations_file.annotations",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_annotations/_write_annotations_file/annotations_file_path",
+          "name": "annotations_file_path",
+          "qname": "package_parser.cli._run_annotations._write_annotations_file.annotations_file_path",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def _write_annotations_file(\n    annotations: AnnotationStore, annotations_file_path: Path\n) -> None:\n    ensure_file_exists(annotations_file_path)\n    with annotations_file_path.open(\"w\") as f:\n        json.dump(annotations.to_json(), f, indent=2)"
+    },
+    {
+      "id": "package-parser/package_parser.cli._run_api/_run_api_command",
+      "name": "_run_api_command",
+      "qname": "package_parser.cli._run_api._run_api_command",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._run_api/_run_api_command/package",
+          "name": "package",
+          "qname": "package_parser.cli._run_api._run_api_command.package",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_api/_run_api_command/src_dir_path",
+          "name": "src_dir_path",
+          "qname": "package_parser.cli._run_api._run_api_command.src_dir_path",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_api/_run_api_command/out_dir_path",
+          "name": "out_dir_path",
+          "qname": "package_parser.cli._run_api._run_api_command.out_dir_path",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_api/_run_api_command/result_dict",
+          "name": "result_dict",
+          "qname": "package_parser.cli._run_api._run_api_command.result_dict",
+          "default_value": "None",
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def _run_api_command(\n    package: str,\n    src_dir_path: Path,\n    out_dir_path: Path,\n    result_dict: Optional[dict] = None,\n) -> None:\n    api = get_api(package, src_dir_path)\n    api_dependencies = get_dependencies(api)\n\n    api_file_path = _write_api_file(api, out_dir_path)\n    _write_api_dependency_file(api, api_dependencies, out_dir_path)\n\n    if result_dict is not None:\n        result_dict[_API_KEY] = api_file_path"
+    },
+    {
+      "id": "package-parser/package_parser.cli._run_api/_write_api_dependency_file",
+      "name": "_write_api_dependency_file",
+      "qname": "package_parser.cli._run_api._write_api_dependency_file",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._run_api/_write_api_dependency_file/api",
+          "name": "api",
+          "qname": "package_parser.cli._run_api._write_api_dependency_file.api",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_api/_write_api_dependency_file/api_dependencies",
+          "name": "api_dependencies",
+          "qname": "package_parser.cli._run_api._write_api_dependency_file.api_dependencies",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_api/_write_api_dependency_file/out",
+          "name": "out",
+          "qname": "package_parser.cli._run_api._write_api_dependency_file.out",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def _write_api_dependency_file(api: API, api_dependencies, out):\n    out_file_api_dependencies = out.joinpath(f\"{api.package}__api_dependencies.json\")\n    ensure_file_exists(out_file_api_dependencies)\n    with out_file_api_dependencies.open(\"w\") as f:\n        json.dump(api_dependencies.to_json(), f, indent=2, cls=CustomEncoder)"
+    },
+    {
+      "id": "package-parser/package_parser.cli._run_api/_write_api_file",
+      "name": "_write_api_file",
+      "qname": "package_parser.cli._run_api._write_api_file",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._run_api/_write_api_file/api",
+          "name": "api",
+          "qname": "package_parser.cli._run_api._write_api_file.api",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_api/_write_api_file/out_dir_path",
+          "name": "out_dir_path",
+          "qname": "package_parser.cli._run_api._write_api_file.out_dir_path",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def _write_api_file(api: API, out_dir_path: Path) -> Path:\n    out_file_api = out_dir_path.joinpath(f\"{api.package}__api.json\")\n    ensure_file_exists(out_file_api)\n    with out_file_api.open(\"w\") as f:\n        json.dump(api.to_json(), f, indent=2, cls=CustomEncoder)\n    return out_file_api"
+    },
+    {
+      "id": "package-parser/package_parser.cli._run_usages/_run_usages_command",
+      "name": "_run_usages_command",
+      "qname": "package_parser.cli._run_usages._run_usages_command",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.cli._run_usages/_run_usages_command/package",
+          "name": "package",
+          "qname": "package_parser.cli._run_usages._run_usages_command.package",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_usages/_run_usages_command/client_dir_path",
+          "name": "client_dir_path",
+          "qname": "package_parser.cli._run_usages._run_usages_command.client_dir_path",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_usages/_run_usages_command/out_dir_path",
+          "name": "out_dir_path",
+          "qname": "package_parser.cli._run_usages._run_usages_command.out_dir_path",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_usages/_run_usages_command/n_processes",
+          "name": "n_processes",
+          "qname": "package_parser.cli._run_usages._run_usages_command.n_processes",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_usages/_run_usages_command/batch_size",
+          "name": "batch_size",
+          "qname": "package_parser.cli._run_usages._run_usages_command.batch_size",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.cli._run_usages/_run_usages_command/result_dict",
+          "name": "result_dict",
+          "qname": "package_parser.cli._run_usages._run_usages_command.result_dict",
+          "default_value": "None",
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def _run_usages_command(\n    package: str,\n    client_dir_path: Path,\n    out_dir_path: Path,\n    n_processes: int,\n    batch_size: int,\n    result_dict: Optional[dict] = None,\n) -> None:\n    usages = find_usages(package, client_dir_path, n_processes, batch_size)\n\n    out_file_usage_count = out_dir_path.joinpath(f\"{package}__usage_counts.json\")\n    ensure_file_exists(out_file_usage_count)\n    with out_file_usage_count.open(\"w\") as f:\n        json.dump(usages.to_json(), f, indent=2)\n\n    if result_dict is not None:\n        result_dict[_USAGES_KEY] = out_file_usage_count"
+    },
+    {
+      "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__enter",
+      "name": "__enter",
+      "qname": "package_parser.utils._ASTWalker.ASTWalker.__enter",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__enter/self",
+          "name": "self",
+          "qname": "package_parser.utils._ASTWalker.ASTWalker.__enter.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__enter/node",
+          "name": "node",
+          "qname": "package_parser.utils._ASTWalker.ASTWalker.__enter.node",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "    def __enter(self, node: astroid.NodeNG) -> None:\n        method = self.__get_callbacks(node)[0]\n        if method is not None:\n            method(node)"
+    },
+    {
+      "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__get_callbacks",
+      "name": "__get_callbacks",
+      "qname": "package_parser.utils._ASTWalker.ASTWalker.__get_callbacks",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__get_callbacks/self",
+          "name": "self",
+          "qname": "package_parser.utils._ASTWalker.ASTWalker.__get_callbacks.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__get_callbacks/node",
+          "name": "node",
+          "qname": "package_parser.utils._ASTWalker.ASTWalker.__get_callbacks.node",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "    def __get_callbacks(self, node: astroid.NodeNG) -> _EnterAndLeaveFunctions:\n        klass = node.__class__\n        methods = self._cache.get(klass)\n\n        if methods is None:\n            handler = self._handler\n            class_name = klass.__name__.lower()\n            enter_method = getattr(\n                handler, f\"enter_{class_name}\", getattr(handler, \"enter_default\", None)\n            )\n            leave_method = getattr(\n                handler, f\"leave_{class_name}\", getattr(handler, \"leave_default\", None)\n            )\n            self._cache[klass] = (enter_method, leave_method)\n        else:\n            enter_method, leave_method = methods\n\n        return enter_method, leave_method"
+    },
+    {
+      "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__init__",
+      "name": "__init__",
+      "qname": "package_parser.utils._ASTWalker.ASTWalker.__init__",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__init__/self",
+          "name": "self",
+          "qname": "package_parser.utils._ASTWalker.ASTWalker.__init__.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__init__/handler",
+          "name": "handler",
+          "qname": "package_parser.utils._ASTWalker.ASTWalker.__init__.handler",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "A walker visiting a tree in preorder, calling on the handler:\n\n* enter_<class_name> on entering a node, where class name is the class of\nthe node in lower case.\n\n* leave_<class_name> on leaving a node, where class name is the class of\nthe node in lower case.",
+      "docstring": "",
+      "code": "    def __init__(self, handler: Any) -> None:\n        self._handler = handler\n        self._cache: dict[Type, _EnterAndLeaveFunctions] = {}"
+    },
+    {
+      "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__leave",
+      "name": "__leave",
+      "qname": "package_parser.utils._ASTWalker.ASTWalker.__leave",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__leave/self",
+          "name": "self",
+          "qname": "package_parser.utils._ASTWalker.ASTWalker.__leave.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__leave/node",
+          "name": "node",
+          "qname": "package_parser.utils._ASTWalker.ASTWalker.__leave.node",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "    def __leave(self, node: astroid.NodeNG) -> None:\n        method = self.__get_callbacks(node)[1]\n        if method is not None:\n            method(node)"
+    },
+    {
+      "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__walk",
+      "name": "__walk",
+      "qname": "package_parser.utils._ASTWalker.ASTWalker.__walk",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__walk/self",
+          "name": "self",
+          "qname": "package_parser.utils._ASTWalker.ASTWalker.__walk.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__walk/node",
+          "name": "node",
+          "qname": "package_parser.utils._ASTWalker.ASTWalker.__walk.node",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/__walk/visited_nodes",
+          "name": "visited_nodes",
+          "qname": "package_parser.utils._ASTWalker.ASTWalker.__walk.visited_nodes",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "    def __walk(self, node: astroid.NodeNG, visited_nodes: set[astroid.NodeNG]) -> None:\n        if node in visited_nodes:\n            raise AssertionError(\"Node visited twice\")\n        visited_nodes.add(node)\n\n        self.__enter(node)\n        for child_node in node.get_children():\n            self.__walk(child_node, visited_nodes)\n        self.__leave(node)"
+    },
+    {
+      "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/walk",
+      "name": "walk",
+      "qname": "package_parser.utils._ASTWalker.ASTWalker.walk",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/walk/self",
+          "name": "self",
+          "qname": "package_parser.utils._ASTWalker.ASTWalker.walk.self",
+          "default_value": null,
+          "assigned_by": "IMPLICIT",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.utils._ASTWalker/ASTWalker/walk/node",
+          "name": "node",
+          "qname": "package_parser.utils._ASTWalker.ASTWalker.walk.node",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "    def walk(self, node: astroid.NodeNG) -> None:\n        self.__walk(node, set())"
+    },
+    {
+      "id": "package-parser/package_parser.utils._files/__read_lines",
+      "name": "__read_lines",
+      "qname": "package_parser.utils._files.__read_lines",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._files/__read_lines/f",
+          "name": "f",
+          "qname": "package_parser.utils._files.__read_lines.f",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def __read_lines(f: TextIO) -> list[str]:\n    return [it.strip() for it in f.readlines() if it != \"\"]"
+    },
+    {
+      "id": "package-parser/package_parser.utils._files/__write_lines",
+      "name": "__write_lines",
+      "qname": "package_parser.utils._files.__write_lines",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._files/__write_lines/f",
+          "name": "f",
+          "qname": "package_parser.utils._files.__write_lines.f",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.utils._files/__write_lines/lines",
+          "name": "lines",
+          "qname": "package_parser.utils._files.__write_lines.lines",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def __write_lines(f: TextIO, lines: list[str]) -> None:\n    f.writelines(f\"{it}\\n\" for it in lines)"
+    },
+    {
+      "id": "package-parser/package_parser.utils._files/ensure_file_exists",
+      "name": "ensure_file_exists",
+      "qname": "package_parser.utils._files.ensure_file_exists",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._files/ensure_file_exists/file",
+          "name": "file",
+          "qname": "package_parser.utils._files.ensure_file_exists.file",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Creates a file and all parent directories if they don't exist already.\n\n:param file: The file path.",
+      "docstring": "Creates a file and all parent directories if they don't exist already.\n\n:param file: The file path.",
+      "code": "def ensure_file_exists(file: Path) -> None:\n    \"\"\"\n    Creates a file and all parent directories if they don't exist already.\n\n    :param file: The file path.\n    \"\"\"\n\n    file.parent.mkdir(parents=True, exist_ok=True)\n    file.touch(exist_ok=True)"
+    },
+    {
+      "id": "package-parser/package_parser.utils._files/initialize_and_read_exclude_file",
+      "name": "initialize_and_read_exclude_file",
+      "qname": "package_parser.utils._files.initialize_and_read_exclude_file",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._files/initialize_and_read_exclude_file/exclude_file",
+          "name": "exclude_file",
+          "qname": "package_parser.utils._files.initialize_and_read_exclude_file.exclude_file",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def initialize_and_read_exclude_file(exclude_file: Path) -> list[str]:\n    exclude_file.parent.mkdir(parents=True, exist_ok=True)\n    try:\n        with exclude_file.open(\"r\") as f:\n            return __read_lines(f)\n    except FileNotFoundError:\n        return []"
+    },
+    {
+      "id": "package-parser/package_parser.utils._files/list_files",
+      "name": "list_files",
+      "qname": "package_parser.utils._files.list_files",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._files/list_files/root_dir",
+          "name": "root_dir",
+          "qname": "package_parser.utils._files.list_files.root_dir",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.utils._files/list_files/extension",
+          "name": "extension",
+          "qname": "package_parser.utils._files.list_files.extension",
+          "default_value": "''",
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": ":param root_dir: The directory containing the files.\n:param extension: The extension the files should have.\n:return: A list with absolute paths to the files.",
+      "docstring": ":param root_dir: The directory containing the files.\n:param extension: The extension the files should have.\n:return: A list with absolute paths to the files.",
+      "code": "def list_files(root_dir: Path, extension: str = \"\") -> list[str]:\n    \"\"\"\n    :param root_dir: The directory containing the files.\n    :param extension: The extension the files should have.\n    :return: A list with absolute paths to the files.\n    \"\"\"\n\n    result: list[str] = []\n\n    for root, _, files in os.walk(root_dir):\n        for filename in files:\n            if filename.endswith(extension):\n                result.append(str(os.path.join(root, filename)))\n\n    return result"
+    },
+    {
+      "id": "package-parser/package_parser.utils._names/declaration_qname_to_name",
+      "name": "declaration_qname_to_name",
+      "qname": "package_parser.utils._names.declaration_qname_to_name",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._names/declaration_qname_to_name/qualified_name",
+          "name": "qualified_name",
+          "qname": "package_parser.utils._names.declaration_qname_to_name.qualified_name",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def declaration_qname_to_name(qualified_name: str) -> str:\n    return qualified_name.split(\".\")[-1]"
+    },
+    {
+      "id": "package-parser/package_parser.utils._names/parent_id",
+      "name": "parent_id",
+      "qname": "package_parser.utils._names.parent_id",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._names/parent_id/id_",
+          "name": "id_",
+          "qname": "package_parser.utils._names.parent_id.id_",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def parent_id(id_: str) -> str:\n    return \"/\".join(id_.split(\"/\")[:-1])"
+    },
+    {
+      "id": "package-parser/package_parser.utils._names/parent_qualified_name",
+      "name": "parent_qualified_name",
+      "qname": "package_parser.utils._names.parent_qualified_name",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._names/parent_qualified_name/qualified_name",
+          "name": "qualified_name",
+          "qname": "package_parser.utils._names.parent_qualified_name.qualified_name",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "",
+      "docstring": "",
+      "code": "def parent_qualified_name(qualified_name: str) -> str:\n    return \".\".join(qualified_name.split(\".\")[:-1])"
+    },
+    {
+      "id": "package-parser/package_parser.utils._parsing/parse_python_code",
+      "name": "parse_python_code",
+      "qname": "package_parser.utils._parsing.parse_python_code",
+      "decorators": [],
+      "parameters": [
+        {
+          "id": "package-parser/package_parser.utils._parsing/parse_python_code/code",
+          "name": "code",
+          "qname": "package_parser.utils._parsing.parse_python_code.code",
+          "default_value": null,
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.utils._parsing/parse_python_code/module_name",
+          "name": "module_name",
+          "qname": "package_parser.utils._parsing.parse_python_code.module_name",
+          "default_value": "''",
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.utils._parsing/parse_python_code/path",
+          "name": "path",
+          "qname": "package_parser.utils._parsing.parse_python_code.path",
+          "default_value": "None",
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        },
+        {
+          "id": "package-parser/package_parser.utils._parsing/parse_python_code/ast_builder",
+          "name": "ast_builder",
+          "qname": "package_parser.utils._parsing.parse_python_code.ast_builder",
+          "default_value": "None",
+          "assigned_by": "POSITION_OR_NAME",
+          "is_public": false,
+          "docstring": {
+            "type": "",
+            "default_value": "",
+            "description": ""
+          },
+          "type": {}
+        }
+      ],
+      "results": [],
+      "is_public": false,
+      "reexported_by": [],
+      "description": "Parses a source string in order to obtain an astroid AST from it\n\n:param str code: The code for the module.\n:param str module_name: The name for the module, if any\n:param str path: The path for the module\n:param ast_builder: The Astroid builder to use",
+      "docstring": "Parses a source string in order to obtain an astroid AST from it\n\n:param str code: The code for the module.\n:param str module_name: The name for the module, if any\n:param str path: The path for the module\n:param ast_builder: The Astroid builder to use",
+      "code": "def parse_python_code(\n    code: str,\n    module_name: str = \"\",\n    path: str = None,\n    ast_builder: AstroidBuilder = None,\n) -> astroid.Module:\n    \"\"\"Parses a source string in order to obtain an astroid AST from it\n\n    :param str code: The code for the module.\n    :param str module_name: The name for the module, if any\n    :param str path: The path for the module\n    :param ast_builder: The Astroid builder to use\n    \"\"\"\n\n    if ast_builder is None:\n        ast_builder = AstroidBuilder()\n\n    code = textwrap.dedent(code)\n    return ast_builder.string_build(code, modname=module_name, path=path)"
+    }
+  ]
+}
