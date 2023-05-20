@@ -44,18 +44,22 @@ def migrate_value_annotation(origin_annotation: ValueAnnotation, mapping: Mappin
                 migrated_constant_annotation = migrate_constant_annotation(value_annotation, parameter, mapping)
                 if migrated_constant_annotation is not None:
                     migrated_annotations.append(migrated_constant_annotation)
+                    continue
             if isinstance(value_annotation, OmittedAnnotation):
                 migrated_omitted_annotation = migrate_omitted_annotation(value_annotation, parameter, mapping)
                 if migrated_omitted_annotation is not None:
                     migrated_annotations.append(migrated_omitted_annotation)
+                    continue
             if isinstance(value_annotation, OptionalAnnotation):
                 migrated_optional_annotation = migrate_optional_annotation(value_annotation, parameter, mapping)
                 if migrated_optional_annotation is not None:
                     migrated_annotations.append(migrated_optional_annotation)
+                    continue
             if isinstance(value_annotation, RequiredAnnotation):
                 migrated_required_annotation = migrate_required_annotation(value_annotation, parameter, mapping)
                 if migrated_required_annotation is not None:
                     migrated_annotations.append(migrated_required_annotation)
+                    continue
         if not isinstance(parameter, (Attribute, Result)):
             migrated_annotations.append(
                 TodoAnnotation(
