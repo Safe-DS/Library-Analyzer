@@ -93,7 +93,7 @@ class APIMapping:
                         self.differ.compute_parameter_similarity,
                     )
                     mappings.extend(new_mapping)
-                # Attribute und Result could be added here                
+                # Attribute und Result could be added here
                 if new_mapping is not None and len(new_mapping) > 0:
                     self.differ.notify_new_mapping(new_mapping)
         else:

@@ -7,9 +7,7 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import Attribute, Result
 from library_analyzer.processing.migration.model import (
-    ManyToOneMapping,
     Mapping,
-    OneToOneMapping,
 )
 
 from ._constants import migration_author
@@ -18,9 +16,7 @@ from ._get_migration_text import get_migration_text
 
 
 def migrate_todo_annotation(origin_annotation: TodoAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
-    annotated_apiv1_element = get_annotated_api_element(
-        origin_annotation, mapping.get_apiv1_elements()
-    )
+    annotated_apiv1_element = get_annotated_api_element(origin_annotation, mapping.get_apiv1_elements())
     if annotated_apiv1_element is None:
         return []
 

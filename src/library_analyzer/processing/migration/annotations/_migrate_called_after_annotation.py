@@ -39,9 +39,7 @@ def migrate_called_after_annotation(
             continue
 
         called_before_functions = _get_function_called_before_replacements(called_after_annotation, mappings, element)
-        if (
-            len(called_before_functions) == 1 and called_before_functions[0] != element
-        ):
+        if len(called_before_functions) == 1 and called_before_functions[0] != element:
             migrated_annotations.append(
                 CalledAfterAnnotation(
                     element.id,
@@ -50,7 +48,7 @@ def migrate_called_after_annotation(
                     called_after_annotation.comment,
                     called_after_annotation.reviewResult,
                     called_before_functions[0].name,
-                )
+                ),
             )
         else:
             migrated_annotations.append(
@@ -66,7 +64,7 @@ def migrate_called_after_annotation(
                         for_todo_annotation=True,
                         additional_information=called_before_functions,
                     ),
-                )
+                ),
             )
     return migrated_annotations
 

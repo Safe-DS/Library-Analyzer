@@ -29,7 +29,13 @@ def _run_migrate_command(
     threshold_of_similarity_between_mappings = 0.23
 
     unchanged_differ = UnchangedDiffer(None, [], apiv1, apiv2)
-    api_mapping = APIMapping(apiv1, apiv2, unchanged_differ, threshold_of_similarity_for_creation_of_mappings, threshold_of_similarity_between_mappings)
+    api_mapping = APIMapping(
+        apiv1,
+        apiv2,
+        unchanged_differ,
+        threshold_of_similarity_for_creation_of_mappings,
+        threshold_of_similarity_between_mappings,
+    )
     unchanged_mappings: list[Mapping] = api_mapping.map_api()
     previous_mappings = unchanged_mappings
     previous_base_differ: AbstractDiffer | None = unchanged_differ
@@ -43,7 +49,13 @@ def _run_migrate_command(
     for differ_init in differ_init_list:
         differ_class, additional_parameters = differ_init
         differ = differ_class(previous_base_differ, previous_mappings, apiv1, apiv2, **additional_parameters)
-        api_mapping = APIMapping(apiv1, apiv2, differ, threshold_of_similarity_for_creation_of_mappings, threshold_of_similarity_between_mappings)
+        api_mapping = APIMapping(
+            apiv1,
+            apiv2,
+            differ,
+            threshold_of_similarity_for_creation_of_mappings,
+            threshold_of_similarity_between_mappings,
+        )
         mappings = api_mapping.map_api()
 
         previous_mappings = mappings

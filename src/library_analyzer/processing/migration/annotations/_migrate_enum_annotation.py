@@ -37,8 +37,7 @@ def _default_value_is_in_instance_values_or_is_empty(default_value: str | None, 
 
 
 def migrate_enum_annotation(origin_annotation: EnumAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
-    annotated_apiv1_element = get_annotated_api_element(
-        origin_annotation, mapping.get_apiv1_elements())
+    annotated_apiv1_element = get_annotated_api_element(origin_annotation, mapping.get_apiv1_elements())
     if annotated_apiv1_element is None or not isinstance(annotated_apiv1_element, Parameter):
         return []
 
@@ -59,7 +58,14 @@ def migrate_enum_annotation(origin_annotation: EnumAnnotation, mapping: Mapping)
                 enum_annotation.target = parameter.id
                 migrated_annotations.append(enum_annotation)
                 continue
-            if isinstance(parameter.type, NamedType) and not _contains_string(parameter.type) and not (isinstance(annotated_apiv1_element.type, NamedType) and parameter.type.name == annotated_apiv1_element):
+            if (
+                isinstance(parameter.type, NamedType)
+                and not _contains_string(parameter.type)
+                and not (
+                    isinstance(annotated_apiv1_element.type, NamedType)
+                    and parameter.type.name == annotated_apiv1_element
+                )
+            ):
                 # assuming api has been chanced to an enum type:
                 # do not migrate annotation
                 continue
@@ -76,6 +82,6 @@ def migrate_enum_annotation(origin_annotation: EnumAnnotation, mapping: Mapping)
                 enum_annotation.comment,
                 EnumReviewResult.NONE,
                 get_migration_text(enum_annotation, mapping, for_todo_annotation=True),
-            )
+            ),
         )
     return migrated_annotations

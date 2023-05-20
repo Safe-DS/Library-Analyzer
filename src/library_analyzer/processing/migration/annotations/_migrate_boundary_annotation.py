@@ -9,18 +9,12 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import (
     AbstractType,
-    Attribute,
     NamedType,
     Parameter,
-    Result,
     UnionType,
 )
 from library_analyzer.processing.migration.model import (
-    ManyToManyMapping,
-    ManyToOneMapping,
     Mapping,
-    OneToManyMapping,
-    OneToOneMapping,
 )
 
 from ._constants import migration_author
@@ -113,9 +107,7 @@ def migrate_boundary_annotation(origin_annotation: BoundaryAnnotation, mapping: 
                 boundary_annotation.reviewers,
                 boundary_annotation.comment,
                 EnumReviewResult.NONE,
-                get_migration_text(
-                    boundary_annotation, mapping, for_todo_annotation=True
-                ),
-            )
+                get_migration_text(boundary_annotation, mapping, for_todo_annotation=True),
+            ),
         )
     return migrated_annotations

@@ -20,11 +20,7 @@ from library_analyzer.processing.api.model import (
     UnionType,
 )
 from library_analyzer.processing.migration.model import (
-    ManyToManyMapping,
-    ManyToOneMapping,
     Mapping,
-    OneToManyMapping,
-    OneToOneMapping,
 )
 
 from ._constants import migration_author
@@ -60,7 +56,7 @@ def migrate_value_annotation(origin_annotation: ValueAnnotation, mapping: Mappin
                 if migrated_required_annotation is not None:
                     migrated_annotations.append(migrated_required_annotation)
                     continue
-        if not isinstance(parameter, (Attribute, Result)):
+        if not isinstance(parameter, Attribute | Result):
             migrated_annotations.append(
                 TodoAnnotation(
                     parameter.id,
@@ -69,7 +65,7 @@ def migrate_value_annotation(origin_annotation: ValueAnnotation, mapping: Mappin
                     value_annotation.comment,
                     EnumReviewResult.NONE,
                     get_migration_text(value_annotation, mapping),
-                )
+                ),
             )
     return migrated_annotations
 

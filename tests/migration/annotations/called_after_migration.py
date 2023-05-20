@@ -228,7 +228,7 @@ def migrate_called_after_annotation_data_one_to_one_mapping__no_mapping_found() 
         reviewers=[],
         comment="",
         reviewResult=EnumReviewResult.NONE,
-        newTodo=get_migration_text(annotationv1, mapping_after, for_todo_annotation=True)
+        newTodo=get_migration_text(annotationv1, mapping_after, for_todo_annotation=True),
     )
     return mapping_after, annotationv1, [annotationv2]
 

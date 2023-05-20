@@ -14,9 +14,7 @@ from library_analyzer.processing.api.model import (
     Result,
 )
 from library_analyzer.processing.migration.model import (
-    ManyToOneMapping,
     Mapping,
-    OneToOneMapping,
 )
 
 from ._constants import migration_author
@@ -28,12 +26,8 @@ def is_removeable(element: Attribute | Class | Function | Parameter | Result) ->
     return isinstance(element, Class | Function)
 
 
-def migrate_remove_annotation(
-    origin_annotation: RemoveAnnotation, mapping: Mapping
-) -> list[AbstractAnnotation]:
-    annotated_apiv1_element = get_annotated_api_element(
-        origin_annotation, mapping.get_apiv1_elements()
-    )
+def migrate_remove_annotation(origin_annotation: RemoveAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
+    annotated_apiv1_element = get_annotated_api_element(origin_annotation, mapping.get_apiv1_elements())
     if annotated_apiv1_element is None:
         return []
 

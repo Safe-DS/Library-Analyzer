@@ -6,11 +6,9 @@ from library_analyzer.processing.annotations.model import (
     EnumReviewResult,
     TodoAnnotation,
 )
-from library_analyzer.processing.api.model import Attribute, Result, Parameter
+from library_analyzer.processing.api.model import Attribute, Parameter, Result
 from library_analyzer.processing.migration.model import (
-    ManyToOneMapping,
     Mapping,
-    OneToOneMapping,
 )
 
 from ._constants import migration_author
@@ -34,8 +32,14 @@ def migrate_description_annotation(
     description_annotations: list[AbstractAnnotation] = []
     for element in mapping.get_apiv2_elements():
         if isinstance(element, type(annotated_apiv1_element)) and not isinstance(element, Attribute | Result):
-            documentationv1 = annotated_apiv1_element.docstring.description if isinstance(element, Parameter) else element.docstring.full_docstring
-            documentationv2 = element.docstring.description if isinstance(element, Parameter) else element.docstring.full_docstring
+            documentationv1 = (
+                annotated_apiv1_element.docstring.description
+                if isinstance(element, Parameter)
+                else element.docstring.full_docstring
+            )
+            documentationv2 = (
+                element.docstring.description if isinstance(element, Parameter) else element.docstring.full_docstring
+            )
             if documentationv1 != documentationv2 and documentationv2 != description_annotation.newDescription:
                 description_annotations.append(
                     DescriptionAnnotation(
@@ -45,7 +49,7 @@ def migrate_description_annotation(
                         description_annotation.comment,
                         EnumReviewResult.UNSURE,
                         newDescription=description_annotation.newDescription,
-                    )
+                    ),
                 )
                 continue
             description_annotations.append(

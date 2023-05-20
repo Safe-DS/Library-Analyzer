@@ -346,7 +346,9 @@ def test_handle_duplicates() -> None:
         TodoAnnotation.from_dict(
             {
                 "authors": ["", "migration"],
-                "comment": "Conflicting attribute found during migration: {'newTodo': 'lightbringer'}, {'newTodo': 'todo'}",
+                "comment": (
+                    "Conflicting attribute found during migration: {'newTodo': 'lightbringer'}, {'newTodo': 'todo'}"
+                ),
                 "newTodo": "darkage",
                 "reviewResult": "unsure",
                 "reviewers": [""],

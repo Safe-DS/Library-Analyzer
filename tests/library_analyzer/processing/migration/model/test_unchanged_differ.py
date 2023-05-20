@@ -144,20 +144,15 @@ def test_similarity() -> None:
     apiv1.add_class(class_c)
     apiv2.add_class(class_d)
 
-    class_mapping = OneToOneMapping(1.0, class_a, class_a)
-    function_mapping = OneToOneMapping(1.0, function_a, function_a)
-    parameter_mapping = OneToOneMapping(1.0, parameter_a, parameter_a)
+    OneToOneMapping(1.0, class_a, class_a)
+    OneToOneMapping(1.0, function_a, function_a)
+    OneToOneMapping(1.0, parameter_a, parameter_a)
 
     unchanged_differ = UnchangedDiffer(None, [], apiv1, apiv2)
     assert unchanged_differ.compute_class_similarity(class_c, class_d) == 1
     apiv1.classes.pop(class_c.id)
     apiv2.classes.pop(class_d.id)
     unchanged_differ = UnchangedDiffer(None, [], apiv1, apiv1)
-    expected_mappings = [
-        class_mapping,
-        function_mapping,
-        parameter_mapping,
-    ]
     assert unchanged_differ.compute_class_similarity(class_a, class_a) == 1
     assert unchanged_differ.compute_function_similarity(function_a, function_a) == 1
     assert unchanged_differ.compute_parameter_similarity(parameter_a, parameter_a) == 1

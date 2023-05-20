@@ -54,7 +54,11 @@ class StrictDiffer(AbstractDiffer):
             self.previous_mappings,
             key=lambda mapping: sort_order[type(mapping.get_apiv1_elements()[0])],
         )
-        self.related_mappings = [mapping for mapping in self.related_mappings if mapping not in unchanged_mappings and not isinstance(mapping, OneToOneMapping)]
+        self.related_mappings = [
+            mapping
+            for mapping in self.related_mappings
+            if mapping not in unchanged_mappings and not isinstance(mapping, OneToOneMapping)
+        ]
         for mapping_list in [self.previous_mappings, unchanged_mappings]:
             for mapping in mapping_list:
                 if mapping not in self.related_mappings:

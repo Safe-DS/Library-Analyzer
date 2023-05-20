@@ -8,9 +8,7 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import Attribute, Result
 from library_analyzer.processing.migration.model import (
-    ManyToOneMapping,
     Mapping,
-    OneToOneMapping,
 )
 
 from ._constants import migration_author
@@ -24,9 +22,7 @@ def migrate_expert_annotation(origin_annotation: ExpertAnnotation, mapping: Mapp
     authors.append(migration_author)
     expert_annotation.authors = authors
 
-    annotated_apiv1_element = get_annotated_api_element(
-        expert_annotation, mapping.get_apiv1_elements()
-    )
+    annotated_apiv1_element = get_annotated_api_element(expert_annotation, mapping.get_apiv1_elements())
     if annotated_apiv1_element is None:
         return []
 

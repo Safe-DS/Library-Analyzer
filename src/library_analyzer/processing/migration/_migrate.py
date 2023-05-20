@@ -131,7 +131,9 @@ class Migration:
     def _get_mappings_for_table(self) -> list[str]:
         table_rows: list[str] = []
         for mapping in self.mappings:
-            if len(mapping.get_apiv1_elements()) > 0 and isinstance(mapping.get_apiv1_elements()[0], (Attribute, Result)):
+            if len(mapping.get_apiv1_elements()) > 0 and isinstance(
+                mapping.get_apiv1_elements()[0], Attribute | Result,
+            ):
                 continue
 
             def print_api_element(api_element: Attribute | Class | Function | Parameter | Result) -> str:
@@ -251,7 +253,9 @@ class Migration:
                         first_annotation, first_value = first_annotation_and_value
                         if len(different_values) > 1:
                             different_values.remove(first_value)
-                            comment = "Conflicting attribute found during migration: " + ", ".join(sorted(different_values))
+                            comment = "Conflicting attribute found during migration: " + ", ".join(
+                                sorted(different_values),
+                            )
                             first_annotation.comment = (
                                 "\n".join([comment, first_annotation.comment])
                                 if len(first_annotation.comment) > 0
