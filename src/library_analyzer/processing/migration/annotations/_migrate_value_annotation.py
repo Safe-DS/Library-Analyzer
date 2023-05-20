@@ -32,10 +32,10 @@ from ._get_annotated_api_element import get_annotated_api_element_by_type
 from ._get_migration_text import get_migration_text
 
 
-def migrate_value_annotation(annotation_: ValueAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
+def migrate_value_annotation(origin_annotation: ValueAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
     migrated_annotations: list[AbstractAnnotation] = []
     for parameter in mapping.get_apiv2_elements():
-        value_annotation = deepcopy(annotation_)
+        value_annotation = deepcopy(origin_annotation)
         authors = value_annotation.authors
         authors.append(migration_author)
         value_annotation.authors = authors

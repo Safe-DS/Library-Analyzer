@@ -70,14 +70,14 @@ def _contains_number_and_is_discrete(
     return False, False
 
 
-def migrate_boundary_annotation(boundary_annotation_: BoundaryAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
-    annotated_apiv1_element = get_annotated_api_element(boundary_annotation_, mapping.get_apiv1_elements())
+def migrate_boundary_annotation(origin_annotation: BoundaryAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
+    annotated_apiv1_element = get_annotated_api_element(origin_annotation, mapping.get_apiv1_elements())
     if annotated_apiv1_element is None or not isinstance(annotated_apiv1_element, Parameter):
         return []
 
     migrated_annotations: list[AbstractAnnotation] = []
     for parameter in mapping.get_apiv2_elements():
-        boundary_annotation = deepcopy(boundary_annotation_)
+        boundary_annotation = deepcopy(origin_annotation)
         authors = boundary_annotation.authors
         authors.append(migration_author)
         boundary_annotation.authors = authors

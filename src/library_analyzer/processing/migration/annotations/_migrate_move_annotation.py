@@ -52,16 +52,16 @@ def _was_moved(
     )
 
 
-def migrate_move_annotation(move_annotation_: MoveAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
+def migrate_move_annotation(origin_annotation: MoveAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
     annotated_apiv1_element = get_annotated_api_element(
-        move_annotation_, mapping.get_apiv1_elements()
+        origin_annotation, mapping.get_apiv1_elements()
     )
     if annotated_apiv1_element is None:
         return []
 
     migrated_annotations: list[AbstractAnnotation] = []
     for element in mapping.get_apiv2_elements():
-        move_annotation = deepcopy(move_annotation_)
+        move_annotation = deepcopy(origin_annotation)
         authors = move_annotation.authors
         authors.append(migration_author)
         move_annotation.authors = authors

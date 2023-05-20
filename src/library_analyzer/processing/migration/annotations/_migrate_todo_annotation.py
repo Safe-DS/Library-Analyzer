@@ -17,16 +17,16 @@ from ._get_annotated_api_element import get_annotated_api_element
 from ._get_migration_text import get_migration_text
 
 
-def migrate_todo_annotation(todo_annotation_: TodoAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
+def migrate_todo_annotation(origin_annotation: TodoAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
     annotated_apiv1_element = get_annotated_api_element(
-        todo_annotation_, mapping.get_apiv1_elements()
+        origin_annotation, mapping.get_apiv1_elements()
     )
     if annotated_apiv1_element is None:
         return []
 
     todo_annotations: list[AbstractAnnotation] = []
     for element in mapping.get_apiv2_elements():
-        todo_annotation = deepcopy(todo_annotation_)
+        todo_annotation = deepcopy(origin_annotation)
         authors = todo_annotation.authors
         authors.append(migration_author)
         todo_annotation.authors = authors

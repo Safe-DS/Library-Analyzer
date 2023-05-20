@@ -14,13 +14,13 @@ from ._get_migration_text import get_migration_text
 
 
 def migrate_called_after_annotation(
-    called_after_annotation_: CalledAfterAnnotation,
+    origin_annotation: CalledAfterAnnotation,
     mapping: Mapping,
     mappings: list[Mapping],
 ) -> list[AbstractAnnotation]:
     migrated_annotations: list[AbstractAnnotation] = []
     for element in mapping.get_apiv2_elements():
-        called_after_annotation = deepcopy(called_after_annotation_)
+        called_after_annotation = deepcopy(origin_annotation)
         authors = called_after_annotation.authors
         authors.append(migration_author)
         called_after_annotation.authors = authors

@@ -36,15 +36,15 @@ def _default_value_is_in_instance_values_or_is_empty(default_value: str | None, 
     return default_value is None or default_value in (pair.stringValue for pair in pairs) or len(default_value) == 0
 
 
-def migrate_enum_annotation(enum_annotation_: EnumAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
+def migrate_enum_annotation(origin_annotation: EnumAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
     annotated_apiv1_element = get_annotated_api_element(
-        enum_annotation_, mapping.get_apiv1_elements())
+        origin_annotation, mapping.get_apiv1_elements())
     if annotated_apiv1_element is None or not isinstance(annotated_apiv1_element, Parameter):
         return []
 
     migrated_annotations: list[AbstractAnnotation] = []
     for parameter in mapping.get_apiv2_elements():
-        enum_annotation = deepcopy(enum_annotation_)
+        enum_annotation = deepcopy(origin_annotation)
         authors = enum_annotation.authors
         authors.append(migration_author)
         enum_annotation.authors = authors

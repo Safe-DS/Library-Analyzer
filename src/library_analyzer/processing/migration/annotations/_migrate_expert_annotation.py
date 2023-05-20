@@ -18,8 +18,8 @@ from ._get_annotated_api_element import get_annotated_api_element
 from ._get_migration_text import get_migration_text
 
 
-def migrate_expert_annotation(expert_annotation: ExpertAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
-    expert_annotation = deepcopy(expert_annotation)
+def migrate_expert_annotation(origin_annotation: ExpertAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
+    expert_annotation = deepcopy(origin_annotation)
     authors = expert_annotation.authors
     authors.append(migration_author)
     expert_annotation.authors = authors

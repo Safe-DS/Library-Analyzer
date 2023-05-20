@@ -14,14 +14,14 @@ from ._get_migration_text import get_migration_text
 
 
 def migrate_group_annotation(
-    annotation_: GroupAnnotation,
+    origin_annotation: GroupAnnotation,
     mapping: Mapping,
     mappings: list[Mapping],
 ) -> list[AbstractAnnotation]:
     migrated_annotations: list[AbstractAnnotation] = []
 
     for functionv2 in mapping.get_apiv2_elements():
-        group_annotation = deepcopy(annotation_)
+        group_annotation = deepcopy(origin_annotation)
         authors = group_annotation.authors
         authors.append(migration_author)
         group_annotation.authors = authors

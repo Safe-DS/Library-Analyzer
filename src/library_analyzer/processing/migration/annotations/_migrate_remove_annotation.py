@@ -29,17 +29,17 @@ def is_removeable(element: Attribute | Class | Function | Parameter | Result) ->
 
 
 def migrate_remove_annotation(
-    remove_annotation_: RemoveAnnotation, mapping: Mapping
+    origin_annotation: RemoveAnnotation, mapping: Mapping
 ) -> list[AbstractAnnotation]:
     annotated_apiv1_element = get_annotated_api_element(
-        remove_annotation_, mapping.get_apiv1_elements()
+        origin_annotation, mapping.get_apiv1_elements()
     )
     if annotated_apiv1_element is None:
         return []
 
     remove_annotations: list[AbstractAnnotation] = []
     for element in mapping.get_apiv2_elements():
-        remove_annotation = deepcopy(remove_annotation_)
+        remove_annotation = deepcopy(origin_annotation)
         authors = remove_annotation.authors
         authors.append(migration_author)
         remove_annotation.authors = authors

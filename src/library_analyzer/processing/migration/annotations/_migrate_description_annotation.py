@@ -19,10 +19,10 @@ from ._get_migration_text import get_migration_text
 
 
 def migrate_description_annotation(
-    description_annotation: DescriptionAnnotation,
+    origin_annotation: DescriptionAnnotation,
     mapping: Mapping,
 ) -> list[AbstractAnnotation]:
-    description_annotation = deepcopy(description_annotation)
+    description_annotation = deepcopy(origin_annotation)
     authors = description_annotation.authors
     authors.append(migration_author)
     description_annotation.authors = authors
