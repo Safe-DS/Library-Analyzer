@@ -132,7 +132,8 @@ class Migration:
         table_rows: list[str] = []
         for mapping in self.mappings:
             if len(mapping.get_apiv1_elements()) > 0 and isinstance(
-                mapping.get_apiv1_elements()[0], Attribute | Result,
+                mapping.get_apiv1_elements()[0],
+                Attribute | Result,
             ):
                 continue
 
