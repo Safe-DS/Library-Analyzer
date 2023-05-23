@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 import pytest
@@ -332,15 +334,18 @@ def transform_member_access(member_access: MemberAccess):
             "numpy.A.2.3",
         ),
         (
-            astroid.FunctionDef("local_func", lineno=1, col_offset=0, parent=astroid.ClassDef("A", lineno=2, col_offset=3)),
+            astroid.FunctionDef("local_func", lineno=1, col_offset=0,
+                                parent=astroid.ClassDef("A", lineno=2, col_offset=3)),
             "A.local_func.1.0",
         ),
         (
-            astroid.FunctionDef("global_func", lineno=1, col_offset=0, parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy"))),
+            astroid.FunctionDef("global_func", lineno=1, col_offset=0,
+                                parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy"))),
             "numpy.global_func.1.0",
         ),
         (
-            astroid.AssignName("var1", lineno=1, col_offset=5, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
+            astroid.AssignName("var1", lineno=1, col_offset=5,
+                               parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
             "func1.var1.1.5",
         ),
         (
@@ -348,7 +353,12 @@ def transform_member_access(member_access: MemberAccess):
             "func1.var2.20.0",
         ),
         (
-            astroid.Name("glob", lineno=20, col_offset=0, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0, parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy")))),
+            astroid.Name("glob", lineno=20, col_offset=0, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0,
+                                                                                     parent=astroid.ClassDef("A",
+                                                                                                             lineno=2,
+                                                                                                             col_offset=3,
+                                                                                                             parent=astroid.Module(
+                                                                                                                 "numpy")))),
             "numpy.glob.20.0",
         ),
     ],
@@ -367,7 +377,9 @@ def transform_member_access(member_access: MemberAccess):
         # TODO: see above
     ]
 )
-def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name, expected: str) -> None:
+def test_calc_function_id_new(
+    node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name,
+    expected: str) -> None:
     result = calc_node_id(node)
     assert result.__str__() == expected
 
@@ -377,30 +389,48 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
     [
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.Name("var1", lineno=1, col_offset=4), astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
+            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4",
+                           NodeScope(astroid.Name("var1", lineno=1, col_offset=4),
+                                     astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.Name("var2", lineno=2, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
-             astroid.Name("var3", lineno=30, col_offset=4, parent=astroid.FunctionDef("func2", lineno=1, col_offset=0))],
-            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.Name("var1", lineno=1, col_offset=4), astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
-             NodeReference(astroid.Name("var2", lineno=2, col_offset=4), "func1.var2.2.4", NodeScope(astroid.Name("var2", lineno=2, col_offset=4), astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
-             NodeReference(astroid.Name("var3", lineno=30, col_offset=4), "func2.var3.30.4", NodeScope(astroid.Name("var3", lineno=30, col_offset=4), astroid.FunctionDef("func2", lineno=1, col_offset=0)), [], False)]
+             astroid.Name("var3", lineno=30, col_offset=4,
+                          parent=astroid.FunctionDef("func2", lineno=1, col_offset=0))],
+            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4",
+                           NodeScope(astroid.Name("var1", lineno=1, col_offset=4),
+                                     astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
+             NodeReference(astroid.Name("var2", lineno=2, col_offset=4), "func1.var2.2.4",
+                           NodeScope(astroid.Name("var2", lineno=2, col_offset=4),
+                                     astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
+             NodeReference(astroid.Name("var3", lineno=30, col_offset=4), "func2.var3.30.4",
+                           NodeScope(astroid.Name("var3", lineno=30, col_offset=4),
+                                     astroid.FunctionDef("func2", lineno=1, col_offset=0)), [], False)]
         ),
         (
-            [astroid.AssignName("var1", lineno=12, col_offset=42, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [NodeReference(astroid.AssignName("var1", lineno=12, col_offset=42), "func1.var1.12.42", NodeScope(astroid.AssignName("var1", lineno=12, col_offset=42), astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
+            [astroid.AssignName("var1", lineno=12, col_offset=42,
+                                parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
+            [NodeReference(astroid.AssignName("var1", lineno=12, col_offset=42), "func1.var1.12.42",
+                           NodeScope(astroid.AssignName("var1", lineno=12, col_offset=42),
+                                     astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
-             astroid.AssignName("var2", lineno=1, col_offset=8, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4", NodeScope(astroid.Name("var1", lineno=1, col_offset=4), astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
-             NodeReference(astroid.AssignName("var2", lineno=1, col_offset=8), "func1.var2.1.8", NodeScope(astroid.AssignName("var2", lineno=1, col_offset=8), astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
+             astroid.AssignName("var2", lineno=1, col_offset=8,
+                                parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
+            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4",
+                           NodeScope(astroid.Name("var1", lineno=1, col_offset=4),
+                                     astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
+             NodeReference(astroid.AssignName("var2", lineno=1, col_offset=8), "func1.var2.1.8",
+                           NodeScope(astroid.AssignName("var2", lineno=1, col_offset=8),
+                                     astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.ClassDef("MyClass", lineno=1, col_offset=0))],
             [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "MyClass.var1.1.4",
-                           NodeScope(astroid.Name("var1", lineno=1, col_offset=4), astroid.ClassDef("MyClass", lineno=1, col_offset=0)), [], False)]
+                           NodeScope(astroid.Name("var1", lineno=1, col_offset=4),
+                                     astroid.ClassDef("MyClass", lineno=1, col_offset=0)), [], False)]
         ),
         (
             [astroid.Name("glob", lineno=1, col_offset=4, parent=astroid.Module("mod"))],
@@ -430,8 +460,12 @@ def test_construct_reference_list(node: list[astroid.Name | astroid.AssignName],
 def assert_reference_list_equal(result: list[NodeReference], expected: list[NodeReference]) -> None:
     """ The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
     The real results name and scope are objects and not strings"""
-    result = [NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.potential_references, name.list_is_complete) for name in result]
-    expected = [NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.potential_references, name.list_is_complete) for name in expected]
+    result = [
+        NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.potential_references,
+                      name.list_is_complete) for name in result]
+    expected = [
+        NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.potential_references,
+                      name.list_is_complete) for name in expected]
     assert result == expected
 
 
@@ -786,23 +820,22 @@ def test_find_references_local(code, expected):
 #         for ref in reference:
 #             print(ref)
 
-    # assert module_scope == expected[0]
-    # assert class_scope == expected[1]
-    # assert function_scope == expected[2]
+# assert module_scope == expected[0]
+# assert class_scope == expected[1]
+# assert function_scope == expected[2]
 
 
 @dataclass
 class SimpleScope:
     node_name: str
-    children: list[str] | None
-    parent_scope: str
+    children: list[SimpleScope] | None
+    parent_scope: str | None
 
 
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
         (
-            # langauge=Python
             """
                 glob = 1
                 class A:
@@ -814,19 +847,34 @@ class SimpleScope:
                 def g():
                     var2 = 2
             """,
-            []
+            [SimpleScope(
+                'Module',
+                [SimpleScope('AssignName.glob', None, 'Module'),
+                 SimpleScope('ClassDef.A',
+                             [SimpleScope('FunctionDef.__init__',
+                                          [SimpleScope('AssignName.self.value', None, 'FunctionDef.__init__'),
+                                           SimpleScope('AssignName.self.test', None, 'FunctionDef.__init__')],
+                                          'ClassDef.A'),
+                              SimpleScope('FunctionDef.f',
+                                          [SimpleScope('AssignName.var1', None, 'FunctionDef.f')],
+                                          'ClassDef.A')], 'Module'),
+                 SimpleScope('FunctionDef.g',
+                             [SimpleScope('AssignName.var2', None, 'FunctionDef.g')],
+                             'Module')],
+                None)]
         ),
         (
             """
                 def function_scope():
                     res = 23
-                    test = 10
                     return res
             """,
             [SimpleScope(
-                'FunctionDef.function_scope',
-                ['AssignName.res', 'AssignName.test'],
-                'Module'
+                'Module',
+                [SimpleScope('FunctionDef.function_scope',
+                             [SimpleScope('AssignName.res', None, 'FunctionDef.function_scope')],
+                             'Module')],
+                None
             )]
         ),
         (
@@ -837,13 +885,12 @@ class SimpleScope:
                     return res
             """,
             [SimpleScope(
-                'AssignName.var1',
-                None,
-                'Module'),
-            SimpleScope(
-                'FunctionDef.function_scope',
-                ['AssignName.var1', 'AssignName.res'],
-                'Module'
+                'Module',
+                [SimpleScope('AssignName.var1', None, 'Module'),
+                 SimpleScope('FunctionDef.function_scope',
+                             [SimpleScope('AssignName.res', None, 'FunctionDef.function_scope')],
+                             'Module')],
+                None
             )]
         ),
         (
@@ -855,13 +902,12 @@ class SimpleScope:
                     return res
             """,
             [SimpleScope(
-                'AssignName.var1',
-                None,
-                'Module'),
-            SimpleScope(
-                'FunctionDef.function_scope',
-                ['AssignName.res'],
-                'Module'
+                'Module',
+                [SimpleScope('AssignName.var1', None, 'Module'),
+                 SimpleScope('FunctionDef.function_scope',
+                             [SimpleScope('AssignName.res', None, 'FunctionDef.function_scope')],
+                             'Module')],
+                None
             )]
 
         ),
@@ -875,16 +921,15 @@ class SimpleScope:
                         return var1
             """,
             [SimpleScope(
-                'ClassDef.A',
-                ['AssignName.class_attr1', 'FunctionDef.local_class_attr'],
-                'Module'
-            ),
-            SimpleScope(
-                'FunctionDef.local_class_attr',
-                ['AssignName.var1'],
-                'ClassDef.A'
+                'Module',
+                [SimpleScope('ClassDef.A',
+                             [SimpleScope('AssignName.class_attr1', None, 'ClassDef.A'),
+                              SimpleScope('FunctionDef.local_class_attr',
+                                          [SimpleScope('AssignName.var1', None, 'FunctionDef.local_class_attr')],
+                                          'ClassDef.A')],
+                             'Module')],
+                None
             )]
-
         ),
         (
             """
@@ -897,21 +942,17 @@ class SimpleScope:
                         return var1
             """,
             [SimpleScope(
-                'ClassDef.B',
-                ['FunctionDef.__init__', 'FunctionDef.local_instance_attr'],
-                'Module'
-            ),
-            SimpleScope(
-                'FunctionDef.__init__',
-                ['MemberAccess.self.instance_attr1'],
-                'ClassDef.B'
-            ),
-            SimpleScope(
-                'FunctionDef.local_instance_attr',
-                ['AssignName.var1'],
-                'ClassDef.B'
+                'Module',
+                [SimpleScope('ClassDef.B',
+                             [SimpleScope('FunctionDef.__init__',
+                                          [SimpleScope('AssignName.self.instance_attr1', None, 'FunctionDef.__init__')],
+                                          'ClassDef.B'),
+                              SimpleScope('FunctionDef.local_instance_attr',
+                                          [SimpleScope('AssignName.var1', None, 'FunctionDef.local_instance_attr')],
+                                          'ClassDef.B')],
+                             'Module')],
+                None
             )]
-
         ),
         (
             """
@@ -924,19 +965,16 @@ class SimpleScope:
                     return var1
             """,
             [SimpleScope(
-                'ClassDef.B',
-                ['FunctionDef.__init__'],
-                'Module'
-            ),
-            SimpleScope(
-                'FunctionDef.__init__',
-                ['MemberAccess.self.instance_attr1'],
-                'ClassDef.B'
-            ),
-            SimpleScope(
-                'FunctionDef.local_instance_attr',
-                ['AssignName.var1'],
-                'Module'
+                'Module',
+                [SimpleScope('ClassDef.B',
+                             [SimpleScope('FunctionDef.__init__',
+                                          [SimpleScope('AssignName.self.instance_attr1', None, 'FunctionDef.__init__')],
+                                          'ClassDef.B')],
+                             'Module'),
+                 SimpleScope('FunctionDef.local_instance_attr',
+                             [SimpleScope('AssignName.var1', None, 'FunctionDef.local_instance_attr')],
+                             'Module')],
+                None
             )]
         ),
         (
@@ -948,14 +986,14 @@ class SimpleScope:
                         var2 = 20
             """,
             [SimpleScope(
-                'ClassDef.A',
-                ['AssignName.var1', 'ClassDef.B'],
-                'Module'
-            ),
-            SimpleScope(
-                'ClassDef.B',
-                ['AssignName.var2'],
-                'ClassDef.A'
+                'Module',
+                [SimpleScope('ClassDef.A',
+                             [SimpleScope('AssignName.var1', None, 'ClassDef.A'),
+                              SimpleScope('ClassDef.B',
+                                          [SimpleScope('AssignName.var2', None, 'ClassDef.B')],
+                                          'ClassDef.A')],
+                             'Module')],
+                None
             )]
         ),
         (
@@ -967,14 +1005,14 @@ class SimpleScope:
                         var2 = 20
             """,
             [SimpleScope(
-                'FunctionDef.function_scope',
-                ['AssignName.var1', 'ClassDef.B'],
-                'Module'
-            ),
-            SimpleScope(
-                'ClassDef.B',
-                ['AssignName.var2'],
-                'FunctionDef.function_scope'
+                'Module',
+                [SimpleScope('FunctionDef.function_scope',
+                             [SimpleScope('AssignName.var1', None, 'FunctionDef.function_scope'),
+                              SimpleScope('ClassDef.B',
+                                          [SimpleScope('AssignName.var2', None, 'ClassDef.B')],
+                                          'FunctionDef.function_scope')],
+                             'Module')],
+                None
             )]
         ),
         (
@@ -986,14 +1024,14 @@ class SimpleScope:
                         var2 = 20
             """,
             [SimpleScope(
-                'FunctionDef.function_scope',
-                ['AssignName.var1', 'FunctionDef.local_function_scope'],
-                'Module'
-            ),
-            SimpleScope(
-                'FunctionDef.local_function_scope',
-                ['AssignName.var2'],
-                'FunctionDef.function_scope'
+                'Module',
+                [SimpleScope('FunctionDef.function_scope',
+                             [SimpleScope('AssignName.var1', None, 'FunctionDef.function_scope'),
+                              SimpleScope('FunctionDef.local_function_scope',
+                                          [SimpleScope('AssignName.var2', None, 'FunctionDef.local_function_scope')],
+                                          'FunctionDef.function_scope')],
+                             'Module')],
+                None
             )]
         ),
         (
@@ -1003,18 +1041,14 @@ class SimpleScope:
                 class A:
                     value = math.pi
             """,
-            [
-                SimpleScope(
-                    'Import.math',
-                    None,
-                    'Module'
-                ),
-                SimpleScope(
-                    'ClassDef.A',
-                    ['AssignName.value'],
-                    'Module'
-                )
-            ]
+            [SimpleScope(
+                'Module',
+                [SimpleScope('Import.math', None, 'Module'),
+                 SimpleScope('ClassDef.A',
+                             [SimpleScope('AssignName.value', None, 'ClassDef.A')],
+                             'Module')],
+                None
+            )]
         ),
         (
             """
@@ -1023,18 +1057,47 @@ class SimpleScope:
                 class B:
                     value = pi
             """,
-            [
-                SimpleScope(
-                    'ImportFrom.math.pi',
-                    None,
-                    'Module'
-                ),
-                SimpleScope(
-                    'ClassDef.B',
-                    ['AssignName.value'],
-                    'Module'
-                )
-            ]
+            [SimpleScope(
+                'Module',
+                [SimpleScope('ImportFrom.math.pi', None, 'Module'),
+                 SimpleScope('ClassDef.B',
+                             [SimpleScope('AssignName.value', None, 'ClassDef.B')],
+                             'Module')],
+                None
+            )]
+        ),
+        (
+            """
+                def function_scope():
+                    var1 = 10
+
+                    def local_function_scope():
+                        var2 = 20
+
+                        class local_class_scope:
+                            var3 = 30
+
+                            def local_class_function_scope():
+                                var4 = 40
+            """,
+            [SimpleScope(
+                'Module',
+                [SimpleScope('FunctionDef.function_scope',
+                             [SimpleScope('AssignName.var1', None, 'FunctionDef.function_scope'),
+                              SimpleScope('FunctionDef.local_function_scope',
+                                          [SimpleScope('AssignName.var2', None, 'FunctionDef.local_function_scope'),
+                                           SimpleScope('ClassDef.local_class_scope',
+                                                       [SimpleScope('AssignName.var3', None,
+                                                                    'ClassDef.local_class_scope'),
+                                                        SimpleScope('FunctionDef.local_class_function_scope',
+                                                                    [SimpleScope('AssignName.var4', None,
+                                                                                 'FunctionDef.local_class_function_scope')],
+                                                                    'ClassDef.local_class_scope')],
+                                                       'FunctionDef.local_function_scope')],
+                                          'FunctionDef.function_scope')],
+                             'Module')],
+                None
+            )]
         ),
         (
             """
@@ -1096,41 +1159,51 @@ class SimpleScope:
 
             """, [
                 SimpleScope(
-                    'ImportFrom.collections.abc.Callable',
-                    None,
-                    'Module'
-                ),
-                SimpleScope(
-                    'ImportFrom.typing.Any',
-                    None,
-                    'Module'
-                ),
-                SimpleScope(
-                    'Import.astroid',
-                    None,
-                    'Module'
-                ),
-                SimpleScope(
-                    'AssignName._EnterAndLeaveFunctions',
-                    None,
-                    'Module'
-                ),
-                SimpleScope(
-                    'ClassDef.ASTWalker',
-                    ['AssignName.additional_locals', 'FunctionDef.__init__', 'FunctionDef.walk', 'FunctionDef.__walk', 'FunctionDef.__enter', 'FunctionDef.__leave', 'FunctionDef.__get_callbacks'],
-                    'Module'
-                ),
-                SimpleScope(
-                    'FunctionDef.__init__',
-                    ['AssignName.self.handler', 'AssignName.self._cache'],
-                    'ClassDef.ASTWalker'
-                ),
-                ...
-            ]  # TODO: complete the expected data
-        )
+                    'Module',
+                    [SimpleScope('ImportFrom.collections.abc.Callable', None, 'Module'),
+                     SimpleScope('ImportFrom.typing.Any', None, 'Module'),
+                     SimpleScope('Import.astroid', None, 'Module'),
+                     SimpleScope('AssignName._EnterAndLeaveFunctions', None, 'Module'),
+                     SimpleScope('ClassDef.ASTWalker',
+                                 [SimpleScope('AssignName.additional_locals', None, 'ClassDef.ASTWalker'),
+                                  SimpleScope('FunctionDef.__init__',
+                                              [SimpleScope('AssignName.self._handler', None, 'FunctionDef.__init__'),
+                                               SimpleScope('AssignName.self._cache', None, 'FunctionDef.__init__')],
+                                              'ClassDef.ASTWalker'),
+                                  SimpleScope('FunctionDef.walk',
+                                              [SimpleScope('AssignName.self.__walk', None, 'FunctionDef.walk')],
+                                              'ClassDef.ASTWalker'),
+                                  SimpleScope('FunctionDef.__walk',
+                                              [SimpleScope('AssignName.visited_nodes', None, 'FunctionDef.__walk'),
+                                               SimpleScope('Call.visited_nodes.add', None, 'FunctionDef.__walk')],
+                                              'ClassDef.ASTWalker'),
+                                  SimpleScope('FunctionDef.__enter',
+                                              [SimpleScope('AssignName.method', None, 'FunctionDef.__enter'),
+                                               SimpleScope('Call.method', None, 'FunctionDef.__enter')],
+                                              'ClassDef.ASTWalker'),
+                                  SimpleScope('FunctionDef.__leave',
+                                              [SimpleScope('AssignName.method', None, 'FunctionDef.__leave'),
+                                               SimpleScope('Call.method', None, 'FunctionDef.__leave')],
+                                              'ClassDef.ASTWalker'),
+                                  SimpleScope('FunctionDef.__get_callbacks',
+                                              [SimpleScope('AssignName.klass', None, 'FunctionDef.__get_callbacks'),
+                                               SimpleScope('AssignName.methods', None, 'FunctionDef.__get_callbacks'),
+                                               SimpleScope('AssignName.handler', None, 'FunctionDef.__get_callbacks'),
+                                               SimpleScope('AssignName.class_name', None,
+                                                           'FunctionDef.__get_callbacks'),
+                                               SimpleScope('AssignName.enter_method', None,
+                                                           'FunctionDef.__get_callbacks'),
+                                               SimpleScope('AssignName.leave_method', None,
+                                                           'FunctionDef.__get_callbacks')],
+                                              'ClassDef.ASTWalker')],
+                                 'Module')],
+                    None
+                )
+            ]
+        ),
     ],
     ids=[
-        "Test",
+        "Seminar Example",
         "Function Scope",
         "Function Scope with variable",
         "Function Scope with global variable",
@@ -1140,37 +1213,52 @@ class SimpleScope:
         "Class Scope within Class Scope",
         "Class Scope within Function Scope",
         "Function Scope within Function Scope",
-        "Import and ClassDef",
-        "ImportFrom and ClassDef",
+        "Import Scope",
+        "Import From Scope",
+        "Complex Scope",
         "ASTWalker",
     ]
 )
 def test_get_scope(code, expected) -> None:
     result = get_scope(code)
-    #print(result)
-    # for ns in result:
-    #     for child in ns.children if ns.children is not None else []:
-    #         print(child)
-    assert result == expected
-    # assert_test_get_scope(result, expected)
+    assert_test_get_scope(result, expected)
 
 
 def assert_test_get_scope(result, expected) -> None:
     """ The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
     The real results name and scope are objects and not strings"""
-    result_transformed = SimpleScope("", [], "")
-    for scope in result.module_scope:
-        result_transformed.module_scope.append(to_string(scope.node))
-    for scope in result.class_scope:
-        result_transformed.class_scope.append(to_string(scope.node))
-    for scope in result.function_scope:
-        result_transformed.function_scope.append(to_string(scope.node))
-    # assert result_transformed == expected
-    assert result == expected
+
+    transformed_result = [transform_result(node) for node in result]
+    # assert result == expected
+    assert transformed_result == expected
+
+
+def transform_result(node):
+    # children = node.children if node.children is not None else []  # Check if node.children is not None
+    if node.children is not None:
+        return SimpleScope(
+            to_string(node.node),
+            [transform_result(child) for child in node.children],  # Iterate over children
+            to_string(node.parent_scope)
+        )
+    else:
+        return SimpleScope(
+            to_string(node.node),
+            None,
+            to_string(node.parent_scope)
+        )
 
 
 def to_string(node) -> str:
-    if isinstance(node, astroid.Call):
+    if isinstance(node, astroid.Module):
+        return "Module"
+    elif isinstance(node, astroid.ClassDef):
+        return f"{node.__class__.__name__}.{node.name}"
+    elif isinstance(node, astroid.FunctionDef):
+        return f"{node.__class__.__name__}.{node.name}"
+    elif isinstance(node, astroid.AssignName):
+        return f"{node.__class__.__name__}.{node.name}"
+    elif isinstance(node, astroid.Call):
         return f"{node.func.__class__.__name__}.{node.func.name}.CALL"
     elif isinstance(node, MemberAccess):
         result = transform_member_access(node)
@@ -1179,7 +1267,8 @@ def to_string(node) -> str:
         return f"{node.__class__.__name__}.{node.names[0][0]}"
     elif isinstance(node, astroid.ImportFrom):
         return f"{node.__class__.__name__}.{node.modname}.{node.names[0][0]}"
-    return f"{node.__class__.__name__}.{node.name}"
+    # return f"{node.__class__.__name__}.{node.name}"
+
 
 # @pytest.mark.parametrize(
 #     ("code", "expected"),
