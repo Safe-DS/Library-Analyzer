@@ -67,49 +67,89 @@ class ScopeDepth(Enum):
 # TODO: how to deal with the __init__ function of a class? It must be looked at separately
 @dataclass
 class ScopeFinder:
-    current_parent: list[astroid.NodeNG]
+    current_node: list[NodeScope] = field(default_factory=list)
+    current_parent_stack: list[astroid.NodeNG] = field(default_factory=list)
     children: list[NodeScope] = field(default_factory=list)
-    # scopes_list: Scopes = field(default_factory=lambda: Scopes(module_scope=[], class_scope=[], function_scope=[]))
 
     def enter_module(self, node: astroid.Module) -> None:
-        self.current_parent.append(node)
-        #scope_node = NodeScope(node=node, scope=None, parent_scope=None)
-        #self.scopes.append(scope_node)
+        print("enter_module ", node.name)
+        self.current_node.append(NodeScope(node=node, children=None, parent_scope=None))
+        self.current_parent_stack.append(node)
+
 
     def leave_module(self, node: astroid.Module) -> None:
-        self.current_parent.pop()
-        scope_node = NodeScope(node=node, children=self.children, parent_scope=None)
-        self.children.append(scope_node)
+        current_scope = self.current_node[-1]
+        for child in self.children:
+            print("children_leave_module", child)
+        self.current_parent_stack.pop()
+        print("leave_module", node.name)
+        for n in self.current_node:
+            print("RESULT", n)
 
     def enter_classdef(self, node: astroid.ClassDef) -> None:
-        #scope = self.scopes[-1]
-        ##parent = self.current_parent[-1]
-        ##scope_node = NodeScope(node=node, scope=scope, parent_scope=parent)
-        self.current_parent.append(node)
-        ##self.scopes.append(scope_node)
-
+        print("enter_classdef", node.name)
+        self.current_node.append(NodeScope(node=node, children=None, parent_scope=self.current_parent_stack[-1]))
+        self.current_parent_stack.append(node)
+        # print("enter_current_node", self.current_node[-1])
+        # for child in self.children:
+        #     print("children_enter_classdef", child)
 
     def leave_classdef(self, node: astroid.ClassDef) -> None:
-        self.current_parent.pop()
-        scope_node = NodeScope(node=node, children=self.children, parent_scope=self.current_parent[-1])
-        self.children.append(scope_node)
+        current_scope = self.current_parent_stack[-1]
+        outer_scope_children: list[NodeScope] = []
+        function_scope_children: list[NodeScope] = []
+        for child in self.children:
+            # print("children_leave_functiondef", child)
+            if not child.parent_scope == current_scope:  # add all children from this scope to the parent and remove them from children
+                outer_scope_children.append(child)
+                # print("KEEP", child)
+            else:
+                function_scope_children.append(child)
+                # print("REMOVE", child)
+
+        # print("ADD CHILDREN TO", self.current_node[-1])
+        self.current_node[-1].children = function_scope_children
+        # for n in self.current_node:
+        #     print("current_node", n)
+        self.children = outer_scope_children
+        self.children.append(self.current_node[-1])
+        self.current_parent_stack.pop()
+        print("leave_classdef", node.name)
+
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
-        ##scope = self.scopes[-1]
-        ##parent = self.current_parent[-1]
-        #scope_node = NodeScope(node=node, scope=None, parent_scope=parent)
-        self.current_parent.append(node)
-        ###self.scopes.append(scope_node)
-
+        # print("enter_functiondef", node.name)
+        self.current_node.append(NodeScope(node=node, children=None, parent_scope=self.current_parent_stack[-1]))
+        self.current_parent_stack.append(node)
+        # print("enter_current_node", self.current_node[-1])
+        # for child in self.children:
+        #     print("children_enter_functiondef", child)
+        # TODO: Special treatment for __init__ function
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
-        self.current_parent.pop()
-        scope_node = NodeScope(node=node, children=self.children, parent_scope=self.current_parent[-1])
+        current_scope = self.current_parent_stack[-1]
+        outer_scope_children: list[NodeScope] = []
+        function_scope_children: list[NodeScope] = []
         for child in self.children:
-            print(child)
-            if child.parent_scope.__class__.__name__ == "FunctionDef":
-                self.children.pop(self.children.index(child))
-        self.children.append(scope_node)
+            # print("children_leave_functiondef", child)
+            if not child.parent_scope == current_scope:  # add all children from this scope to the parent and remove them from children
+                outer_scope_children.append(child)
+                # print("KEEP", child)
+            else:
+                function_scope_children.append(child)
+                # print("REMOVE", child)
+
+        # print("ADD CHILDREN TO", self.current_node[-1])
+        self.current_node[-1].children = function_scope_children
+        # for n in self.current_node:
+        #     print("current_node", n)
+        self.children = outer_scope_children
+        self.children.append(self.current_node[-1])
+        self.current_node.pop() ## TODO: this is a problem if there are nested functions (more than one scope in bewtween)
+        self.current_parent_stack.pop()
+        # print("leave_functiondef", node.name)
+
+    ## TODO: maybe use one list instead of two lists
 
     # def enter_lambda(self, node: astroid.Lambda) -> None:
     #     self.scopes.function_scope.append(NodeReference(name=node.name, node_id=node.name, scope=NodeScope(scope=node)))
@@ -129,26 +169,26 @@ class ScopeFinder:
 
         elif isinstance(node.parent, astroid.Assign | astroid.Arguments | astroid.AssignAttr | astroid.Attribute | astroid.AugAssign | astroid.AnnAssign):
             ##scope = self.scopes[-1]
-            parent = self.current_parent[-1]
+            parent = self.current_parent_stack[-1]
             scope_node = NodeScope(node=node, children=None, parent_scope=parent)
             self.children.append(scope_node)
 
     def enter_assignattr(self, node: astroid.Attribute) -> None:
         member_access = construct_member_access(node)
         ##scope = self.scopes[-1]
-        parent = self.current_parent[-1]
+        parent = self.current_parent_stack[-1]
         scope_node = NodeScope(node=node, children=None, parent_scope=parent)
         self.children.append(scope_node)
 
     def enter_import(self, node: astroid.Import) -> None:
         ###scope = self.scopes[-1]
-        parent = self.current_parent[-1]
+        parent = self.current_parent_stack[-1]
         scope_node = NodeScope(node=node, children=None, parent_scope=parent)
         self.children.append(scope_node)
 
     def enter_importfrom(self, node: astroid.ImportFrom) -> None:
         ##scope = self.scopes[-1]
-        parent = self.current_parent[-1]
+        parent = self.current_parent_stack[-1]
         scope_node = NodeScope(node=node, children=None, parent_scope=parent)
         self.children.append(scope_node)
 
@@ -338,14 +378,16 @@ def get_nodes_for_scope(reference_list: list[NodeReference]) -> Scopes:
 
 
 def get_scope(code: str) -> list[NodeScope]:
-    scope_handler = ScopeFinder(["Module"])
+    scope_handler = ScopeFinder()
     walker = ASTWalker(scope_handler)
     # scopes: list[NodeScope] = []
     module = astroid.parse(code)
     # print(module.repr_tree())
     walker.walk(module)
-    scopes = scope_handler.children
+    scopes = scope_handler.current_node
     scope_handler.children = []
+    scope_handler.current_node = []
+    scope_handler.current_parent_stack = []
 
     # if isinstance(module, astroid.Module):
     #     for node in module.body:
