@@ -1,5 +1,3 @@
-import spacy
-import spacy.cli
 from library_analyzer.processing.api.model import (
     Parameter,
     ParameterAssignment,
