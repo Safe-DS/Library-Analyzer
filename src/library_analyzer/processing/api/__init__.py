@@ -32,7 +32,6 @@ from ._resolve_references import (
     Scopes,
     MemberAccess,
     calc_node_id,
-    get_nodes_for_scope,
     get_scope,
 )
 
@@ -71,7 +70,6 @@ __all__ = [
     "MemberAccess",
     "find_references",
     "get_name_nodes",
-    "get_nodes_for_scope",
     "create_references",
     "add_potential_target_references",
     "add_potential_value_references",
