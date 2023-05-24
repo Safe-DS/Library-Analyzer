@@ -31,10 +31,9 @@ class NodeID:
 
 @dataclass
 class NodeScope:
-    node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.AssignName | astroid.Name | astroid.Call | astroid.Import | astroid.ImportFrom | MemberAccess
+    node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.AssignName | astroid.AssignAttr | astroid.Call | astroid.Import | astroid.ImportFrom | MemberAccess
     children: list[NodeScope] | None = None
     parent_scope: astroid.NodeNG | None = None
-    # parent_scope: str | None = None  # TODO: add support for NodeScope, so that there is more info about the parent: NodeScope | None = field(default=None)
 
 
 @dataclass
@@ -124,21 +123,26 @@ class ScopeFinder:
         self.children.append(self.current_node_stack[-1])
         self.current_node_stack.pop()
 
-    # def enter_lambda(self, node: astroid.Lambda) -> None:
-    #     self.scopes.function_scope.append(NodeReference(name=node.name, node_id=node.name, scope=NodeScope(scope=node)))
+    # def enter_lambda(self, node: astroid.Lambda) -> None: self.scopes.function_scope.append(NodeReference(
+    # name=node.name, node_id=node.name, scope=NodeScope(scope=node)))
     #
     # def enter_generatorexp(self, node: astroid.GeneratorExp) -> None:
     #     self.scopes.function_scope.append(NodeReference(name=node.name, node_id=node.name, scope=NodeScope(scope=node)))
 
-    # def enter_call(self, node: astroid.Call) -> None:
-    #     if isinstance(node.func, astroid.Name):
-    #         scope = self.depth[-1]
-    #         self.scopes_list.function_scope.append(NodeScope(node=node, scope=scope, parent_scope=self.depth[-1]))
-    #         # TODO: implement and test this
+    def enter_call(self, node: astroid.Call) -> None:
+        if isinstance(node.parent, astroid.AssignName | astroid.Expr) and isinstance(node.func, astroid.Name | astroid.Attribute):
+            parent = self.current_node_stack[-1].node
+            scope_node = NodeScope(node=node, children=None, parent_scope=parent)
+            self.children.append(scope_node)
 
     def enter_assignname(self, node: astroid.AssignName) -> None:
         if isinstance(node.parent, astroid.Arguments):
-            pass
+            if node.name == "self":
+                pass
+            else:
+                parent = self.current_node_stack[-1].node
+                scope_node = NodeScope(node=node, children=None, parent_scope=parent)
+                self.children.append(scope_node)
 
         elif isinstance(node.parent, astroid.Assign | astroid.Arguments | astroid.AssignAttr | astroid.Attribute | astroid.AugAssign | astroid.AnnAssign):
             parent = self.current_node_stack[-1].node
@@ -146,7 +150,7 @@ class ScopeFinder:
             self.children.append(scope_node)
 
     def enter_assignattr(self, node: astroid.Attribute) -> None:  # TODO: check if Attribute is correct here
-        member_access = construct_member_access(node)
+        # member_access = construct_member_access(node)
         parent = self.current_node_stack[-1].node
         scope_node = NodeScope(node=node, children=None, parent_scope=parent)
         self.children.append(scope_node)
@@ -325,7 +329,7 @@ def get_scope(code: str) -> list[NodeScope]:
     scope_handler = ScopeFinder()
     walker = ASTWalker(scope_handler)
     module = astroid.parse(code)
-    # print(module.repr_tree())
+    print(module.repr_tree())
     walker.walk(module)
 
     scopes = scope_handler.children
