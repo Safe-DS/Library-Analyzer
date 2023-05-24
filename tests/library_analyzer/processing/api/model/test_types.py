@@ -9,7 +9,7 @@ from library_analyzer.processing.api.model import (
     NamedType,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
     create_type,
 )
 
@@ -79,11 +79,11 @@ from library_analyzer.processing.api.model import (
     ],
 )
 def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> None:
-    result = create_type(ParameterDocumentation(docstring_type, "", ""))
+    result = create_type(ParameterDocstring(docstring_type, "", ""))
     if result is None:
         assert expected == {}
     else:
-        assert result.to_json() == expected
+        assert result.to_dict() == expected
 
 
 @pytest.mark.parametrize(
@@ -101,7 +101,10 @@ def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> Non
             },
         ),
         (
-            "Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [1, infinity].\n\n.. versionadded:: 0.18.0",
+            (
+                "Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [1,"
+                " infinity].\n\n.. versionadded:: 0.18.0"
+            ),
             {
                 "base_type": "float",
                 "kind": "BoundaryType",
@@ -115,11 +118,11 @@ def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> Non
     ],
 )
 def test_boundary_from_string(description: str, expected: dict[str, Any]) -> None:
-    result = create_type(ParameterDocumentation("", "", description))
+    result = create_type(ParameterDocstring("", "", description))
     if result is None:
         assert expected == {}
     else:
-        assert result.to_json() == expected
+        assert result.to_dict() == expected
 
 
 @pytest.mark.parametrize(
@@ -153,13 +156,13 @@ def test_boundary_and_union_from_string(
     expected: dict[str, Any],
 ) -> None:
     result = create_type(
-        ParameterDocumentation(type=docstring_type, default_value="", description=docstring_description),
+        ParameterDocstring(type=docstring_type, default_value="", description=docstring_description),
     )
 
     if result is None:
         assert expected == {}
     else:
-        assert result.to_json() == expected
+        assert result.to_dict() == expected
 
 
 def test_correct_hash() -> None:
@@ -170,7 +173,7 @@ def test_correct_hash() -> None:
         default_value="'test_str'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("'hashvalue'", "r", "r"),
+        docstring=ParameterDocstring("'hashvalue'", "r", "r"),
     )
     assert hash(parameter) == hash(deepcopy(parameter))
     enum_values = frozenset({"a", "b", "c"})
@@ -186,6 +189,7 @@ def test_correct_hash() -> None:
     assert NamedType("a") != NamedType("b")
     assert hash(NamedType("a")) != hash(NamedType("b"))
     attribute = Attribute(
+        "boundary",
         "boundary",
         BoundaryType(
             base_type="int",
@@ -203,7 +207,10 @@ def test_correct_hash() -> None:
     ("string", "expected"),
     [
         (
-            "float, default=0.0 Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [0.0, infinity).\n\n.. versionadded:: 0.18.0",
+            (
+                "float, default=0.0 Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range"
+                " [0.0, infinity).\n\n.. versionadded:: 0.18.0"
+            ),
             BoundaryType(
                 base_type="float",
                 min=0,
@@ -250,7 +257,10 @@ def test_correct_hash() -> None:
             ),
         ),
         (
-            "Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [-2, -1].\n\n.. versionadded:: 0.18.0",
+            (
+                "Tolerance for singular values computed by svd_solver == 'arpack'.\nMust be of range [-2, -1].\n\n.."
+                " versionadded:: 0.18.0"
+            ),
             BoundaryType(
                 base_type="float",
                 min=-2,

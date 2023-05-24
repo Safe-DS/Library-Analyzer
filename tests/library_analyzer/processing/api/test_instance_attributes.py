@@ -20,7 +20,7 @@ from library_analyzer.processing.api.model import Attribute, NamedType
 
                              """,
             ),
-            [Attribute("string_value", NamedType("str"))],
+            [Attribute("test/string_value", "string_value", NamedType("str"))],
         ),
         (
             inspect.cleandoc(
@@ -50,8 +50,8 @@ from library_analyzer.processing.api.model import Attribute, NamedType
                              """,
             ),
             [
-                Attribute("other_class", NamedType("object")),
-                Attribute("int_value", NamedType("int")),
+                Attribute("test/other_class", "other_class", NamedType("object")),
+                Attribute("test/int_value", "int_value", NamedType("int")),
             ],
         ),
         (
@@ -64,8 +64,8 @@ from library_analyzer.processing.api.model import Attribute, NamedType
                              """,
             ),
             [
-                Attribute("int_value", NamedType("int")),
-                Attribute("bool_value", NamedType("bool")),
+                Attribute("test/int_value", "int_value", NamedType("int")),
+                Attribute("test/bool_value", "bool_value", NamedType("bool")),
             ],
         ),
     ],
@@ -74,4 +74,4 @@ def test_instance_attributes(class_code: str, expected_attributes: list[Attribut
     module = astroid.parse(class_code)
     classes = [class_ for class_ in module.body if isinstance(class_, astroid.ClassDef)]
     assert len(classes) == 1
-    assert get_instance_attributes(classes[0]) == expected_attributes
+    assert get_instance_attributes(classes[0], "test") == expected_attributes

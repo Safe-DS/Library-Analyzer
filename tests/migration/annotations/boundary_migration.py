@@ -7,7 +7,7 @@ from library_analyzer.processing.annotations.model import (
 from library_analyzer.processing.api.model import (
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 from library_analyzer.processing.migration.annotations import (
     get_migration_text,
@@ -35,7 +35,7 @@ def migrate_boundary_annotation_data_one_to_one_mapping() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", ""),
+        docstring=ParameterDocstring("int", "1", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.boundary.test1.testB",
@@ -44,7 +44,7 @@ def migrate_boundary_annotation_data_one_to_one_mapping() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", ""),
+        docstring=ParameterDocstring("int", "1", ""),
     )
     boundary_annotation = BoundaryAnnotation(
         target="test/test.boundary.test1.testA",
@@ -95,7 +95,7 @@ def migrate_boundary_annotation_data_one_to_one_mapping_int_to_float() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "1", "int in the range of (0, 10)"),
     )
     parameterv2 = Parameter(
         id_="test/test.boundary.test2.testB",
@@ -104,7 +104,7 @@ def migrate_boundary_annotation_data_one_to_one_mapping_int_to_float() -> (
         default_value="1.0",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("float", "1.0", "float in the range of [1.0, 9.0]"),
+        docstring=ParameterDocstring("float", "1.0", "float in the range of [1.0, 9.0]"),
     )
 
     mapping = OneToOneMapping(1.0, parameterv1, parameterv2)
@@ -159,7 +159,7 @@ def migrate_boundary_annotation_data_one_to_one_mapping_float_to_int() -> (
         default_value="1.0",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("float", "1.0", "float in the range of [0.5, 9.5]"),
+        docstring=ParameterDocstring("float", "1.0", "float in the range of [0.5, 9.5]"),
     )
     parameterv2 = Parameter(
         id_="test/test.boundary.test3.testB",
@@ -168,7 +168,7 @@ def migrate_boundary_annotation_data_one_to_one_mapping_float_to_int() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "1", "int in the range of (0, 10)"),
     )
 
     mapping = OneToOneMapping(1.0, parameterv1, parameterv2)
@@ -222,7 +222,7 @@ def migrate_boundary_annotation_data_one_to_many_mapping() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "1", "int in the range of (0, 10)"),
     )
     parameterv2_a = Parameter(
         id_="test/test.boundary.test4.testA",
@@ -231,7 +231,7 @@ def migrate_boundary_annotation_data_one_to_many_mapping() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", "int in the range of (0, 10)"),
+        docstring=ParameterDocstring("int", "1", "int in the range of (0, 10)"),
     )
     parameterv2_b = Parameter(
         id_="test/test.boundary.test4.testB",
@@ -240,7 +240,7 @@ def migrate_boundary_annotation_data_one_to_many_mapping() -> (
         default_value="1.0",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("float", "1.0", "float in the range of (0.0, 10.0)"),
+        docstring=ParameterDocstring("float", "1.0", "float in the range of (0.0, 10.0)"),
     )
     parameterv2_c = Parameter(
         id_="test/test.boundary.test4.testC",
@@ -249,7 +249,7 @@ def migrate_boundary_annotation_data_one_to_many_mapping() -> (
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("", "", ""),
+        docstring=ParameterDocstring("", "", ""),
     )
 
     mapping = OneToManyMapping(1.0, parameterv1, [parameterv2_a, parameterv2_b, parameterv2_c])
@@ -335,7 +335,7 @@ def migrate_boundary_annotation_data_duplicated() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", ""),
+        docstring=ParameterDocstring("int", "1", ""),
     )
     parameterv1_2 = Parameter(
         id_="test/test.boundary.duplicate.testA_2",
@@ -344,7 +344,7 @@ def migrate_boundary_annotation_data_duplicated() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", ""),
+        docstring=ParameterDocstring("int", "1", ""),
     )
     parameterv2 = Parameter(
         id_="test/test.boundary.duplicate.testB",
@@ -353,7 +353,7 @@ def migrate_boundary_annotation_data_duplicated() -> (
         default_value="1",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("int", "1", ""),
+        docstring=ParameterDocstring("int", "1", ""),
     )
     boundary_annotation = BoundaryAnnotation(
         target="test/test.boundary.duplicate.testA",

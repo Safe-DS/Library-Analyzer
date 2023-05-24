@@ -4,10 +4,10 @@ from library_analyzer.processing.api.docstring_parsing import (
     PlaintextDocstringParser,
 )
 from library_analyzer.processing.api.model import (
-    ClassDocumentation,
-    FunctionDocumentation,
+    ClassDocstring,
+    FunctionDocstring,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 
 
@@ -39,14 +39,14 @@ class C:
     [
         (
             class_with_documentation,
-            ClassDocumentation(
+            ClassDocstring(
                 description="Lorem ipsum.\n\nDolor sit amet.",
                 full_docstring="Lorem ipsum.\n\nDolor sit amet.",
             ),
         ),
         (
             class_without_documentation,
-            ClassDocumentation(
+            ClassDocstring(
                 description="",
                 full_docstring="",
             ),
@@ -60,7 +60,7 @@ class C:
 def test_get_class_documentation(
     plaintext_docstring_parser: PlaintextDocstringParser,
     python_code: str,
-    expected_class_documentation: ClassDocumentation,
+    expected_class_documentation: ClassDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
 
@@ -90,14 +90,14 @@ def f(p: int):
     [
         (
             function_with_documentation,
-            FunctionDocumentation(
+            FunctionDocstring(
                 description="Lorem ipsum.\n\nDolor sit amet.",
                 full_docstring="Lorem ipsum.\n\nDolor sit amet.",
             ),
         ),
         (
             function_without_documentation,
-            FunctionDocumentation(description=""),
+            FunctionDocstring(description=""),
         ),
     ],
     ids=[
@@ -108,7 +108,7 @@ def f(p: int):
 def test_get_function_documentation(
     plaintext_docstring_parser: PlaintextDocstringParser,
     python_code: str,
-    expected_function_documentation: FunctionDocumentation,
+    expected_function_documentation: FunctionDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
 
@@ -122,7 +122,7 @@ def test_get_function_documentation(
         (
             function_with_documentation,
             "p",
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="",
                 default_value="",
                 description="",
@@ -131,7 +131,7 @@ def test_get_function_documentation(
         (
             function_without_documentation,
             "p",
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="",
                 default_value="",
                 description="",
@@ -147,7 +147,7 @@ def test_get_parameter_documentation(
     plaintext_docstring_parser: PlaintextDocstringParser,
     python_code: str,
     parameter_name: str,
-    expected_parameter_documentation: ParameterDocumentation,
+    expected_parameter_documentation: ParameterDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.FunctionDef)

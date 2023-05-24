@@ -7,20 +7,20 @@ if TYPE_CHECKING:
     import astroid
 
     from library_analyzer.processing.api.model import (
-        ClassDocumentation,
-        FunctionDocumentation,
+        ClassDocstring,
+        FunctionDocstring,
         ParameterAssignment,
-        ParameterDocumentation,
+        ParameterDocstring,
     )
 
 
 class AbstractDocstringParser(ABC):
     @abstractmethod
-    def get_class_documentation(self, class_node: astroid.ClassDef) -> ClassDocumentation:
+    def get_class_documentation(self, class_node: astroid.ClassDef) -> ClassDocstring:
         pass
 
     @abstractmethod
-    def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocumentation:
+    def get_function_documentation(self, function_node: astroid.FunctionDef) -> FunctionDocstring:
         pass
 
     @abstractmethod
@@ -29,5 +29,5 @@ class AbstractDocstringParser(ABC):
         function_node: astroid.FunctionDef,
         parameter_name: str,
         parameter_assigned_by: ParameterAssignment,
-    ) -> ParameterDocumentation:
+    ) -> ParameterDocstring:
         pass

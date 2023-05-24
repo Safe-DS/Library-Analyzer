@@ -4,10 +4,11 @@ import astroid
 import pytest
 from library_analyzer.processing.api._ast_visitor import trim_code
 from library_analyzer.processing.api.model import (
+    API,
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
 )
 
 
@@ -215,7 +216,7 @@ def test_cut_documentation_from_code(code: str, expected_code: str) -> None:
             superclasses=[],
             is_public=True,
             reexported_by=[],
-            documentation=ClassDocumentation(
+            docstring=ClassDocstring(
                 "this documentation string cannot be used",
             ),
             code=code,
@@ -230,7 +231,55 @@ def test_cut_documentation_from_code(code: str, expected_code: str) -> None:
             results=[],
             is_public=True,
             reexported_by=[],
-            documentation=FunctionDocumentation(),
+            docstring=FunctionDocstring(),
             code=code,
         )
     assert api_element.get_formatted_code(cut_documentation=True) == expected_code + "\n"
+
+
+class TestPublicAPI:
+    def test_should_return_only_public_api_elements(self) -> None:
+        public_function = Function.from_dict(
+            {"id": "test/test/publicFunction", "qname": "test.publicFunction", "is_public": True},
+        )
+        internal_function = Function.from_dict(
+            {"id": "test/test/internalFunction", "qname": "test.internalFunction", "is_public": False},
+        )
+        public_method = Function.from_dict(
+            {"id": "test/test/PublicClass/publicMethod", "qname": "test.PublicClass.publicMethod", "is_public": True},
+        )
+        internal_method = Function.from_dict(
+            {
+                "id": "test/test/PublicClass/internalMethod",
+                "qname": "test.PublicClass.internalMethod",
+                "is_public": False,
+            },
+        )
+        public_class = Class.from_dict(
+            {
+                "id": "test/test/PublicClass",
+                "qname": "test.PublicClass",
+                "is_public": True,
+                "methods": [public_method.id, internal_method.id],
+            },
+        )
+        internal_class = Class.from_dict(
+            {"id": "test/test/InternalClass", "qname": "test.InternalClass", "is_public": False, "methods": []},
+        )
+        api = API(
+            distribution="test",
+            package="test",
+            version="1.0.0",
+        )
+        api.add_class(public_class)
+        api.add_class(internal_class)
+        api.add_function(public_function)
+        api.add_function(internal_function)
+        api.add_function(public_method)
+        api.add_function(internal_method)
+
+        public_api = api.get_public_api()
+
+        assert public_api.class_count() == 1
+        assert len(list(public_api.classes.values())[0].methods) == 1
+        assert public_api.function_count() == 2
