@@ -72,7 +72,7 @@ class ScopeFinder:
         self.current_node_stack.append(NodeScope(node=node, children=None, parent_scope=None))
 
     def leave_module(self, node: astroid.Module) -> None:
-        current_scope = self.current_node_stack[-1].node
+        current_scope = node
         outer_scope_children: list[NodeScope] = []
         module_scope_children: list[NodeScope] = []
         for child in self.children:
@@ -90,7 +90,7 @@ class ScopeFinder:
         self.current_node_stack.append(NodeScope(node=node, children=None, parent_scope=self.current_node_stack[-1].node))
 
     def leave_classdef(self, node: astroid.ClassDef) -> None:
-        current_scope = self.current_node_stack[-1].node
+        current_scope = node
         outer_scope_children: list[NodeScope] = []
         class_scope_children: list[NodeScope] = []
         for child in self.children:
@@ -109,7 +109,7 @@ class ScopeFinder:
         # TODO: Special treatment for __init__ function
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
-        current_scope = self.current_node_stack[-1].node
+        current_scope = node
         outer_scope_children: list[NodeScope] = []
         function_scope_children: list[NodeScope] = []
         for child in self.children:
@@ -192,9 +192,9 @@ class NameNodeFinder:
         member_access = construct_member_access(node)
         self.names_list.append(member_access)
 
-    def enter_import(self, node: astroid.Import) -> None:
-        for name in node.names:
-            self.names_list.append(name[0])
+    # def enter_import(self, node: astroid.Import) -> None:
+    #     for name in node.names:
+    #         self.names_list.append(name[0])
 
 
 def construct_member_access(node: astroid.Attribute | astroid.AssignAttr) -> MemberAccess:
@@ -240,21 +240,25 @@ def calc_node_id(node: Union[astroid.Module, astroid.ClassDef, astroid.FunctionD
     # TODO: add fitting default case
 
 
-def create_references(names_list: list[astroid.Name | astroid.AssignName]) -> list[NodeReference]:
-    """Construct a list of references from a list of name nodes."""
-    references_proto: list[NodeReference] = []
-    for name in names_list:
-        node_id = calc_node_id(name)
-        if name.scope() == "Module":
-            node_scope = NodeScope(name, name.scope(), None)  # TODO: check if this works correct when working with real data
-        else:
-            node_scope = NodeScope(name, name.scope(), name.scope().parent)
-        if isinstance(name, astroid.Name):
-            references_proto.append(NodeReference(name, node_id.__str__(), node_scope, [], False))
-        if isinstance(name, astroid.AssignName):
-            references_proto.append(NodeReference(name, node_id.__str__(), node_scope, [], False))
+def create_references() -> None:
+    pass
 
-    return references_proto
+
+# def create_references(names_list: list[astroid.Name | astroid.AssignName]) -> list[NodeReference]:
+#     """Construct a list of references from a list of name nodes."""
+#     references_proto: list[NodeReference] = []
+#     for name in names_list:
+#         node_id = calc_node_id(name)
+#         if name.scope() == "Module":
+#             node_scope = NodeScope(name, name.scope(), None)  # TODO: check if this works correct when working with real data
+#         else:
+#             node_scope = NodeScope(name, name.scope(), name.scope().parent)
+#         if isinstance(name, astroid.Name):
+#             references_proto.append(NodeReference(name, node_id.__str__(), node_scope, [], False))
+#         if isinstance(name, astroid.AssignName):
+#             references_proto.append(NodeReference(name, node_id.__str__(), node_scope, [], False))
+#
+#     return references_proto
 
 
 def add_potential_value_references(reference: NodeReference, reference_list: list[NodeReference]) -> NodeReference:
@@ -292,8 +296,9 @@ def add_potential_target_references(reference: NodeReference, reference_list: li
 
     return complete_references
 
+
 # TODO: remove the commented for this function
-def find_references():
+def find_references() -> None:
     pass
 
 # def find_references(module_names: list[astroid.Name]) -> list[NodeReference]:

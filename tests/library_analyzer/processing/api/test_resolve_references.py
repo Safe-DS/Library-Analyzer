@@ -1067,9 +1067,7 @@ def test_get_scope(code: str, expected: list[SimpleScope]) -> None:
 
 
 def assert_test_get_scope(result: list[NodeScope], expected: list[SimpleScope]) -> None:
-
-    """ The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
-    The real results name and scope are objects and not strings"""
+    """ The result and the expected data is simplified to make the comparison easier. """
 
     transformed_result = [transform_result(node) for node in result]
     # assert result == expected
@@ -1094,11 +1092,7 @@ def transform_result(node: NodeScope) -> SimpleScope:
 def to_string(node: astroid.NodeNG) -> str:
     if isinstance(node, astroid.Module):
         return "Module"
-    elif isinstance(node, astroid.ClassDef):
-        return f"{node.__class__.__name__}.{node.name}"
-    elif isinstance(node, astroid.FunctionDef):
-        return f"{node.__class__.__name__}.{node.name}"
-    elif isinstance(node, astroid.AssignName):
+    elif isinstance(node, astroid.ClassDef | astroid.FunctionDef | astroid.AssignName):
         return f"{node.__class__.__name__}.{node.name}"
     elif isinstance(node, astroid.AssignAttr):
         return f"{node.__class__.__name__}.{node.attrname}"
