@@ -1086,7 +1086,7 @@ def transform_result(node: NodeScope) -> SimpleScope:
         )
 
 
-def to_string(node: astroid.NodeNG) -> str:
+def to_string(node: astroid.NodeNG) -> str | None:
     if isinstance(node, astroid.Module):
         return "Module"
     elif isinstance(node, astroid.ClassDef | astroid.FunctionDef | astroid.AssignName):
@@ -1105,7 +1105,8 @@ def to_string(node: astroid.NodeNG) -> str:
         return f"{node.__class__.__name__}.{node.names[0][0]}"
     elif isinstance(node, astroid.ImportFrom):
         return f"{node.__class__.__name__}.{node.modname}.{node.names[0][0]}"
-    return f"{node.__class__.__name__}"
+    else:
+        return None
 
     # match node:
     #     case astroid.Module():

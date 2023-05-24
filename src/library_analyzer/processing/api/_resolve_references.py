@@ -240,6 +240,7 @@ def calc_node_id(node: astroid.Module | astroid.ClassDef | astroid.FunctionDef |
     # TODO: add fitting default case
 
 
+# TODO: remove the commented for this function
 def create_references() -> None:
     pass
 
@@ -261,40 +262,49 @@ def create_references() -> None:
 #     return references_proto
 
 
-def add_potential_value_references(reference: NodeReference, reference_list: list[NodeReference]) -> NodeReference:
-    """Add all potential value references to a reference.
-
-    A potential value reference is a reference where the name is used as a value.
-    Therefor we need to check all nodes further down the list where the name is used as a value.
-    """
-    complete_references = reference
-    if reference in reference_list:
-        for next_reference in reference_list[reference_list.index(reference):]:
-            if next_reference.name.name == reference.name.name and isinstance(next_reference.name, astroid.Name):
-                complete_references.potential_references.append(next_reference.name)
-
-    # TODO: check if the list is actually complete
-    complete_references.list_is_complete = True
-
-    return complete_references
+# TODO: remove the commented for this function
+def add_potential_value_references() -> None:
+    pass
 
 
-def add_potential_target_references(reference: NodeReference, reference_list: list[NodeReference]) -> NodeReference:
-    """Add all potential target references to a reference.
+# def add_potential_value_references(reference: NodeReference, reference_list: list[NodeReference]) -> NodeReference:
+#     """Add all potential value references to a reference.
+#
+#     A potential value reference is a reference where the name is used as a value.
+#     Therefor we need to check all nodes further down the list where the name is used as a value.
+#     """
+#     complete_references = reference
+#     if reference in reference_list:
+#         for next_reference in reference_list[reference_list.index(reference):]:
+#             if next_reference.name.name == reference.name.name and isinstance(next_reference.name, astroid.Name):
+#                 complete_references.potential_references.append(next_reference.name)
+#
+#     # TODO: check if the list is actually complete
+#     complete_references.list_is_complete = True
+#
+#     return complete_references
 
-    A potential target reference is a reference where the name is used as a target.
-    Therefor we need to check all nodes further up the list where the name is used as a target.
-    """
-    complete_references = reference
-    if reference in reference_list:
-        for next_reference in reference_list[:reference_list.index(reference)]:
-            if next_reference.name.name == reference.name.name and isinstance(next_reference.name, astroid.AssignName):
-                complete_references.potential_references.append(next_reference.name)
+def add_potential_target_references() -> None:
+    pass
 
-    # TODO: check if the list is actually complete
-    complete_references.list_is_complete = True
 
-    return complete_references
+# TODO: remove the commented for this function
+# def add_potential_target_references(reference: NodeReference, reference_list: list[NodeReference]) -> NodeReference:
+#     """Add all potential target references to a reference.
+#
+#     A potential target reference is a reference where the name is used as a target.
+#     Therefor we need to check all nodes further up the list where the name is used as a target.
+#     """
+#     complete_references = reference
+#     if reference in reference_list:
+#         for next_reference in reference_list[:reference_list.index(reference)]:
+#             if next_reference.name.name == reference.name.name and isinstance(next_reference.name, astroid.AssignName):
+#                 complete_references.potential_references.append(next_reference.name)
+#
+#     # TODO: check if the list is actually complete
+#     complete_references.list_is_complete = True
+#
+#     return complete_references
 
 
 # TODO: remove the commented for this function
