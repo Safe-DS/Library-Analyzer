@@ -488,7 +488,7 @@ class Parameter:
         self.assigned_by: ParameterAssignment = assigned_by
         self.is_public: bool = is_public
         self.docstring = docstring
-        self.type: AbstractType | None = create_type(docstring)
+        self.type: AbstractType | None = create_type(docstring.type, docstring.description)
 
     def is_optional(self) -> bool:
         return self.default_value is not None

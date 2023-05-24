@@ -79,7 +79,8 @@ from library_analyzer.processing.api.model import (
     ],
 )
 def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> None:
-    result = create_type(ParameterDocstring(docstring_type, "", ""))
+    documentation = ParameterDocstring(docstring_type, "", "")
+    result = create_type(documentation.type, documentation.description)
     if result is None:
         assert expected == {}
     else:
@@ -118,7 +119,8 @@ def test_union_from_string(docstring_type: str, expected: dict[str, Any]) -> Non
     ],
 )
 def test_boundary_from_string(description: str, expected: dict[str, Any]) -> None:
-    result = create_type(ParameterDocstring("", "", description))
+    documentation = ParameterDocstring("", "", description)
+    result = create_type(documentation.type, documentation.description)
     if result is None:
         assert expected == {}
     else:
@@ -155,9 +157,8 @@ def test_boundary_and_union_from_string(
     docstring_description: str,
     expected: dict[str, Any],
 ) -> None:
-    result = create_type(
-        ParameterDocstring(type=docstring_type, default_value="", description=docstring_description),
-    )
+    documentation = ParameterDocstring(type=docstring_type, default_value="", description=docstring_description)
+    result = create_type(documentation.type, documentation.description)
 
     if result is None:
         assert expected == {}

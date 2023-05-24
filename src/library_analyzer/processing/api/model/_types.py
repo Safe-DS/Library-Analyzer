@@ -3,10 +3,7 @@ from __future__ import annotations
 import re
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, ClassVar
-
-if TYPE_CHECKING:
-    from ._docstring import ParameterDocstring
+from typing import Any, ClassVar
 
 
 class AbstractType(metaclass=ABCMeta):
@@ -14,15 +11,47 @@ class AbstractType(metaclass=ABCMeta):
     def from_dict(cls, d: dict[str, Any]) -> AbstractType | None:
         if d is None:
             return None
+
         value: AbstractType | None = NamedType.from_dict(d)
         if value is not None:
             return value
+
         value = EnumType.from_dict(d)
         if value is not None:
             return value
+
         value = BoundaryType.from_dict(d)
         if value is not None:
             return value
+
+        value = ListType.from_dict(d)
+        if value is not None:
+            return value
+
+        value = DictType.from_dict(d)
+        if value is not None:
+            return value
+
+        value = SetType.from_dict(d)
+        if value is not None:
+            return value
+
+        value = OptionalType.from_dict(d)
+        if value is not None:
+            return value
+
+        value = LiteralType.from_dict(d)
+        if value is not None:
+            return value
+
+        value = FinalType.from_dict(d)
+        if value is not None:
+            return value
+
+        value = TupleType.from_dict(d)
+        if value is not None:
+            return value
+
         return UnionType.from_dict(d)
 
     @abstractmethod
@@ -234,17 +263,195 @@ class UnionType(AbstractType):
         return hash(frozenset(self.types))
 
 
-def create_type(
-    parameter_documentation: ParameterDocstring,
-) -> AbstractType | None:
-    type_string = parameter_documentation.type
+@dataclass(frozen=True)
+class ListType(AbstractType):
+    types: list[AbstractType]
+
+    @classmethod
+    def from_dict(cls, d: Any) -> ListType | None:
+        if d["kind"] == cls.__name__:
+            types = []
+            for element in d["types"]:
+                type_ = AbstractType.from_dict(element)
+                if type_ is not None:
+                    types.append(type_)
+            return ListType(types)
+        return None
+
+    def to_dict(self) -> dict[str, Any]:
+        type_list = [
+            t.to_dict()
+            for t in self.types
+        ]
+
+        return {"kind": self.__class__.__name__, "types": type_list}
+
+    def __hash__(self) -> int:
+        return hash(frozenset(self.types))
+
+
+@dataclass(frozen=True)
+class DictType(AbstractType):
+    key_types: list[AbstractType]
+    value_types: list[AbstractType]
+
+    @classmethod
+    def from_dict(cls, d: Any) -> DictType | None:
+        if d["kind"] == cls.__name__:
+            key_types = []
+            for element in d["types"]:
+                key_type = AbstractType.from_dict(element)
+                if key_type is not None:
+                    key_types.append(key_type)
+
+            value_types = []
+            for element in d["types"]:
+                value_type = AbstractType.from_dict(element)
+                if value_type is not None:
+                    value_types.append(value_type)
+
+            return DictType(key_types, value_types)
+        return None
+
+    def to_dict(self) -> dict[str, Any]:
+        key_types_list = [
+            key_type.to_dict()
+            for key_type in self.key_types
+        ]
+
+        value_types_list = [
+            value_type.to_dict()
+            for value_type in self.value_types
+        ]
+
+        return {
+            "kind": self.__class__.__name__,
+            "key_types": key_types_list,
+            "value_types": value_types_list
+        }
+
+    def __hash__(self) -> int:
+        return hash(frozenset(self.key_types + self.value_types))
+
+
+@dataclass(frozen=True)
+class SetType(AbstractType):
+    types: list[AbstractType]
+
+    @classmethod
+    def from_dict(cls, d: Any) -> SetType | None:
+        if d["kind"] == cls.__name__:
+            types = []
+            for element in d["types"]:
+                type_ = AbstractType.from_dict(element)
+                if type_ is not None:
+                    types.append(type_)
+            return SetType(types)
+        return None
+
+    def to_dict(self) -> dict[str, Any]:
+        type_list = [
+            t.to_dict()
+            for t in self.types
+        ]
+
+        return {"kind": self.__class__.__name__, "types": type_list}
+
+    def __hash__(self) -> int:
+        return hash(frozenset(self.types))
+
+
+@dataclass(frozen=True)
+class OptionalType(AbstractType):
+    type_: AbstractType | None
+
+    @classmethod
+    def from_dict(cls, d: Any) -> OptionalType | None:
+        if d["kind"] == cls.__name__:
+            return OptionalType(d["type"] or None)
+        return None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"kind": self.__class__.__name__, "type": self.type_}
+
+    def __hash__(self) -> int:
+        return hash(frozenset([self.type_]))
+
+
+@dataclass(frozen=True)
+class LiteralType(AbstractType):
+    literals: list[Any]
+
+    @classmethod
+    def from_dict(cls, d: Any) -> LiteralType | None:
+        if d["kind"] == cls.__name__:
+            literals = [element for element in d["literals"]]
+            return LiteralType(literals)
+        return None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"kind": self.__class__.__name__, "literals": self.literals}
+
+    def __hash__(self) -> int:
+        return hash(frozenset(self.literals))
+
+
+@dataclass(frozen=True)
+class FinalType(AbstractType):
+    type_: AbstractType
+
+    @classmethod
+    def from_dict(cls, d: Any) -> FinalType | None:
+        if d["kind"] == cls.__name__:
+            return FinalType(d["type"])
+        return None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"kind": self.__class__.__name__, "type": self.type_}
+
+    def __hash__(self) -> int:
+        return hash(frozenset([self.type_]))
+
+
+@dataclass(frozen=True)
+class TupleType(AbstractType):
+    # Todo What about tuple[str, ...] ?
+    types: list[AbstractType]
+
+    @classmethod
+    def from_dict(cls, d: Any) -> TupleType | None:
+        if d["kind"] == cls.__name__:
+            types = []
+            for element in d["types"]:
+                type_ = AbstractType.from_dict(element)
+                if type_ is not None:
+                    types.append(type_)
+            return TupleType(types)
+        return None
+
+    def to_dict(self) -> dict[str, Any]:
+        type_list = [
+            t.to_dict()
+            for t in self.types
+        ]
+
+        return {"kind": self.__class__.__name__, "types": type_list}
+
+    def __hash__(self) -> int:
+        return hash(frozenset(self.types))
+
+# todo Tests, create_type anpassen
+#   Missing Typings: TypeGuard, Generic, TypeVar, TypeVarTuple, TypeAlias, ParamSpec,
+#   Concatenate, Annotated, GenericAlias
+
+def create_type(type_string: str, description: str) -> AbstractType | None:
     types: list[AbstractType] = []
 
     # Collapse whitespaces
     type_string = re.sub(r"\s+", " ", type_string)
 
     # Get boundary from description
-    boundary = BoundaryType.from_string(parameter_documentation.description)
+    boundary = BoundaryType.from_string(description)
     if boundary is not None:
         types.append(boundary)
 
