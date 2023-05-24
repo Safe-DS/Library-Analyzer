@@ -31,7 +31,7 @@ class NodeID:
 
 @dataclass
 class NodeScope:
-    node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.AssignName | astroid.AssignAttr | astroid.Call | astroid.Import | astroid.ImportFrom | MemberAccess
+    node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Call | astroid.Import | astroid.ImportFrom | MemberAccess
     children: list[NodeScope] | None = None
     parent_scope: astroid.NodeNG | None = None
 
