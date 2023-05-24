@@ -306,7 +306,7 @@ def assert_names_list(names_list: list[astroid.Name], expected: str) -> None:
     assert names_list == expected
 
 
-def transform_names_list(names_list) -> list[str]:
+def transform_names_list(names_list: list[astroid.Name]) -> list[str]:
     names_list_transformed = []
     for name in names_list:
         if isinstance(name, astroid.Name | astroid.AssignName):
@@ -385,9 +385,7 @@ def transform_member_access(member_access: MemberAccess) -> str:
         # TODO: see above
     ]
 )
-def test_calc_function_id_new(
-    node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name,
-    expected: str) -> None:
+def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name, expected: str) -> None:
     result = calc_node_id(node)
     assert result.__str__() == expected
 
@@ -1107,6 +1105,7 @@ def to_string(node: astroid.NodeNG) -> str:
         return f"{node.__class__.__name__}.{node.names[0][0]}"
     elif isinstance(node, astroid.ImportFrom):
         return f"{node.__class__.__name__}.{node.modname}.{node.names[0][0]}"
+    return f"{node.__class__.__name__}"
 
     # match node:
     #     case astroid.Module():
