@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import astroid
 
@@ -220,7 +220,7 @@ def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name | astroid.A
 
 
 # THIS FUNCTION IS THE CORRECT ONE - MERGE THIS (over calc_function_id)
-def calc_node_id(node: Union[astroid.Module, astroid.ClassDef, astroid.FunctionDef, astroid.AssignName, astroid.Name]) -> NodeID | None:
+def calc_node_id(node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name) -> NodeID | None:
     # TODO: there is problem: when a name node is used within a real module, the module is not calculated correctly
     module = node.root()
     match node:

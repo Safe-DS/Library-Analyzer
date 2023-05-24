@@ -1067,8 +1067,7 @@ def test_get_scope(code: str, expected: list[SimpleScope]) -> None:
 
 
 def assert_test_get_scope(result: list[NodeScope], expected: list[SimpleScope]) -> None:
-    """ The result and the expected data is simplified to make the comparison easier. """
-
+    # """ The result and the expected data is simplified to make the comparison easier. """
     transformed_result = [transform_result(node) for node in result]
     # assert result == expected
     assert transformed_result == expected
@@ -1108,3 +1107,23 @@ def to_string(node: astroid.NodeNG) -> str:
         return f"{node.__class__.__name__}.{node.names[0][0]}"
     elif isinstance(node, astroid.ImportFrom):
         return f"{node.__class__.__name__}.{node.modname}.{node.names[0][0]}"
+
+    # match node:
+    #     case astroid.Module():
+    #         return "Module"
+    #     case astroid.ClassDef, astroid.FunctionDef, astroid.AssignName():
+    #         return f"{node.__class__.__name__}.{node.name}"
+    #     case astroid.AssignAttr():
+    #         return f"{node.__class__.__name__}.{node.attrname}"
+    #     case astroid.Call():
+    #         if isinstance(node.func, astroid.Attribute) and isinstance(node.func.expr, astroid.Name):
+    #             return f"{node.__class__.__name__}.{node.func.expr.name}.{node.func.attrname}"
+    #         elif isinstance(node.func, astroid.Name):
+    #             return f"{node.__class__.__name__}.{node.func.name}"
+    #     case MemberAccess():
+    #         result = transform_member_access(node)
+    #         return f"MemberAccess.{result}"
+    #     case astroid.Import():
+    #         return f"{node.__class__.__name__}.{node.names[0][0]}"
+    #     case astroid.ImportFrom():
+    #         return f"{node.__class__.__name__}.{node.modname}.{node.names[0][0]}"
