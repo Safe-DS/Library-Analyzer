@@ -6,8 +6,8 @@ import pytest
 import astroid
 
 from library_analyzer.processing.api import (
-    get_name_nodes, calc_node_id, get_scope, MemberAccess,
-    # find_references, create_references, NodeReference, NodeScope,
+    get_name_nodes, calc_node_id, get_scope, MemberAccess, NodeScope,
+    # find_references, create_references, NodeReference
 )
 
 
@@ -306,7 +306,7 @@ def assert_names_list(names_list: list[astroid.Name], expected: str) -> None:
     assert names_list == expected
 
 
-def transform_names_list(names_list):
+def transform_names_list(names_list) -> list[str]:
     names_list_transformed = []
     for name in names_list:
         if isinstance(name, astroid.Name | astroid.AssignName):
@@ -318,7 +318,7 @@ def transform_names_list(names_list):
     return names_list_transformed
 
 
-def transform_member_access(member_access: MemberAccess):
+def transform_member_access(member_access: MemberAccess) -> str:
     attribute_names = []
 
     while isinstance(member_access, MemberAccess):
@@ -1061,12 +1061,13 @@ def test_calc_function_id_new(
         "ASTWalker",
     ]
 )
-def test_get_scope(code, expected) -> None:
+def test_get_scope(code: str, expected: list[SimpleScope]) -> None:
     result = get_scope(code)
     assert_test_get_scope(result, expected)
 
 
-def assert_test_get_scope(result, expected) -> None:
+def assert_test_get_scope(result: list[NodeScope], expected: list[SimpleScope]) -> None:
+
     """ The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
     The real results name and scope are objects and not strings"""
 
@@ -1075,7 +1076,7 @@ def assert_test_get_scope(result, expected) -> None:
     assert transformed_result == expected
 
 
-def transform_result(node):
+def transform_result(node: NodeScope) -> SimpleScope:
     if node.children is not None:
         return SimpleScope(
             to_string(node.node),
@@ -1090,7 +1091,7 @@ def transform_result(node):
         )
 
 
-def to_string(node) -> str:
+def to_string(node: astroid.NodeNG) -> str:
     if isinstance(node, astroid.Module):
         return "Module"
     elif isinstance(node, astroid.ClassDef):
