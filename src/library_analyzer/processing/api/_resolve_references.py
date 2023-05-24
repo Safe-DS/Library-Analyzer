@@ -329,7 +329,7 @@ def get_scope(code: str) -> list[NodeScope]:
     scope_handler = ScopeFinder()
     walker = ASTWalker(scope_handler)
     module = astroid.parse(code)
-    print(module.repr_tree())
+    # print(module.repr_tree())
     walker.walk(module)
 
     scopes = scope_handler.children

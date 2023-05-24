@@ -841,7 +841,7 @@ class SimpleScope:
                 class A:
                     def __init__(self):
                         self.value = 10
-                        self.test = 223
+                        self.test = 20
                     def f():
                         var1 = 1
                 def g():
@@ -852,8 +852,8 @@ class SimpleScope:
                 [SimpleScope('AssignName.glob', None, 'Module'),
                  SimpleScope('ClassDef.A',
                              [SimpleScope('FunctionDef.__init__',
-                                          [SimpleScope('AssignName.self.value', None, 'FunctionDef.__init__'),
-                                           SimpleScope('AssignName.self.test', None, 'FunctionDef.__init__')],
+                                          [SimpleScope('AssignAttr.value', None, 'FunctionDef.__init__'),
+                                           SimpleScope('AssignAttr.test', None, 'FunctionDef.__init__')],
                                           'ClassDef.A'),
                               SimpleScope('FunctionDef.f',
                                           [SimpleScope('AssignName.var1', None, 'FunctionDef.f')],
@@ -913,6 +913,21 @@ class SimpleScope:
         ),
         (
             """
+                def function_scope(parameter):
+                    res = parameter
+                    return res
+            """,
+            [SimpleScope(
+                'Module',
+                [SimpleScope('FunctionDef.function_scope',
+                             [SimpleScope('AssignName.parameter', None, 'FunctionDef.function_scope'),
+                              SimpleScope('AssignName.res', None, 'FunctionDef.function_scope')],
+                             'Module')],
+                None
+            )]
+        ),
+        (
+            """
                 class A:
                     class_attr1 = 20
 
@@ -945,7 +960,7 @@ class SimpleScope:
                 'Module',
                 [SimpleScope('ClassDef.B',
                              [SimpleScope('FunctionDef.__init__',
-                                          [SimpleScope('AssignName.self.instance_attr1', None, 'FunctionDef.__init__')],
+                                          [SimpleScope('AssignAttr.instance_attr1', None, 'FunctionDef.__init__')],
                                           'ClassDef.B'),
                               SimpleScope('FunctionDef.local_instance_attr',
                                           [SimpleScope('AssignName.var1', None, 'FunctionDef.local_instance_attr')],
@@ -968,7 +983,7 @@ class SimpleScope:
                 'Module',
                 [SimpleScope('ClassDef.B',
                              [SimpleScope('FunctionDef.__init__',
-                                          [SimpleScope('AssignName.self.instance_attr1', None, 'FunctionDef.__init__')],
+                                          [SimpleScope('AssignAttr.instance_attr1', None, 'FunctionDef.__init__')],
                                           'ClassDef.B')],
                              'Module'),
                  SimpleScope('FunctionDef.local_instance_attr',
@@ -1101,6 +1116,22 @@ class SimpleScope:
         ),
         (
             """
+                def function_scope():
+                    var1 = 10
+
+                function_scope()
+            """,
+            [SimpleScope(
+                'Module',
+                [SimpleScope('FunctionDef.function_scope',
+                             [SimpleScope('AssignName.var1', None, 'FunctionDef.function_scope')],
+                             'Module'),
+                 SimpleScope('Call.function_scope', None, 'Module')],
+                None
+            )]
+        ),
+        (
+            """
                 from collections.abc import Callable
                 from typing import Any
 
@@ -1167,26 +1198,35 @@ class SimpleScope:
                      SimpleScope('ClassDef.ASTWalker',
                                  [SimpleScope('AssignName.additional_locals', None, 'ClassDef.ASTWalker'),
                                   SimpleScope('FunctionDef.__init__',
-                                              [SimpleScope('AssignName.self._handler', None, 'FunctionDef.__init__'),
-                                               SimpleScope('AssignName.self._cache', None, 'FunctionDef.__init__')],
+                                              [SimpleScope('AssignName.handler', None, 'FunctionDef.__init__'),
+                                               SimpleScope('AssignAttr._handler', None, 'FunctionDef.__init__'),
+                                               SimpleScope('AssignAttr._cache', None, 'FunctionDef.__init__')],
                                               'ClassDef.ASTWalker'),
                                   SimpleScope('FunctionDef.walk',
-                                              [SimpleScope('AssignName.self.__walk', None, 'FunctionDef.walk')],
+                                              [SimpleScope('AssignName.node', None, 'FunctionDef.walk'),
+                                               SimpleScope('Call.self.__walk', None, 'FunctionDef.walk')],
                                               'ClassDef.ASTWalker'),
                                   SimpleScope('FunctionDef.__walk',
-                                              [SimpleScope('AssignName.visited_nodes', None, 'FunctionDef.__walk'),
-                                               SimpleScope('Call.visited_nodes.add', None, 'FunctionDef.__walk')],
+                                              [SimpleScope('AssignName.node', None, 'FunctionDef.__walk'),
+                                               SimpleScope('AssignName.visited_nodes', None, 'FunctionDef.__walk'),
+                                               SimpleScope('Call.visited_nodes.add', None, 'FunctionDef.__walk'),
+                                               SimpleScope('Call.self.__enter', None, 'FunctionDef.__walk'),
+                                               SimpleScope('Call.self.__walk', None, 'FunctionDef.__walk'),
+                                               SimpleScope('Call.self.__leave', None, 'FunctionDef.__walk')],
                                               'ClassDef.ASTWalker'),
                                   SimpleScope('FunctionDef.__enter',
-                                              [SimpleScope('AssignName.method', None, 'FunctionDef.__enter'),
+                                              [SimpleScope('AssignName.node', None, 'FunctionDef.__enter'),
+                                               SimpleScope('AssignName.method', None, 'FunctionDef.__enter'),
                                                SimpleScope('Call.method', None, 'FunctionDef.__enter')],
                                               'ClassDef.ASTWalker'),
                                   SimpleScope('FunctionDef.__leave',
-                                              [SimpleScope('AssignName.method', None, 'FunctionDef.__leave'),
+                                              [SimpleScope('AssignName.node', None, 'FunctionDef.__leave'),
+                                               SimpleScope('AssignName.method', None, 'FunctionDef.__leave'),
                                                SimpleScope('Call.method', None, 'FunctionDef.__leave')],
                                               'ClassDef.ASTWalker'),
                                   SimpleScope('FunctionDef.__get_callbacks',
-                                              [SimpleScope('AssignName.klass', None, 'FunctionDef.__get_callbacks'),
+                                              [SimpleScope('AssignName.node', None, 'FunctionDef.__get_callbacks'),
+                                               SimpleScope('AssignName.klass', None, 'FunctionDef.__get_callbacks'),
                                                SimpleScope('AssignName.methods', None, 'FunctionDef.__get_callbacks'),
                                                SimpleScope('AssignName.handler', None, 'FunctionDef.__get_callbacks'),
                                                SimpleScope('AssignName.class_name', None,
@@ -1207,6 +1247,7 @@ class SimpleScope:
         "Function Scope",
         "Function Scope with variable",
         "Function Scope with global variable",
+        "Function Scope with Parameter",
         "Class Scope with class attribute and Class function",
         "Class Scope with instance attribute and Class function",
         "Class Scope with instance attribute and Modul function",
@@ -1216,6 +1257,7 @@ class SimpleScope:
         "Import Scope",
         "Import From Scope",
         "Complex Scope",
+        "Call",
         "ASTWalker",
     ]
 )
@@ -1258,8 +1300,12 @@ def to_string(node) -> str:
         return f"{node.__class__.__name__}.{node.name}"
     elif isinstance(node, astroid.AssignName):
         return f"{node.__class__.__name__}.{node.name}"
+    elif isinstance(node, astroid.AssignAttr):
+        return f"{node.__class__.__name__}.{node.attrname}"
     elif isinstance(node, astroid.Call):
-        return f"{node.func.__class__.__name__}.{node.func.name}.CALL"
+        if isinstance(node.func, astroid.Attribute):
+            return f"{node.__class__.__name__}.{node.func.expr.name}.{node.func.attrname}"
+        return f"{node.__class__.__name__}.{node.func.name}"
     elif isinstance(node, MemberAccess):
         result = transform_member_access(node)
         return f"MemberAccess.{result}"
@@ -1268,7 +1314,6 @@ def to_string(node) -> str:
     elif isinstance(node, astroid.ImportFrom):
         return f"{node.__class__.__name__}.{node.modname}.{node.names[0][0]}"
     # return f"{node.__class__.__name__}.{node.name}"
-
 
 # @pytest.mark.parametrize(
 #     ("code", "expected"),
