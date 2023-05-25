@@ -28,15 +28,7 @@ from ._package_metadata import (
 )
 from ._resolve_references import (
     MemberAccess,
-    NodeReference,
     NodeScope,
-    Scopes,
-    add_potential_target_references,
-    add_potential_value_references,
-    calc_node_id,
-    create_references,
-    find_references,
-    get_name_nodes,
     get_scope,
 )
 
@@ -63,15 +55,7 @@ __all__ = [
     "infer_purity",
     "package_files",
     "package_root",
-    "NodeReference",
     "NodeScope",
     "MemberAccess",
-    "find_references",
-    "get_name_nodes",
-    "create_references",
-    "add_potential_target_references",
-    "add_potential_value_references",
-    "calc_node_id",
     "get_scope",
-    "Scopes",
 ]
