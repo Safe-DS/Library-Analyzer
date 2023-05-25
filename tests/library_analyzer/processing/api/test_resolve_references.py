@@ -13,7 +13,7 @@ from library_analyzer.processing.api import (
 
 @dataclass
 class SimpleScope:
-    node_name: str
+    node_name: str | None
     children: list[SimpleScope] | None
     parent_scope: str | None
 
@@ -1105,6 +1105,7 @@ def to_string(node: astroid.NodeNG) -> str | None:
         return f"{node.__class__.__name__}.{node.names[0][0]}"
     elif isinstance(node, astroid.ImportFrom):
         return f"{node.__class__.__name__}.{node.modname}.{node.names[0][0]}"
+    return None
 
     # match node:
     #     case astroid.Module():
