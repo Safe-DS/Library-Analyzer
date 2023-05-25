@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import pytest
 import astroid
-
+import pytest
 from library_analyzer.processing.api import (
-    get_name_nodes, calc_node_id, get_scope, MemberAccess, NodeScope,
-    # find_references, create_references, NodeReference
+    MemberAccess,
+    NodeScope,
+    calc_node_id,
+    get_name_nodes,
+    get_scope,
 )
 
 
@@ -26,21 +28,21 @@ class SimpleScope:
                 def variable():
                     var1 = 20
             """,
-            ["AssignName.var1"]
+            ["AssignName.var1"],
         ),
         (
             """
                 def parameter(a):
                     var1 = a
             """,
-            ['AssignName.a', 'AssignName.var1', 'Name.a']
+            ["AssignName.a", "AssignName.var1", "Name.a"],
         ),
         (
             """
                 def glob():
                     global glob1
             """,
-            []
+            [],
         ),
         (
             """
@@ -48,14 +50,14 @@ class SimpleScope:
                     global glob1
                     var1 = glob1
             """,
-            ['AssignName.var1', 'Name.glob1']
+            ["AssignName.var1", "Name.glob1"],
         ),
         (
             """
                 def class_attr():
                     var1 = A.class_attr
             """,
-            ['AssignName.var1', 'MemberAccess.A.class_attr']
+            ["AssignName.var1", "MemberAccess.A.class_attr"],
         ),
         (
             """
@@ -63,66 +65,76 @@ class SimpleScope:
                     b = B()
                     var1 = b.instance_attr
             """,
-            ['AssignName.b', 'AssignName.var1', 'MemberAccess.b.instance_attr']
+            ["AssignName.b", "AssignName.var1", "MemberAccess.b.instance_attr"],
         ),
         (
             """
                 def chain():
                     var1 = test.instance_attr.field.next_field
             """,
-            ['AssignName.var1',
-             'MemberAccess.test.instance_attr.field.next_field',
-             'MemberAccess.test.instance_attr.field',
-             'MemberAccess.test.instance_attr']
+            [
+                "AssignName.var1",
+                "MemberAccess.test.instance_attr.field.next_field",
+                "MemberAccess.test.instance_attr.field",
+                "MemberAccess.test.instance_attr",
+            ],
         ),
         (
             """
                 def chain_reversed():
                     test.instance_attr.field.next_field = var1
             """,
-            ['MemberAccess.test.instance_attr.field.next_field',
-             'MemberAccess.test.instance_attr.field',
-             'MemberAccess.test.instance_attr',
-             'Name.var1']
+            [
+                "MemberAccess.test.instance_attr.field.next_field",
+                "MemberAccess.test.instance_attr.field",
+                "MemberAccess.test.instance_attr",
+                "Name.var1",
+            ],
         ),
         (
             """
                 def aug_assign():
                     var1 += 1
-            """, ['AssignName.var1']
+            """,
+            ["AssignName.var1"],
         ),
         (
             """
                 def assign_attr():
                     a.res = 1
-            """, ["MemberAccess.a.res"]
+            """,
+            ["MemberAccess.a.res"],
         ),
         (
             """
                 def assign_return():
                     return var1
-            """, ['Name.var1']
+            """,
+            ["Name.var1"],
         ),
         (
             """
                 def while_loop():
                     while var1 > 0:
                         do_something()
-            """, ['Name.var1']
+            """,
+            ["Name.var1"],
         ),
         (
             """
                 def for_loop():
                     for var1 in range(10):
                         do_something()
-            """, ['AssignName.var1']
+            """,
+            ["AssignName.var1"],
         ),
         (
             """
                 def if_state():
                     if var1 > 0:
                         do_something()
-            """, ['Name.var1']
+            """,
+            ["Name.var1"],
         ),
         (
             """
@@ -131,7 +143,8 @@ class SimpleScope:
                         do_something()
                     else:
                         do_something_else()
-            """, ['Name.var1']
+            """,
+            ["Name.var1"],
         ),
         (
             """
@@ -140,37 +153,43 @@ class SimpleScope:
                         do_something()
                     elif var1 | var2:
                         do_something_else()
-            """, ['Name.var1', 'Name.var1', 'Name.var2']
+            """,
+            ["Name.var1", "Name.var1", "Name.var2"],
         ),
         (
             """
                 def ann_assign():
                     var1: int = 10
-            """, ['AssignName.var1']
+            """,
+            ["AssignName.var1"],
         ),
         (
             """
                 def func_call():
                     var1 = func(var2)
-            """, ['AssignName.var1', 'Name.var2']
+            """,
+            ["AssignName.var1", "Name.var2"],
         ),
         (
             """
                 def func_call_par(param):
                     var1 = param + func(param)
-            """, ['AssignName.param', 'AssignName.var1', 'Name.param', 'Name.param']
+            """,
+            ["AssignName.param", "AssignName.var1", "Name.param", "Name.param"],
         ),
         (
             """
                 def bin_op():
                     var1 = 20 + var2
-            """, ['AssignName.var1', 'Name.var2']
+            """,
+            ["AssignName.var1", "Name.var2"],
         ),
         (
             """
                 def bool_op():
                     var1 = True and var2
-            """, ['AssignName.var1', 'Name.var2']
+            """,
+            ["AssignName.var1", "Name.var2"],
         ),
         # (
         #     """
@@ -288,7 +307,7 @@ class SimpleScope:
         # "Import From As",
         # "ASTWalker"
         # TODO: test cases are disabled for now due to test failures
-    ]
+    ],
 )
 def test_get_name_nodes(code: str, expected: str) -> None:
     module = astroid.parse(code)
@@ -327,7 +346,7 @@ def transform_member_access(member_access: MemberAccess) -> str:
     if isinstance(member_access, astroid.Name):
         attribute_names.append(member_access.name)
 
-    return '.'.join(reversed(attribute_names))
+    return ".".join(reversed(attribute_names))
 
 
 @pytest.mark.parametrize(
@@ -342,18 +361,24 @@ def transform_member_access(member_access: MemberAccess) -> str:
             "numpy.A.2.3",
         ),
         (
-            astroid.FunctionDef("local_func", lineno=1, col_offset=0,
-                                parent=astroid.ClassDef("A", lineno=2, col_offset=3)),
+            astroid.FunctionDef(
+                "local_func", lineno=1, col_offset=0, parent=astroid.ClassDef("A", lineno=2, col_offset=3),
+            ),
             "A.local_func.1.0",
         ),
         (
-            astroid.FunctionDef("global_func", lineno=1, col_offset=0,
-                                parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy"))),
+            astroid.FunctionDef(
+                "global_func",
+                lineno=1,
+                col_offset=0,
+                parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy")),
+            ),
             "numpy.global_func.1.0",
         ),
         (
-            astroid.AssignName("var1", lineno=1, col_offset=5,
-                               parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
+            astroid.AssignName(
+                "var1", lineno=1, col_offset=5, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0),
+            ),
             "func1.var1.1.5",
         ),
         (
@@ -361,12 +386,17 @@ def transform_member_access(member_access: MemberAccess) -> str:
             "func1.var2.20.0",
         ),
         (
-            astroid.Name("glob", lineno=20, col_offset=0, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0,
-                                                                                     parent=astroid.ClassDef("A",
-                                                                                                             lineno=2,
-                                                                                                             col_offset=3,
-                                                                                                             parent=astroid.Module(
-                                                                                                                 "numpy")))),
+            astroid.Name(
+                "glob",
+                lineno=20,
+                col_offset=0,
+                parent=astroid.FunctionDef(
+                    "func1",
+                    lineno=1,
+                    col_offset=0,
+                    parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy")),
+                ),
+            ),
             "numpy.glob.20.0",
         ),
     ],
@@ -383,11 +413,14 @@ def transform_member_access(member_access: MemberAccess) -> str:
         # "Name incorrect (wrong lineno)",
         # "Name incorrect (wrong col_offset)",
         # TODO: see above
-    ]
+    ],
 )
-def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name, expected: str) -> None:
+def test_calc_function_id_new(
+    node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name, expected: str,
+) -> None:
     result = calc_node_id(node)
     assert result.__str__() == expected
+
 
 # TODO: test this when resolve reference is implemented (disabled for now due to test failures)
 # @pytest.mark.parametrize(
@@ -645,21 +678,35 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
                 def g():
                     var2 = 2
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('AssignName.glob', None, 'Module'),
-                 SimpleScope('ClassDef.A',
-                             [SimpleScope('FunctionDef.__init__',
-                                          [SimpleScope('AssignAttr.value', None, 'FunctionDef.__init__'),
-                                           SimpleScope('AssignAttr.test', None, 'FunctionDef.__init__')],
-                                          'ClassDef.A'),
-                              SimpleScope('FunctionDef.f',
-                                          [SimpleScope('AssignName.var1', None, 'FunctionDef.f')],
-                                          'ClassDef.A')], 'Module'),
-                 SimpleScope('FunctionDef.g',
-                             [SimpleScope('AssignName.var2', None, 'FunctionDef.g')],
-                             'Module')],
-                None)]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope("AssignName.glob", None, "Module"),
+                        SimpleScope(
+                            "ClassDef.A",
+                            [
+                                SimpleScope(
+                                    "FunctionDef.__init__",
+                                    [
+                                        SimpleScope("AssignAttr.value", None, "FunctionDef.__init__"),
+                                        SimpleScope("AssignAttr.test", None, "FunctionDef.__init__"),
+                                    ],
+                                    "ClassDef.A",
+                                ),
+                                SimpleScope(
+                                    "FunctionDef.f",
+                                    [SimpleScope("AssignName.var1", None, "FunctionDef.f")],
+                                    "ClassDef.A",
+                                ),
+                            ],
+                            "Module",
+                        ),
+                        SimpleScope("FunctionDef.g", [SimpleScope("AssignName.var2", None, "FunctionDef.g")], "Module"),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -667,13 +714,19 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
                     res = 23
                     return res
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('FunctionDef.function_scope',
-                             [SimpleScope('AssignName.res', None, 'FunctionDef.function_scope')],
-                             'Module')],
-                None
-            )]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope(
+                            "FunctionDef.function_scope",
+                            [SimpleScope("AssignName.res", None, "FunctionDef.function_scope")],
+                            "Module",
+                        ),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -682,14 +735,20 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
                     res = var1
                     return res
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('AssignName.var1', None, 'Module'),
-                 SimpleScope('FunctionDef.function_scope',
-                             [SimpleScope('AssignName.res', None, 'FunctionDef.function_scope')],
-                             'Module')],
-                None
-            )]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope("AssignName.var1", None, "Module"),
+                        SimpleScope(
+                            "FunctionDef.function_scope",
+                            [SimpleScope("AssignName.res", None, "FunctionDef.function_scope")],
+                            "Module",
+                        ),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -699,15 +758,20 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
                     res = var1
                     return res
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('AssignName.var1', None, 'Module'),
-                 SimpleScope('FunctionDef.function_scope',
-                             [SimpleScope('AssignName.res', None, 'FunctionDef.function_scope')],
-                             'Module')],
-                None
-            )]
-
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope("AssignName.var1", None, "Module"),
+                        SimpleScope(
+                            "FunctionDef.function_scope",
+                            [SimpleScope("AssignName.res", None, "FunctionDef.function_scope")],
+                            "Module",
+                        ),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -715,14 +779,22 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
                     res = parameter
                     return res
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('FunctionDef.function_scope',
-                             [SimpleScope('AssignName.parameter', None, 'FunctionDef.function_scope'),
-                              SimpleScope('AssignName.res', None, 'FunctionDef.function_scope')],
-                             'Module')],
-                None
-            )]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope(
+                            "FunctionDef.function_scope",
+                            [
+                                SimpleScope("AssignName.parameter", None, "FunctionDef.function_scope"),
+                                SimpleScope("AssignName.res", None, "FunctionDef.function_scope"),
+                            ],
+                            "Module",
+                        ),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -733,16 +805,26 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
                         var1 = A.class_attr1
                         return var1
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('ClassDef.A',
-                             [SimpleScope('AssignName.class_attr1', None, 'ClassDef.A'),
-                              SimpleScope('FunctionDef.local_class_attr',
-                                          [SimpleScope('AssignName.var1', None, 'FunctionDef.local_class_attr')],
-                                          'ClassDef.A')],
-                             'Module')],
-                None
-            )]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope(
+                            "ClassDef.A",
+                            [
+                                SimpleScope("AssignName.class_attr1", None, "ClassDef.A"),
+                                SimpleScope(
+                                    "FunctionDef.local_class_attr",
+                                    [SimpleScope("AssignName.var1", None, "FunctionDef.local_class_attr")],
+                                    "ClassDef.A",
+                                ),
+                            ],
+                            "Module",
+                        ),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -754,18 +836,30 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
                         var1 = self.instance_attr1
                         return var1
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('ClassDef.B',
-                             [SimpleScope('FunctionDef.__init__',
-                                          [SimpleScope('AssignAttr.instance_attr1', None, 'FunctionDef.__init__')],
-                                          'ClassDef.B'),
-                              SimpleScope('FunctionDef.local_instance_attr',
-                                          [SimpleScope('AssignName.var1', None, 'FunctionDef.local_instance_attr')],
-                                          'ClassDef.B')],
-                             'Module')],
-                None
-            )]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope(
+                            "ClassDef.B",
+                            [
+                                SimpleScope(
+                                    "FunctionDef.__init__",
+                                    [SimpleScope("AssignAttr.instance_attr1", None, "FunctionDef.__init__")],
+                                    "ClassDef.B",
+                                ),
+                                SimpleScope(
+                                    "FunctionDef.local_instance_attr",
+                                    [SimpleScope("AssignName.var1", None, "FunctionDef.local_instance_attr")],
+                                    "ClassDef.B",
+                                ),
+                            ],
+                            "Module",
+                        ),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -777,18 +871,30 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
                     var1 = B().instance_attr1
                     return var1
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('ClassDef.B',
-                             [SimpleScope('FunctionDef.__init__',
-                                          [SimpleScope('AssignAttr.instance_attr1', None, 'FunctionDef.__init__')],
-                                          'ClassDef.B')],
-                             'Module'),
-                 SimpleScope('FunctionDef.local_instance_attr',
-                             [SimpleScope('AssignName.var1', None, 'FunctionDef.local_instance_attr')],
-                             'Module')],
-                None
-            )]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope(
+                            "ClassDef.B",
+                            [
+                                SimpleScope(
+                                    "FunctionDef.__init__",
+                                    [SimpleScope("AssignAttr.instance_attr1", None, "FunctionDef.__init__")],
+                                    "ClassDef.B",
+                                ),
+                            ],
+                            "Module",
+                        ),
+                        SimpleScope(
+                            "FunctionDef.local_instance_attr",
+                            [SimpleScope("AssignName.var1", None, "FunctionDef.local_instance_attr")],
+                            "Module",
+                        ),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -798,16 +904,24 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
                     class B:
                         var2 = 20
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('ClassDef.A',
-                             [SimpleScope('AssignName.var1', None, 'ClassDef.A'),
-                              SimpleScope('ClassDef.B',
-                                          [SimpleScope('AssignName.var2', None, 'ClassDef.B')],
-                                          'ClassDef.A')],
-                             'Module')],
-                None
-            )]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope(
+                            "ClassDef.A",
+                            [
+                                SimpleScope("AssignName.var1", None, "ClassDef.A"),
+                                SimpleScope(
+                                    "ClassDef.B", [SimpleScope("AssignName.var2", None, "ClassDef.B")], "ClassDef.A",
+                                ),
+                            ],
+                            "Module",
+                        ),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -817,16 +931,26 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
                     class B:
                         var2 = 20
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('FunctionDef.function_scope',
-                             [SimpleScope('AssignName.var1', None, 'FunctionDef.function_scope'),
-                              SimpleScope('ClassDef.B',
-                                          [SimpleScope('AssignName.var2', None, 'ClassDef.B')],
-                                          'FunctionDef.function_scope')],
-                             'Module')],
-                None
-            )]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope(
+                            "FunctionDef.function_scope",
+                            [
+                                SimpleScope("AssignName.var1", None, "FunctionDef.function_scope"),
+                                SimpleScope(
+                                    "ClassDef.B",
+                                    [SimpleScope("AssignName.var2", None, "ClassDef.B")],
+                                    "FunctionDef.function_scope",
+                                ),
+                            ],
+                            "Module",
+                        ),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -836,16 +960,26 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
                     def local_function_scope():
                         var2 = 20
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('FunctionDef.function_scope',
-                             [SimpleScope('AssignName.var1', None, 'FunctionDef.function_scope'),
-                              SimpleScope('FunctionDef.local_function_scope',
-                                          [SimpleScope('AssignName.var2', None, 'FunctionDef.local_function_scope')],
-                                          'FunctionDef.function_scope')],
-                             'Module')],
-                None
-            )]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope(
+                            "FunctionDef.function_scope",
+                            [
+                                SimpleScope("AssignName.var1", None, "FunctionDef.function_scope"),
+                                SimpleScope(
+                                    "FunctionDef.local_function_scope",
+                                    [SimpleScope("AssignName.var2", None, "FunctionDef.local_function_scope")],
+                                    "FunctionDef.function_scope",
+                                ),
+                            ],
+                            "Module",
+                        ),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -854,14 +988,16 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
                 class A:
                     value = math.pi
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('Import.math', None, 'Module'),
-                 SimpleScope('ClassDef.A',
-                             [SimpleScope('AssignName.value', None, 'ClassDef.A')],
-                             'Module')],
-                None
-            )]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope("Import.math", None, "Module"),
+                        SimpleScope("ClassDef.A", [SimpleScope("AssignName.value", None, "ClassDef.A")], "Module"),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -870,14 +1006,16 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
                 class B:
                     value = pi
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('ImportFrom.math.pi', None, 'Module'),
-                 SimpleScope('ClassDef.B',
-                             [SimpleScope('AssignName.value', None, 'ClassDef.B')],
-                             'Module')],
-                None
-            )]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope("ImportFrom.math.pi", None, "Module"),
+                        SimpleScope("ClassDef.B", [SimpleScope("AssignName.value", None, "ClassDef.B")], "Module"),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -893,24 +1031,46 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
                             def local_class_function_scope():
                                 var4 = 40
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('FunctionDef.function_scope',
-                             [SimpleScope('AssignName.var1', None, 'FunctionDef.function_scope'),
-                              SimpleScope('FunctionDef.local_function_scope',
-                                          [SimpleScope('AssignName.var2', None, 'FunctionDef.local_function_scope'),
-                                           SimpleScope('ClassDef.local_class_scope',
-                                                       [SimpleScope('AssignName.var3', None,
-                                                                    'ClassDef.local_class_scope'),
-                                                        SimpleScope('FunctionDef.local_class_function_scope',
-                                                                    [SimpleScope('AssignName.var4', None,
-                                                                                 'FunctionDef.local_class_function_scope')],
-                                                                    'ClassDef.local_class_scope')],
-                                                       'FunctionDef.local_function_scope')],
-                                          'FunctionDef.function_scope')],
-                             'Module')],
-                None
-            )]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope(
+                            "FunctionDef.function_scope",
+                            [
+                                SimpleScope("AssignName.var1", None, "FunctionDef.function_scope"),
+                                SimpleScope(
+                                    "FunctionDef.local_function_scope",
+                                    [
+                                        SimpleScope("AssignName.var2", None, "FunctionDef.local_function_scope"),
+                                        SimpleScope(
+                                            "ClassDef.local_class_scope",
+                                            [
+                                                SimpleScope("AssignName.var3", None, "ClassDef.local_class_scope"),
+                                                SimpleScope(
+                                                    "FunctionDef.local_class_function_scope",
+                                                    [
+                                                        SimpleScope(
+                                                            "AssignName.var4",
+                                                            None,
+                                                            "FunctionDef.local_class_function_scope",
+                                                        ),
+                                                    ],
+                                                    "ClassDef.local_class_scope",
+                                                ),
+                                            ],
+                                            "FunctionDef.local_function_scope",
+                                        ),
+                                    ],
+                                    "FunctionDef.function_scope",
+                                ),
+                            ],
+                            "Module",
+                        ),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -919,14 +1079,20 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
 
                 function_scope()
             """,
-            [SimpleScope(
-                'Module',
-                [SimpleScope('FunctionDef.function_scope',
-                             [SimpleScope('AssignName.var1', None, 'FunctionDef.function_scope')],
-                             'Module'),
-                 SimpleScope('Call.function_scope', None, 'Module')],
-                None
-            )]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope(
+                            "FunctionDef.function_scope",
+                            [SimpleScope("AssignName.var1", None, "FunctionDef.function_scope")],
+                            "Module",
+                        ),
+                        SimpleScope("Call.function_scope", None, "Module"),
+                    ],
+                    None,
+                ),
+            ],
         ),
         (
             """
@@ -986,58 +1152,86 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
 
                         return enter_method, leave_method
 
-            """, [
+            """,
+            [
                 SimpleScope(
-                    'Module',
-                    [SimpleScope('ImportFrom.collections.abc.Callable', None, 'Module'),
-                     SimpleScope('ImportFrom.typing.Any', None, 'Module'),
-                     SimpleScope('Import.astroid', None, 'Module'),
-                     SimpleScope('AssignName._EnterAndLeaveFunctions', None, 'Module'),
-                     SimpleScope('ClassDef.ASTWalker',
-                                 [SimpleScope('AssignName.additional_locals', None, 'ClassDef.ASTWalker'),
-                                  SimpleScope('FunctionDef.__init__',
-                                              [SimpleScope('AssignName.handler', None, 'FunctionDef.__init__'),
-                                               SimpleScope('AssignAttr._handler', None, 'FunctionDef.__init__'),
-                                               SimpleScope('AssignAttr._cache', None, 'FunctionDef.__init__')],
-                                              'ClassDef.ASTWalker'),
-                                  SimpleScope('FunctionDef.walk',
-                                              [SimpleScope('AssignName.node', None, 'FunctionDef.walk'),
-                                               SimpleScope('Call.self.__walk', None, 'FunctionDef.walk')],
-                                              'ClassDef.ASTWalker'),
-                                  SimpleScope('FunctionDef.__walk',
-                                              [SimpleScope('AssignName.node', None, 'FunctionDef.__walk'),
-                                               SimpleScope('AssignName.visited_nodes', None, 'FunctionDef.__walk'),
-                                               SimpleScope('Call.visited_nodes.add', None, 'FunctionDef.__walk'),
-                                               SimpleScope('Call.self.__enter', None, 'FunctionDef.__walk'),
-                                               SimpleScope('Call.self.__walk', None, 'FunctionDef.__walk'),
-                                               SimpleScope('Call.self.__leave', None, 'FunctionDef.__walk')],
-                                              'ClassDef.ASTWalker'),
-                                  SimpleScope('FunctionDef.__enter',
-                                              [SimpleScope('AssignName.node', None, 'FunctionDef.__enter'),
-                                               SimpleScope('AssignName.method', None, 'FunctionDef.__enter'),
-                                               SimpleScope('Call.method', None, 'FunctionDef.__enter')],
-                                              'ClassDef.ASTWalker'),
-                                  SimpleScope('FunctionDef.__leave',
-                                              [SimpleScope('AssignName.node', None, 'FunctionDef.__leave'),
-                                               SimpleScope('AssignName.method', None, 'FunctionDef.__leave'),
-                                               SimpleScope('Call.method', None, 'FunctionDef.__leave')],
-                                              'ClassDef.ASTWalker'),
-                                  SimpleScope('FunctionDef.__get_callbacks',
-                                              [SimpleScope('AssignName.node', None, 'FunctionDef.__get_callbacks'),
-                                               SimpleScope('AssignName.klass', None, 'FunctionDef.__get_callbacks'),
-                                               SimpleScope('AssignName.methods', None, 'FunctionDef.__get_callbacks'),
-                                               SimpleScope('AssignName.handler', None, 'FunctionDef.__get_callbacks'),
-                                               SimpleScope('AssignName.class_name', None,
-                                                           'FunctionDef.__get_callbacks'),
-                                               SimpleScope('AssignName.enter_method', None,
-                                                           'FunctionDef.__get_callbacks'),
-                                               SimpleScope('AssignName.leave_method', None,
-                                                           'FunctionDef.__get_callbacks')],
-                                              'ClassDef.ASTWalker')],
-                                 'Module')],
-                    None
-                )
-            ]
+                    "Module",
+                    [
+                        SimpleScope("ImportFrom.collections.abc.Callable", None, "Module"),
+                        SimpleScope("ImportFrom.typing.Any", None, "Module"),
+                        SimpleScope("Import.astroid", None, "Module"),
+                        SimpleScope("AssignName._EnterAndLeaveFunctions", None, "Module"),
+                        SimpleScope(
+                            "ClassDef.ASTWalker",
+                            [
+                                SimpleScope("AssignName.additional_locals", None, "ClassDef.ASTWalker"),
+                                SimpleScope(
+                                    "FunctionDef.__init__",
+                                    [
+                                        SimpleScope("AssignName.handler", None, "FunctionDef.__init__"),
+                                        SimpleScope("AssignAttr._handler", None, "FunctionDef.__init__"),
+                                        SimpleScope("AssignAttr._cache", None, "FunctionDef.__init__"),
+                                    ],
+                                    "ClassDef.ASTWalker",
+                                ),
+                                SimpleScope(
+                                    "FunctionDef.walk",
+                                    [
+                                        SimpleScope("AssignName.node", None, "FunctionDef.walk"),
+                                        SimpleScope("Call.self.__walk", None, "FunctionDef.walk"),
+                                    ],
+                                    "ClassDef.ASTWalker",
+                                ),
+                                SimpleScope(
+                                    "FunctionDef.__walk",
+                                    [
+                                        SimpleScope("AssignName.node", None, "FunctionDef.__walk"),
+                                        SimpleScope("AssignName.visited_nodes", None, "FunctionDef.__walk"),
+                                        SimpleScope("Call.visited_nodes.add", None, "FunctionDef.__walk"),
+                                        SimpleScope("Call.self.__enter", None, "FunctionDef.__walk"),
+                                        SimpleScope("Call.self.__walk", None, "FunctionDef.__walk"),
+                                        SimpleScope("Call.self.__leave", None, "FunctionDef.__walk"),
+                                    ],
+                                    "ClassDef.ASTWalker",
+                                ),
+                                SimpleScope(
+                                    "FunctionDef.__enter",
+                                    [
+                                        SimpleScope("AssignName.node", None, "FunctionDef.__enter"),
+                                        SimpleScope("AssignName.method", None, "FunctionDef.__enter"),
+                                        SimpleScope("Call.method", None, "FunctionDef.__enter"),
+                                    ],
+                                    "ClassDef.ASTWalker",
+                                ),
+                                SimpleScope(
+                                    "FunctionDef.__leave",
+                                    [
+                                        SimpleScope("AssignName.node", None, "FunctionDef.__leave"),
+                                        SimpleScope("AssignName.method", None, "FunctionDef.__leave"),
+                                        SimpleScope("Call.method", None, "FunctionDef.__leave"),
+                                    ],
+                                    "ClassDef.ASTWalker",
+                                ),
+                                SimpleScope(
+                                    "FunctionDef.__get_callbacks",
+                                    [
+                                        SimpleScope("AssignName.node", None, "FunctionDef.__get_callbacks"),
+                                        SimpleScope("AssignName.klass", None, "FunctionDef.__get_callbacks"),
+                                        SimpleScope("AssignName.methods", None, "FunctionDef.__get_callbacks"),
+                                        SimpleScope("AssignName.handler", None, "FunctionDef.__get_callbacks"),
+                                        SimpleScope("AssignName.class_name", None, "FunctionDef.__get_callbacks"),
+                                        SimpleScope("AssignName.enter_method", None, "FunctionDef.__get_callbacks"),
+                                        SimpleScope("AssignName.leave_method", None, "FunctionDef.__get_callbacks"),
+                                    ],
+                                    "ClassDef.ASTWalker",
+                                ),
+                            ],
+                            "Module",
+                        ),
+                    ],
+                    None,
+                ),
+            ],
         ),
     ],
     ids=[
@@ -1057,7 +1251,7 @@ def test_calc_function_id_new(node: astroid.Module | astroid.ClassDef | astroid.
         "Complex Scope",
         "Call",
         "ASTWalker",
-    ]
+    ],
 )
 def test_get_scope(code: str, expected: list[SimpleScope]) -> None:
     result = get_scope(code)
@@ -1076,14 +1270,10 @@ def transform_result(node: NodeScope) -> SimpleScope:
         return SimpleScope(
             to_string(node.node),
             [transform_result(child) for child in node.children],  # Iterate over children
-            to_string(node.parent_scope)
+            to_string(node.parent_scope),
         )
     else:
-        return SimpleScope(
-            to_string(node.node),
-            None,
-            to_string(node.parent_scope)
-        )
+        return SimpleScope(to_string(node.node), None, to_string(node.parent_scope))
 
 
 def to_string(node: astroid.NodeNG) -> str | None:

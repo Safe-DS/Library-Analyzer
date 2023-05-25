@@ -20,26 +20,24 @@ from ._infer_purity import (
     get_purity_result_str,
     infer_purity,
 )
-
-from ._resolve_references import (
-    find_references,
-    get_name_nodes,
-    create_references,
-    add_potential_target_references,
-    add_potential_value_references,
-    NodeReference,
-    NodeScope,
-    Scopes,
-    MemberAccess,
-    calc_node_id,
-    get_scope,
-)
-
 from ._package_metadata import (
     distribution,
     distribution_version,
     package_files,
     package_root,
+)
+from ._resolve_references import (
+    MemberAccess,
+    NodeReference,
+    NodeScope,
+    Scopes,
+    add_potential_target_references,
+    add_potential_value_references,
+    calc_node_id,
+    create_references,
+    find_references,
+    get_name_nodes,
+    get_scope,
 )
 
 __all__ = [

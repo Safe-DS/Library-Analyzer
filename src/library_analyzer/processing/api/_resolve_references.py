@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import List, Optional
 
 import astroid
 
@@ -23,7 +22,7 @@ class NodeID:
     name: str
     line: int
     col: int
-    node_type: Optional[str]
+    node_type: str | None
 
     def __str__(self) -> str:
         return f"{self.module.name}.{self.name}.{self.line}.{self.col}"
@@ -48,7 +47,7 @@ class NodeReference:
     name: astroid.Name | astroid.AssignName | str
     node_id: str
     scope: NodeScope
-    potential_references: List[astroid.Name | astroid.AssignName] = field(default_factory=list)
+    potential_references: list[astroid.Name | astroid.AssignName] = field(default_factory=list)
     list_is_complete: bool = False  # if True, then the list potential_references is completed
     # TODO: implement a methode to check if the list is complete: all references are found
     #  the list is only completed if every reference is found
@@ -76,7 +75,7 @@ class ScopeFinder:
         outer_scope_children: list[NodeScope] = []
         module_scope_children: list[NodeScope] = []
         for child in self.children:
-            if not child.parent_scope == current_scope:
+            if child.parent_scope != current_scope:
                 outer_scope_children.append(child)  # select all children from the outer scope
             else:
                 module_scope_children.append(child)  # select all children from this scope
@@ -87,14 +86,16 @@ class ScopeFinder:
         self.current_node_stack.pop()
 
     def enter_classdef(self, node: astroid.ClassDef) -> None:
-        self.current_node_stack.append(NodeScope(node=node, children=None, parent_scope=self.current_node_stack[-1].node))
+        self.current_node_stack.append(
+            NodeScope(node=node, children=None, parent_scope=self.current_node_stack[-1].node),
+        )
 
     def leave_classdef(self, node: astroid.ClassDef) -> None:
         current_scope = node
         outer_scope_children: list[NodeScope] = []
         class_scope_children: list[NodeScope] = []
         for child in self.children:
-            if not child.parent_scope == current_scope:
+            if child.parent_scope != current_scope:
                 outer_scope_children.append(child)  # select all children from the outer scope
             else:
                 class_scope_children.append(child)  # select all children from this scope
@@ -105,7 +106,9 @@ class ScopeFinder:
         self.current_node_stack.pop()
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
-        self.current_node_stack.append(NodeScope(node=node, children=None, parent_scope=self.current_node_stack[-1].node))
+        self.current_node_stack.append(
+            NodeScope(node=node, children=None, parent_scope=self.current_node_stack[-1].node),
+        )
         # TODO: Special treatment for __init__ function
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
@@ -113,7 +116,7 @@ class ScopeFinder:
         outer_scope_children: list[NodeScope] = []
         function_scope_children: list[NodeScope] = []
         for child in self.children:
-            if not child.parent_scope == current_scope:
+            if child.parent_scope != current_scope:
                 outer_scope_children.append(child)  # select all children from the outer scope
             else:
                 function_scope_children.append(child)  # select all children from this scope
@@ -130,7 +133,9 @@ class ScopeFinder:
     #     self.scopes.function_scope.append(NodeReference(name=node.name, node_id=node.name, scope=NodeScope(scope=node)))
 
     def enter_call(self, node: astroid.Call) -> None:
-        if isinstance(node.parent, astroid.AssignName | astroid.Expr) and isinstance(node.func, astroid.Name | astroid.Attribute):
+        if isinstance(node.parent, astroid.AssignName | astroid.Expr) and isinstance(
+            node.func, astroid.Name | astroid.Attribute,
+        ):
             parent = self.current_node_stack[-1].node
             scope_node = NodeScope(node=node, children=None, parent_scope=parent)
             self.children.append(scope_node)
@@ -144,7 +149,15 @@ class ScopeFinder:
                 scope_node = NodeScope(node=node, children=None, parent_scope=parent)
                 self.children.append(scope_node)
 
-        elif isinstance(node.parent, astroid.Assign | astroid.Arguments | astroid.AssignAttr | astroid.Attribute | astroid.AugAssign | astroid.AnnAssign):
+        elif isinstance(
+            node.parent,
+            astroid.Assign
+            | astroid.Arguments
+            | astroid.AssignAttr
+            | astroid.Attribute
+            | astroid.AugAssign
+            | astroid.AnnAssign,
+        ):
             parent = self.current_node_stack[-1].node
             scope_node = NodeScope(node=node, children=None, parent_scope=parent)
             self.children.append(scope_node)
@@ -172,16 +185,41 @@ class NameNodeFinder:
 
     # AssignName is used to find the name if it is used as a value in an assignment
     def enter_name(self, node: astroid.Name) -> None:
-        if isinstance(node.parent, astroid.Assign | astroid.AugAssign | astroid.Return | astroid.Compare | astroid.For | astroid.BinOp | astroid.BoolOp):
+        if isinstance(
+            node.parent,
+            astroid.Assign
+            | astroid.AugAssign
+            | astroid.Return
+            | astroid.Compare
+            | astroid.For
+            | astroid.BinOp
+            | astroid.BoolOp,
+        ):
             self.names_list.append(node)
-        if isinstance(node.parent, astroid.Call) and isinstance(node.parent.func, astroid.Name) and node.parent.func.name != node.name:
+        if (
+            isinstance(node.parent, astroid.Call)
+            and isinstance(node.parent.func, astroid.Name)
+            and node.parent.func.name != node.name
+        ):
             # append a node only then when it is not the name node of the function
             self.names_list.append(node)
 
     # AssignName is used to find the name if it is used as a target in an assignment
     def enter_assignname(self, node: astroid.AssignName) -> None:
-        if isinstance(node.parent, astroid.Assign | astroid.Arguments | astroid.AssignAttr | astroid.Attribute | astroid.AugAssign | astroid.AnnAssign | astroid.Return | astroid.Compare | astroid.For):
+        if isinstance(
+            node.parent,
+            astroid.Assign
+            | astroid.Arguments
+            | astroid.AssignAttr
+            | astroid.Attribute
+            | astroid.AugAssign
+            | astroid.AnnAssign
+            | astroid.Return
+            | astroid.Compare
+            | astroid.For,
+        ):
             self.names_list.append(node)
+
     # We do not need AugAssign, since it uses AssignName as a target and Name as value
 
     def enter_attribute(self, node: astroid.Attribute) -> None:
@@ -220,7 +258,9 @@ def get_name_nodes(module: astroid.NodeNG) -> list[list[astroid.Name | astroid.A
 
 
 # THIS FUNCTION IS THE CORRECT ONE - MERGE THIS (over calc_function_id)
-def calc_node_id(node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name) -> NodeID | None:
+def calc_node_id(
+    node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name,
+) -> NodeID | None:
     # TODO: there is problem: when a name node is used within a real module, the module is not calculated correctly
     module = node.root()
     match node:
@@ -284,6 +324,7 @@ def add_potential_value_references() -> None:
 #
 #     return complete_references
 
+
 def add_potential_target_references() -> None:
     pass
 
@@ -310,6 +351,7 @@ def add_potential_target_references() -> None:
 # TODO: remove the commented for this function
 def find_references() -> None:
     pass
+
 
 # def find_references(module_names: list[astroid.Name]) -> list[NodeReference]:
 #     """Resolve references in a node.
