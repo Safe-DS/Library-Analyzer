@@ -628,7 +628,9 @@ def test_get_scope(code: str, expected: list[SimpleScope]) -> None:
 
 
 def assert_test_get_scope(result: list[NodeScope], expected: list[SimpleScope]) -> None:
-    transformed_result = [transform_result(node) for node in result]  # The result and the expected data is simplified to make the comparison easier
+    transformed_result = [
+        transform_result(node) for node in result
+    ]  # The result and the expected data is simplified to make the comparison easier
     assert transformed_result == expected
 
 
