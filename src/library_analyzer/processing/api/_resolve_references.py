@@ -134,7 +134,8 @@ class ScopeFinder:
 
     def enter_call(self, node: astroid.Call) -> None:
         if isinstance(node.parent, astroid.AssignName | astroid.Expr) and isinstance(
-            node.func, astroid.Name | astroid.Attribute,
+            node.func,
+            astroid.Name | astroid.Attribute,
         ):
             parent = self.current_node_stack[-1].node
             scope_node = NodeScope(node=node, children=None, parent_scope=parent)

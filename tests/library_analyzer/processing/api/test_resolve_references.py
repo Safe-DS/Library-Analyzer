@@ -362,7 +362,10 @@ def transform_member_access(member_access: MemberAccess) -> str:
         ),
         (
             astroid.FunctionDef(
-                "local_func", lineno=1, col_offset=0, parent=astroid.ClassDef("A", lineno=2, col_offset=3),
+                "local_func",
+                lineno=1,
+                col_offset=0,
+                parent=astroid.ClassDef("A", lineno=2, col_offset=3),
             ),
             "A.local_func.1.0",
         ),
@@ -377,7 +380,10 @@ def transform_member_access(member_access: MemberAccess) -> str:
         ),
         (
             astroid.AssignName(
-                "var1", lineno=1, col_offset=5, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0),
+                "var1",
+                lineno=1,
+                col_offset=5,
+                parent=astroid.FunctionDef("func1", lineno=1, col_offset=0),
             ),
             "func1.var1.1.5",
         ),
@@ -416,7 +422,8 @@ def transform_member_access(member_access: MemberAccess) -> str:
     ],
 )
 def test_calc_function_id_new(
-    node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name, expected: str,
+    node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name,
+    expected: str,
 ) -> None:
     result = calc_node_id(node)
     assert result.__str__() == expected
@@ -913,7 +920,9 @@ def test_calc_function_id_new(
                             [
                                 SimpleScope("AssignName.var1", None, "ClassDef.A"),
                                 SimpleScope(
-                                    "ClassDef.B", [SimpleScope("AssignName.var2", None, "ClassDef.B")], "ClassDef.A",
+                                    "ClassDef.B",
+                                    [SimpleScope("AssignName.var2", None, "ClassDef.B")],
+                                    "ClassDef.A",
                                 ),
                             ],
                             "Module",
