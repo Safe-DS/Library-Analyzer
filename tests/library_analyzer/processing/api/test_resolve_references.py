@@ -1105,8 +1105,6 @@ def to_string(node: astroid.NodeNG) -> str | None:
         return f"{node.__class__.__name__}.{node.names[0][0]}"
     elif isinstance(node, astroid.ImportFrom):
         return f"{node.__class__.__name__}.{node.modname}.{node.names[0][0]}"
-    else:
-        return None
 
     # match node:
     #     case astroid.Module():
