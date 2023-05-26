@@ -35,6 +35,8 @@ class ScopeFinder:
         outer_scope_children: list[NodeScope] = []
         module_scope_children: list[NodeScope] = []
         for child in self.children:
+            if child.parent.node is None:
+                pass
             if child.parent.node is not None and child.parent.node != current_scope:
                 outer_scope_children.append(child)  # select all children from the outer scope
             else:
@@ -55,6 +57,8 @@ class ScopeFinder:
         outer_scope_children: list[NodeScope] = []
         class_scope_children: list[NodeScope] = []
         for child in self.children:
+            if child.parent.node is None:
+                pass
             if child.parent.node is not None and child.parent.node != current_scope:
                 outer_scope_children.append(child)  # select all children from the outer scope
             else:
@@ -76,6 +80,8 @@ class ScopeFinder:
         outer_scope_children: list[NodeScope] = []
         function_scope_children: list[NodeScope] = []
         for child in self.children:
+            if child.parent.node is None:
+                pass
             if child.parent.node is not None and child.parent.node != current_scope:
                 outer_scope_children.append(child)  # select all children from the outer scope
             else:
