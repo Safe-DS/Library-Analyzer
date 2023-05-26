@@ -35,7 +35,7 @@ class ScopeFinder:
         outer_scope_children: list[NodeScope] = []
         module_scope_children: list[NodeScope] = []
         for child in self.children:
-            if child.parent != current_scope:
+            if child.parent.node != current_scope:
                 outer_scope_children.append(child)  # select all children from the outer scope
             else:
                 module_scope_children.append(child)  # select all children from this scope
@@ -47,7 +47,7 @@ class ScopeFinder:
 
     def enter_classdef(self, node: astroid.ClassDef) -> None:
         self.current_node_stack.append(
-            NodeScope(node=node, children=None, parent=self.current_node_stack[-1].node),
+            NodeScope(node=node, children=None, parent=self.current_node_stack[-1]),
         )
 
     def leave_classdef(self, node: astroid.ClassDef) -> None:
@@ -55,7 +55,7 @@ class ScopeFinder:
         outer_scope_children: list[NodeScope] = []
         class_scope_children: list[NodeScope] = []
         for child in self.children:
-            if child.parent != current_scope:
+            if child.parent.node != current_scope:
                 outer_scope_children.append(child)  # select all children from the outer scope
             else:
                 class_scope_children.append(child)  # select all children from this scope
@@ -67,7 +67,7 @@ class ScopeFinder:
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
         self.current_node_stack.append(
-            NodeScope(node=node, children=None, parent=self.current_node_stack[-1].node),
+            NodeScope(node=node, children=None, parent=self.current_node_stack[-1]),
         )
         # TODO: Special treatment for __init__ function
 
@@ -76,7 +76,7 @@ class ScopeFinder:
         outer_scope_children: list[NodeScope] = []
         function_scope_children: list[NodeScope] = []
         for child in self.children:
-            if child.parent != current_scope:
+            if child.parent.node != current_scope:
                 outer_scope_children.append(child)  # select all children from the outer scope
             else:
                 function_scope_children.append(child)  # select all children from this scope
@@ -91,7 +91,7 @@ class ScopeFinder:
             if node.name == "self":
                 pass
             else:
-                parent = self.current_node_stack[-1].node
+                parent = self.current_node_stack[-1]
                 scope_node = NodeScope(node=node, children=None, parent=parent)
                 self.children.append(scope_node)
 
@@ -104,22 +104,22 @@ class ScopeFinder:
             | astroid.AugAssign
             | astroid.AnnAssign,
         ):
-            parent = self.current_node_stack[-1].node
+            parent = self.current_node_stack[-1]
             scope_node = NodeScope(node=node, children=None, parent=parent)
             self.children.append(scope_node)
 
     def enter_assignattr(self, node: astroid.Attribute) -> None:
-        parent = self.current_node_stack[-1].node
+        parent = self.current_node_stack[-1]
         scope_node = NodeScope(node=node, children=None, parent=parent)
         self.children.append(scope_node)
 
     def enter_import(self, node: astroid.Import) -> None:
-        parent = self.current_node_stack[-1].node
+        parent = self.current_node_stack[-1]
         scope_node = NodeScope(node=node, children=None, parent=parent)
         self.children.append(scope_node)
 
     def enter_importfrom(self, node: astroid.ImportFrom) -> None:
-        parent = self.current_node_stack[-1].node
+        parent = self.current_node_stack[-1]
         scope_node = NodeScope(node=node, children=None, parent=parent)
         self.children.append(scope_node)
 
