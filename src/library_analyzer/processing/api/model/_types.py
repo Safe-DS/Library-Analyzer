@@ -390,7 +390,7 @@ class LiteralType(AbstractType):
         return None
 
     def to_dict(self) -> dict[str, Any]:
-        return {"kind": self.__class__.__name__, "literals": self.literals}
+            return {"kind": self.__class__.__name__, "literals": self.literals}
 
     def __hash__(self) -> int:
         return hash(frozenset(self.literals))
@@ -440,9 +440,6 @@ class TupleType(AbstractType):
     def __hash__(self) -> int:
         return hash(frozenset(self.types))
 
-# todo Tests, create_type anpassen
-#   Missing Typings: TypeGuard, Generic, TypeVar, TypeVarTuple, TypeAlias, ParamSpec,
-#   Concatenate, Annotated, GenericAlias
 
 def create_type(type_string: str, description: str) -> AbstractType | None:
     types: list[AbstractType] = []
@@ -465,6 +462,19 @@ def create_type(type_string: str, description: str) -> AbstractType | None:
 
     # Remove default value from doc_string
     type_string = re.sub("default=.*", " ", type_string)
+
+    # Check possible Type Classes
+    # todo ListType
+    # if re.match(r"^List\[.*\]$", type_string):
+    #     type_string = type_string.replace(" ", "")
+    #     all_list_types = re.findall(r"(?<=List\[).*?(?=\])", type_string)
+    #     list_types = []
+    #     if len(all_list_types) == 1:
+    #         list_types = all_list_types[0].split(",")
+    #     return ListType.from_dict({
+    #         "kind": "ListType",
+    #         "types": [type_ for type_ in list_types]
+    #     })
 
     # Create a list with all values and types
     # ") or (" must be replaced by a very unlikely string ("&%&") so that it is not removed when filtering out.

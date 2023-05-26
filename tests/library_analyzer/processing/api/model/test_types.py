@@ -2,6 +2,7 @@ from copy import deepcopy
 from typing import Any
 
 import pytest
+
 from library_analyzer.processing.api.model import (
     Attribute,
     BoundaryType,
@@ -330,3 +331,225 @@ def test_enum_from_string(docstring_type: str, expected: set[str] | None) -> Non
     result = EnumType.from_string(docstring_type)
     if result is not None:
         assert result.values == expected
+
+
+# ######################################################################################################################
+
+@pytest.mark.parametrize(
+    ("docstring_type", "expected"),
+    [
+        ("", {}),
+        (
+            "List[str, int]",
+            {
+                "kind": "ListType",
+                "types": ["str", "int"]
+            },
+        ),
+        (
+            "List[int] | List[str]",
+            {
+                "kind": "UnionType",
+                "types": [
+                    {"kind": "ListType", "types": "int"},
+                    {"kind": "ListType", "types": "str"},
+                ],
+            },
+        ),
+    ],
+)
+def test_list_from_string(docstring_type: str, expected: dict[str, Any]) -> None:
+    documentation = ParameterDocstring(docstring_type, "", "")
+    result = create_type(documentation.type, documentation.description)
+    if result is None:
+        assert expected == {}
+    else:
+        assert result.to_dict() == expected
+
+
+@pytest.mark.parametrize(
+    ("docstring_type", "expected"),
+    [
+        ("", {}),
+        (
+            "Dict[str, int]",
+            {
+                "kind": "DictType",
+                "key_types": ["str"],
+                "value_types": ["int"]
+            },
+        ),
+        (
+            "set[int] | set[str]",
+            {
+                "kind": "DictType",
+                "key_types": ["str", "int"],
+                "value_types": ["str", "int"]
+            },
+        )
+    ],
+)
+def test_dict_from_string(docstring_type: str, expected: dict[str, Any]) -> None:
+    documentation = ParameterDocstring(docstring_type, "", "")
+    result = create_type(documentation.type, documentation.description)
+    if result is None:
+        assert expected == {}
+    else:
+        assert result.to_dict() == expected
+
+
+@pytest.mark.parametrize(
+    ("docstring_type", "expected"),
+    [
+        ("", {}),
+        (
+            "set[str, int]",
+            {
+                "kind": "DictType",
+                "key_types": ["str"],
+                "value_types": ["int"]
+            },
+        ),
+        (
+            "set[int] | set[str]",
+            {
+                "kind": "UnionType",
+                "types": [
+                    {"kind": "SetType", "types": "int"},
+                    {"kind": "SetType", "types": "str"},
+                ],
+            },
+        ),
+    ],
+)
+def test_set_from_string(docstring_type: str, expected: dict[str, Any]) -> None:
+    documentation = ParameterDocstring(docstring_type, "", "")
+    result = create_type(documentation.type, documentation.description)
+    if result is None:
+        assert expected == {}
+    else:
+        assert result.to_dict() == expected
+
+
+@pytest.mark.parametrize(
+    ("docstring_type", "expected"),
+    [
+        ("", {}),
+        (
+            "Optional[str]",
+            {
+                "kind": "OptionalType",
+                "type": "str",
+            },
+        ),
+        (
+            "Optional[str|int]",
+            {
+                "kind": "OptionalType",
+                "type": {
+                    "kind": "UnionType",
+                    "types": [
+                        {"kind": "?", "types": "int"},
+                        {"kind": "?", "types": "str"},
+                    ],
+                },
+            },
+        ),
+    ],
+)
+def test_optional_from_string(docstring_type: str, expected: dict[str, Any]) -> None:
+    documentation = ParameterDocstring(docstring_type, "", "")
+    result = create_type(documentation.type, documentation.description)
+    if result is None:
+        assert expected == {}
+    else:
+        assert result.to_dict() == expected
+
+
+@pytest.mark.parametrize(
+    ("docstring_type", "expected"),
+    [
+        ("", {}),
+        (
+            "Literal['value1', True, False, 5]",
+            {
+                "kind": "LiteralType",
+                "literals": ["value1", True, False, 5],
+            },
+        )
+    ],
+)
+def test_literal_from_string(docstring_type: str, expected: dict[str, Any]) -> None:
+    documentation = ParameterDocstring(docstring_type, "", "")
+    result = create_type(documentation.type, documentation.description)
+    if result is None:
+        assert expected == {}
+    else:
+        assert result.to_dict() == expected
+
+
+@pytest.mark.parametrize(
+    ("docstring_type", "expected"),
+    [
+        ("", {}),
+        (
+            "Final[int]",
+            {
+                "kind": "FinalType",
+                "type": "int",
+            },
+        ),
+        (
+            "Final[str|int]",
+            {
+                "kind": "FinalType",
+                "type": {
+                    "kind": "UnionType",
+                    "types": [
+                        {"kind": "?", "types": "str"},
+                        {"kind": "?", "types": "int"},
+                    ],
+                },
+            },
+        )
+    ],
+)
+def test_final_from_string(docstring_type: str, expected: dict[str, Any]) -> None:
+    documentation = ParameterDocstring(docstring_type, "", "")
+    result = create_type(documentation.type, documentation.description)
+    if result is None:
+        assert expected == {}
+    else:
+        assert result.to_dict() == expected
+
+
+@pytest.mark.parametrize(
+    ("docstring_type", "expected"),
+    [
+        ("", {}),
+        (
+            "Tuple[str, int]",
+            {
+                "kind": "TupleType",
+                "types": ["str", "int"]
+            },
+        ),
+        (
+            "Tuple[int] | Tuple[str]",
+            {
+                "kind": "UnionType",
+                "types": [
+                    {"kind": "TupleType", "types": "int"},
+                    {"kind": "TupleType", "types": "str"},
+                ],
+            },
+        ),
+    ],
+)
+def test_tuple_from_string(docstring_type: str, expected: dict[str, Any]) -> None:
+    documentation = ParameterDocstring(docstring_type, "", "")
+    result = create_type(documentation.type, documentation.description)
+    if result is None:
+        assert expected == {}
+    else:
+        assert result.to_dict() == expected
