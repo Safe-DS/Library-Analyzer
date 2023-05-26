@@ -557,10 +557,7 @@ def assert_test_get_scope(result: list[NodeScope], expected: list[SimpleScope]) 
 
 def transform_result(node: NodeScope) -> SimpleScope:
     if node.children is not None:
-        return SimpleScope(
-            to_string(node.node),
-            [transform_result(child) for child in node.children]
-        )
+        return SimpleScope(to_string(node.node), [transform_result(child) for child in node.children])
     else:
         return SimpleScope(to_string(node.node), None)
 
