@@ -290,48 +290,28 @@ class ListType(AbstractType):
         return hash(frozenset(self.types))
 
 
+# todo Sind Hashes hier (und bei anderen Klassen wie Set und List) sinnvoll,
+#  da das Objekt veränderbar ist? Normales List Objekt hat ja auch kein Hash
 @dataclass(frozen=True)
 class DictType(AbstractType):
-    key_types: list[AbstractType]
-    value_types: list[AbstractType]
+    key_type: AbstractType
+    value_type: AbstractType
 
     @classmethod
     def from_dict(cls, d: Any) -> DictType | None:
         if d["kind"] == cls.__name__:
-            key_types = []
-            for element in d["types"]:
-                key_type = AbstractType.from_dict(element)
-                if key_type is not None:
-                    key_types.append(key_type)
-
-            value_types = []
-            for element in d["types"]:
-                value_type = AbstractType.from_dict(element)
-                if value_type is not None:
-                    value_types.append(value_type)
-
-            return DictType(key_types, value_types)
+            return DictType(d["key_type"], d["value_type"])
         return None
 
     def to_dict(self) -> dict[str, Any]:
-        key_types_list = [
-            key_type.to_dict()
-            for key_type in self.key_types
-        ]
-
-        value_types_list = [
-            value_type.to_dict()
-            for value_type in self.value_types
-        ]
-
         return {
             "kind": self.__class__.__name__,
-            "key_types": key_types_list,
-            "value_types": value_types_list
+            "key_type": self.key_type,
+            "value_type": self.value_type,
         }
 
     def __hash__(self) -> int:
-        return hash(frozenset(self.key_types + self.value_types))
+        return hash(frozenset([self.key_type, self.value_type]))
 
 
 @dataclass(frozen=True)
@@ -380,17 +360,17 @@ class OptionalType(AbstractType):
 
 @dataclass(frozen=True)
 class LiteralType(AbstractType):
-    literals: list[Any]
+    literals: list[str | int | float | bool]
 
     @classmethod
     def from_dict(cls, d: Any) -> LiteralType | None:
         if d["kind"] == cls.__name__:
-            literals = [element for element in d["literals"]]
+            literals = list(d["literals"])
             return LiteralType(literals)
         return None
 
     def to_dict(self) -> dict[str, Any]:
-            return {"kind": self.__class__.__name__, "literals": self.literals}
+        return {"kind": self.__class__.__name__, "literals": self.literals}
 
     def __hash__(self) -> int:
         return hash(frozenset(self.literals))
@@ -415,7 +395,6 @@ class FinalType(AbstractType):
 
 @dataclass(frozen=True)
 class TupleType(AbstractType):
-    # Todo What about tuple[str, ...] ?
     types: list[AbstractType]
 
     @classmethod
@@ -440,6 +419,98 @@ class TupleType(AbstractType):
     def __hash__(self) -> int:
         return hash(frozenset(self.types))
 
+def _dismantel_structure(type_structure: str) -> list:
+    current_type = ""
+    result = []
+
+    type_structure = type_structure.replace(" ", "")
+
+    while True:
+        i = 0
+        for i, char in enumerate(type_structure):
+            if char == "[":
+                try:
+                    brackets_content, remaining_content = _parse_bracket_content(type_structure[i + 1:])
+                except TypeParsingError:
+                    raise TypeParsingError(f"Missing brackets in the following string:\n{type_structure}")
+
+                result.append(current_type + "[" + brackets_content + "]")
+                type_structure = remaining_content
+                current_type = ""
+                break
+            elif char == ",":
+                if current_type:
+                    result.append(current_type)
+                    current_type = ""
+            else:
+                current_type += char
+
+        if len(type_structure) == 0 or i + 1 == len(type_structure):
+            break
+
+    if current_type:
+        result.append(current_type)
+
+    return result
+
+
+def _parse_bracket_content(substring: str) -> (str, str):
+    brackets_content = ""
+    bracket_count = 0
+    for i, char in enumerate(substring):
+        if char == "[":
+            bracket_count += 1
+        elif char == "]" and bracket_count:
+            bracket_count -= 1
+        elif char == "]" and not bracket_count:
+            return brackets_content, substring[i + 1:]
+
+        brackets_content += char
+    raise TypeParsingError("")
+
+
+def _create_type(type_string: str) -> AbstractType:
+    # Structures, which only take one type argument
+    structures = {"Final": FinalType, "Optional": OptionalType}
+    for key in list(structures.keys()):
+        regex = r"^" + key + r"\[(.*)\]$"
+        match = re.match(regex, type_string)
+        if match:
+            content = match.group(1)
+            return structures[key](_create_type(content))
+
+    # List-like structures, which take multiple type arguments
+    structures = {"List": ListType, "Set": SetType, "Tuple": TupleType, "Union": UnionType}
+    for key in list(structures.keys()):
+        regex = r"^" + key + r"\[(.*)\]$"
+        match = re.match(regex, type_string)
+        if match:
+            content = match.group(1)
+            content = content.replace(" ", "")
+            content_elements = _dismantel_structure(content)
+            return structures[key]([_create_type(element) for element in content_elements])
+
+    # Misc. special structures
+    match = re.match(r"^Dict\[(.*)\]$", type_string)
+    if match:
+        content = match.group(1)
+        content = content.replace(" ", "")
+        content_elements = _dismantel_structure(content)
+        if len(content_elements) != 2:
+            raise TypeParsingError(f"Could not parse Dict from the following string:\n{type_string}")
+        return DictType(
+            _create_type(content_elements[0]),
+            _create_type(content_elements[1]),
+        )
+
+    # Todo
+    match = re.match(r"^Literal\[(.*)\]$", type_string)
+    if match:
+        content = match.group(1)
+        return LiteralType(content)
+
+    return NamedType(type_string)
+
 
 def create_type(type_string: str, description: str) -> AbstractType | None:
     types: list[AbstractType] = []
@@ -462,19 +533,6 @@ def create_type(type_string: str, description: str) -> AbstractType | None:
 
     # Remove default value from doc_string
     type_string = re.sub("default=.*", " ", type_string)
-
-    # Check possible Type Classes
-    # todo ListType
-    # if re.match(r"^List\[.*\]$", type_string):
-    #     type_string = type_string.replace(" ", "")
-    #     all_list_types = re.findall(r"(?<=List\[).*?(?=\])", type_string)
-    #     list_types = []
-    #     if len(all_list_types) == 1:
-    #         list_types = all_list_types[0].split(",")
-    #     return ListType.from_dict({
-    #         "kind": "ListType",
-    #         "types": [type_ for type_ in list_types]
-    #     })
 
     # Create a list with all values and types
     # ") or (" must be replaced by a very unlikely string ("&%&") so that it is not removed when filtering out.
@@ -518,3 +576,11 @@ def create_type(type_string: str, description: str) -> AbstractType | None:
     if len(types) == 0:
         return None
     return UnionType(types)
+
+
+class TypeParsingError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self):
+        return f"TypeParsingException: {self.message}"
