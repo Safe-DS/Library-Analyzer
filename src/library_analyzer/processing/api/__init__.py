@@ -28,7 +28,7 @@ from ._package_metadata import (
 )
 from ._resolve_references import (
     MemberAccess,
-    NodeScope,
+    ScopeNode,
     get_scope,
 )
 
@@ -55,7 +55,7 @@ __all__ = [
     "infer_purity",
     "package_files",
     "package_root",
-    "NodeScope",
+    "ScopeNode",
     "MemberAccess",
     "get_scope",
 ]

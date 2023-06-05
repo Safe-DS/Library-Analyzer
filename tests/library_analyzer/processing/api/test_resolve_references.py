@@ -6,7 +6,7 @@ import astroid
 import pytest
 from library_analyzer.processing.api import (
     MemberAccess,
-    NodeScope,
+    ScopeNode,
     get_scope,
 )
 
@@ -548,14 +548,14 @@ def test_get_scope(code: str, expected: list[SimpleScope]) -> None:
     assert_test_get_scope(result, expected)
 
 
-def assert_test_get_scope(result: list[NodeScope], expected: list[SimpleScope]) -> None:
+def assert_test_get_scope(result: list[ScopeNode], expected: list[SimpleScope]) -> None:
     transformed_result = [
         transform_result(node) for node in result
     ]  # The result and the expected data is simplified to make the comparison easier
     assert transformed_result == expected
 
 
-def transform_result(node: NodeScope) -> SimpleScope:
+def transform_result(node: ScopeNode) -> SimpleScope:
     if node.children is not None:
         return SimpleScope(to_string(node.node), [transform_result(child) for child in node.children])
     else:
