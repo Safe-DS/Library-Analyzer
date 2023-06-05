@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import re
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, field
@@ -358,6 +359,7 @@ class OptionalType(AbstractType):
         return hash(frozenset([self.type_]))
 
 
+# Todo Enum Values? Literal[Color.BLUE]
 @dataclass(frozen=True)
 class LiteralType(AbstractType):
     literals: list[str | int | float | bool]
@@ -419,7 +421,8 @@ class TupleType(AbstractType):
     def __hash__(self) -> int:
         return hash(frozenset(self.types))
 
-def _dismantel_structure(type_structure: str) -> list:
+
+def _dismantel_type_string_structure(type_structure: str) -> list:
     current_type = ""
     result = []
 
@@ -430,9 +433,10 @@ def _dismantel_structure(type_structure: str) -> list:
         for i, char in enumerate(type_structure):
             if char == "[":
                 try:
-                    brackets_content, remaining_content = _parse_bracket_content(type_structure[i + 1:])
-                except TypeParsingError:
-                    raise TypeParsingError(f"Missing brackets in the following string:\n{type_structure}")
+                    brackets_content, remaining_content = _parse_type_string_bracket_content(type_structure[i + 1:])
+                except TypeParsingError as parsing_error:
+                    raise TypeParsingError(
+                        f"Missing brackets in the following string:\n{type_structure}") from parsing_error
 
                 result.append(current_type + "[" + brackets_content + "]")
                 type_structure = remaining_content
@@ -454,7 +458,7 @@ def _dismantel_structure(type_structure: str) -> list:
     return result
 
 
-def _parse_bracket_content(substring: str) -> (str, str):
+def _parse_type_string_bracket_content(substring: str) -> (str, str):
     brackets_content = ""
     bracket_count = 0
     for i, char in enumerate(substring):
@@ -470,10 +474,13 @@ def _parse_bracket_content(substring: str) -> (str, str):
 
 
 def _create_type(type_string: str) -> AbstractType:
+    if not type_string:
+        return NamedType("None")
+
     # Structures, which only take one type argument
     structures = {"Final": FinalType, "Optional": OptionalType}
     for key in list(structures.keys()):
-        regex = r"^" + key + r"\[(.*)\]$"
+        regex = r"^" + key + r"\[(.*)]$"
         match = re.match(regex, type_string)
         if match:
             content = match.group(1)
@@ -482,20 +489,35 @@ def _create_type(type_string: str) -> AbstractType:
     # List-like structures, which take multiple type arguments
     structures = {"List": ListType, "Set": SetType, "Tuple": TupleType, "Union": UnionType}
     for key in list(structures.keys()):
-        regex = r"^" + key + r"\[(.*)\]$"
+        regex = r"^" + key + r"\[(.*)]$"
         match = re.match(regex, type_string)
         if match:
             content = match.group(1)
             content = content.replace(" ", "")
-            content_elements = _dismantel_structure(content)
-            return structures[key]([_create_type(element) for element in content_elements])
+            content_elements = _dismantel_type_string_structure(content)
+            return structures[key]([
+                _create_type(element) for element in content_elements
+            ])
+
+    match = re.match(r"^Literal\[(.*)]$", type_string)
+    if match:
+        content = match.group(1)
+        contents = content.replace(" ", "").split(",")
+        literals = []
+        for element in contents:
+            try:
+                value = ast.literal_eval(element)
+            except (SyntaxError, ValueError):
+                value = element[1:-1]
+            literals.append(value)
+        return LiteralType(literals)
 
     # Misc. special structures
-    match = re.match(r"^Dict\[(.*)\]$", type_string)
+    match = re.match(r"^Dict\[(.*)]$", type_string)
     if match:
         content = match.group(1)
         content = content.replace(" ", "")
-        content_elements = _dismantel_structure(content)
+        content_elements = _dismantel_type_string_structure(content)
         if len(content_elements) != 2:
             raise TypeParsingError(f"Could not parse Dict from the following string:\n{type_string}")
         return DictType(
@@ -503,12 +525,7 @@ def _create_type(type_string: str) -> AbstractType:
             _create_type(content_elements[1]),
         )
 
-    # Todo
-    match = re.match(r"^Literal\[(.*)\]$", type_string)
-    if match:
-        content = match.group(1)
-        return LiteralType(content)
-
+    # raise TypeParsingError(f"Could not parse type for the following type string:\n{type_string}")
     return NamedType(type_string)
 
 

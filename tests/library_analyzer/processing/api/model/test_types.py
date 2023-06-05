@@ -14,7 +14,7 @@ from library_analyzer.processing.api.model import (
     create_type,
 )
 from library_analyzer.processing.api.model._types import _create_type, ListType, UnionType, TupleType, FinalType, \
-    SetType, DictType, OptionalType
+    SetType, DictType, OptionalType, LiteralType
 
 
 @pytest.mark.parametrize(
@@ -340,7 +340,7 @@ def test_enum_from_string(docstring_type: str, expected: set[str] | None) -> Non
 @pytest.mark.parametrize(
     ("docstring_type", "expected"),
     [
-        # todo ("", None),
+        ("", NamedType("None")),
         (
             "List[str, int]",
             ListType([NamedType("str"), NamedType("int")])
@@ -391,7 +391,7 @@ def test_enum_from_string(docstring_type: str, expected: set[str] | None) -> Non
             )
         ),
         (
-            "Set[Tuple[Union[int, bool],int], Final[int], List[Final[str]]]",
+            "Set[Tuple[Union[int, bool],int], Final[int], List[Final[str]], Literal['Alice', True, 0]]",
             SetType([
                 TupleType([
                     UnionType([
@@ -400,7 +400,8 @@ def test_enum_from_string(docstring_type: str, expected: set[str] | None) -> Non
                     NamedType("int")
                 ]),
                 FinalType(NamedType("int")),
-                ListType([FinalType(NamedType("str"))])
+                ListType([FinalType(NamedType("str"))]),
+                LiteralType(["Alice", True, 0])
             ])
         ),
         (
@@ -424,9 +425,13 @@ def test_enum_from_string(docstring_type: str, expected: set[str] | None) -> Non
                 SetType([FinalType(NamedType("str"))])
             ])
         ),
+        (
+            "Literal['Alice', 'Bob', 1, True, False, 4]",
+            LiteralType(["Alice", "Bob", 1, True, False, 4])
+        ),
     ],
     ids=[
-        # "Empty string",
+        "Empty string",
         "Normal list",
         # "Union of Lists written with pipe",
         "Union of Lists written without pipe",
@@ -437,7 +442,7 @@ def test_enum_from_string(docstring_type: str, expected: set[str] | None) -> Non
         "OptionalType Test",
         "FinalType Test",
         "Nested tuple",
-        # todo "LiteralType Test",
+        "LiteralType Test"
     ],
 )
 def test__create_type(docstring_type: str, expected: AbstractType) -> None:
