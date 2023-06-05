@@ -2,7 +2,6 @@ from copy import deepcopy
 from typing import Any
 
 import pytest
-
 from library_analyzer.processing.api.model import (
     AbstractType,
     Attribute,
@@ -12,7 +11,6 @@ from library_analyzer.processing.api.model import (
     Parameter,
     ParameterAssignment,
     ParameterDocstring,
-    create_type,
 )
 from library_analyzer.processing.api.model._types import (
     DictType,
@@ -23,7 +21,7 @@ from library_analyzer.processing.api.model._types import (
     SetType,
     TupleType,
     UnionType,
-    _create_type,
+    create_type
 )
 
 
@@ -347,6 +345,8 @@ def test_enum_from_string(docstring_type: str, expected: set[str] | None) -> Non
 
 # ######################################################################################################################
 
+# Todo Diese neuen Tests auch für Enum und Boundary?
+
 @pytest.mark.parametrize(
     ("docstring_type", "expected"),
     [
@@ -457,10 +457,11 @@ def test_enum_from_string(docstring_type: str, expected: set[str] | None) -> Non
 )
 def test__create_type(docstring_type: str, expected: AbstractType) -> None:
     documentation = ParameterDocstring(docstring_type, "", "")
-    result = _create_type(documentation.type)
+    result = create_type(documentation.type, "")
     assert result == expected
 
 
+# Todo für to_dict und from_dict auch pipe Union cases abdecken?
 @pytest.mark.parametrize(
     ("abstract_type", "type_dict"),
     [

@@ -528,7 +528,7 @@ def _parse_type_string_bracket_content(substring: str) -> (str, str):
 #                 continue
 
 
-def _create_type(type_string: str) -> AbstractType:
+def create_type(type_string: str, description: str) -> AbstractType | None:
     if not type_string:
         return NamedType("None")
 
@@ -545,7 +545,7 @@ def _create_type(type_string: str) -> AbstractType:
         match = re.match(regex, type_string)
         if match:
             content = match.group(1)
-            return structures[key](_create_type(content))
+            return structures[key](create_type(content))
 
     # List-like structures, which take multiple type arguments
     structures = {"List": ListType, "Set": SetType, "Tuple": TupleType, "Union": UnionType}
@@ -556,7 +556,7 @@ def _create_type(type_string: str) -> AbstractType:
             content = match.group(1)
             content_elements = _dismantel_type_string_structure(content)
             return structures[key]([
-                _create_type(element) for element in content_elements
+                create_type(element) for element in content_elements
             ])
 
     match = re.match(r"^Literal\[(.*)]$", type_string)
@@ -580,15 +580,16 @@ def _create_type(type_string: str) -> AbstractType:
         if len(content_elements) != 2:
             raise TypeParsingError(f"Could not parse Dict from the following string:\n{type_string}")
         return DictType(
-            _create_type(content_elements[0]),
-            _create_type(content_elements[1]),
+            create_type(content_elements[0]),
+            create_type(content_elements[1]),
         )
 
     # raise TypeParsingError(f"Could not parse type for the following type string:\n{type_string}")
-    return NamedType(type_string)
+    # return NamedType(type_string)
+    return _create_enum_boundry_type(type_string, description)
 
-
-def create_type(type_string: str, description: str) -> AbstractType | None:
+# todo übernehmen in create_type -> Tests schlagen nun fehl
+def _create_enum_boundry_type(type_string: str, description: str) -> AbstractType | None:
     types: list[AbstractType] = []
 
     # Collapse whitespaces
