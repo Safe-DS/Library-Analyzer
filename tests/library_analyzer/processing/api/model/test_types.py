@@ -2,6 +2,7 @@ from copy import deepcopy
 from typing import Any
 
 import pytest
+
 from library_analyzer.processing.api.model import (
     AbstractType,
     Attribute,
@@ -13,8 +14,17 @@ from library_analyzer.processing.api.model import (
     ParameterDocstring,
     create_type,
 )
-from library_analyzer.processing.api.model._types import _create_type, ListType, UnionType, TupleType, FinalType, \
-    SetType, DictType, OptionalType, LiteralType
+from library_analyzer.processing.api.model._types import (
+    DictType,
+    FinalType,
+    ListType,
+    LiteralType,
+    OptionalType,
+    SetType,
+    TupleType,
+    UnionType,
+    _create_type,
+)
 
 
 @pytest.mark.parametrize(
@@ -343,97 +353,96 @@ def test_enum_from_string(docstring_type: str, expected: set[str] | None) -> Non
         ("", NamedType("None")),
         (
             "List[str, int]",
-            ListType([NamedType("str"), NamedType("int")])
+            ListType([NamedType("str"), NamedType("int")]),
         ),
-        # (
-        #     todo "List[int] | List[str]",
-        #     UnionType([
-        #             ListType([NamedType("int")]),
-        #             ListType([NamedType("str")])
-        #     ])
-        # ),
         (
             "Union[List[int], List[str]]",
             UnionType([
-                    ListType([NamedType("int")]),
-                    ListType([NamedType("str")])
-            ])
+                ListType([NamedType("int")]),
+                ListType([NamedType("str")]),
+            ]),
         ),
         (
             "List[Tuple[Union[int, bool], Optional[int]], Final[int], Set[Final[str]]]",
             ListType([
                 TupleType([
                     UnionType([
-                        NamedType("int"), NamedType("bool")
+                        NamedType("int"), NamedType("bool"),
                     ]),
-                    OptionalType(NamedType("int"))
+                    OptionalType(NamedType("int")),
                 ]),
                 FinalType(NamedType("int")),
-                SetType([FinalType(NamedType("str"))])
-            ])
+                SetType([FinalType(NamedType("str"))]),
+            ]),
         ),
         (
             "Dict[str, int]",
-            DictType(NamedType("str"), NamedType("int"))
+            DictType(NamedType("str"), NamedType("int")),
         ),
         (
             "Dict[Union[int, Tuple[str]], List[Union[None, int], str]]",
             DictType(
                 UnionType([
-                    NamedType("int"), TupleType([NamedType("str")])
+                    NamedType("int"), TupleType([NamedType("str")]),
                 ]),
                 ListType([
                     UnionType([
-                        NamedType("None"), NamedType("int")
+                        NamedType("None"), NamedType("int"),
                     ]),
-                    NamedType("str")
-                ])
-            )
+                    NamedType("str"),
+                ]),
+            ),
         ),
         (
             "Set[Tuple[Union[int, bool],int], Final[int], List[Final[str]], Literal['Alice', True, 0]]",
             SetType([
                 TupleType([
                     UnionType([
-                        NamedType("int"), NamedType("bool")
+                        NamedType("int"), NamedType("bool"),
                     ]),
-                    NamedType("int")
+                    NamedType("int"),
                 ]),
                 FinalType(NamedType("int")),
                 ListType([FinalType(NamedType("str"))]),
-                LiteralType(["Alice", True, 0])
-            ])
+                LiteralType(["Alice", True, 0]),
+            ]),
         ),
         (
             "Optional[int]",
-            OptionalType(NamedType("int"))
+            OptionalType(NamedType("int")),
         ),
         (
             "Final[List[int]]",
-            FinalType(ListType([NamedType("int")]))
+            FinalType(ListType([NamedType("int")])),
         ),
         (
             "Tuple[List[Union[int, bool], Optional[int]], Final[int], Set[Final[str]]]",
             TupleType([
                 ListType([
                     UnionType([
-                        NamedType("int"), NamedType("bool")
+                        NamedType("int"), NamedType("bool"),
                     ]),
-                    OptionalType(NamedType("int"))
+                    OptionalType(NamedType("int")),
                 ]),
                 FinalType(NamedType("int")),
-                SetType([FinalType(NamedType("str"))])
-            ])
+                SetType([FinalType(NamedType("str"))]),
+            ]),
         ),
         (
             "Literal['Alice', 'Bob', 1, True, False, 4]",
-            LiteralType(["Alice", "Bob", 1, True, False, 4])
+            LiteralType(["Alice", "Bob", 1, True, False, 4]),
         ),
+        # (
+        #     "List[int] | List[str]",
+        #     UnionType([
+        #             ListType([NamedType("int")]),
+        #             ListType([NamedType("str")])
+        #     ])
+        # ),
     ],
     ids=[
         "Empty string",
         "Normal list",
-        # "Union of Lists written with pipe",
         "Union of Lists written without pipe",
         "Nested list",
         "Normal dict",
@@ -442,7 +451,8 @@ def test_enum_from_string(docstring_type: str, expected: set[str] | None) -> Non
         "OptionalType Test",
         "FinalType Test",
         "Nested tuple",
-        "LiteralType Test"
+        "LiteralType Test",
+        # todo "Union of Lists written with pipe",
     ],
 )
 def test__create_type(docstring_type: str, expected: AbstractType) -> None:
@@ -450,14 +460,189 @@ def test__create_type(docstring_type: str, expected: AbstractType) -> None:
     result = _create_type(documentation.type)
     assert result == expected
 
+
+@pytest.mark.parametrize(
+    ("abstract_type", "type_dict"),
+    [
+        (
+            ListType([NamedType("str"), NamedType("int")]),
+            {"kind": "ListType",
+             "types": [{
+                 "kind": "NamedType", "name": "str"
+             }, {
+                 "kind": "NamedType", "name": "int"}
+             ]}
+        ),
+        (
+            DictType(NamedType("str"), NamedType("int")),
+            {
+                "kind": "DictType",
+                "key_type": {"kind": "NamedType", "name": "str"},
+                "value_type": {"kind": "NamedType", "name": "int"}
+            }
+        ),
+        (
+            SetType([NamedType("str"), NamedType("int")]),
+            {
+                "kind": "SetType",
+                "types": [{"kind": "NamedType", "name": "str"}, {"kind": "NamedType", "name": "int"}]
+            }
+        ),
+        (
+            OptionalType(ListType([NamedType("str")])),
+            {
+                "kind": "OptionalType",
+                "type": {
+                    "kind": "ListType",
+                    "types": [{
+                        "kind": "NamedType", "name": "str"
+                    }]
+                }
+            }
+        ),
+        (
+            UnionType([NamedType("str"), NamedType("int")]),
+            {
+                "kind": "UnionType",
+                "types": [
+                    {"kind": "NamedType", "name": "str"},
+                    {"kind": "NamedType", "name": "int"}
+                ]
+            }
+        ),
+        (
+            FinalType(NamedType("int")),
+            {
+                "kind": "FinalType",
+                "type": {"kind": "NamedType", "name": "int"}
+            }
+        ),
+        (
+            LiteralType(["Alice", 2, True, "Bob"]),
+            {
+                "kind": "LiteralType",
+                "literals": ["Alice", 2, True, "Bob"]
+            }
+        ),
+        (
+            TupleType([NamedType("str"), NamedType("int")]),
+            {
+                "kind": "TupleType",
+                "types": [
+                    {"kind": "NamedType", "name": "str"},
+                    {"kind": "NamedType", "name": "int"}
+                ]
+            }
+        )
+    ],
+    ids=[
+        "List and Named",
+        "Dict and Named",
+        "Set and Named",
+        "Optional List and Named",
+        "Union and Named",
+        "Final and Named",
+        "Literal and Named",
+        "Tuple and Named",
+    ]
+)
 def test_to_dict(abstract_type, type_dict):
-    # assert result.to_dict() == expected
-    ...
-
-def test_from_dict(abstract_type, type_dict):
-    # assert result.to_dict() == expected
-    ...
+    assert abstract_type.to_dict() == type_dict
 
 
-
-
+@pytest.mark.parametrize(
+    ("abstract_type", "expected", "type_dict"),
+    [
+        (
+            ListType,
+            ListType([NamedType("str"), NamedType("int")]),
+            {
+                "kind": "ListType",
+                "types": [
+                    {"kind": "NamedType", "name": "str"},
+                    {"kind": "NamedType", "name": "int"}
+                ]
+            }
+        ),
+        (
+            DictType,
+            DictType(NamedType("str"), NamedType("int")),
+            {
+                "kind": "DictType",
+                "key_type": {"kind": "NamedType", "name": "str"},
+                "value_type": {"kind": "NamedType", "name": "int"}
+            }
+        ),
+        (
+            SetType,
+            SetType([NamedType("str"), NamedType("int")]),
+            {
+                "kind": "SetType",
+                "types": [{"kind": "NamedType", "name": "str"}, {"kind": "NamedType", "name": "int"}]
+            }
+        ),
+        (
+            OptionalType,
+            OptionalType(ListType([NamedType("str")])),
+            {
+                "kind": "OptionalType",
+                "type": {
+                    "kind": "ListType",
+                    "types": [{
+                        "kind": "NamedType", "name": "str"
+                    }]
+                }
+            }
+        ),
+        (
+            UnionType,
+            UnionType([NamedType("str"), NamedType("int")]),
+            {
+                "kind": "UnionType",
+                "types": [
+                    {"kind": "NamedType", "name": "str"},
+                    {"kind": "NamedType", "name": "int"}
+                ]
+            }
+        ),
+        (
+            FinalType,
+            FinalType(NamedType("int")),
+            {
+                "kind": "FinalType",
+                "type": {"kind": "NamedType", "name": "int"}
+            }
+        ),
+        (
+            LiteralType,
+            LiteralType(["Alice", 2, True, "Bob"]),
+            {
+                "kind": "LiteralType",
+                "literals": ["Alice", 2, True, "Bob"]
+            }
+        ),
+        (
+            TupleType,
+            TupleType([NamedType("str"), NamedType("int")]),
+            {
+                "kind": "TupleType",
+                "types": [
+                    {"kind": "NamedType", "name": "str"},
+                    {"kind": "NamedType", "name": "int"}
+                ]
+            }
+        )
+    ],
+    ids=[
+        "List and Named",
+        "Dict and Named",
+        "Set and Named",
+        "Optional List and Named",
+        "Union and Named",
+        "Final and Named",
+        "Literal and Named",
+        "Tuple and Named",
+    ]
+)
+def test_from_dict(abstract_type, expected, type_dict):
+    assert abstract_type.from_dict(type_dict) == expected

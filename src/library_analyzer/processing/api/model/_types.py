@@ -301,14 +301,17 @@ class DictType(AbstractType):
     @classmethod
     def from_dict(cls, d: Any) -> DictType | None:
         if d["kind"] == cls.__name__:
-            return DictType(d["key_type"], d["value_type"])
+            return DictType(
+                AbstractType.from_dict(d["key_type"]),
+                AbstractType.from_dict(d["value_type"])
+            )
         return None
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "kind": self.__class__.__name__,
-            "key_type": self.key_type,
-            "value_type": self.value_type,
+            "key_type": self.key_type.to_dict(),
+            "value_type": self.value_type.to_dict(),
         }
 
     def __hash__(self) -> int:
@@ -344,16 +347,18 @@ class SetType(AbstractType):
 
 @dataclass(frozen=True)
 class OptionalType(AbstractType):
-    type_: AbstractType | None
+    type_: AbstractType
 
     @classmethod
     def from_dict(cls, d: Any) -> OptionalType | None:
         if d["kind"] == cls.__name__:
-            return OptionalType(d["type"] or None)
+            return OptionalType(
+                AbstractType.from_dict(d["type"])
+            )
         return None
 
     def to_dict(self) -> dict[str, Any]:
-        return {"kind": self.__class__.__name__, "type": self.type_}
+        return {"kind": self.__class__.__name__, "type": self.type_.to_dict()}
 
     def __hash__(self) -> int:
         return hash(frozenset([self.type_]))
@@ -385,11 +390,13 @@ class FinalType(AbstractType):
     @classmethod
     def from_dict(cls, d: Any) -> FinalType | None:
         if d["kind"] == cls.__name__:
-            return FinalType(d["type"])
+            return FinalType(
+                AbstractType.from_dict(d["type"])
+            )
         return None
 
     def to_dict(self) -> dict[str, Any]:
-        return {"kind": self.__class__.__name__, "type": self.type_}
+        return {"kind": self.__class__.__name__, "type": self.type_.to_dict()}
 
     def __hash__(self) -> int:
         return hash(frozenset([self.type_]))
@@ -425,8 +432,6 @@ class TupleType(AbstractType):
 def _dismantel_type_string_structure(type_structure: str) -> list:
     current_type = ""
     result = []
-
-    type_structure = type_structure.replace(" ", "")
 
     while True:
         i = 0
@@ -473,9 +478,65 @@ def _parse_type_string_bracket_content(substring: str) -> (str, str):
     raise TypeParsingError("")
 
 
+# def _replace_pipes_with_union(type_string: str) -> (str, int):
+#     word = ""
+#     union_words = []
+#     i = 0
+#     while True:
+#         try:
+#             char = type_string[i]
+#         except IndexError:
+#             if union_words:
+#                 if word:
+#                     union_words.append(word)
+#                 return f"Union[{','.join(union_words)}]", len(type_string)
+#             else:
+#                 return word, len(type_string)
+#
+#         if i != 0 and type_string[i - 1] == ",":
+#             sub_string, jump = _replace_pipes_with_union(type_string[i:])
+#             word += sub_string
+#             i += jump
+#             if type_string[i - 1] == "]":
+#                 return word, i
+#         elif char not in ("[", "]", ",", "|"):
+#             word += char
+#             i += 1
+#         elif char == "|":
+#             union_words.append(word)
+#             word = ""
+#             i += 1
+#         elif char == "[":
+#             sub_string, jump = _replace_pipes_with_union(type_string[i + 1:])
+#             word += f"[{sub_string}"
+#             i += jump + 1
+#         elif char == "]":
+#             if union_words:
+#                 if word:
+#                     union_words.append(word)
+#                 return f"Union[{','.join(union_words)}]]", i + 1
+#             else:
+#                 return word + "]", i + 1
+#         elif char == ",":
+#             if union_words:
+#                 if word:
+#                     union_words.append(word)
+#                 return f"Union[{','.join(union_words)}],", i + 1
+#             else:
+#                 word += ","
+#                 i += 1
+#                 continue
+
+
 def _create_type(type_string: str) -> AbstractType:
     if not type_string:
         return NamedType("None")
+
+    type_string = type_string.replace(" ", "")
+
+    # todo Replace pipes with Union
+    # if "|" in type_string:
+    #     type_string = _replace_pipes_with_union(type_string)[0]
 
     # Structures, which only take one type argument
     structures = {"Final": FinalType, "Optional": OptionalType}
@@ -493,7 +554,6 @@ def _create_type(type_string: str) -> AbstractType:
         match = re.match(regex, type_string)
         if match:
             content = match.group(1)
-            content = content.replace(" ", "")
             content_elements = _dismantel_type_string_structure(content)
             return structures[key]([
                 _create_type(element) for element in content_elements
@@ -516,7 +576,6 @@ def _create_type(type_string: str) -> AbstractType:
     match = re.match(r"^Dict\[(.*)]$", type_string)
     if match:
         content = match.group(1)
-        content = content.replace(" ", "")
         content_elements = _dismantel_type_string_structure(content)
         if len(content_elements) != 2:
             raise TypeParsingError(f"Could not parse Dict from the following string:\n{type_string}")
