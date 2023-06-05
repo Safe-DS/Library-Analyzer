@@ -17,14 +17,14 @@ class MemberAccess(Expression):
 
 @dataclass
 class ScopeNode:
-    """ Represents a node in the scope tree.
+    """Represents a node in the scope tree.
 
     The scope tree is a tree that represents the scope of a module. It is used to determine the scope of a reference.
     On the top level, there is a ScopeNode for the module. Each ScopeNode has a list of children, which are the nodes
     that are defined in the scope of the node. Each ScopeNode also has a reference to its parent node.
 
-    Attributes:
-
+    Attributes
+    ----------
         node        is the node in the AST that defines the scope of the node.
         children    is a list of ScopeNodes that are defined in the scope of the node, is None if the node is a leaf node.
         parent      is the parent node in the scope tree, is None if the node is the root node.
@@ -43,8 +43,8 @@ class ScopeFinder:
     The scope of a reference is the node in the scope tree that defines the reference.
     It is determined by walking the AST and checking if the reference is defined in the scope of the current node.
 
-    Attributes:
-
+    Attributes
+    ----------
         current_node_stack      stack of nodes that are currently visited by the ASTWalker .
         children:               All found children nodes are stored in children until their scope is determined.
     """
@@ -59,12 +59,13 @@ class ScopeFinder:
         Detecting the scope of a node means finding the node in the scope tree that defines the scope of the given node.
         The scope of a node is defined by the parent node in the scope tree.
         """
-
         current_scope = node
         outer_scope_children: list[ScopeNode] = []
         inner_scope_children: list[ScopeNode] = []
         for child in self.children:
-            if child.parent is not None and child.parent.node != current_scope:  # check if the child is in the scope of the current node
+            if (
+                child.parent is not None and child.parent.node != current_scope
+            ):  # check if the child is in the scope of the current node
                 outer_scope_children.append(child)  # add the child to the outer scope
             else:
                 inner_scope_children.append(child)  # add the child to the inner scope
@@ -75,7 +76,9 @@ class ScopeFinder:
         self.current_node_stack.pop()  # remove the current node from the stack
 
     def enter_module(self, node: astroid.Module) -> None:
-        self.current_node_stack.append(ScopeNode(node=node, children=None, parent=None))  # add a module node to the stack, the module node is the root node, so it has no parent
+        self.current_node_stack.append(
+            ScopeNode(node=node, children=None, parent=None),
+        )  # add a module node to the stack, the module node is the root node, so it has no parent
 
     def leave_module(self, node: astroid.Module) -> None:
         self.detect_scope(node)
