@@ -356,11 +356,14 @@ def test_enum_from_string(docstring_type: str, expected: set[str] | None) -> Non
             ListType([NamedType("str"), NamedType("int")]),
         ),
         (
-            "Union[List[int], List[str]]",
-            UnionType([
-                ListType([NamedType("int")]),
-                ListType([NamedType("str")]),
-            ]),
+            "List[Union[List[int], List[str]], None]",
+            ListType([
+                UnionType([
+                    ListType([NamedType("int")]),
+                    ListType([NamedType("str")]),
+                ]),
+                NamedType("None")
+            ])
         ),
         (
             "List[Tuple[Union[int, bool], Optional[int]], Final[int], Set[Final[str]]]",

@@ -545,7 +545,7 @@ def create_type(type_string: str, description: str) -> AbstractType | None:
         match = re.match(regex, type_string)
         if match:
             content = match.group(1)
-            return structures[key](create_type(content))
+            return structures[key](create_type(content, description))
 
     # List-like structures, which take multiple type arguments
     structures = {"List": ListType, "Set": SetType, "Tuple": TupleType, "Union": UnionType}
@@ -556,7 +556,7 @@ def create_type(type_string: str, description: str) -> AbstractType | None:
             content = match.group(1)
             content_elements = _dismantel_type_string_structure(content)
             return structures[key]([
-                create_type(element) for element in content_elements
+                create_type(element, description) for element in content_elements
             ])
 
     match = re.match(r"^Literal\[(.*)]$", type_string)
@@ -580,8 +580,8 @@ def create_type(type_string: str, description: str) -> AbstractType | None:
         if len(content_elements) != 2:
             raise TypeParsingError(f"Could not parse Dict from the following string:\n{type_string}")
         return DictType(
-            create_type(content_elements[0]),
-            create_type(content_elements[1]),
+            create_type(content_elements[0], description),
+            create_type(content_elements[1], description),
         )
 
     # raise TypeParsingError(f"Could not parse type for the following type string:\n{type_string}")
