@@ -9,7 +9,7 @@ from library_analyzer.processing.api.model import (
     FunctionDocstring,
     ParameterAssignment,
     ParameterDocstring,
-    ResultDocstring
+    ResultDocstring,
 )
 
 from ._abstract_docstring_parser import AbstractDocstringParser
@@ -18,8 +18,7 @@ from ._helpers import get_description, get_full_docstring
 
 class GoogleDocParser(AbstractDocstringParser):
     """
-    Parses documentation in the Googledoc format. See https://google.github.io/styleguide/pyguide.html#381-docstrings for
-    more information.
+    Parses documentation in the Googledoc format. See https://google.github.io/styleguide/pyguide.html#381-docstrings for more information.
 
     This class is not thread-safe. Each thread should create its own instance.
     """
@@ -63,7 +62,7 @@ class GoogleDocParser(AbstractDocstringParser):
         all_parameters_googledoc: list[DocstringParam] = function_googledoc.params
         matching_parameters_googledoc = [
             it for it in all_parameters_googledoc
-            if it.arg_name == parameter_name and it.args[0] == 'param'
+            if it.arg_name == parameter_name and it.args[0] == "param"
         ]
 
         if len(matching_parameters_googledoc) == 0:
@@ -93,7 +92,7 @@ class GoogleDocParser(AbstractDocstringParser):
         all_attributes_googledoc: list[DocstringParam] = function_googledoc.params
         matching_attributes_googledoc = [
             it for it in all_attributes_googledoc
-            if it.arg_name == attribute_name and it.args[0] == 'attribute'
+            if it.arg_name == attribute_name and it.args[0] == "attribute"
         ]
 
         if len(matching_attributes_googledoc) == 0:
