@@ -7,7 +7,7 @@ from library_analyzer.processing.api.model import (
     FunctionDocstring,
     ParameterAssignment,
     ParameterDocstring,
-    ResultDocstring
+    ResultDocstring,
 )
 
 
@@ -333,16 +333,9 @@ def f():
             function_with_return_value_no_type,
             ResultDocstring(type="", description="return value"),
         ),
-        (
-            function_without_return_value,
-            ResultDocstring(type="", description="")
-        ),
+        (function_without_return_value, ResultDocstring(type="", description="")),
     ],
-    ids=[
-        "existing return value and type",
-        "existing return value no type",
-        "function without return value"
-    ],
+    ids=["existing return value and type", "existing return value no type", "function without return value"],
 )
 def test_get_result_documentation(
     restdoc_parser: RestDocParser,
@@ -359,7 +352,4 @@ def test_get_result_documentation(
                 node = method
 
     assert isinstance(node, astroid.FunctionDef)
-    assert (
-        restdoc_parser.get_result_documentation(node)
-        == expected_return_documentation
-    )
+    assert restdoc_parser.get_result_documentation(node) == expected_return_documentation

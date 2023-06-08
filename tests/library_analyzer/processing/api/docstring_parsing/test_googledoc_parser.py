@@ -179,6 +179,7 @@ def f():
     pass
 '''
 
+
 @pytest.mark.parametrize(
     ("python_code", "parameter_name", "parameter_assigned_by", "expected_parameter_documentation"),
     [
@@ -277,7 +278,7 @@ def f():
                 default_value="",
                 description="",
             ),
-        )
+        ),
     ],
     ids=[
         "existing class parameter",
@@ -289,7 +290,7 @@ def f():
         "function parameter with named vararg",
         "missing function parameter",
         "function with attributes and parameters existing parameter",
-        "function with attributes and parameters missing parameter"
+        "function with attributes and parameters missing parameter",
     ],
 )
 def test_get_parameter_documentation(
@@ -349,6 +350,7 @@ def f():
 
     pass
 '''
+
 
 @pytest.mark.parametrize(
     ("python_code", "attribute_name", "attribute_assigned_by", "expected_attribute_documentation"),
@@ -448,7 +450,7 @@ def f():
                 default_value="",
                 description="",
             ),
-        )
+        ),
     ],
     ids=[
         "existing class attribute",
@@ -460,7 +462,7 @@ def f():
         "function attribute with named vararg",
         "missing function attribute",
         "function with attributes and parameters existing attribute",
-        "function with attributes and parameters missing attribute"
+        "function with attributes and parameters missing attribute",
     ],
 )
 def test_get_attribute_documentation(
@@ -540,16 +542,9 @@ def f():
             function_with_return_value_no_type,
             ResultDocstring(type="", description="int"),
         ),
-        (
-            function_without_return_value,
-            ResultDocstring(type="", description="")
-        ),
+        (function_without_return_value, ResultDocstring(type="", description="")),
     ],
-    ids=[
-        "existing return value and type",
-        "existing return value no description",
-        "function without return value"
-    ],
+    ids=["existing return value and type", "existing return value no description", "function without return value"],
 )
 def test_get_result_documentation(
     googlestyledoc_parser: GoogleDocParser,
@@ -566,7 +561,4 @@ def test_get_result_documentation(
                 node = method
 
     assert isinstance(node, astroid.FunctionDef)
-    assert (
-        googlestyledoc_parser.get_result_documentation(node)
-        == expected_return_documentation
-    )
+    assert googlestyledoc_parser.get_result_documentation(node) == expected_return_documentation

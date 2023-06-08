@@ -61,8 +61,7 @@ class GoogleDocParser(AbstractDocstringParser):
         function_googledoc = self.__get_cached_function_googledoc_string(function_node, docstring)
         all_parameters_googledoc: list[DocstringParam] = function_googledoc.params
         matching_parameters_googledoc = [
-            it for it in all_parameters_googledoc
-            if it.arg_name == parameter_name and it.args[0] == "param"
+            it for it in all_parameters_googledoc if it.arg_name == parameter_name and it.args[0] == "param"
         ]
 
         if len(matching_parameters_googledoc) == 0:
@@ -91,8 +90,7 @@ class GoogleDocParser(AbstractDocstringParser):
         function_googledoc = self.__get_cached_function_googledoc_string(function_node, docstring)
         all_attributes_googledoc: list[DocstringParam] = function_googledoc.params
         matching_attributes_googledoc = [
-            it for it in all_attributes_googledoc
-            if it.arg_name == attribute_name and it.args[0] == "attribute"
+            it for it in all_attributes_googledoc if it.arg_name == attribute_name and it.args[0] == "attribute"
         ]
 
         if len(matching_attributes_googledoc) == 0:
@@ -118,10 +116,7 @@ class GoogleDocParser(AbstractDocstringParser):
         if function_returns is None:
             return ResultDocstring(type="", description="")
 
-        return ResultDocstring(
-            type=function_returns.type_name or "",
-            description=function_returns.description or ""
-        )
+        return ResultDocstring(type=function_returns.type_name or "", description=function_returns.description or "")
 
     def __get_cached_function_googledoc_string(self, function_node: astroid.FunctionDef, docstring: str) -> Docstring:
         """
