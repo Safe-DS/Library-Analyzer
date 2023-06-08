@@ -7,7 +7,7 @@ from library_analyzer.processing.api.model import (
     FunctionDocstring,
     ParameterAssignment,
     ParameterDocstring,
-    ResultDocstring
+    ResultDocstring,
 )
 
 from ._abstract_docstring_parser import AbstractDocstringParser
@@ -16,8 +16,7 @@ from ._helpers import get_description, get_full_docstring
 
 class RestDocParser(AbstractDocstringParser):
     """
-    Parses documentation in the Restdoc format. See https://spring.io/projects/spring-restdocs#samples for more
-    information.
+    Parses documentation in the Restdoc format. See https://spring.io/projects/spring-restdocs#samples for more information.
 
     This class is not thread-safe. Each thread should create its own instance.
     """
@@ -86,7 +85,7 @@ class RestDocParser(AbstractDocstringParser):
 
         return ResultDocstring(
             type=function_returns.type_name or "",
-            description=function_returns.description or ""
+            description=function_returns.description or "",
         )
 
     def __get_cached_function_restdoc_string(self, function_node: astroid.FunctionDef, docstring: str) -> Docstring:
