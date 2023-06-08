@@ -1,6 +1,5 @@
 import astroid
 import pytest
-
 from library_analyzer.processing.api.docstring_parsing import NumpyDocParser
 from library_analyzer.processing.api.model import (
     AttributeAssignment,
@@ -9,7 +8,7 @@ from library_analyzer.processing.api.model import (
     FunctionDocstring,
     ParameterAssignment,
     ParameterDocstring,
-    ResultDocstring
+    ResultDocstring,
 )
 
 

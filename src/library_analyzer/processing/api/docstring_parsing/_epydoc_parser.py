@@ -1,5 +1,5 @@
 import astroid
-from docstring_parser import Docstring, DocstringParam, DocstringStyle, DocstringMeta
+from docstring_parser import Docstring, DocstringParam, DocstringStyle
 from docstring_parser import parse as parse_docstring
 
 from library_analyzer.processing.api.model import (
@@ -7,7 +7,7 @@ from library_analyzer.processing.api.model import (
     FunctionDocstring,
     ParameterAssignment,
     ParameterDocstring,
-    ResultDocstring
+    ResultDocstring,
 )
 
 from ._abstract_docstring_parser import AbstractDocstringParser
@@ -16,7 +16,7 @@ from ._helpers import get_description, get_full_docstring
 
 class EpydocParser(AbstractDocstringParser):
     """
-    Parses documentation in the Epydoc format. See http://epydoc.sourceforge.net/epytext.html for more information.
+    Parses documentation in the Epydoc format. See https://epydoc.sourceforge.net/epytext.html for more information.
 
     This class is not thread-safe. Each thread should create its own instance.
     """
