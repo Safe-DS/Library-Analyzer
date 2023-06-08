@@ -15,7 +15,7 @@ from ._helpers import get_description, get_full_docstring
 
 class EpydocParser(AbstractDocstringParser):
     """
-    Parses documentation in the Epydoc format. See http://epydoc.sourceforge.net/epytext.html for more information.
+    Parses documentation in the Epydoc format. See https://epydoc.sourceforge.net/epytext.html for more information.
 
     This class is not thread-safe. Each thread should create its own instance.
     """

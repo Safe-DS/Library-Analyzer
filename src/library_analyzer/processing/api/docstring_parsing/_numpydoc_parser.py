@@ -94,7 +94,7 @@ class NumpyDocParser(AbstractDocstringParser):
         This avoids reparsing the docstring for the function itself and all of its parameters.
 
         On Lars's system this caused a significant performance improvement: Previously, 8.382s were spent inside the
-        function `get_parameter_documentation` when parsing sklearn. Afterwards, it was only 2.113s.
+        function `get_parameter_documentation` when parsing sklearn. Afterward, it was only 2.113s.
         """
         if self.__cached_function_node is not function_node:
             self.__cached_function_node = function_node
