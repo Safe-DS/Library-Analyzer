@@ -13,7 +13,7 @@ from library_analyzer.processing.api.model import (
 from ._differ import AbstractDiffer
 from ._mapping import Mapping, OneToOneMapping, merge_mappings
 
-api_element = Union[Attribute, Class, Function, Parameter, Result]
+api_element = Attribute | Class | Function | Parameter | Result
 API_ELEMENTS = TypeVar("API_ELEMENTS", Attribute, Class, Function, Parameter, Result)
 
 

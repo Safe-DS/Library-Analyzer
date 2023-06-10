@@ -13,7 +13,7 @@ from ._differ import AbstractDiffer
 from ._mapping import Mapping, OneToOneMapping
 
 DEPENDENT_API_ELEMENTS = TypeVar("DEPENDENT_API_ELEMENTS", Function, Attribute, Parameter, Result)
-api_element = Union[Attribute, Class, Function, Parameter, Result]
+api_element = Attribute | Class | Function | Parameter | Result
 
 
 class StrictDiffer(AbstractDiffer):

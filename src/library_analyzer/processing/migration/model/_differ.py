@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
     from ._mapping import Mapping
 
-api_element = Union[Attribute, Class, Function, Parameter, Result]
+api_element = Attribute | Class | Function | Parameter | Result
 
 
 @dataclass
