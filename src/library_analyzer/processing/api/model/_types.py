@@ -291,8 +291,6 @@ class ListType(AbstractType):
         return hash(frozenset(self.types))
 
 
-# todo Sind Hashes hier (und bei anderen Klassen wie Set und List) sinnvoll,
-#  da das Objekt veränderbar ist? Normales List Objekt hat ja auch kein Hash
 @dataclass(frozen=True)
 class DictType(AbstractType):
     key_type: AbstractType
@@ -478,56 +476,6 @@ def _parse_type_string_bracket_content(substring: str) -> (str, str):
     raise TypeParsingError("")
 
 
-# def _replace_pipes_with_union(type_string: str) -> (str, int):
-#     word = ""
-#     union_words = []
-#     i = 0
-#     while True:
-#         try:
-#             char = type_string[i]
-#         except IndexError:
-#             if union_words:
-#                 if word:
-#                     union_words.append(word)
-#                 return f"Union[{','.join(union_words)}]", len(type_string)
-#             else:
-#                 return word, len(type_string)
-#
-#         if i != 0 and type_string[i - 1] == ",":
-#             sub_string, jump = _replace_pipes_with_union(type_string[i:])
-#             word += sub_string
-#             i += jump
-#             if type_string[i - 1] == "]":
-#                 return word, i
-#         elif char not in ("[", "]", ",", "|"):
-#             word += char
-#             i += 1
-#         elif char == "|":
-#             union_words.append(word)
-#             word = ""
-#             i += 1
-#         elif char == "[":
-#             sub_string, jump = _replace_pipes_with_union(type_string[i + 1:])
-#             word += f"[{sub_string}"
-#             i += jump + 1
-#         elif char == "]":
-#             if union_words:
-#                 if word:
-#                     union_words.append(word)
-#                 return f"Union[{','.join(union_words)}]]", i + 1
-#             else:
-#                 return word + "]", i + 1
-#         elif char == ",":
-#             if union_words:
-#                 if word:
-#                     union_words.append(word)
-#                 return f"Union[{','.join(union_words)}],", i + 1
-#             else:
-#                 word += ","
-#                 i += 1
-#                 continue
-
-
 def create_type(type_string: str, description: str) -> AbstractType | None:
     if not type_string:
         return NamedType("None")
@@ -536,7 +484,7 @@ def create_type(type_string: str, description: str) -> AbstractType | None:
 
     # todo Replace pipes with Union
     # if "|" in type_string:
-    #     type_string = _replace_pipes_with_union(type_string)[0]
+    #     type_string = _replace_pipes_with_union(type_string)
 
     # Structures, which only take one type argument
     structures = {"Final": FinalType, "Optional": OptionalType}
