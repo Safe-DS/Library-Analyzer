@@ -1,10 +1,11 @@
 from dataclasses import dataclass, field
 from typing import Any, TypeAlias
 
-import spacy
 from numpy import inf
 from spacy.matcher import Matcher
 from spacy.tokens import Doc, Span
+
+from library_analyzer.utils import load_language
 
 from .model import BoundaryType
 
@@ -57,7 +58,7 @@ class BoundaryList:
 
 type_funcs = {"float": float, "int": int}
 
-_nlp = spacy.load("en_core_web_sm")
+_nlp = load_language("en_core_web_sm")
 _matcher = Matcher(_nlp.vocab)
 
 _geq_leq_op = [{"ORTH": {"IN": ["<", ">"]}}, {"ORTH": "="}]

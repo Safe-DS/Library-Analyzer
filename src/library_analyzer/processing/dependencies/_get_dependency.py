@@ -1,10 +1,10 @@
-import spacy
 from spacy.matcher import DependencyMatcher
 from spacy.tokens import Token
 from spacy.tokens.doc import Doc
 from spacy.tokens.span import Span
 
 from library_analyzer.processing.api.model import API, Parameter
+from library_analyzer.utils import load_language
 
 from ._dependency_patterns import dependency_matcher_patterns
 from ._parameter_dependencies import (
@@ -18,8 +18,6 @@ from ._parameter_dependencies import (
     ParameterIsNone,
 )
 from ._preprocess_docstring import preprocess_docstring
-
-PIPELINE = "en_core_web_sm"
 
 
 def extract_lefts_and_rights(curr_token: Token, extracted: list | None = None) -> list:
@@ -172,7 +170,7 @@ def get_dependencies(api: API) -> APIDependencies:
     Parse and preprocess each doc string from every function. Extract and return all dependencies as a dict with
     function and parameter names as keys.
     """
-    nlp = spacy.load(PIPELINE)
+    nlp = load_language("en_core_web_sm")
 
     matcher = DependencyMatcher(nlp.vocab)
     spacy_id_to_pattern_id_mapping: dict = {}
