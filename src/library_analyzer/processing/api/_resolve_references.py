@@ -16,6 +16,12 @@ class MemberAccess(Expression):
 
 
 @dataclass
+class Variables:
+    class_variables: list[astroid.AssignName] | None
+    instance_variables: list[astroid.NodeNG] | None
+
+
+@dataclass
 class ScopeNode:
     """Represents a node in the scope tree.
 
@@ -51,6 +57,7 @@ class ScopeFinder:
 
     current_node_stack: list[ScopeNode] = field(default_factory=list)
     children: list[ScopeNode] = field(default_factory=list)
+    variables: Variables = field(default_factory=lambda: Variables([], []))
 
     def detect_scope(self, node: astroid.NodeNG) -> None:
         """
@@ -74,6 +81,15 @@ class ScopeFinder:
         self.children = outer_scope_children  # keep the children that are not in the scope of the current node
         self.children.append(self.current_node_stack[-1])  # add the current node to the children
         self.current_node_stack.pop()  # remove the current node from the stack
+
+    def analyze_constructor(self, node: astroid.FunctionDef):
+        # print("Function:", node.name)
+        # print(node.repr_tree())
+        for child in node.body:
+            if isinstance(child, astroid.Assign):
+                self.variables.instance_variables.append(child.targets[0])
+            elif isinstance(child, astroid.AnnAssign):
+                self.variables.instance_variables.append(child.target)
 
     def enter_module(self, node: astroid.Module) -> None:
         """
@@ -101,7 +117,8 @@ class ScopeFinder:
         self.current_node_stack.append(
             ScopeNode(node=node, children=None, parent=self.current_node_stack[-1]),
         )
-        # TODO: Special treatment for __init__ function
+        if node.name == "__init__":
+            self.analyze_constructor(node)
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
         self.detect_scope(node)
@@ -123,7 +140,10 @@ class ScopeFinder:
             scope_node = ScopeNode(node=node, children=None, parent=parent)
             self.children.append(scope_node)
 
-    def enter_assignattr(self, node: astroid.Attribute) -> None:
+        if isinstance(node.parent.parent, astroid.ClassDef):
+            self.variables.class_variables.append(node)
+
+    def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
         scope_node = ScopeNode(node=node, children=None, parent=parent)
         self.children.append(scope_node)
@@ -139,14 +159,16 @@ class ScopeFinder:
         self.children.append(scope_node)
 
 
-def get_scope(code: str) -> list[ScopeNode]:
+def get_scope(code: str) -> tuple[list[ScopeNode], Variables]:
     scope_handler = ScopeFinder()
     walker = ASTWalker(scope_handler)
     module = astroid.parse(code)
     walker.walk(module)
 
     scopes = scope_handler.children  # get the children of the root node, which are the scopes of the module
+    variables = scope_handler.variables  # lists of class variables and instance variables
     scope_handler.children = []  # reset the children
     scope_handler.current_node_stack = []  # reset the stack
+    scope_handler.variables = Variables([], [])  # reset the variables
 
-    return scopes
+    return scopes, variables

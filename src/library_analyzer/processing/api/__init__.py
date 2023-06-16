@@ -30,6 +30,7 @@ from ._resolve_references import (
     MemberAccess,
     ScopeNode,
     get_scope,
+    Variables
 )
 
 __all__ = [
@@ -58,4 +59,5 @@ __all__ = [
     "ScopeNode",
     "MemberAccess",
     "get_scope",
+    "Variables",
 ]
