@@ -8,6 +8,7 @@ from library_analyzer.processing.api import (
     MemberAccess,
     ScopeNode,
     get_scope,
+    Variables,
 )
 
 
@@ -545,7 +546,7 @@ def transform_member_access(member_access: MemberAccess) -> str:
 )
 def test_get_scope(code: str, expected: list[SimpleScope]) -> None:
     result = get_scope(code)
-    assert_test_get_scope(result, expected)
+    assert_test_get_scope(result[0], expected)
 
 
 def assert_test_get_scope(result: list[ScopeNode], expected: list[SimpleScope]) -> None:
@@ -576,4 +577,165 @@ def to_string(node: astroid.NodeNG) -> str | None:
         return f"{node.__class__.__name__}.{node.names[0][0]}"
     elif isinstance(node, astroid.ImportFrom):
         return f"{node.__class__.__name__}.{node.modname}.{node.names[0][0]}"
+    return None
+
+
+@dataclass
+class SimpleVariables:
+    class_variables: list[str] | None
+    instance_variables: list[str] | None
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (
+            """
+            class A:
+                class_variable = 1
+            """,
+            SimpleVariables(["A.class_variable"], None),
+        ),
+        (
+            """
+            class B:
+                class_variable1 = 1
+                class_variable2 = 2
+            """,
+            SimpleVariables(["B.class_variable1", "B.class_variable2"], None),
+        ),
+        (
+            """
+            class C:
+                def __init__(self):
+                    self.instance_variable = 1
+            """,
+            SimpleVariables(None, ["C.instance_variable"]),
+        ),
+        (
+            """
+            class D:
+                def __init__(self):
+                    self.instance_variable1 = 1
+                    self.instance_variable2 = 2
+            """,
+            SimpleVariables(None, ["D.instance_variable1", "D.instance_variable2"]),
+        ),
+        (
+            """
+            class E:
+                class_variable = 1
+
+                def __init__(self):
+                    self.instance_variable = 1
+            """,
+            SimpleVariables(["E.class_variable"], ["E.instance_variable"]),
+        ),
+        (
+            """
+                from collections.abc import Callable
+                from typing import Any
+
+                import astroid
+
+                _EnterAndLeaveFunctions = tuple[
+                    Callable[[astroid.NodeNG], None] | None,
+                    Callable[[astroid.NodeNG], None] | None,
+                ]
+
+
+                class ASTWalker:
+                    additional_locals = []
+
+                    def __init__(self, handler: Any) -> None:
+                        self._handler = handler
+                        self._cache: dict[type, _EnterAndLeaveFunctions] = {}
+
+                    def walk(self, node: astroid.NodeNG) -> None:
+                        self.__walk(node, set())
+
+                    def __walk(self, node: astroid.NodeNG, visited_nodes: set[astroid.NodeNG]) -> None:
+                        if node in visited_nodes:
+                            raise AssertionError("Node visited twice")
+                        visited_nodes.add(node)
+
+                        self.__enter(node)
+                        for child_node in node.get_children():
+                            self.__walk(child_node, visited_nodes)
+                        self.__leave(node)
+
+                    def __enter(self, node: astroid.NodeNG) -> None:
+                        method = self.__get_callbacks(node)[0]
+                        if method is not None:
+                            method(node)
+
+                    def __leave(self, node: astroid.NodeNG) -> None:
+                        method = self.__get_callbacks(node)[1]
+                        if method is not None:
+                            method(node)
+
+                    def __get_callbacks(self, node: astroid.NodeNG) -> _EnterAndLeaveFunctions:
+                        klass = node.__class__
+                        methods = self._cache.get(klass)
+
+                        if methods is None:
+                            handler = self._handler
+                            class_name = klass.__name__.lower()
+                            enter_method = getattr(handler, f"enter_{class_name}", getattr(handler, "enter_default", None))
+                            leave_method = getattr(handler, f"leave_{class_name}", getattr(handler, "leave_default", None))
+                            self._cache[klass] = (enter_method, leave_method)
+                        else:
+                            enter_method, leave_method = methods
+
+                        return enter_method, leave_method
+
+            """,
+            SimpleVariables(["ASTWalker.additional_locals"], ["ASTWalker._handler", "ASTWalker._cache"]),
+        ),
+        (
+            """
+            class F:
+                var = 1
+
+                def __init__(self):
+                    self.var = 1
+            """,
+            SimpleVariables(["F.var"], ["F.var"]),
+        ),
+        (
+            """
+            class G:
+                var: int = 1
+            """,
+            SimpleVariables(["G.var"], None),
+        )
+    ],
+    ids=[
+        "Class Variable",
+        "Multiple Class Variables",
+        "Instance Variable",
+        "Multiple Instance Variables",
+        "Class and Instance Variable",
+        "ASTWalker",
+        "Class and Instance Variable with same name",  # is this something we want to support?
+        "Type Annotation"
+    ]
+)
+def test_distinguish_class_variables(code: str, expected: SimpleVariables) -> None:
+    result = get_scope(code)
+    result = transform_variables(result[1])
+    assert result == expected
+
+
+def transform_variables(variables: Variables) -> SimpleVariables:
+    class_var = [to_string_var(variable) for variable in variables.class_variables] or None
+    instance_var = [to_string_var(variable) for variable in variables.instance_variables] or None
+    return SimpleVariables(class_var, instance_var)
+
+
+def to_string_var(node: astroid.AssignName | astroid.AssignAttr) -> str | None:
+    if isinstance(node, astroid.AssignName):
+        return f"{node.parent.parent.name}.{node.name}"
+    elif isinstance(node, astroid.AssignAttr):
+        return f"{node.parent.parent.parent.name}.{node.attrname}"
     return None
