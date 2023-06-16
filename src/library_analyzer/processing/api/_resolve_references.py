@@ -76,9 +76,15 @@ class ScopeFinder:
         self.current_node_stack.pop()  # remove the current node from the stack
 
     def enter_module(self, node: astroid.Module) -> None:
+        """
+        Enter a module node.
+
+        The module node is the root node, so it has no parent (parent is None).
+        The module node is also the first node that is visited, so the current_node_stack is empty before entering the module node.
+        """
         self.current_node_stack.append(
             ScopeNode(node=node, children=None, parent=None),
-        )  # add a module node to the stack, the module node is the root node, so it has no parent
+        )
 
     def leave_module(self, node: astroid.Module) -> None:
         self.detect_scope(node)
@@ -101,13 +107,8 @@ class ScopeFinder:
         self.detect_scope(node)
 
     def enter_assignname(self, node: astroid.AssignName) -> None:
-        if isinstance(node.parent, astroid.Arguments):
-            if node.name == "self":
-                pass  # TODO: Special treatment for self parameter
-            else:
-                parent = self.current_node_stack[-1]
-                scope_node = ScopeNode(node=node, children=None, parent=parent)
-                self.children.append(scope_node)
+        if isinstance(node.parent, astroid.Arguments) and node.name == "self":
+            pass  # TODO: Special treatment for self parameter
 
         elif isinstance(
             node.parent,
