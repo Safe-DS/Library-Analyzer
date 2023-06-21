@@ -29,8 +29,9 @@ from ._package_metadata import (
 from ._resolve_references import (
     MemberAccess,
     NodeReference,
-    NodeScope,
+    ScopeNode,
     Scopes,
+    Variables,
     add_potential_target_references,
     add_potential_value_references,
     calc_node_id,
@@ -64,7 +65,7 @@ __all__ = [
     "package_files",
     "package_root",
     "NodeReference",
-    "NodeScope",
+    "ScopeNode",
     "MemberAccess",
     "find_references",
     "get_name_nodes",
@@ -74,4 +75,5 @@ __all__ = [
     "calc_node_id",
     "get_scope",
     "Scopes",
+    "Variables",
 ]
