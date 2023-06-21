@@ -125,7 +125,7 @@ class ScopeFinder:
 
     def enter_assignname(self, node: astroid.AssignName) -> None:
         if isinstance(node.parent, astroid.Arguments) and node.name == "self":
-            pass  # TODO: Special treatment for self parameter
+            pass  # TODO: Special treatment for self parameter?
 
         elif isinstance(
             node.parent,

@@ -582,8 +582,8 @@ def to_string(node: astroid.NodeNG) -> str | None:
 
 @dataclass
 class SimpleVariables:
-    class_variables: list[str] | None
-    instance_variables: list[str] | None
+    class_variables: list[str]
+    instance_variables: list[str]
 
 
 @pytest.mark.parametrize(
@@ -594,7 +594,7 @@ class SimpleVariables:
             class A:
                 class_variable = 1
             """,
-            SimpleVariables(["A.class_variable"], None),
+            SimpleVariables(["A.class_variable"], []),
         ),
         (
             """
@@ -602,7 +602,7 @@ class SimpleVariables:
                 class_variable1 = 1
                 class_variable2 = 2
             """,
-            SimpleVariables(["B.class_variable1", "B.class_variable2"], None),
+            SimpleVariables(["B.class_variable1", "B.class_variable2"], []),
         ),
         (
             """
@@ -610,7 +610,7 @@ class SimpleVariables:
                 def __init__(self):
                     self.instance_variable = 1
             """,
-            SimpleVariables(None, ["C.instance_variable"]),
+            SimpleVariables([], ["C.instance_variable"]),
         ),
         (
             """
@@ -619,7 +619,7 @@ class SimpleVariables:
                     self.instance_variable1 = 1
                     self.instance_variable2 = 2
             """,
-            SimpleVariables(None, ["D.instance_variable1", "D.instance_variable2"]),
+            SimpleVariables([], ["D.instance_variable1", "D.instance_variable2"]),
         ),
         (
             """
@@ -707,7 +707,7 @@ class SimpleVariables:
             class G:
                 var: int = 1
             """,
-            SimpleVariables(["G.var"], None),
+            SimpleVariables(["G.var"], []),
         )
     ],
     ids=[
@@ -728,8 +728,8 @@ def test_distinguish_class_variables(code: str, expected: SimpleVariables) -> No
 
 
 def transform_variables(variables: Variables) -> SimpleVariables:
-    class_var = [to_string_var(variable) for variable in variables.class_variables] or None
-    instance_var = [to_string_var(variable) for variable in variables.instance_variables] or None
+    class_var = [to_string_var(variable) for variable in variables.class_variables]
+    instance_var = [to_string_var(variable) for variable in variables.instance_variables]
     return SimpleVariables(class_var, instance_var)
 
 
