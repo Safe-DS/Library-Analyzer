@@ -14,7 +14,6 @@ from library_analyzer.processing.api import (
     NodeReference,
     create_references,
     find_references,
-    get_references_for_scope,
 )
 
 
@@ -502,9 +501,9 @@ def assert_reference_list_equal(result: list[NodeReference], expected: list[Node
     """ The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
     The real results name and scope are objects and not strings"""
     result = [
-        NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.potential_references) for name in result]
+        NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.referenced_declarations) for name in result]
     expected = [
-        NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.potential_references) for name in expected]
+        NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.referenced_declarations) for name in expected]
     assert result == expected
 
 # TODO: test this when resolve reference is implemented (disabled for now due to test failures)
@@ -1377,36 +1376,3 @@ def to_string_var(node: astroid.AssignName | astroid.AssignAttr) -> str | None:
     elif isinstance(node, astroid.AssignAttr):
         return f"{node.parent.parent.parent.name}.{node.attrname}"
     return None
-
-
-@pytest.mark.parametrize(
-    ("code", "expected"),
-    [
-        (
-            """
-                glob = 1
-                class A:
-                    def __init__(self):
-                        self.value = 10
-                        self.test = 20
-                    def f():
-                        var1 = 1
-                def g():
-                    var2 = 2
-            """,
-            [""]
-        ),
-    ],
-    ids=[
-        "Seminar Example"
-    ]
-)
-def test_get_references_for_scope(code: str, expected: list[str]) -> None:
-    module = astroid.parse(code)
-    scope, variables = get_scope(module)
-    name_nodes = get_name_nodes(module)
-    references = find_references(name_nodes)
-    result = get_references_for_scope(scope, variables, references)
-
-    assert result == expected
-

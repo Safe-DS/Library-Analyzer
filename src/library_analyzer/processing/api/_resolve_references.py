@@ -65,7 +65,7 @@ class NodeReference:
     name: astroid.Name | astroid.AssignName | str
     node_id: str
     scope: ScopeNode
-    potential_references: list[astroid.Name | astroid.AssignName] = field(default_factory=list)
+    referenced_declarations: list[astroid.Name | astroid.AssignName] = field(default_factory=list)
 
 
 # TODO: how to deal with astroid.Lambda and astroid.GeneratorExp in scope?
@@ -320,7 +320,7 @@ def add_potential_value_references(reference: NodeReference, reference_list: lis
     if reference in reference_list:
         for next_reference in reference_list[reference_list.index(reference):]:
             if next_reference.name.name == reference.name.name and isinstance(next_reference.name, astroid.Name):
-                complete_references.potential_references.append(next_reference.name)
+                complete_references.referenced_declarations.append(next_reference.name)
 
     return complete_references
 
@@ -335,13 +335,13 @@ def add_potential_target_references(reference: NodeReference, reference_list: li
     if reference in reference_list:
         for next_reference in reference_list[:reference_list.index(reference)]:
             if next_reference.name.name == reference.name.name and isinstance(next_reference.name, astroid.AssignName):
-                complete_references.potential_references.append(next_reference.name)
+                complete_references.referenced_declarations.append(next_reference.name)
 
     return complete_references
 
 
 # TODO: rework this function to respect the scope of the name
-def find_references(name_node_list: list[astroid.Name | astroid.AssignName]) -> list[NodeReference]:
+def find_references(scope: list[ScopeNode], variable: Variables, name_node_list: list[astroid.Name | astroid.AssignName]) -> list[NodeReference]:
     """Find references in a node.
 
     The following methods are called:
@@ -384,29 +384,11 @@ def get_scope(module: astroid.NodeNG) -> tuple[list[ScopeNode], Variables]:
     return scopes, variables
 
 
-def get_references_for_scope(scope: list[ScopeNode], variables: Variables, reference_list: list[NodeReference]) -> list[NodeReference]:
-    pass
+def resolve_reference(code: str) -> list[NodeReference]:
+    module_code = astroid.parse(code)
+    scope, variables = get_scope(module_code)
+    name_nodes_list = get_name_nodes(module_code)
 
+    references = find_references(scope, variables, name_nodes_list)
 
-# TODO: how do we access a library code?
-def get_module_code_from_library(library) -> list[astroid.Module]:
-    """Get the code of a library."""
-    modules = []
-    for module in library:
-        modules.append(astroid.parse(module))
-
-    return modules
-
-
-# TODO: use multi-threading to speed up the process
-def resolve_reference(library):
-    modules = get_module_code_from_library(library)
-    resolved_references: list[NodeReference] = []
-    for module_code in modules:
-        scope, variables = get_scope(module_code)
-        name_nodes_list = get_name_nodes(module_code)
-
-        references = find_references(name_nodes_list)
-        resolved_references = get_references_for_scope(scope, variables, references)
-
-    return resolved_references
+    return references

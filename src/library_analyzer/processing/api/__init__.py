@@ -39,7 +39,6 @@ from ._resolve_references import (
     find_references,
     get_name_nodes,
     get_scope,
-    get_references_for_scope,
 )
 
 __all__ = [
@@ -75,7 +74,6 @@ __all__ = [
     "add_potential_value_references",
     "calc_node_id",
     "get_scope",
-    "get_references_for_scope",
     "Scopes",
     "Variables",
 ]
