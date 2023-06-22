@@ -49,6 +49,20 @@ class ParameterDocstring:
 
 
 @dataclass(frozen=True)
+class AttributeDocstring:
+    type: str = ""
+    default_value: str = ""
+    description: str = ""
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> AttributeDocstring:
+        return AttributeDocstring(**d)
+
+    def to_dict(self) -> dict[str, Any]:
+        return dataclasses.asdict(self)
+
+
+@dataclass(frozen=True)
 class ResultDocstring:
     type: str = ""
     description: str = ""
