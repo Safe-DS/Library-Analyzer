@@ -16,7 +16,6 @@ from ._package_metadata import (
 )
 from .docstring_parsing import DocstringStyle, create_docstring_parser
 
-
 def get_api(
     package_name: str,
     root: Path | None = None,
