@@ -48,7 +48,7 @@ class ScopeNode:
         parent      is the parent node in the scope tree, is None if the node is the root node.
     """
 
-    node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | MemberAccess
+    node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | MemberAccess
     children: list[ScopeNode] | None = None
     parent: ScopeNode | None = None
 
@@ -66,9 +66,6 @@ class NodeReference:
     node_id: str
     scope: ScopeNode
     potential_references: list[astroid.Name | astroid.AssignName] = field(default_factory=list)
-    list_is_complete: bool = False  # if True, then the list potential_references is completed
-    # TODO: implement a methode to check if the list is complete: all references are found
-    #  the list is only completed if every reference is found
 
 
 # TODO: how to deal with astroid.Lambda and astroid.GeneratorExp in scope?
@@ -295,18 +292,20 @@ def calc_node_id(
 
 
 def create_references(names_list: list[astroid.Name | astroid.AssignName]) -> list[NodeReference]:
-    """Construct a list of references from a list of name nodes."""
+    """Construct a list of references from a list of name nodes.
+
+    These references are prototypes, since they do not have any potential value references nor potential target references yet.
+    They also do not have any scope nodes yet.
+    """
     references_proto: list[NodeReference] = []
     for name in names_list:
         node_id = calc_node_id(name)
-        if name.scope() == "Module":
-            node_scope = ScopeNode(name, name.scope(), None)  # TODO: check if this works correct when working with real data
-        else:
-            node_scope = ScopeNode(name, name.scope(), name.scope().parent)
+        scope_node = ScopeNode(name, None, None)
+
         if isinstance(name, astroid.Name):
-            references_proto.append(NodeReference(name, node_id.__str__(), node_scope, [], False))
+            references_proto.append(NodeReference(name, node_id.__str__(), scope_node, []))
         if isinstance(name, astroid.AssignName):
-            references_proto.append(NodeReference(name, node_id.__str__(), node_scope, [], False))
+            references_proto.append(NodeReference(name, node_id.__str__(), scope_node, []))
 
     return references_proto
 
@@ -323,9 +322,6 @@ def add_potential_value_references(reference: NodeReference, reference_list: lis
             if next_reference.name.name == reference.name.name and isinstance(next_reference.name, astroid.Name):
                 complete_references.potential_references.append(next_reference.name)
 
-    # TODO: check if the list is actually complete
-    complete_references.list_is_complete = True
-
     return complete_references
 
 
@@ -340,9 +336,6 @@ def add_potential_target_references(reference: NodeReference, reference_list: li
         for next_reference in reference_list[:reference_list.index(reference)]:
             if next_reference.name.name == reference.name.name and isinstance(next_reference.name, astroid.AssignName):
                 complete_references.potential_references.append(next_reference.name)
-
-    # TODO: check if the list is actually complete
-    complete_references.list_is_complete = True
 
     return complete_references
 
@@ -391,7 +384,7 @@ def get_scope(module: astroid.NodeNG) -> tuple[list[ScopeNode], Variables]:
     return scopes, variables
 
 
-def get_references_for_scope(scope: list[ScopeNode], reference_list: list[NodeReference]) -> list[NodeReference]:
+def get_references_for_scope(scope: list[ScopeNode], variables: Variables, reference_list: list[NodeReference]) -> list[NodeReference]:
     pass
 
 
@@ -408,13 +401,12 @@ def get_module_code_from_library(library) -> list[astroid.Module]:
 # TODO: use multi-threading to speed up the process
 def resolve_reference(library):
     modules = get_module_code_from_library(library)
-    scope = []
-    references = []
+    resolved_references: list[NodeReference] = []
     for module_code in modules:
-        scope = get_scope(module_code)[0]
+        scope, variables = get_scope(module_code)
         name_nodes_list = get_name_nodes(module_code)
 
         references = find_references(name_nodes_list)
+        resolved_references = get_references_for_scope(scope, variables, references)
 
-    resolved_references = get_references_for_scope(scope, references)
     return resolved_references

@@ -14,6 +14,7 @@ from library_analyzer.processing.api import (
     NodeReference,
     create_references,
     find_references,
+    get_references_for_scope,
 )
 
 
@@ -431,7 +432,7 @@ def test_calc_function_id_new(
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
             [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4",
                            ScopeNode(astroid.Name("var1", lineno=1, col_offset=4),
-                                     astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
+                                     None, None))]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
@@ -440,20 +441,20 @@ def test_calc_function_id_new(
                           parent=astroid.FunctionDef("func2", lineno=1, col_offset=0))],
             [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4",
                            ScopeNode(astroid.Name("var1", lineno=1, col_offset=4),
-                                     astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
+                                     None, None)),
              NodeReference(astroid.Name("var2", lineno=2, col_offset=4), "func1.var2.2.4",
                            ScopeNode(astroid.Name("var2", lineno=2, col_offset=4),
-                                     astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
+                                     None, None)),
              NodeReference(astroid.Name("var3", lineno=30, col_offset=4), "func2.var3.30.4",
                            ScopeNode(astroid.Name("var3", lineno=30, col_offset=4),
-                                     astroid.FunctionDef("func2", lineno=1, col_offset=0)), [], False)]
+                                     None, None))]
         ),
         (
             [astroid.AssignName("var1", lineno=12, col_offset=42,
                                 parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
             [NodeReference(astroid.AssignName("var1", lineno=12, col_offset=42), "func1.var1.12.42",
                            ScopeNode(astroid.AssignName("var1", lineno=12, col_offset=42),
-                                     astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
+                                     None, None))]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
@@ -461,21 +462,21 @@ def test_calc_function_id_new(
                                 parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
             [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4",
                            ScopeNode(astroid.Name("var1", lineno=1, col_offset=4),
-                                     astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False),
+                                     None, None)),
              NodeReference(astroid.AssignName("var2", lineno=1, col_offset=8), "func1.var2.1.8",
                            ScopeNode(astroid.AssignName("var2", lineno=1, col_offset=8),
-                                     astroid.FunctionDef("func1", lineno=1, col_offset=0)), [], False)]
+                                     None, None))]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.ClassDef("MyClass", lineno=1, col_offset=0))],
             [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "MyClass.var1.1.4",
                            ScopeNode(astroid.Name("var1", lineno=1, col_offset=4),
-                                     astroid.ClassDef("MyClass", lineno=1, col_offset=0)), [], False)]
+                                     None, None))]
         ),
         (
             [astroid.Name("glob", lineno=1, col_offset=4, parent=astroid.Module("mod"))],
             [NodeReference(astroid.Name("glob", lineno=1, col_offset=4), "mod.glob.1.4",
-                           ScopeNode(astroid.Name("glob", lineno=1, col_offset=4), astroid.Module("mod")), [], False)]
+                           ScopeNode(astroid.Name("glob", lineno=1, col_offset=4), None, None))]
         ),
         (
             [],
@@ -501,11 +502,9 @@ def assert_reference_list_equal(result: list[NodeReference], expected: list[Node
     """ The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
     The real results name and scope are objects and not strings"""
     result = [
-        NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.potential_references,
-                      name.list_is_complete) for name in result]
+        NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.potential_references) for name in result]
     expected = [
-        NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.potential_references,
-                      name.list_is_complete) for name in expected]
+        NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.potential_references) for name in expected]
     assert result == expected
 
 # TODO: test this when resolve reference is implemented (disabled for now due to test failures)
@@ -651,9 +650,8 @@ def assert_reference_list_equal(result: list[NodeReference], expected: list[Node
 )
 def test_find_references(code, expected):
     module = astroid.parse(code)
-    # print(module.repr_tree(), "\n")
     all_names_list = get_name_nodes(module)
-    print(all_names_list)
+    # print(all_names_list)
     references = [find_references(all_names_list)]
 
     for reference in references:
@@ -1379,3 +1377,36 @@ def to_string_var(node: astroid.AssignName | astroid.AssignAttr) -> str | None:
     elif isinstance(node, astroid.AssignAttr):
         return f"{node.parent.parent.parent.name}.{node.attrname}"
     return None
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (
+            """
+                glob = 1
+                class A:
+                    def __init__(self):
+                        self.value = 10
+                        self.test = 20
+                    def f():
+                        var1 = 1
+                def g():
+                    var2 = 2
+            """,
+            [""]
+        ),
+    ],
+    ids=[
+        "Seminar Example"
+    ]
+)
+def test_get_references_for_scope(code: str, expected: list[str]) -> None:
+    module = astroid.parse(code)
+    scope, variables = get_scope(module)
+    name_nodes = get_name_nodes(module)
+    references = find_references(name_nodes)
+    result = get_references_for_scope(scope, variables, references)
+
+    assert result == expected
+
