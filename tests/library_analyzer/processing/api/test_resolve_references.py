@@ -690,7 +690,7 @@ class SimpleVariables:
                         return enter_method, leave_method
 
             """,
-            SimpleVariables(["ASTWalker.additional_locals"], ["ASTWalker._handler", "ASTWalker._cache"]),
+            SimpleVariables(["ASTWalker.additional_locals"], ["self._handler", "self._cache"]),
         ),
         (
             """
@@ -700,7 +700,7 @@ class SimpleVariables:
                 def __init__(self):
                     self.var = 1
             """,
-            SimpleVariables(["F.var"], ["F.var"]),
+            SimpleVariables(["F.var"], ["self.var"]),
         ),
         (
             """
@@ -717,7 +717,7 @@ class SimpleVariables:
         "Multiple Instance Variables",
         "Class and Instance Variable",
         "ASTWalker",
-        "Class and Instance Variable with same name",  # is this something we want to support?
+        "Class and Instance Variable with same name",
         "Type Annotation"
     ]
 )
@@ -737,5 +737,7 @@ def to_string_var(node: astroid.AssignName | astroid.AssignAttr) -> str | None:
     if isinstance(node, astroid.AssignName):
         return f"{node.parent.parent.name}.{node.name}"
     elif isinstance(node, astroid.AssignAttr):
-        return f"{node.parent.parent.parent.name}.{node.attrname}"
+        return f"self.{node.attrname}"  # TODO: use self from node itself
     return None
+
+# TODO: documentation: simplifyed version of Variable

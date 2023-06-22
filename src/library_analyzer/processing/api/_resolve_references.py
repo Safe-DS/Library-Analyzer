@@ -83,8 +83,6 @@ class ScopeFinder:
         self.current_node_stack.pop()  # remove the current node from the stack
 
     def analyze_constructor(self, node: astroid.FunctionDef):
-        # print("Function:", node.name)
-        # print(node.repr_tree())
         for child in node.body:
             if isinstance(child, astroid.Assign):
                 self.variables.instance_variables.append(child.targets[0])
