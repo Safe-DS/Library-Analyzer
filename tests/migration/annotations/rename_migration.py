@@ -31,18 +31,18 @@ def migrate_rename_annotation_data_one_to_one_mapping() -> (
     ]
 ):
     parameterv1 = Parameter(
-        id_="test/test.rename.test1.Test_",
-        name="Test",
-        qname="test.rename.test1.Test_",
+        id_="test/test.rename/Test1/test",
+        name="test",
+        qname="test.rename.Test1.test",
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
         docstring=ParameterDocstring("", "", ""),
     )
     parameterv2 = Parameter(
-        id_="test/test.rename.test1.TestB",
-        name="TestB",
-        qname="test.rename.test1.TestB",
+        id_="test/test.rename/Test1/test",
+        name="test",
+        qname="test.rename.Test1.test",
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
@@ -50,7 +50,7 @@ def migrate_rename_annotation_data_one_to_one_mapping() -> (
     )
     mappings = OneToOneMapping(1.0, parameterv1, parameterv2)
     annotationv1 = RenameAnnotation(
-        target="test/test.rename.test1.Test_",
+        target="test/test.rename/Test1/test",
         authors=["testauthor"],
         reviewers=[],
         comment="",
@@ -58,7 +58,7 @@ def migrate_rename_annotation_data_one_to_one_mapping() -> (
         newName="TestE",
     )
     annotationv2 = RenameAnnotation(
-        target="test/test.rename.test1.TestB",
+        target="test/test.rename/Test1/test",
         authors=["testauthor", migration_author],
         reviewers=[],
         comment="",
@@ -76,27 +76,27 @@ def migrate_rename_annotation_data_one_to_many_mapping() -> (
     ]
 ):
     parameterv1 = Parameter(
-        id_="test/test.rename.test3.Test",
-        name="Test",
-        qname="test.rename.test3.Test",
+        id_="test/test.rename/Test3/test",
+        name="test",
+        qname="test.rename/Test3/test",
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
         docstring=ParameterDocstring("", "", ""),
     )
     parameterv2_a = Parameter(
-        id_="test/test.rename.test3.TestA",
-        name="TestA",
-        qname="test.rename.test3.TestA",
+        id_="test/test.rename/Test3/testA",
+        name="testA",
+        qname="test.rename.Test3.testA",
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
         docstring=ParameterDocstring("", "", ""),
     )
     parameterv2_b = Parameter(
-        id_="test/test.rename.test3.Test",
-        name="Test",
-        qname="test.rename.test3.Test",
+        id_="test/test.rename/Test3/test",
+        name="test",
+        qname="test.rename.Test3.test",
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
@@ -115,7 +115,7 @@ def migrate_rename_annotation_data_one_to_many_mapping() -> (
     )
     mappings = OneToManyMapping(1.0, parameterv1, [parameterv2_a, parameterv2_b, classv2])
     annotationv1 = RenameAnnotation(
-        target="test/test.rename.test3.Test",
+        target="test/test.rename/Test3/test",
         authors=["testauthor"],
         reviewers=[],
         comment="",
@@ -123,7 +123,7 @@ def migrate_rename_annotation_data_one_to_many_mapping() -> (
         newName="TestZ",
     )
     annotationv2_a = RenameAnnotation(
-        target="test/test.rename.test3.TestA",
+        target="test/test.rename/Test3/testA",
         authors=["testauthor", migration_author],
         reviewers=[],
         comment=get_migration_text(annotationv1, mappings),
@@ -131,7 +131,7 @@ def migrate_rename_annotation_data_one_to_many_mapping() -> (
         newName="TestZ",
     )
     annotationv2_b = RenameAnnotation(
-        target="test/test.rename.test3.Test",
+        target="test/test.rename/Test3/test",
         authors=["testauthor", migration_author],
         reviewers=[],
         comment="",
@@ -162,7 +162,7 @@ def migrate_rename_annotation_data_duplicated() -> (
 ):
     parameterv1 = Parameter(
         id_="test/test.rename.duplicate.Test_",
-        name="Test",
+        name="Test_",
         qname="test.rename.duplicate.Test_",
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
@@ -170,26 +170,26 @@ def migrate_rename_annotation_data_duplicated() -> (
         docstring=ParameterDocstring("", "", ""),
     )
     parameterv1_2 = Parameter(
-        id_="test/test.rename.duplicate.Test_2",
-        name="Test",
-        qname="test.rename.duplicate.Test_2",
+        id_="test/test.rename.duplicate.a/Test_",
+        name="Test_",
+        qname="test.rename.duplicate.a/Test_",
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
         docstring=ParameterDocstring("", "", ""),
     )
     parameterv2 = Parameter(
-        id_="test/test.rename.duplicate.TestB",
-        name="TestB",
-        qname="test.rename.duplicate.TestB",
+        id_="test/test.rename.duplicate.b/Test_",
+        name="Test_",
+        qname="test.rename.duplicate.b/Test_",
         default_value=None,
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
         docstring=ParameterDocstring("", "", ""),
     )
-    mappings = ManyToOneMapping(1.0, [parameterv1, parameterv1_2], parameterv2)
+    mapping = ManyToOneMapping(1.0, [parameterv1, parameterv1_2], parameterv2)
     annotationv1 = RenameAnnotation(
-        target="test/test.rename.duplicate.Test_",
+        target="test/test.rename.duplicate/Test_",
         authors=["testauthor"],
         reviewers=[],
         comment="",
@@ -197,7 +197,7 @@ def migrate_rename_annotation_data_duplicated() -> (
         newName="TestE",
     )
     annotationv1_2 = RenameAnnotation(
-        target="test/test.rename.duplicate.Test_2",
+        target="test/test.rename.duplicate.a/Test_",
         authors=["testauthor"],
         reviewers=[],
         comment="",
@@ -205,11 +205,11 @@ def migrate_rename_annotation_data_duplicated() -> (
         newName="TestE",
     )
     annotationv2 = RenameAnnotation(
-        target="test/test.rename.duplicate.TestB",
+        target="test/test.rename.duplicate.b/Test_",
         authors=["testauthor", migration_author],
         reviewers=[],
         comment="",
         reviewResult=EnumReviewResult.NONE,
         newName="TestE",
     )
-    return mappings, [annotationv1, annotationv1_2], [annotationv2]
+    return mapping, [annotationv1, annotationv1_2], [annotationv2]

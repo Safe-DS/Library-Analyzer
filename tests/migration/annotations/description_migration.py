@@ -190,7 +190,7 @@ def migrate_description_annotation_data_one_to_one_mapping__parameter() -> (
         default_value="value",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        docstring=ParameterDocstring("str", "value", "docstring"),
+        docstring=ParameterDocstring("str", "changed_value", "doc"),
     )
 
     mapping = OneToOneMapping(1.0, parameterv1, parameterv2)
@@ -208,7 +208,7 @@ def migrate_description_annotation_data_one_to_one_mapping__parameter() -> (
         authors=["testauthor", migration_author],
         reviewers=[],
         comment="",
-        reviewResult=EnumReviewResult.NONE,
+        reviewResult=EnumReviewResult.UNSURE,
         newDescription="test description",
     )
     return mapping, annotationv1, [annotationv2]
