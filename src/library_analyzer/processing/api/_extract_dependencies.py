@@ -4,10 +4,11 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-import spacy
 from spacy import Language
 from spacy.displacy import serve
 from spacy.matcher import DependencyMatcher, Matcher
+
+from library_analyzer.utils import load_language
 
 if TYPE_CHECKING:
     from spacy.tokens import Doc, Token
@@ -381,7 +382,7 @@ _condition_list: list[Condition] = []
 _action_list: list[Action] = []
 _combined_condition: list[str] = []
 
-_nlp = spacy.load("en_core_web_sm")
+_nlp = load_language("en_core_web_sm")
 
 _matcher = Matcher(_nlp.vocab)
 _matcher.add("HYPHENED_VALUE", [_pattern_hyphened_values, _pattern_hyphened_values2], greedy="LONGEST")
