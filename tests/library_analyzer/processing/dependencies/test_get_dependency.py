@@ -1,5 +1,3 @@
-import spacy
-import spacy.cli
 from library_analyzer.processing.api.model import (
     Parameter,
     ParameterAssignment,
@@ -18,12 +16,9 @@ from library_analyzer.processing.dependencies import (
     extract_condition,
     extract_lefts_and_rights,
 )
+from library_analyzer.utils import load_language
 
-try:
-    nlp = spacy.load("en_core_web_sm")
-except OSError:
-    spacy.cli.download("en_core_web_sm")
-    nlp = spacy.load("en_core_web_sm")
+nlp = load_language("en_core_web_sm")
 
 
 def test_extract_lefts_and_rights() -> None:

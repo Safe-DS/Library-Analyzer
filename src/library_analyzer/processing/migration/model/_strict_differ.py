@@ -1,4 +1,4 @@
-from typing import TypeVar, Union
+from typing import TypeVar
 
 from library_analyzer.processing.api.model import (
     API,
@@ -10,10 +10,10 @@ from library_analyzer.processing.api.model import (
 )
 
 from ._differ import AbstractDiffer
-from ._mapping import Mapping
+from ._mapping import Mapping, OneToOneMapping
 
 DEPENDENT_API_ELEMENTS = TypeVar("DEPENDENT_API_ELEMENTS", Function, Attribute, Parameter, Result)
-api_element = Union[Attribute, Class, Function, Parameter, Result]
+api_element = Attribute | Class | Function | Parameter | Result
 
 
 class StrictDiffer(AbstractDiffer):
@@ -54,7 +54,15 @@ class StrictDiffer(AbstractDiffer):
             self.previous_mappings,
             key=lambda mapping: sort_order[type(mapping.get_apiv1_elements()[0])],
         )
-        self.related_mappings = [mapping for mapping in self.related_mappings if mapping not in unchanged_mappings]
+        self.related_mappings = [
+            mapping
+            for mapping in self.related_mappings
+            if mapping not in unchanged_mappings and not isinstance(mapping, OneToOneMapping)
+        ]
+        for mapping_list in [self.previous_mappings, unchanged_mappings]:
+            for mapping in mapping_list:
+                if mapping not in self.related_mappings:
+                    self.new_mappings[type(mapping.get_apiv1_elements()[0])].append(mapping)
         self.unchanged_mappings = unchanged_mappings
 
     def get_related_mappings(

@@ -35,6 +35,11 @@ from ._package_metadata import (
     package_files,
     package_root,
 )
+from ._resolve_references import (
+    MemberAccess,
+    ScopeNode,
+    get_scope,
+)
 
 __all__ = [
     "DefinitelyImpure",
@@ -66,4 +71,7 @@ __all__ = [
     "ParameterIsIgnored",
     "ParameterIsNone",
     "ParameterIsNotCallable",
+    "ScopeNode",
+    "MemberAccess",
+    "get_scope",
 ]
