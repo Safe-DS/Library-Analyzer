@@ -595,7 +595,7 @@ class SimpleVariables:
             class A:
                 class_variable = 1
             """,
-            SimpleVariables(["A.class_variable"], []),
+            [SimpleVariables(["A.class_variable"], [])],
         ),
         (
             """
@@ -603,7 +603,7 @@ class SimpleVariables:
                 class_variable1 = 1
                 class_variable2 = 2
             """,
-            SimpleVariables(["B.class_variable1", "B.class_variable2"], []),
+            [SimpleVariables(["B.class_variable1", "B.class_variable2"], [])],
         ),
         (
             """
@@ -611,7 +611,7 @@ class SimpleVariables:
                 def __init__(self):
                     self.instance_variable = 1
             """,
-            SimpleVariables([], ["self.instance_variable"]),
+            [SimpleVariables([], ["self.instance_variable"])],
         ),
         (
             """
@@ -620,7 +620,7 @@ class SimpleVariables:
                     self.instance_variable1 = 1
                     self.instance_variable2 = 2
             """,
-            SimpleVariables([], ["self.instance_variable1", "self.instance_variable2"]),
+            [SimpleVariables([], ["self.instance_variable1", "self.instance_variable2"])],
         ),
         (
             """
@@ -630,7 +630,7 @@ class SimpleVariables:
                 def __init__(self):
                     self.instance_variable = 1
             """,
-            SimpleVariables(["E.class_variable"], ["self.instance_variable"]),
+            [SimpleVariables(["E.class_variable"], ["self.instance_variable"])],
         ),
         (
             """
@@ -691,7 +691,7 @@ class SimpleVariables:
                         return enter_method, leave_method
 
             """,
-            SimpleVariables(["ASTWalker.additional_locals"], ["self._handler", "self._cache"]),
+            [SimpleVariables(["ASTWalker.additional_locals"], ["self._handler", "self._cache"])],
         ),
         (
             """
@@ -701,25 +701,29 @@ class SimpleVariables:
                 def __init__(self):
                     self.var = 1
             """,
-            SimpleVariables(["F.var"], ["self.var"]),
+            [SimpleVariables(["F.var"], ["self.var"])],
         ),
         (
             """
             class G:
                 var: int = 1
             """,
-            SimpleVariables(["G.var"], []),
+            [SimpleVariables(["G.var"], [])],
         ),
         (
             """
             class H:
-                var = 1
+                var1 = 1
+                var2 = 2
 
             class I:
+                test = 1
+
                 def __init__(self):
                     self.var = 1
             """,
-            SimpleVariables([], []),
+            [SimpleVariables(["H.var1", "H.var2"], []),
+             SimpleVariables(["I.test"], ["self.var"])],
         )
     ],
     ids=[
@@ -731,8 +735,9 @@ class SimpleVariables:
         "ASTWalker",
         "Class and Instance Variable with same name",
         "Type Annotation",
-        "Multiple Classes"
-
+        "Multiple Classes",
+        # "Class within Class",
+        # "Class within Function"
     ]
 )
 def test_distinguish_class_variables(code: str, expected: SimpleVariables) -> None:
@@ -741,10 +746,15 @@ def test_distinguish_class_variables(code: str, expected: SimpleVariables) -> No
     assert result == expected
 
 
-def transform_variables(variables: Variables) -> SimpleVariables:
-    class_var = [to_string_var(variable) for variable in variables.class_variables]
-    instance_var = [to_string_var(variable) for variable in variables.instance_variables]
-    return SimpleVariables(class_var, instance_var)
+def transform_variables(variables: list[Variables]) -> list[SimpleVariables]:
+    result: list[SimpleVariables] = []
+    for num, entry in enumerate(variables):
+        result.append(SimpleVariables([], []))
+        class_var = [to_string_var(variable) for variable in variables[num].class_variables]
+        instance_var = [to_string_var(variable) for variable in variables[num].instance_variables]
+        result[num].class_variables = class_var
+        result[num].instance_variables = instance_var
+    return result
 
 
 def to_string_var(node: astroid.AssignName | astroid.AssignAttr) -> str:
