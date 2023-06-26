@@ -202,7 +202,7 @@ def migrate_todo_annotation_data_many_to_many_mapping() -> tuple[Mapping, Abstra
         authors=["testauthor", migration_author],
         reviewers=[],
         comment="",
-        reviewResult=EnumReviewResult.NONE,
+        reviewResult=EnumReviewResult.UNSURE,
         newTodo=get_migration_text(annotationv1, mappings, for_todo_annotation=True),
     )
     return (

@@ -509,6 +509,24 @@ class Parameter:
         }
 
 
+class AttributeAssignment(Enum):
+    """
+    How arguments are assigned to attributes. The attributes must appear exactly in this order in an attribute list.
+
+    IMPLICIT attributes appear on instance methods (usually called "self") and on class methods (usually called "cls").
+    POSITION_ONLY attributes precede the "/" in an attribute list. NAME_ONLY attributes follow the "*" or the
+    POSITIONAL_VARARGS attribute ("*args"). Between the "/" and the "*" the POSITION_OR_NAME attributes reside. Finally,
+    the attribute list might optionally include a NAMED_VARARG attribute ("**kwargs").
+    """
+
+    IMPLICIT = "IMPLICIT"
+    POSITION_ONLY = "POSITION_ONLY"
+    POSITION_OR_NAME = "POSITION_OR_NAME"
+    POSITIONAL_VARARG = "POSITIONAL_VARARG"
+    NAME_ONLY = "NAME_ONLY"
+    NAMED_VARARG = "NAMED_VARARG"
+
+
 class ParameterAssignment(Enum):
     """
     How arguments are assigned to parameters. The parameters must appear exactly in this order in a parameter list.

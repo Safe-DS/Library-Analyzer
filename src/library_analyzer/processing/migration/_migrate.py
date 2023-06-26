@@ -33,8 +33,8 @@ from library_analyzer.processing.migration.model import ManyToManyMapping, Mappi
 class Migration:
     annotationsv1: AnnotationStore
     mappings: list[Mapping]
-    reliable_similarity: float = 0.9
-    unsure_similarity: float = 0.8
+    reliable_similarity: float = 0.85
+    unsure_similarity: float = 0.75
     migrated_annotation_store: AnnotationStore = field(init=False)
     unsure_migrated_annotation_store: AnnotationStore = field(init=False)
 
@@ -131,6 +131,11 @@ class Migration:
     def _get_mappings_for_table(self) -> list[str]:
         table_rows: list[str] = []
         for mapping in self.mappings:
+            if len(mapping.get_apiv1_elements()) > 0 and isinstance(
+                mapping.get_apiv1_elements()[0],
+                Attribute | Result,
+            ):
+                continue
 
             def print_api_element(api_element: Attribute | Class | Function | Parameter | Result) -> str:
                 if isinstance(api_element, Result):
@@ -160,14 +165,11 @@ class Migration:
         api_elements: list[str] = []
         for class_ in api.classes.values():
             api_elements.append(class_.id)
-            for attribute in class_.instance_attributes:
-                api_elements.append(attribute.id)
         for function in api.functions.values():
             api_elements.append(function.id)
-            for result in function.results:
-                api_elements.append(result.id)
         for parameter in api.parameters().values():
             api_elements.append(parameter.id)
+        # Attribute und Result could be added here
 
         mapped_api_elements: set[str] = set()
         if print_for_apiv2:
@@ -252,7 +254,9 @@ class Migration:
                         first_annotation, first_value = first_annotation_and_value
                         if len(different_values) > 1:
                             different_values.remove(first_value)
-                            comment = "Conflicting Attribute during migration: " + ", ".join(sorted(different_values))
+                            comment = "Conflicting attribute found during migration: " + ", ".join(
+                                sorted(different_values),
+                            )
                             first_annotation.comment = (
                                 "\n".join([comment, first_annotation.comment])
                                 if len(first_annotation.comment) > 0
