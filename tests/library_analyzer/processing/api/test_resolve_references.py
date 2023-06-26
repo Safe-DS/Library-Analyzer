@@ -582,6 +582,7 @@ def to_string(node: astroid.NodeNG) -> str | None:
 
 @dataclass
 class SimpleVariables:
+    """ A simplified version of the Variables class """
     class_variables: list[str]
     instance_variables: list[str]
 
@@ -610,7 +611,7 @@ class SimpleVariables:
                 def __init__(self):
                     self.instance_variable = 1
             """,
-            SimpleVariables([], ["C.instance_variable"]),
+            SimpleVariables([], ["self.instance_variable"]),
         ),
         (
             """
@@ -619,7 +620,7 @@ class SimpleVariables:
                     self.instance_variable1 = 1
                     self.instance_variable2 = 2
             """,
-            SimpleVariables([], ["D.instance_variable1", "D.instance_variable2"]),
+            SimpleVariables([], ["self.instance_variable1", "self.instance_variable2"]),
         ),
         (
             """
@@ -629,7 +630,7 @@ class SimpleVariables:
                 def __init__(self):
                     self.instance_variable = 1
             """,
-            SimpleVariables(["E.class_variable"], ["E.instance_variable"]),
+            SimpleVariables(["E.class_variable"], ["self.instance_variable"]),
         ),
         (
             """
@@ -708,6 +709,17 @@ class SimpleVariables:
                 var: int = 1
             """,
             SimpleVariables(["G.var"], []),
+        ),
+        (
+            """
+            class H:
+                var = 1
+
+            class I:
+                def __init__(self):
+                    self.var = 1
+            """,
+            SimpleVariables([], []),
         )
     ],
     ids=[
@@ -718,12 +730,14 @@ class SimpleVariables:
         "Class and Instance Variable",
         "ASTWalker",
         "Class and Instance Variable with same name",
-        "Type Annotation"
+        "Type Annotation",
+        "Multiple Classes"
+
     ]
 )
 def test_distinguish_class_variables(code: str, expected: SimpleVariables) -> None:
     result = get_scope(code)
-    result = transform_variables(result[1])
+    result = transform_variables(result[1])  # The result data is simplified to make the comparison possible
     assert result == expected
 
 
@@ -733,11 +747,9 @@ def transform_variables(variables: Variables) -> SimpleVariables:
     return SimpleVariables(class_var, instance_var)
 
 
-def to_string_var(node: astroid.AssignName | astroid.AssignAttr) -> str | None:
+def to_string_var(node: astroid.AssignName | astroid.AssignAttr) -> str:
     if isinstance(node, astroid.AssignName):
         return f"{node.parent.parent.name}.{node.name}"
     elif isinstance(node, astroid.AssignAttr):
-        return f"self.{node.attrname}"  # TODO: use self from node itself
-    return None
-
-# TODO: documentation: simplifyed version of Variable
+        return f"{node.expr.name}.{node.attrname}"
+    raise AssertionError("Unexpected node type")
