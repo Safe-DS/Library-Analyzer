@@ -724,7 +724,38 @@ class SimpleVariables:
             """,
             [SimpleVariables(["H.var1", "H.var2"], []),
              SimpleVariables(["I.test"], ["self.var"])],
-        )
+        ),
+        (
+            """
+            class J:
+                def __init__(self):
+                    self.test = 1
+
+                class K:
+                    var = 1
+
+                    def __init__(self):
+                        self.test = 1
+            """,
+            [SimpleVariables([], ["self.test"]),
+             SimpleVariables(["K.var"], ["self.test"])],
+        ),
+        (
+            """
+            def L():
+                class M:
+                    var = 1
+            """,
+            [SimpleVariables(["M.var"], [])],
+        ),
+        (
+            """
+                class N:
+                    def fun():
+                        return 1
+            """,
+            [SimpleVariables([], [])]
+         )
     ],
     ids=[
         "Class Variable",
@@ -736,8 +767,9 @@ class SimpleVariables:
         "Class and Instance Variable with same name",
         "Type Annotation",
         "Multiple Classes",
-        # "Class within Class",
-        # "Class within Function"
+        "Class within Class",
+        "Class within Function",
+        "Class without variables"
     ]
 )
 def test_distinguish_class_variables(code: str, expected: SimpleVariables) -> None:

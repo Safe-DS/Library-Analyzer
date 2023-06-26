@@ -90,6 +90,10 @@ class ScopeFinder:
         self.current_node_stack.pop()  # remove the current node from the stack
 
     def analyze_constructor(self, node: astroid.FunctionDef):
+        """ Analyze the constructor of a class
+
+        The constructor of a class is a special function that is called when an instance of the class is created.
+        """
         for child in node.body:
             if isinstance(child, astroid.Assign):
                 self.variables[-1].instance_variables.append(child.targets[0])
@@ -114,6 +118,7 @@ class ScopeFinder:
         self.current_node_stack.append(
             ScopeNode(node=node, children=None, parent=self.current_node_stack[-1]),
         )
+        # initialize the variable lists for the current class
         self.variables.append(Variables(class_variables=[], instance_variables=[]))
 
     def leave_classdef(self, node: astroid.ClassDef) -> None:
