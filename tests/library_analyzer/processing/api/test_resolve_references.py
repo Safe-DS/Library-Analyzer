@@ -306,17 +306,13 @@ from library_analyzer.processing.api import (
     ],
 )
 def test_get_name_nodes(code: str, expected: str) -> None:
-    module = astroid.parse(code)
-    # print(module.repr_tree(), "\n")
-    names_list = get_name_nodes(module)
+    names_list = get_name_nodes(code)
 
     assert_names_list(names_list, expected)
 
 
 def assert_names_list(names_list: list[astroid.Name], expected: str) -> None:
     names_list = transform_names_list(names_list)
-    # for name in names_list:
-    #     print(name)
     assert names_list == expected
 
 
@@ -1357,8 +1353,7 @@ class SimpleVariables:
     ]
 )
 def test_distinguish_class_variables(code: str, expected: SimpleVariables) -> None:
-    module = astroid.parse(code)
-    result = get_scope(module)
+    result = get_scope(code)
     result = transform_variables(result[1])
     assert result == expected
 

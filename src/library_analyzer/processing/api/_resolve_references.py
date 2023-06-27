@@ -251,7 +251,8 @@ def construct_member_access(node: astroid.Attribute | astroid.AssignAttr) -> Mem
         return MemberAccess(node.expr, Reference(node.attrname))
 
 
-def get_name_nodes(module: astroid.NodeNG) -> list[astroid.Name | astroid.AssignName]:
+def get_name_nodes(code: str) -> list[astroid.Name | astroid.AssignName]:
+    module = astroid.parse(code)
     name_node_handler = NameNodeFinder()
     walker = ASTWalker(name_node_handler)
     name_nodes: list[astroid.Name | astroid.AssignName] = []
@@ -386,9 +387,8 @@ def get_scope(code: str) -> tuple[list[ScopeNode], Variables]:
 
 
 def resolve_reference(code: str) -> list[NodeReference]:
-    module_code = astroid.parse(code)
-    scope, variables = get_scope(module_code)
-    name_nodes_list = get_name_nodes(module_code)
+    scope, variables = get_scope(code)
+    name_nodes_list = get_name_nodes(code)
 
     references = find_references(scope, variables, name_nodes_list)
 
