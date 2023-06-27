@@ -7,6 +7,7 @@ import pytest
 from library_analyzer.processing.api import (
     MemberAccess,
     ScopeNode,
+    Variables,
     calc_node_id,
     get_name_nodes,
     get_scope,
@@ -15,6 +16,12 @@ from library_analyzer.processing.api import (
     create_references,
     find_references,
 )
+
+
+@dataclass
+class SimpleScope:
+    node_name: str | None
+    children: list[SimpleScope] | None
 
 
 @pytest.mark.parametrize(
@@ -1213,6 +1220,8 @@ def to_string(node: astroid.NodeNG) -> str | None:
 
 @dataclass
 class SimpleVariables:
+    """A simplified version of the Variables class."""
+
     class_variables: list[str]
     instance_variables: list[str]
 
@@ -1225,7 +1234,7 @@ class SimpleVariables:
             class A:
                 class_variable = 1
             """,
-            SimpleVariables(["A.class_variable"], []),
+            [SimpleVariables(["A.class_variable"], [])],
         ),
         (
             """
@@ -1233,7 +1242,7 @@ class SimpleVariables:
                 class_variable1 = 1
                 class_variable2 = 2
             """,
-            SimpleVariables(["B.class_variable1", "B.class_variable2"], []),
+            [SimpleVariables(["B.class_variable1", "B.class_variable2"], [])],
         ),
         (
             """
@@ -1241,7 +1250,7 @@ class SimpleVariables:
                 def __init__(self):
                     self.instance_variable = 1
             """,
-            SimpleVariables([], ["C.instance_variable"]),
+            [SimpleVariables([], ["self.instance_variable"])],
         ),
         (
             """
@@ -1250,7 +1259,7 @@ class SimpleVariables:
                     self.instance_variable1 = 1
                     self.instance_variable2 = 2
             """,
-            SimpleVariables([], ["D.instance_variable1", "D.instance_variable2"]),
+            [SimpleVariables([], ["self.instance_variable1", "self.instance_variable2"])],
         ),
         (
             """
@@ -1260,7 +1269,7 @@ class SimpleVariables:
                 def __init__(self):
                     self.instance_variable = 1
             """,
-            SimpleVariables(["E.class_variable"], ["E.instance_variable"]),
+            [SimpleVariables(["E.class_variable"], ["self.instance_variable"])],
         ),
         (
             """
@@ -1321,7 +1330,7 @@ class SimpleVariables:
                         return enter_method, leave_method
 
             """,
-            SimpleVariables(["ASTWalker.additional_locals"], ["ASTWalker._handler", "ASTWalker._cache"]),
+            [SimpleVariables(["ASTWalker.additional_locals"], ["self._handler", "self._cache"])],
         ),
         (
             """
@@ -1331,15 +1340,59 @@ class SimpleVariables:
                 def __init__(self):
                     self.var = 1
             """,
-            SimpleVariables(["F.var"], ["F.var"]),
+            [SimpleVariables(["F.var"], ["self.var"])],
         ),
         (
             """
             class G:
                 var: int = 1
             """,
-            SimpleVariables(["G.var"], []),
-        )
+            [SimpleVariables(["G.var"], [])],
+        ),
+        (
+            """
+            class H:
+                var1 = 1
+                var2 = 2
+
+            class I:
+                test = 1
+
+                def __init__(self):
+                    self.var = 1
+            """,
+            [SimpleVariables(["H.var1", "H.var2"], []), SimpleVariables(["I.test"], ["self.var"])],
+        ),
+        (
+            """
+            class J:
+                def __init__(self):
+                    self.test = 1
+
+                class K:
+                    var = 1
+
+                    def __init__(self):
+                        self.test = 1
+            """,
+            [SimpleVariables([], ["self.test"]), SimpleVariables(["K.var"], ["self.test"])],
+        ),
+        (
+            """
+            def L():
+                class M:
+                    var = 1
+            """,
+            [SimpleVariables(["M.var"], [])],
+        ),
+        (
+            """
+                class N:
+                    def fun():
+                        return 1
+            """,
+            [SimpleVariables([], [])],
+        ),
     ],
     ids=[
         "Class Variable",
@@ -1348,25 +1401,45 @@ class SimpleVariables:
         "Multiple Instance Variables",
         "Class and Instance Variable",
         "ASTWalker",
-        "Class and Instance Variable with same name",  # is this something we want to support?
-        "Type Annotation"
-    ]
+        "Class and Instance Variable with same name",
+        "Type Annotation",
+        "Multiple Classes",
+        "Class within Class",
+        "Class within Function",
+        "Class without variables",
+    ],
 )
-def test_distinguish_class_variables(code: str, expected: SimpleVariables) -> None:
+def test_distinguish_class_variables(code: str, expected: list[SimpleVariables]) -> None:
     result = get_scope(code)
-    result = transform_variables(result[1])
-    assert result == expected
+    transformed_result = transform_variables(result[1])  # The result data is simplified to make the comparison possible
+    assert transformed_result == expected
 
 
-def transform_variables(variables: Variables) -> SimpleVariables:
-    class_var = [to_string_var(variable) for variable in variables.class_variables]
-    instance_var = [to_string_var(variable) for variable in variables.instance_variables]
-    return SimpleVariables(class_var, instance_var)
+def transform_variables(variables: list[Variables]) -> list[SimpleVariables]:
+    result: list[SimpleVariables] = []
+    for entry in variables:
+        result.append(SimpleVariables([], []))
+
+        class_var = (
+            [to_string_var(variable) for variable in entry.class_variables] if entry.class_variables is not None else []
+        )
+        instance_var = (
+            [to_string_var(variable) for variable in entry.instance_variables]
+            if entry.instance_variables is not None
+            else []
+        )
+
+        result[-1].class_variables = class_var
+        result[-1].instance_variables = instance_var
+
+    return result
 
 
-def to_string_var(node: astroid.AssignName | astroid.AssignAttr) -> str | None:
+def to_string_var(node: astroid.AssignName | astroid.AssignAttr | astroid.NodeNG) -> str:
     if isinstance(node, astroid.AssignName):
         return f"{node.parent.parent.name}.{node.name}"
     elif isinstance(node, astroid.AssignAttr):
-        return f"{node.parent.parent.parent.name}.{node.attrname}"
-    return None
+        return f"{node.expr.name}.{node.attrname}"
+    elif isinstance(node, astroid.NodeNG):
+        pass
+    raise AssertionError("Unexpected node type")

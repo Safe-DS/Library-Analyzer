@@ -86,7 +86,7 @@ class ScopeFinder:
 
     current_node_stack: list[ScopeNode] = field(default_factory=list)
     children: list[ScopeNode] = field(default_factory=list)
-    variables: Variables = field(default_factory=lambda: Variables([], []))
+    variables: list[Variables] = field(default_factory=list)
 
     def detect_scope(self, node: astroid.NodeNG) -> None:
         """
@@ -111,14 +111,22 @@ class ScopeFinder:
         self.children.append(self.current_node_stack[-1])  # add the current node to the children
         self.current_node_stack.pop()  # remove the current node from the stack
 
-    def analyze_constructor(self, node: astroid.FunctionDef):
-        # print("Function:", node.name)
-        # print(node.repr_tree())
+    def analyze_constructor(self, node: astroid.FunctionDef) -> None:
+        """Analyze the constructor of a class.
+
+        The constructor of a class is a special function that is called when an instance of the class is created.
+        """
         for child in node.body:
             if isinstance(child, astroid.Assign):
-                self.variables.instance_variables.append(child.targets[0])
+                if self.variables[-1].instance_variables is None:
+                    self.variables[-1].instance_variables = []
+                self.variables[-1].instance_variables.append(child.targets[0])
             elif isinstance(child, astroid.AnnAssign):
-                self.variables.instance_variables.append(child.target)
+                if self.variables[-1].instance_variables is None:
+                    self.variables[-1].instance_variables = []
+                self.variables[-1].instance_variables.append(child.target)
+            else:
+                raise TypeError(f"Unexpected node type {type(child)}")
 
     def enter_module(self, node: astroid.Module) -> None:
         """
@@ -138,6 +146,8 @@ class ScopeFinder:
         self.current_node_stack.append(
             ScopeNode(node=node, children=None, parent=self.current_node_stack[-1]),
         )
+        # initialize the variable lists for the current class
+        self.variables.append(Variables(class_variables=[], instance_variables=[]))
 
     def leave_classdef(self, node: astroid.ClassDef) -> None:
         self.detect_scope(node)
@@ -169,8 +179,11 @@ class ScopeFinder:
             scope_node = ScopeNode(node=node, children=None, parent=parent)
             self.children.append(scope_node)
 
+        # add class variables to the class variables list
         if isinstance(node.parent.parent, astroid.ClassDef):
-            self.variables.class_variables.append(node)
+            if self.variables[-1].class_variables is None:
+                self.variables[-1].class_variables = []
+            self.variables[-1].class_variables.append(node)
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
@@ -371,7 +384,17 @@ def find_references(scope: list[ScopeNode], variable: Variables, name_node_list:
     return reference_list
 
 
-def get_scope(code: str) -> tuple[list[ScopeNode], Variables]:
+def get_scope(code: str) -> tuple[list[ScopeNode], list[Variables]]:
+    """Get the scope of the given code.
+
+    In order to get the scope of the given code, the code is parsed into an AST and then walked by an ASTWalker.
+    The ASTWalker detects the scope of each node and builds a scope tree by using an instance of ScopeFinder.
+
+    Returns
+    -------
+        scopes:     list of ScopeNode instances that represent the scope tree of the given code.
+        variables:  list of class variables and list of instance variables for all classes in the given code.
+    """
     scope_handler = ScopeFinder()
     walker = ASTWalker(scope_handler)
     module = astroid.parse(code)
@@ -381,7 +404,7 @@ def get_scope(code: str) -> tuple[list[ScopeNode], Variables]:
     variables = scope_handler.variables  # lists of class variables and instance variables
     scope_handler.children = []  # reset the children
     scope_handler.current_node_stack = []  # reset the stack
-    scope_handler.variables = Variables([], [])  # reset the variables
+    scope_handler.variables = []  # reset the variables
 
     return scopes, variables
 
