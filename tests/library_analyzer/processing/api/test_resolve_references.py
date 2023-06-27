@@ -7,8 +7,8 @@ import pytest
 from library_analyzer.processing.api import (
     MemberAccess,
     ScopeNode,
-    get_scope,
     Variables,
+    get_scope,
 )
 
 
@@ -582,7 +582,8 @@ def to_string(node: astroid.NodeNG) -> str | None:
 
 @dataclass
 class SimpleVariables:
-    """ A simplified version of the Variables class """
+    """A simplified version of the Variables class."""
+
     class_variables: list[str]
     instance_variables: list[str]
 
@@ -722,8 +723,7 @@ class SimpleVariables:
                 def __init__(self):
                     self.var = 1
             """,
-            [SimpleVariables(["H.var1", "H.var2"], []),
-             SimpleVariables(["I.test"], ["self.var"])],
+            [SimpleVariables(["H.var1", "H.var2"], []), SimpleVariables(["I.test"], ["self.var"])],
         ),
         (
             """
@@ -737,8 +737,7 @@ class SimpleVariables:
                     def __init__(self):
                         self.test = 1
             """,
-            [SimpleVariables([], ["self.test"]),
-             SimpleVariables(["K.var"], ["self.test"])],
+            [SimpleVariables([], ["self.test"]), SimpleVariables(["K.var"], ["self.test"])],
         ),
         (
             """
@@ -754,8 +753,8 @@ class SimpleVariables:
                     def fun():
                         return 1
             """,
-            [SimpleVariables([], [])]
-         )
+            [SimpleVariables([], [])],
+        ),
     ],
     ids=[
         "Class Variable",
@@ -769,8 +768,8 @@ class SimpleVariables:
         "Multiple Classes",
         "Class within Class",
         "Class within Function",
-        "Class without variables"
-    ]
+        "Class without variables",
+    ],
 )
 def test_distinguish_class_variables(code: str, expected: list[SimpleVariables]) -> None:
     result = get_scope(code)
@@ -783,8 +782,14 @@ def transform_variables(variables: list[Variables]) -> list[SimpleVariables]:
     for entry in variables:
         result.append(SimpleVariables([], []))
 
-        class_var = [to_string_var(variable) for variable in entry.class_variables] if entry.class_variables is not None else []
-        instance_var = [to_string_var(variable) for variable in entry.instance_variables] if entry.instance_variables is not None else []
+        class_var = (
+            [to_string_var(variable) for variable in entry.class_variables] if entry.class_variables is not None else []
+        )
+        instance_var = (
+            [to_string_var(variable) for variable in entry.instance_variables]
+            if entry.instance_variables is not None
+            else []
+        )
 
         result[-1].class_variables = class_var
         result[-1].instance_variables = instance_var

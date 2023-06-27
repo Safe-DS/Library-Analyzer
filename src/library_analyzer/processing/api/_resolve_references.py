@@ -17,13 +17,14 @@ class MemberAccess(Expression):
 
 @dataclass
 class Variables:
-    """ Stores the variables that are defined in a class
+    """Stores the variables that are defined in a class.
 
     Attributes
     ----------
         class_variables     is a list of AssignName nodes that define class variables
         instance_variables  is a list of AssignAttr nodes that define instance variables
     """
+
     class_variables: list[astroid.AssignName] | None
     instance_variables: list[astroid.NodeNG] | None
 
@@ -90,7 +91,7 @@ class ScopeFinder:
         self.current_node_stack.pop()  # remove the current node from the stack
 
     def analyze_constructor(self, node: astroid.FunctionDef) -> None:
-        """ Analyze the constructor of a class
+        """Analyze the constructor of a class.
 
         The constructor of a class is a special function that is called when an instance of the class is created.
         """
@@ -180,7 +181,7 @@ class ScopeFinder:
 
 
 def get_scope(code: str) -> tuple[list[ScopeNode], list[Variables]]:
-    """ Get the scope of the given code.
+    """Get the scope of the given code.
 
     In order to get the scope of the given code, the code is parsed into an AST and then walked by an ASTWalker.
     The ASTWalker detects the scope of each node and builds a scope tree by using an instance of ScopeFinder.
@@ -190,7 +191,6 @@ def get_scope(code: str) -> tuple[list[ScopeNode], list[Variables]]:
         scopes:     list of ScopeNode instances that represent the scope tree of the given code.
         variables:  list of class variables and list of instance variables for all classes in the given code.
     """
-
     scope_handler = ScopeFinder()
     walker = ASTWalker(scope_handler)
     module = astroid.parse(code)

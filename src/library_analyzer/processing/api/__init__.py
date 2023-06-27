@@ -26,12 +26,7 @@ from ._package_metadata import (
     package_files,
     package_root,
 )
-from ._resolve_references import (
-    MemberAccess,
-    ScopeNode,
-    get_scope,
-    Variables
-)
+from ._resolve_references import MemberAccess, ScopeNode, Variables, get_scope
 
 __all__ = [
     "DefinitelyImpure",
