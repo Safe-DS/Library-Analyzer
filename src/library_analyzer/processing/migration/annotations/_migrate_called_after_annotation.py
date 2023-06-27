@@ -14,17 +14,16 @@ from ._get_migration_text import get_migration_text
 
 
 def migrate_called_after_annotation(
-    called_after_annotation: CalledAfterAnnotation,
+    origin_annotation: CalledAfterAnnotation,
     mapping: Mapping,
     mappings: list[Mapping],
 ) -> list[AbstractAnnotation]:
-    called_after_annotation = deepcopy(called_after_annotation)
-    authors = called_after_annotation.authors
-    authors.append(migration_author)
-    called_after_annotation.authors = authors
-
     migrated_annotations: list[AbstractAnnotation] = []
     for element in mapping.get_apiv2_elements():
+        called_after_annotation = deepcopy(origin_annotation)
+        authors = called_after_annotation.authors
+        authors.append(migration_author)
+        called_after_annotation.authors = authors
         if not isinstance(element, Function):
             if not isinstance(element, Attribute | Result):
                 migrated_annotations.append(
@@ -40,22 +39,7 @@ def migrate_called_after_annotation(
             continue
 
         called_before_functions = _get_function_called_before_replacements(called_after_annotation, mappings, element)
-        if len(called_before_functions) == 0:
-            migrated_annotations.append(
-                CalledAfterAnnotation(
-                    element.id,
-                    authors,
-                    called_after_annotation.reviewers,
-                    get_migration_text(
-                        called_after_annotation,
-                        mapping,
-                        additional_information=called_before_functions,
-                    ),
-                    EnumReviewResult.UNSURE,
-                    called_after_annotation.calledAfterName,
-                ),
-            )
-        elif len(called_before_functions) == 1 and called_before_functions[0] != element:
+        if len(called_before_functions) == 1 and called_before_functions[0] != element:
             migrated_annotations.append(
                 CalledAfterAnnotation(
                     element.id,

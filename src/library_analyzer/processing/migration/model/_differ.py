@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypeVar, Union
+from typing import TYPE_CHECKING, TypeVar
 
 from Levenshtein import distance
 
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
     from ._mapping import Mapping
 
-api_element = Union[Attribute, Class, Function, Parameter, Result]
+api_element = Attribute | Class | Function | Parameter | Result
 
 
 @dataclass
@@ -232,8 +232,8 @@ class SimpleDiffer(AbstractDiffer):
         distance_between_implicit_and_explicit = 0.3
         distance_between_vararg_and_normal = 0.3
         distance_between_position_and_named = 0.3
-        distance_between_both_to_one = 0.15
-        distance_between_one_to_both = 0.15
+        distance_between_both_to_one = distance_between_position_and_named / 2
+        distance_between_one_to_both = distance_between_position_and_named / 2
         self.assigned_by_look_up_similarity = {
             ParameterAssignment.IMPLICIT: {
                 ParameterAssignment.IMPLICIT: 1.0,
@@ -508,7 +508,6 @@ class SimpleDiffer(AbstractDiffer):
         )
         if parameter_assignment_similarity < 0:
             parameter_assignment_similarity = 0
-            normalize_similarity -= 1
         parameter_default_value_similarity = self._compute_default_value_similarity(
             parameterv1.default_value,
             parameterv2.default_value,

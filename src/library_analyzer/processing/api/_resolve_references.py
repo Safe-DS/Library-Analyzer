@@ -370,9 +370,10 @@ def find_references(scope: list[ScopeNode], variable: Variables, name_node_list:
     return reference_list
 
 
-def get_scope(module: astroid.NodeNG) -> tuple[list[ScopeNode], Variables]:
+def get_scope(code: str) -> tuple[list[ScopeNode], Variables]:
     scope_handler = ScopeFinder()
     walker = ASTWalker(scope_handler)
+    module = astroid.parse(code)
     walker.walk(module)
 
     scopes = scope_handler.children  # get the children of the root node, which are the scopes of the module

@@ -1180,8 +1180,7 @@ class SimpleScope:
     ],
 )
 def test_get_scope(code: str, expected: list[SimpleScope]) -> None:
-    module = astroid.parse(code)
-    result = get_scope(module)
+    result = get_scope(code)
     assert_test_get_scope(result[0], expected)
 
 
