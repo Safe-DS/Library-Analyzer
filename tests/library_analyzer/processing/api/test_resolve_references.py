@@ -774,8 +774,8 @@ class SimpleVariables:
 )
 def test_distinguish_class_variables(code: str, expected: list[SimpleVariables]) -> None:
     result = get_scope(code)
-    result = transform_variables(result[1])  # The result data is simplified to make the comparison possible
-    assert result == expected
+    transformed_result = transform_variables(result[1])  # The result data is simplified to make the comparison possible
+    assert transformed_result == expected
 
 
 def transform_variables(variables: list[Variables]) -> list[SimpleVariables]:
