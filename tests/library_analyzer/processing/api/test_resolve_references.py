@@ -772,7 +772,7 @@ class SimpleVariables:
         "Class without variables"
     ]
 )
-def test_distinguish_class_variables(code: str, expected: SimpleVariables) -> None:
+def test_distinguish_class_variables(code: str, expected: list[SimpleVariables]) -> None:
     result = get_scope(code)
     result = transform_variables(result[1])  # The result data is simplified to make the comparison possible
     assert result == expected
@@ -782,8 +782,14 @@ def transform_variables(variables: list[Variables]) -> list[SimpleVariables]:
     result: list[SimpleVariables] = []
     for num, entry in enumerate(variables):
         result.append(SimpleVariables([], []))
-        class_var = [to_string_var(variable) for variable in variables[num].class_variables]
-        instance_var = [to_string_var(variable) for variable in variables[num].instance_variables]
+        if entry.class_variables is not None:
+            class_var = [to_string_var(variable) for variable in variables[num].class_variables]
+        else:
+            class_var = []
+        if entry.instance_variables is not None:
+            instance_var = [to_string_var(variable) for variable in variables[num].instance_variables]
+        else:
+            instance_var = []
         result[num].class_variables = class_var
         result[num].instance_variables = instance_var
     return result

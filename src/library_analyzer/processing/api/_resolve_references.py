@@ -89,16 +89,22 @@ class ScopeFinder:
         self.children.append(self.current_node_stack[-1])  # add the current node to the children
         self.current_node_stack.pop()  # remove the current node from the stack
 
-    def analyze_constructor(self, node: astroid.FunctionDef):
+    def analyze_constructor(self, node: astroid.FunctionDef) -> None:
         """ Analyze the constructor of a class
 
         The constructor of a class is a special function that is called when an instance of the class is created.
         """
         for child in node.body:
             if isinstance(child, astroid.Assign):
+                if self.variables[-1].instance_variables is None:
+                    self.variables[-1].instance_variables = []
                 self.variables[-1].instance_variables.append(child.targets[0])
             elif isinstance(child, astroid.AnnAssign):
+                if self.variables[-1].instance_variables is None:
+                    self.variables[-1].instance_variables = []
                 self.variables[-1].instance_variables.append(child.target)
+            else:
+                raise TypeError(f"Unexpected node type {type(child)}")
 
     def enter_module(self, node: astroid.Module) -> None:
         """
@@ -153,6 +159,8 @@ class ScopeFinder:
 
         # add class variables to the class variables list
         if isinstance(node.parent.parent, astroid.ClassDef):
+            if self.variables[-1].class_variables is None:
+                self.variables[-1].class_variables = []
             self.variables[-1].class_variables.append(node)
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
@@ -192,6 +200,6 @@ def get_scope(code: str) -> tuple[list[ScopeNode], list[Variables]]:
     variables = scope_handler.variables  # lists of class variables and instance variables
     scope_handler.children = []  # reset the children
     scope_handler.current_node_stack = []  # reset the stack
-    scope_handler.variables = Variables([], [])  # reset the variables
+    scope_handler.variables = []  # reset the variables
 
     return scopes, variables
