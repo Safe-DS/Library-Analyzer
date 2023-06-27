@@ -780,24 +780,23 @@ def test_distinguish_class_variables(code: str, expected: list[SimpleVariables])
 
 def transform_variables(variables: list[Variables]) -> list[SimpleVariables]:
     result: list[SimpleVariables] = []
-    for num, entry in enumerate(variables):
+    for entry in variables:
         result.append(SimpleVariables([], []))
-        if entry.class_variables is not None:
-            class_var = [to_string_var(variable) for variable in variables[num].class_variables]
-        else:
-            class_var = []
-        if entry.instance_variables is not None:
-            instance_var = [to_string_var(variable) for variable in variables[num].instance_variables]
-        else:
-            instance_var = []
-        result[num].class_variables = class_var
-        result[num].instance_variables = instance_var
+
+        class_var = [to_string_var(variable) for variable in entry.class_variables] if entry.class_variables is not None else []
+        instance_var = [to_string_var(variable) for variable in entry.instance_variables] if entry.instance_variables is not None else []
+
+        result[-1].class_variables = class_var
+        result[-1].instance_variables = instance_var
+
     return result
 
 
-def to_string_var(node: astroid.AssignName | astroid.AssignAttr) -> str:
+def to_string_var(node: astroid.AssignName | astroid.AssignAttr | astroid.NodeNG) -> str:
     if isinstance(node, astroid.AssignName):
         return f"{node.parent.parent.name}.{node.name}"
     elif isinstance(node, astroid.AssignAttr):
         return f"{node.expr.name}.{node.attrname}"
+    elif isinstance(node, astroid.NodeNG):
+        pass
     raise AssertionError("Unexpected node type")
