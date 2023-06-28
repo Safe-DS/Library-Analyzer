@@ -85,18 +85,6 @@ from library_analyzer.processing.api import (
             ]
         ),
         (
-            "n_jobs",
-            "This parameter is ignored when the solver is set to 'liblinear' regardless of whether 'multi_class' is "
-            "specified or not.",
-            [
-                (
-                    "n_jobs",
-                    ParameterHasValue("ignored when the solver is liblinear", "solver", "liblinear"),
-                    ParameterIsIgnored("ignored")
-                )
-            ]
-        ),
-        (
             "validation_fraction",
             "Only used if n_iter_no_change is set to an integer.",
             [
@@ -136,7 +124,30 @@ from library_analyzer.processing.api import (
                     ParameterIsIgnored("not ignored")
                 )
             ]
-        )
+        ),
+        (
+            "n_jobs",
+            "This parameter is ignored when the solver is set to 'liblinear' regardless of whether 'multi_class' is "
+            "specified or not.",
+            [
+                (
+                    "n_jobs",
+                    ParameterHasValue("ignored when the solver is liblinear", "solver", "liblinear"),
+                    ParameterIsIgnored("ignored")
+                )
+            ]
+        ),
+        (
+            "penalty",
+            "When solver equals adam, this will be ignored.",
+            [
+                (
+                    "penalty",
+                    ParameterHasValue("When solver equals adam, this will be ignored.", "solver", "adam"),
+                    ParameterIsIgnored("ignored")
+                )
+            ]
+        ),
 
     ]
 )
@@ -145,4 +156,4 @@ def test_extract_param_dependencies(
     description: str,
     expected_dependencies: list[tuple[str, Condition, Action]]
 ) -> None:
-    assert extract_param_dependencies(param_name, description) == expected_dependencies
+    assert extract_param_dependencies(param_name, description, show_matches=True) == expected_dependencies
