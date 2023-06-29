@@ -50,6 +50,19 @@ class ScopeNode:
 
 
 @dataclass
+class ClassScopeNode(ScopeNode):
+    """Represents a ScopeNode that defines the scope of a class.
+
+    Attributes
+    ----------
+        class_variables     is a list of AssignName nodes that define class variables
+        instance_variables  is a list of AssignAttr nodes that define instance variables
+    """
+    class_variables: list[astroid.AssignName] | None = None
+    instance_variables: list[astroid.AssignAttr] | None = None
+
+
+@dataclass
 class ScopeFinder:
     """
     A ScopeFinder instance is used to find the scope of a reference.
@@ -106,6 +119,7 @@ class ScopeFinder:
                 self.variables[-1].instance_variables.append(child.target)
             else:
                 raise TypeError(f"Unexpected node type {type(child)}")
+            # TODO: add ClassNodeScope
 
     def enter_module(self, node: astroid.Module) -> None:
         """
@@ -123,7 +137,7 @@ class ScopeFinder:
 
     def enter_classdef(self, node: astroid.ClassDef) -> None:
         self.current_node_stack.append(
-            ScopeNode(node=node, children=None, parent=self.current_node_stack[-1]),
+            ClassScopeNode(node=node, children=None, parent=self.current_node_stack[-1], instance_variables=[], class_variables=[]),
         )
         # initialize the variable lists for the current class
         self.variables.append(Variables(class_variables=[], instance_variables=[]))
@@ -163,6 +177,7 @@ class ScopeFinder:
             if self.variables[-1].class_variables is None:
                 self.variables[-1].class_variables = []
             self.variables[-1].class_variables.append(node)
+            # TODO: add ClassNodeScope
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]

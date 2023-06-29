@@ -583,7 +583,7 @@ def to_string(node: astroid.NodeNG) -> str | None:
 @dataclass
 class SimpleVariables:
     """A simplified version of the Variables class."""
-
+    # TODO: class_name: str
     class_variables: list[str]
     instance_variables: list[str]
 
@@ -773,6 +773,8 @@ class SimpleVariables:
 )
 def test_distinguish_class_variables(code: str, expected: list[SimpleVariables]) -> None:
     result = get_scope(code)
+    assert result == expected
+
     transformed_result = transform_variables(result[1])  # The result data is simplified to make the comparison possible
     assert transformed_result == expected
 
