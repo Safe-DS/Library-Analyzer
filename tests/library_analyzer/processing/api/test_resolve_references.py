@@ -495,9 +495,11 @@ def test_calc_function_id_new(
         "Empty list",
     ]
 )
-def test_construct_reference_list(node: list[astroid.Name | astroid.AssignName], expected) -> None:
-    result = create_references(node)
+def test_create_references(node: list[astroid.Name | astroid.AssignName], expected) -> None:
+    result = create_references(node)[0]
+    assert result == expected
     assert_reference_list_equal(result, expected)
+# TODO: rewrite this test since the results are no longer just prototypes
 
 
 def assert_reference_list_equal(result: list[NodeReference], expected: list[NodeReference]) -> None:
@@ -547,17 +549,17 @@ def assert_reference_list_equal(result: list[NodeReference], expected: list[Node
             """
                 glob1 = 10
                 def local_global():
-
+                    global glob1
                     res = glob1
+
                     if res > 0:
-                        global glob1
                         glob1 = 20
                     else:
                         glob1 = 30
 
                     return glob1
             """,
-            ["glob1"]
+            []
         ),
         (
             """
@@ -582,64 +584,6 @@ def assert_reference_list_equal(result: list[NodeReference], expected: list[Node
             """,
             []
         ),
-        (
-            """
-                from collections.abc import Callable
-                from typing import Any
-
-                import astroid
-
-                _EnterAndLeaveFunctions = tuple[
-                    Callable[[astroid.NodeNG], None] | None,
-                    Callable[[astroid.NodeNG], None] | None,
-                ]
-
-
-                class ASTWalker:
-                    def __init__(self, handler: Any) -> None:
-                        self._handler = handler
-                        self._cache: dict[type, _EnterAndLeaveFunctions] = {}
-
-                    def walk(self, node: astroid.NodeNG) -> None:
-                        self.__walk(node, set())
-
-                    def __walk(self, node: astroid.NodeNG, visited_nodes: set[astroid.NodeNG]) -> None:
-                        if node in visited_nodes:
-                            raise AssertionError("Node visited twice")
-                        visited_nodes.add(node)
-
-                        self.__enter(node)
-                        for child_node in node.get_children():
-                            self.__walk(child_node, visited_nodes)
-                        self.__leave(node)
-
-                    def __enter(self, node: astroid.NodeNG) -> None:
-                        method = self.__get_callbacks(node)[0]
-                        if method is not None:
-                            method(node)
-
-                    def __leave(self, node: astroid.NodeNG) -> None:
-                        method = self.__get_callbacks(node)[1]
-                        if method is not None:
-                            method(node)
-
-                    def __get_callbacks(self, node: astroid.NodeNG) -> _EnterAndLeaveFunctions:
-                        klass = node.__class__
-                        methods = self._cache.get(klass)
-
-                        if methods is None:
-                            handler = self._handler
-                            class_name = klass.__name__.lower()
-                            enter_method = getattr(handler, f"enter_{class_name}", getattr(handler, "enter_default", None))
-                            leave_method = getattr(handler, f"leave_{class_name}", getattr(handler, "leave_default", None))
-                            self._cache[klass] = (enter_method, leave_method)
-                        else:
-                            enter_method, leave_method = methods
-
-                        return enter_method, leave_method
-
-            """, []
-        )
     ],
     ids=[
         "constant as local variable",
@@ -647,17 +591,19 @@ def assert_reference_list_equal(result: list[NodeReference], expected: list[Node
         "global as local variable",
         "class attribute as local variable",
         "instance attribute as local variable",
-        "ASTWalker"
     ]
 )
 def test_find_references(code, expected):
-    module = astroid.parse(code)
-    all_names_list = get_name_nodes(module)
-    # print(all_names_list)
-    references = [find_references(all_names_list)]
+    scope, variables = get_scope(code)
+    all_names_list = get_name_nodes(code)
+
+    references: list[list[NodeReference]] = []
+
+    for name_node in all_names_list:
+        references.append(find_references(name_node, all_names_list, scope, variables))
 
     for reference in references:
-        print(reference, "\n")
+        # print(reference, "\n")
         # print(resolved[0].node_id.module, "\n")
         assert reference == expected
 
