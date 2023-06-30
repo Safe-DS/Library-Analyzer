@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 from dataclasses import dataclass, field
 
 import astroid
@@ -34,6 +35,38 @@ class Variables:
 
 
 @dataclass
+class Symbol(ABC):
+    node: astroid.NodeNG
+    name: str  # class A = name = "A"
+
+
+@dataclass
+class Parameter(Symbol):
+    node: astroid.AssignName #?? richtige einschränkung
+    pass
+
+
+@dataclass
+class LocalVariable(Symbol):
+    pass
+
+
+@dataclass
+class GlobalVariable(Symbol):
+    pass
+
+
+@dataclass
+class ClassVariable(Symbol):
+    pass
+
+
+@dataclass
+class InstanceVariable(Symbol):
+    pass
+
+
+@dataclass
 class ScopeNode:
     """Represents a node in the scope tree.
 
@@ -44,20 +77,20 @@ class ScopeNode:
     Attributes
     ----------
         node        is the node in the AST that defines the scope of the node.
+        node_id     is the id of the node.
         children    is a list of ScopeNodes that are defined in the scope of the node, is None if the node is a leaf node.
         parent      is the parent node in the scope tree, is None if the node is the root node.
+        symbol      is a list of symbols that are defined in the scope of the node.
     """
 
     node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | MemberAccess
-    children: list[ScopeNode] | None = None
+    node_id: NodeID
+    children: list[ScopeNode] = field(default_factory=list)
     parent: ScopeNode | None = None
+    _symbol: list[Symbol] = field(default_factory=list)   # TODO: besser als dict? -> schnelleres suchen
 
-
-@dataclass
-class Scopes:
-    module_scope: list[ScopeNode]
-    class_scope: list[ScopeNode]
-    function_scope: list[ScopeNode]
+    def __contains__(self, item):
+        return item in self._symbol
 
 
 @dataclass
@@ -89,7 +122,7 @@ class ScopeFinder:
     children: list[ScopeNode] = field(default_factory=list)
     variables: list[Variables] = field(default_factory=list)
 
-    def detect_scope(self, node: astroid.NodeNG) -> None:
+    def _detect_scope(self, node: astroid.NodeNG) -> None:
         """
         Detect the scope of the given node.
 
@@ -112,7 +145,7 @@ class ScopeFinder:
         self.children.append(self.current_node_stack[-1])  # add the current node to the children
         self.current_node_stack.pop()  # remove the current node from the stack
 
-    def analyze_constructor(self, node: astroid.FunctionDef) -> None:
+    def _analyze_constructor(self, node: astroid.FunctionDef) -> None:
         """Analyze the constructor of a class.
 
         The constructor of a class is a special function that is called when an instance of the class is created.
@@ -141,27 +174,27 @@ class ScopeFinder:
         )
 
     def leave_module(self, node: astroid.Module) -> None:
-        self.detect_scope(node)
+        self._detect_scope(node)
 
     def enter_classdef(self, node: astroid.ClassDef) -> None:
         self.current_node_stack.append(
-            ScopeNode(node=node, children=None, parent=self.current_node_stack[-1]),
+            ScopeNode(node=node, node_id=_calc_node_id(node), children=[], parent=self.current_node_stack[-1]),
         )
         # initialize the variable lists for the current class
         self.variables.append(Variables(class_variables=[], instance_variables=[]))
 
     def leave_classdef(self, node: astroid.ClassDef) -> None:
-        self.detect_scope(node)
+        self._detect_scope(node)
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
         self.current_node_stack.append(
             ScopeNode(node=node, children=None, parent=self.current_node_stack[-1]),
         )
         if node.name == "__init__":
-            self.analyze_constructor(node)
+            self._analyze_constructor(node)
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
-        self.detect_scope(node)
+        self._detect_scope(node)
 
     def enter_assignname(self, node: astroid.AssignName) -> None:
         if isinstance(node.parent, astroid.Arguments) and node.name == "self":
@@ -246,11 +279,11 @@ class NameNodeFinder:
     # We do not need AugAssign, since it uses AssignName as a target and Name as value
 
     def enter_attribute(self, node: astroid.Attribute) -> None:
-        member_access = construct_member_access(node)
+        member_access = _construct_member_access(node)
         self.names_list.append(member_access)
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
-        member_access = construct_member_access(node)
+        member_access = _construct_member_access(node)
         self.names_list.append(member_access)
 
     # def enter_import(self, node: astroid.Import) -> None:
@@ -258,14 +291,14 @@ class NameNodeFinder:
     #         self.names_list.append(name[0])
 
 
-def construct_member_access(node: astroid.Attribute | astroid.AssignAttr) -> MemberAccess:
+def _construct_member_access(node: astroid.Attribute | astroid.AssignAttr) -> MemberAccess:
     if isinstance(node.expr, astroid.Attribute | astroid.AssignAttr):
-        return MemberAccess(construct_member_access(node.expr), Reference(node.attrname))
+        return MemberAccess(_construct_member_access(node.expr), Reference(node.attrname))
     else:
         return MemberAccess(node.expr, Reference(node.attrname))
 
 
-def get_name_nodes(code: str) -> list[astroid.Name | astroid.AssignName]:
+def _get_name_nodes(code: str) -> list[astroid.Name | astroid.AssignName]:
     module = astroid.parse(code)
     name_node_handler = NameNodeFinder()
     walker = ASTWalker(name_node_handler)
@@ -282,7 +315,7 @@ def get_name_nodes(code: str) -> list[astroid.Name | astroid.AssignName]:
 
 
 # THIS FUNCTION IS THE CORRECT ONE - MERGE THIS (over calc_function_id)
-def calc_node_id(
+def _calc_node_id(
     node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name | MemberAccess
 ) -> NodeID | None:
     # TODO: there is problem: when a name node is used within a real module, the module is not calculated correctly
@@ -306,7 +339,7 @@ def calc_node_id(
     # TODO: add fitting default case
 
 
-def create_references(all_names_list: list[astroid.Name | astroid.AssignName]) -> tuple[list[NodeReference], list[NodeReference], list[NodeReference]]:
+def _create_references(all_names_list: list[astroid.Name | astroid.AssignName]) -> tuple[list[NodeReference], list[NodeReference], list[NodeReference]]:
     """Create a list of references from a list of name nodes.
 
     Returns:
@@ -320,7 +353,7 @@ def create_references(all_names_list: list[astroid.Name | astroid.AssignName]) -
     references_target: list[NodeReference] = []
     references_final: list[NodeReference] = []
     for name in all_names_list:
-        node_id = calc_node_id(name)
+        node_id = _calc_node_id(name)
         scope_node = ScopeNode(name, None, None)
 
         if isinstance(name, astroid.Name):
@@ -330,19 +363,19 @@ def create_references(all_names_list: list[astroid.Name | astroid.AssignName]) -
 
     for reference in references_proto:
         if isinstance(reference.name, astroid.AssignName):
-            value_ref = add_potential_value_references(reference, references_proto)
+            value_ref = _add_potential_value_references(reference, references_proto)
             references_value.append(value_ref)
             references_final.append(value_ref)
 
         elif isinstance(reference.name, astroid.Name):
-            target_ref = add_potential_target_references(reference, references_proto)
+            target_ref = _add_potential_target_references(reference, references_proto)
             references_target.append(target_ref)
             references_final.append(target_ref)
 
     return references_final, references_value, references_target
 
 
-def add_potential_value_references(reference: NodeReference, reference_list: list[NodeReference]) -> NodeReference:
+def _add_potential_value_references(reference: NodeReference, reference_list: list[NodeReference]) -> NodeReference:
     """Add all potential value references to a reference.
 
     A potential value reference is a reference where the name is used as a value.
@@ -357,7 +390,7 @@ def add_potential_value_references(reference: NodeReference, reference_list: lis
     return complete_references
 
 
-def add_potential_target_references(reference: NodeReference, reference_list: list[NodeReference]) -> NodeReference:
+def _add_potential_target_references(reference: NodeReference, reference_list: list[NodeReference]) -> NodeReference:
     """Add all potential target references to a reference.
 
     A potential target reference is a reference where the name is used as a target.
@@ -374,7 +407,7 @@ def add_potential_target_references(reference: NodeReference, reference_list: li
 
 # TODO: implement caching for nodes list, scope, vars to reduce runtime
 # TODO: rework this function to respect the scope of the name
-def find_references(name_node: astroid.Name | astroid.AssignName, all_name_nodes_list: list[astroid.Name | astroid.AssignName], scope: list[ScopeNode], variable: list[Variables]) -> list[NodeReference]:
+def _find_references(name_node: astroid.Name | astroid.AssignName, all_name_nodes_list: list[astroid.Name | astroid.AssignName], scope: list[ScopeNode], variable: list[Variables]) -> list[NodeReference]:
     """Find all references for a node.
 
     Parameters:
@@ -385,20 +418,25 @@ def find_references(name_node: astroid.Name | astroid.AssignName, all_name_nodes
 
     """
     s = scope
-    reference_list, value_list, target_list = create_references(all_name_nodes_list)  # contains a list of all references for each node in the module
+    reference_list, value_list, target_list = _create_references(
+        all_name_nodes_list)  # contains a list of all references for each node in the module
+
+    # welcher scope sind wir gerade
+    # entsprechend dem Scope die zugehörigen Symbole finden
 
 
+
+    # TODO: Beispiele wiederfinden zu Flow analysis
 
     # TODO: since we have found all name Nodes, we need to find the scope of the current name node
     #  and then search for all name nodes in that scope where the name is used
     #  if the name is used as a value in an assignment, then we need to find the target of the assignment and then
     #  check all nodes further down the list where the name is used as a target
-    #  if the name is used as a target in an assignment, then we need to find the value of the assignment?
 
-    return value_list
+    return target_list
 
 
-def get_scope(code: str) -> tuple[list[ScopeNode], list[Variables]]:
+def _get_scope(code: str) -> tuple[list[ScopeNode], list[Variables]]:
     """Get the scope of the given code.
 
     In order to get the scope of the given code, the code is parsed into an AST and then walked by an ASTWalker.
@@ -424,10 +462,10 @@ def get_scope(code: str) -> tuple[list[ScopeNode], list[Variables]]:
 
 
 def resolve_references(code: str) -> list[list[NodeReference]]:
-    scope, variables = get_scope(code)
-    name_nodes_list = get_name_nodes(code)
+    scope, variables = _get_scope(code)
+    name_nodes_list = _get_name_nodes(code)
     references: list[list[NodeReference]] = []
     for name_node in name_nodes_list:
-        references.append(find_references(name_node, name_nodes_list, scope, variables))
+        references.append(_find_references(name_node, name_nodes_list, scope, variables))
 
     return references

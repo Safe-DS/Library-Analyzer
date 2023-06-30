@@ -8,13 +8,13 @@ from library_analyzer.processing.api import (
     MemberAccess,
     ScopeNode,
     Variables,
-    calc_node_id,
-    get_name_nodes,
-    get_scope,
+    _calc_node_id,
+    _get_name_nodes,
+    _get_scope,
     Variables,
     NodeReference,
-    create_references,
-    find_references,
+    _create_references,
+    _find_references,
 )
 
 
@@ -313,7 +313,7 @@ class SimpleScope:
     ],
 )
 def test_get_name_nodes(code: str, expected: str) -> None:
-    names_list = get_name_nodes(code)
+    names_list = _get_name_nodes(code)
 
     assert_names_list(names_list, expected)
 
@@ -423,7 +423,7 @@ def test_calc_function_id_new(
     node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name,
     expected: str,
 ) -> None:
-    result = calc_node_id(node)
+    result = _calc_node_id(node)
     assert result.__str__() == expected
 
 
@@ -496,7 +496,7 @@ def test_calc_function_id_new(
     ]
 )
 def test_create_references(node: list[astroid.Name | astroid.AssignName], expected) -> None:
-    result = create_references(node)[0]
+    result = _create_references(node)[0]
     assert result == expected
     assert_reference_list_equal(result, expected)
 # TODO: rewrite this test since the results are no longer just prototypes
@@ -594,13 +594,13 @@ def assert_reference_list_equal(result: list[NodeReference], expected: list[Node
     ]
 )
 def test_find_references(code, expected):
-    scope, variables = get_scope(code)
-    all_names_list = get_name_nodes(code)
+    scope, variables = _get_scope(code)
+    all_names_list = _get_name_nodes(code)
 
     references: list[list[NodeReference]] = []
 
     for name_node in all_names_list:
-        references.append(find_references(name_node, all_names_list, scope, variables))
+        references.append(_find_references(name_node, all_names_list, scope, variables))
 
     for reference in references:
         # print(reference, "\n")
@@ -1129,7 +1129,7 @@ class SimpleScope:
     ],
 )
 def test_get_scope(code: str, expected: list[SimpleScope]) -> None:
-    result = get_scope(code)
+    result = _get_scope(code)
     assert_test_get_scope(result[0], expected)
 
 
@@ -1356,7 +1356,7 @@ class SimpleVariables:
     ],
 )
 def test_distinguish_class_variables(code: str, expected: list[SimpleVariables]) -> None:
-    result = get_scope(code)
+    result = _get_scope(code)
     transformed_result = transform_variables(result[1])  # The result data is simplified to make the comparison possible
     assert transformed_result == expected
 
