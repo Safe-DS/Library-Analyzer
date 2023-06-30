@@ -26,7 +26,7 @@ from ._package_metadata import (
     package_files,
     package_root,
 )
-from ._resolve_references import MemberAccess, ScopeNode, ClassScopeNode, Variables, get_scope
+from ._resolve_references import MemberAccess, ScopeNode, ClassScopeNode, get_scope
 
 __all__ = [
     "DefinitelyImpure",
@@ -54,6 +54,5 @@ __all__ = [
     "ScopeNode",
     "MemberAccess",
     "get_scope",
-    "Variables",
     "ClassScopeNode",
 ]

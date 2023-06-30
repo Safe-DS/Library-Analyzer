@@ -8,7 +8,6 @@ from library_analyzer.processing.api import (
     MemberAccess,
     ScopeNode,
     ClassScopeNode,
-    Variables,
     get_scope,
 )
 
@@ -192,6 +191,9 @@ def transform_member_access(member_access: MemberAccess) -> str:
         (
             """
                 class B:
+                    local_class_attr1 = 20
+                    local_class_attr2 = 30
+
                     def __init__(self):
                         self.instance_attr1 = 10
 
@@ -206,6 +208,8 @@ def transform_member_access(member_access: MemberAccess) -> str:
                         SimpleClassScope(
                             "ClassDef.B",
                             [
+                                SimpleScope("AssignName.local_class_attr1", []),
+                                SimpleScope("AssignName.local_class_attr2", []),
                                 SimpleScope(
                                     "FunctionDef.__init__",
                                     [SimpleScope("AssignAttr.instance_attr1", [])],
@@ -215,7 +219,7 @@ def transform_member_access(member_access: MemberAccess) -> str:
                                     [SimpleScope("AssignName.var1", [])],
                                 ),
                             ],
-                            [],
+                            ["local_class_attr1", "local_class_attr2"],
                             ["instance_attr1"],
                         ),
                     ],
@@ -575,7 +579,6 @@ def transform_member_access(member_access: MemberAccess) -> str:
 )
 def test_get_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
     result = get_scope(code)
-    # assert result == expected
     assert_test_get_scope(result, expected)
 
 
@@ -622,232 +625,4 @@ def to_string_class(node: astroid.NodeNG) -> str:
         return f"{node.attrname}"
     elif isinstance(node, astroid.AssignName):
         return f"{node.name}"
-
-
-@dataclass
-class SimpleVariables:
-    """A simplified version of the Variables class."""
-    # TODO: class_name: str
-    class_variables: list[str]
-    instance_variables: list[str]
-
-
-@pytest.mark.parametrize(
-    ("code", "expected"),
-    [
-        (
-            """
-            class A:
-                class_variable = 1
-            """,
-            [SimpleVariables(["A.class_variable"], [])],
-        ),
-        (
-            """
-            class B:
-                class_variable1 = 1
-                class_variable2 = 2
-            """,
-            [SimpleVariables(["B.class_variable1", "B.class_variable2"], [])],
-        ),
-        (
-            """
-            class C:
-                def __init__(self):
-                    self.instance_variable = 1
-            """,
-            [SimpleVariables([], ["self.instance_variable"])],
-        ),
-        (
-            """
-            class D:
-                def __init__(self):
-                    self.instance_variable1 = 1
-                    self.instance_variable2 = 2
-            """,
-            [SimpleVariables([], ["self.instance_variable1", "self.instance_variable2"])],
-        ),
-        (
-            """
-            class E:
-                class_variable = 1
-
-                def __init__(self):
-                    self.instance_variable = 1
-            """,
-            [SimpleVariables(["E.class_variable"], ["self.instance_variable"])],
-        ),
-        (
-            """
-                from collections.abc import Callable
-                from typing import Any
-
-                import astroid
-
-                _EnterAndLeaveFunctions = tuple[
-                    Callable[[astroid.NodeNG], None] | None,
-                    Callable[[astroid.NodeNG], None] | None,
-                ]
-
-
-                class ASTWalker:
-                    additional_locals = []
-
-                    def __init__(self, handler: Any) -> None:
-                        self._handler = handler
-                        self._cache: dict[type, _EnterAndLeaveFunctions] = {}
-
-                    def walk(self, node: astroid.NodeNG) -> None:
-                        self.__walk(node, set())
-
-                    def __walk(self, node: astroid.NodeNG, visited_nodes: set[astroid.NodeNG]) -> None:
-                        if node in visited_nodes:
-                            raise AssertionError("Node visited twice")
-                        visited_nodes.add(node)
-
-                        self.__enter(node)
-                        for child_node in node.get_children():
-                            self.__walk(child_node, visited_nodes)
-                        self.__leave(node)
-
-                    def __enter(self, node: astroid.NodeNG) -> None:
-                        method = self.__get_callbacks(node)[0]
-                        if method is not None:
-                            method(node)
-
-                    def __leave(self, node: astroid.NodeNG) -> None:
-                        method = self.__get_callbacks(node)[1]
-                        if method is not None:
-                            method(node)
-
-                    def __get_callbacks(self, node: astroid.NodeNG) -> _EnterAndLeaveFunctions:
-                        klass = node.__class__
-                        methods = self._cache.get(klass)
-
-                        if methods is None:
-                            handler = self._handler
-                            class_name = klass.__name__.lower()
-                            enter_method = getattr(handler, f"enter_{class_name}", getattr(handler, "enter_default", None))
-                            leave_method = getattr(handler, f"leave_{class_name}", getattr(handler, "leave_default", None))
-                            self._cache[klass] = (enter_method, leave_method)
-                        else:
-                            enter_method, leave_method = methods
-
-                        return enter_method, leave_method
-
-            """,
-            [SimpleVariables(["ASTWalker.additional_locals"], ["self._handler", "self._cache"])],
-        ),
-        (
-            """
-            class F:
-                var = 1
-
-                def __init__(self):
-                    self.var = 1
-            """,
-            [SimpleVariables(["F.var"], ["self.var"])],
-        ),
-        (
-            """
-            class G:
-                var: int = 1
-            """,
-            [SimpleVariables(["G.var"], [])],
-        ),
-        (
-            """
-            class H:
-                var1 = 1
-                var2 = 2
-
-            class I:
-                test = 1
-
-                def __init__(self):
-                    self.var = 1
-            """,
-            [SimpleVariables(["H.var1", "H.var2"], []), SimpleVariables(["I.test"], ["self.var"])],
-        ),
-        (
-            """
-            class J:
-                def __init__(self):
-                    self.test = 1
-
-                class K:
-                    var = 1
-
-                    def __init__(self):
-                        self.test = 1
-            """,
-            [SimpleVariables([], ["self.test"]), SimpleVariables(["K.var"], ["self.test"])],
-        ),
-        (
-            """
-            def L():
-                class M:
-                    var = 1
-            """,
-            [SimpleVariables(["M.var"], [])],
-        ),
-        (
-            """
-                class N:
-                    def fun():
-                        return 1
-            """,
-            [SimpleVariables([], [])],
-        ),
-    ],
-    ids=[
-        "Class Variable",
-        "Multiple Class Variables",
-        "Instance Variable",
-        "Multiple Instance Variables",
-        "Class and Instance Variable",
-        "ASTWalker",
-        "Class and Instance Variable with same name",
-        "Type Annotation",
-        "Multiple Classes",
-        "Class within Class",
-        "Class within Function",
-        "Class without variables",
-    ],
-)
-def test_distinguish_class_variables(code: str, expected: list[SimpleVariables]) -> None:
-    result = get_scope(code)
-    # assert result == expected
-
-    transformed_result = transform_variables(result)  # The result data is simplified to make the comparison possible
-    assert transformed_result == expected
-
-
-def transform_variables(variables: list[Variables]) -> list[SimpleVariables]:
-    result: list[SimpleVariables] = []
-    for entry in variables:
-        result.append(SimpleVariables([], []))
-
-        class_var = (
-            [to_string_var(variable) for variable in entry.class_variables] if entry.class_variables is not None else []
-        )
-        instance_var = (
-            [to_string_var(variable) for variable in entry.instance_variables]
-            if entry.instance_variables is not None
-            else []
-        )
-
-        result[-1].class_variables = class_var
-        result[-1].instance_variables = instance_var
-
-    return result
-
-
-def to_string_var(node: astroid.AssignName | astroid.AssignAttr | astroid.NodeNG) -> str:
-    if isinstance(node, astroid.AssignName):
-        return f"{node.parent.parent.name}.{node.name}"
-    elif isinstance(node, astroid.AssignAttr):
-        return f"{node.expr.name}.{node.attrname}"
-    elif isinstance(node, astroid.NodeNG):
-        pass
-    raise AssertionError("Unexpected node type")
+    raise NotImplementedError(f"Unknown node type: {node.__class__.__name__}")
