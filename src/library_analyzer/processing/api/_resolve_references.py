@@ -142,7 +142,11 @@ class ScopeFinder:
     def enter_classdef(self, node: astroid.ClassDef) -> None:
         self.current_node_stack.append(
             ClassScopeNode(
-                node=node, children=[], parent=self.current_node_stack[-1], instance_variables=[], class_variables=[],
+                node=node,
+                children=[],
+                parent=self.current_node_stack[-1],
+                instance_variables=[],
+                class_variables=[],
             ),
         )
 
