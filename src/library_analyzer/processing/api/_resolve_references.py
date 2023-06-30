@@ -114,14 +114,15 @@ class ScopeFinder:
         """
         # add instance variables to the instance_variables list of the class
         for child in node.body:
-            if isinstance(child, astroid.Assign):
-                class_node = self.get_node_by_name(node.parent.name)
-                class_node.instance_variables.append(child.targets[0])
-            elif isinstance(child, astroid.AnnAssign):
-                class_node = self.get_node_by_name(node.parent.name)
-                class_node.instance_variables.append(child.target)
-            else:
-                raise TypeError(f"Unexpected node type {type(child)}")
+            class_node = self.get_node_by_name(node.parent.name)
+
+            if class_node is not None and isinstance(class_node, ClassScopeNode):
+                if isinstance(child, astroid.Assign):
+                    class_node.instance_variables.append(child.targets[0])
+                elif isinstance(child, astroid.AnnAssign):
+                    class_node.instance_variables.append(child.target)
+                else:
+                    raise TypeError(f"Unexpected node type {type(child)}")
 
     def enter_module(self, node: astroid.Module) -> None:
         """
@@ -149,7 +150,7 @@ class ScopeFinder:
         self.current_node_stack.append(
             ScopeNode(node=node, children=[], parent=self.current_node_stack[-1]),
         )
-        if node.name == "__init__" and isinstance(node.parent, astroid.ClassDef) and node is not None:
+        if node.name == "__init__":
             self.analyze_constructor(node)
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
@@ -175,7 +176,8 @@ class ScopeFinder:
         # add class variables to the class_variables list of the class
         if isinstance(node.parent.parent, astroid.ClassDef):
             class_node = self.get_node_by_name(node.parent.parent.name)
-            class_node.class_variables.append(node)
+            if class_node is not None and isinstance(class_node, ClassScopeNode):
+                class_node.class_variables.append(node)
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
