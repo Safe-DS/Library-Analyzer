@@ -44,6 +44,7 @@ class ClassScopeNode(ScopeNode):
         class_variables     is a list of AssignName nodes that define class variables
         instance_variables  is a list of AssignAttr nodes that define instance variables
     """
+
     class_variables: list[astroid.AssignName] = field(default_factory=list)
     instance_variables: list[astroid.AssignAttr] = field(default_factory=list)
 
@@ -140,7 +141,9 @@ class ScopeFinder:
 
     def enter_classdef(self, node: astroid.ClassDef) -> None:
         self.current_node_stack.append(
-            ClassScopeNode(node=node, children=[], parent=self.current_node_stack[-1], instance_variables=[], class_variables=[]),
+            ClassScopeNode(
+                node=node, children=[], parent=self.current_node_stack[-1], instance_variables=[], class_variables=[],
+            ),
         )
 
     def leave_classdef(self, node: astroid.ClassDef) -> None:

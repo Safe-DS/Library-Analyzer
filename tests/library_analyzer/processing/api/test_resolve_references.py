@@ -5,9 +5,9 @@ from dataclasses import dataclass
 import astroid
 import pytest
 from library_analyzer.processing.api import (
+    ClassScopeNode,
     MemberAccess,
     ScopeNode,
-    ClassScopeNode,
     get_scope,
 )
 
@@ -355,11 +355,12 @@ def transform_member_access(member_access: MemberAccess) -> str:
                     "Module",
                     [
                         SimpleScope("Import.math", []),
-                        SimpleClassScope("ClassDef.A",
-                                         [SimpleScope("AssignName.value", [])],
-                                         ["value"],
-                                         [],
-                                         ),
+                        SimpleClassScope(
+                            "ClassDef.A",
+                            [SimpleScope("AssignName.value", [])],
+                            ["value"],
+                            [],
+                        ),
                     ],
                 ),
             ],
