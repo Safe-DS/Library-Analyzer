@@ -45,8 +45,8 @@ class ScopeNode:
     """
 
     node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Call | astroid.Import | astroid.ImportFrom | MemberAccess
-    children: list[ScopeNode] | None = None
-    parent: ScopeNode | None = None
+    children: list[ScopeNode | ClassScopeNode]
+    parent: ScopeNode | ClassScopeNode | None = None
 
 
 @dataclass
@@ -58,8 +58,8 @@ class ClassScopeNode(ScopeNode):
         class_variables     is a list of AssignName nodes that define class variables
         instance_variables  is a list of AssignAttr nodes that define instance variables
     """
-    class_variables: list[astroid.AssignName] | None = None
-    instance_variables: list[astroid.AssignAttr] | None = None
+    class_variables: list[astroid.AssignName] = field(default_factory=list)
+    instance_variables: list[astroid.AssignAttr] = field(default_factory=list)
 
 
 @dataclass
@@ -76,9 +76,27 @@ class ScopeFinder:
         children:               All found children nodes are stored in children until their scope is determined.
     """
 
-    current_node_stack: list[ScopeNode] = field(default_factory=list)
-    children: list[ScopeNode] = field(default_factory=list)
-    variables: list[Variables] = field(default_factory=list)
+    current_node_stack: list[ScopeNode | ClassScopeNode] = field(default_factory=list)
+    children: list[ScopeNode | ClassScopeNode] = field(default_factory=list)
+    # variables: list[Variables] = field(default_factory=list)
+
+    def get_node_by_name(self, name: str) -> ScopeNode | ClassScopeNode | None:
+        """
+        Get a ScopeNode by its name.
+
+        Parameters
+        ----------
+            name    is the name of the node that should be found.
+
+        Returns
+        -------
+            The ScopeNode with the given name, or None if no node with the given name was found.
+        """
+        for node in self.current_node_stack:
+            if node.node.name == name:
+                return node
+        return None
+        # TODO: this is inefficient, instead use a dict to store the nodes
 
     def detect_scope(self, node: astroid.NodeNG) -> None:
         """
@@ -88,8 +106,8 @@ class ScopeFinder:
         The scope of a node is defined by the parent node in the scope tree.
         """
         current_scope = node
-        outer_scope_children: list[ScopeNode] = []
-        inner_scope_children: list[ScopeNode] = []
+        outer_scope_children: list[ScopeNode | ClassScopeNode] = []
+        inner_scope_children: list[ScopeNode | ClassScopeNode] = []
         for child in self.children:
             if (
                 child.parent is not None and child.parent.node != current_scope
@@ -107,18 +125,27 @@ class ScopeFinder:
         """Analyze the constructor of a class.
 
         The constructor of a class is a special function that is called when an instance of the class is created.
+        This function only is called when the name of the FunctionDef node is `__init__`.
         """
         for child in node.body:
             if isinstance(child, astroid.Assign):
-                if self.variables[-1].instance_variables is None:
-                    self.variables[-1].instance_variables = []
-                self.variables[-1].instance_variables.append(child.targets[0])
+                class_node = self.get_node_by_name(node.parent.name)
+                class_node.instance_variables.append(child.targets[0])
             elif isinstance(child, astroid.AnnAssign):
-                if self.variables[-1].instance_variables is None:
-                    self.variables[-1].instance_variables = []
-                self.variables[-1].instance_variables.append(child.target)
+                class_node = self.get_node_by_name(node.parent.name)
+                class_node.instance_variables.append(child.target)
             else:
                 raise TypeError(f"Unexpected node type {type(child)}")
+            # if isinstance(child, astroid.Assign):
+            #     if self.variables[-1].instance_variables is None:
+            #         self.variables[-1].instance_variables = []
+            #     self.variables[-1].instance_variables.append(child.targets[0])
+            # elif isinstance(child, astroid.AnnAssign):
+            #     if self.variables[-1].instance_variables is None:
+            #         self.variables[-1].instance_variables = []
+            #     self.variables[-1].instance_variables.append(child.target)
+            # else:
+            #     raise TypeError(f"Unexpected node type {type(child)}")
             # TODO: add ClassNodeScope
 
     def enter_module(self, node: astroid.Module) -> None:
@@ -129,7 +156,7 @@ class ScopeFinder:
         The module node is also the first node that is visited, so the current_node_stack is empty before entering the module node.
         """
         self.current_node_stack.append(
-            ScopeNode(node=node, children=None, parent=None),
+            ScopeNode(node=node, children=[], parent=None),
         )
 
     def leave_module(self, node: astroid.Module) -> None:
@@ -137,17 +164,17 @@ class ScopeFinder:
 
     def enter_classdef(self, node: astroid.ClassDef) -> None:
         self.current_node_stack.append(
-            ClassScopeNode(node=node, children=None, parent=self.current_node_stack[-1], instance_variables=[], class_variables=[]),
+            ClassScopeNode(node=node, children=[], parent=self.current_node_stack[-1], instance_variables=[], class_variables=[]),
         )
         # initialize the variable lists for the current class
-        self.variables.append(Variables(class_variables=[], instance_variables=[]))
+        # self.variables.append(Variables(class_variables=[], instance_variables=[]))
 
     def leave_classdef(self, node: astroid.ClassDef) -> None:
         self.detect_scope(node)
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
         self.current_node_stack.append(
-            ScopeNode(node=node, children=None, parent=self.current_node_stack[-1]),
+            ScopeNode(node=node, children=[], parent=self.current_node_stack[-1]),
         )
         if node.name == "__init__":
             self.analyze_constructor(node)
@@ -157,7 +184,7 @@ class ScopeFinder:
 
     def enter_assignname(self, node: astroid.AssignName) -> None:
         if isinstance(node.parent, astroid.Arguments) and node.name == "self":
-            pass  # TODO: Special treatment for self parameter?
+            pass  # TODO: Special treatment for self parameter
 
         elif isinstance(
             node.parent,
@@ -169,33 +196,37 @@ class ScopeFinder:
             | astroid.AnnAssign,
         ):
             parent = self.current_node_stack[-1]
-            scope_node = ScopeNode(node=node, children=None, parent=parent)
+            scope_node = ScopeNode(node=node, children=[], parent=parent)
             self.children.append(scope_node)
 
         # add class variables to the class variables list
         if isinstance(node.parent.parent, astroid.ClassDef):
-            if self.variables[-1].class_variables is None:
-                self.variables[-1].class_variables = []
-            self.variables[-1].class_variables.append(node)
+            class_node = self.get_node_by_name(node.parent.parent.name)
+            print(class_node)
+            class_node.class_variables.append(node)
+
+            # if self.variables[-1].class_variables is None:
+            #     self.variables[-1].class_variables = []
+            # self.variables[-1].class_variables.append(node)
             # TODO: add ClassNodeScope
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
-        scope_node = ScopeNode(node=node, children=None, parent=parent)
+        scope_node = ScopeNode(node=node, children=[], parent=parent)
         self.children.append(scope_node)
 
     def enter_import(self, node: astroid.Import) -> None:
         parent = self.current_node_stack[-1]
-        scope_node = ScopeNode(node=node, children=None, parent=parent)
+        scope_node = ScopeNode(node=node, children=[], parent=parent)
         self.children.append(scope_node)
 
     def enter_importfrom(self, node: astroid.ImportFrom) -> None:
         parent = self.current_node_stack[-1]
-        scope_node = ScopeNode(node=node, children=None, parent=parent)
+        scope_node = ScopeNode(node=node, children=[], parent=parent)
         self.children.append(scope_node)
 
 
-def get_scope(code: str) -> tuple[list[ScopeNode], list[Variables]]:
+def get_scope(code: str) -> list[ScopeNode | ClassScopeNode]:
     """Get the scope of the given code.
 
     In order to get the scope of the given code, the code is parsed into an AST and then walked by an ASTWalker.
@@ -212,9 +243,9 @@ def get_scope(code: str) -> tuple[list[ScopeNode], list[Variables]]:
     walker.walk(module)
 
     scopes = scope_handler.children  # get the children of the root node, which are the scopes of the module
-    variables = scope_handler.variables  # lists of class variables and instance variables
+    #variables = scope_handler.variables  # lists of class variables and instance variables
     scope_handler.children = []  # reset the children
     scope_handler.current_node_stack = []  # reset the stack
     scope_handler.variables = []  # reset the variables
 
-    return scopes, variables
+    return scopes
