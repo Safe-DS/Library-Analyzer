@@ -149,7 +149,7 @@ class ScopeFinder:
         self.current_node_stack.append(
             ScopeNode(node=node, children=[], parent=self.current_node_stack[-1]),
         )
-        if node.name == "__init__":
+        if node.name == "__init__" and isinstance(node.parent, astroid.ClassDef) and node is not None:
             self.analyze_constructor(node)
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
