@@ -117,7 +117,7 @@ class ScopeFinder:
         for child in node.body:
             class_node = self.get_node_by_name(node.parent.name)
 
-            if class_node is not None and isinstance(class_node, ClassScopeNode):
+            if isinstance(class_node, ClassScopeNode):
                 if isinstance(child, astroid.Assign):
                     class_node.instance_variables.append(child.targets[0])
                 elif isinstance(child, astroid.AnnAssign):
@@ -183,7 +183,7 @@ class ScopeFinder:
         # add class variables to the class_variables list of the class
         if isinstance(node.parent.parent, astroid.ClassDef):
             class_node = self.get_node_by_name(node.parent.parent.name)
-            if class_node is not None and isinstance(class_node, ClassScopeNode):
+            if isinstance(class_node, ClassScopeNode):
                 class_node.class_variables.append(node)
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
