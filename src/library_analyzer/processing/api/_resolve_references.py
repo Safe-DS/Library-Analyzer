@@ -18,11 +18,11 @@ class MemberAccess(Expression):
 
 @dataclass
 class NodeID:
-    module: astroid.Module  # | None  # TODO: can we use ScopeNode here
+    module: astroid.Module
     name: str
     line: int
     col: int
-    node_type: str | None
+    node_type: str | None  # TODO: this can be removed after Symbol is implemented since it will be redundant
 
     def __str__(self) -> str:
         return f"{self.module.name}.{self.name}.{self.line}.{self.col}"
@@ -84,13 +84,14 @@ class ScopeNode:
     """
 
     node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | MemberAccess
-    node_id: NodeID
+    id: NodeID  # TODO: rename to id and implement it
     children: list[ScopeNode] = field(default_factory=list)
     parent: ScopeNode | None = None
-    _symbol: list[Symbol] = field(default_factory=list)   # TODO: besser als dict? -> schnelleres suchen
+    # _symbol: dict[Symbol] = field(default_factory=dict)
+    # TODO: make fields private (_name)
 
-    def __contains__(self, item):
-        return item in self._symbol
+    # def __contains__(self, item):
+    #     return item in self._symbol
 
 
 @dataclass
@@ -170,7 +171,7 @@ class ScopeFinder:
         The module node is also the first node that is visited, so the current_node_stack is empty before entering the module node.
         """
         self.current_node_stack.append(
-            ScopeNode(node=node, children=None, parent=None),
+            ScopeNode(node=node, id=_calc_node_id(node), children=[], parent=None),
         )
 
     def leave_module(self, node: astroid.Module) -> None:
@@ -178,7 +179,7 @@ class ScopeFinder:
 
     def enter_classdef(self, node: astroid.ClassDef) -> None:
         self.current_node_stack.append(
-            ScopeNode(node=node, node_id=_calc_node_id(node), children=[], parent=self.current_node_stack[-1]),
+            ScopeNode(node=node, id=_calc_node_id(node), children=[], parent=self.current_node_stack[-1]),
         )
         # initialize the variable lists for the current class
         self.variables.append(Variables(class_variables=[], instance_variables=[]))
@@ -188,7 +189,7 @@ class ScopeFinder:
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
         self.current_node_stack.append(
-            ScopeNode(node=node, children=None, parent=self.current_node_stack[-1]),
+            ScopeNode(node=node, id=_calc_node_id(node), children=[], parent=self.current_node_stack[-1]),
         )
         if node.name == "__init__":
             self._analyze_constructor(node)
@@ -210,7 +211,7 @@ class ScopeFinder:
             | astroid.AnnAssign,
         ):
             parent = self.current_node_stack[-1]
-            scope_node = ScopeNode(node=node, children=None, parent=parent)
+            scope_node = ScopeNode(node=node, id=_calc_node_id(node), children=[], parent=parent)
             self.children.append(scope_node)
 
         # add class variables to the class variables list
@@ -221,17 +222,17 @@ class ScopeFinder:
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
-        scope_node = ScopeNode(node=node, children=None, parent=parent)
+        scope_node = ScopeNode(node=node, id=_calc_node_id(node), children=[], parent=parent)
         self.children.append(scope_node)
 
     def enter_import(self, node: astroid.Import) -> None:
         parent = self.current_node_stack[-1]
-        scope_node = ScopeNode(node=node, children=None, parent=parent)
+        scope_node = ScopeNode(node=node, id=_calc_node_id(node), children=[], parent=parent)
         self.children.append(scope_node)
 
     def enter_importfrom(self, node: astroid.ImportFrom) -> None:
         parent = self.current_node_stack[-1]
-        scope_node = ScopeNode(node=node, children=None, parent=parent)
+        scope_node = ScopeNode(node=node, id=_calc_node_id(node), children=[], parent=parent)
         self.children.append(scope_node)
 
 
@@ -333,6 +334,10 @@ def _calc_node_id(
             return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
         case MemberAccess():
             return NodeID(module, node.expression.as_string(), node.expression.lineno, node.expression.col_offset, node.expression.__class__.__name__)
+        case astroid.Import():
+            return NodeID(module, node.as_string(), node.lineno, node.col_offset, node.__class__.__name__)
+        case astroid.ImportFrom():
+            return NodeID(module, node.as_string(), node.lineno, node.col_offset, node.__class__.__name__)
         case _:
             raise ValueError(f"Node type {node.__class__.__name__} is not supported yet.")
 
