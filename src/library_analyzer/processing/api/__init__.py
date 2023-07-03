@@ -27,6 +27,7 @@ from ._package_metadata import (
     package_root,
 )
 from ._resolve_references import (
+    ClassScopeNode,
     MemberAccess,
     NodeReference,
     ScopeNode,
@@ -74,4 +75,5 @@ __all__ = [
     "_calc_node_id",
     "_get_scope",
     "Variables",
+    "ClassScopeNode",
 ]
