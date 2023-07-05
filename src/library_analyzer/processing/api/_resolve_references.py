@@ -42,7 +42,7 @@ class Symbol(ABC):
 
 @dataclass
 class Parameter(Symbol):
-    node: astroid.AssignName #?? richtige einschränkung
+    node: astroid.AssignName  # ?? richtige einschränkung
     pass
 
 
@@ -86,7 +86,7 @@ class ScopeNode:
     node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | MemberAccess
     id: NodeID  # TODO: rename to id and implement it
     children: list[ScopeNode | ClassScopeNode] = field(default_factory=list)
-    parent: ScopeNode  | ClassScopeNode | None = None
+    parent: ScopeNode | ClassScopeNode | None = None
     # _symbol: dict[Symbol] = field(default_factory=dict)
     # TODO: make fields private (_name)
 
@@ -214,13 +214,11 @@ class ScopeFinder:
     def enter_classdef(self, node: astroid.ClassDef) -> None:
         self.current_node_stack.append(
             ClassScopeNode(node=node, id=_calc_node_id(node), children=[],
-                parent=self.current_node_stack[-1],
-                instance_variables=[],
-                class_variables=[],
-            ),
+                           parent=self.current_node_stack[-1],
+                           instance_variables=[],
+                           class_variables=[],
+                           )
         )
-        # initialize the variable lists for the current class
-        self.variables.append(Variables(class_variables=[], instance_variables=[]))
 
     def leave_classdef(self, node: astroid.ClassDef) -> None:
         self._detect_scope(node)
@@ -371,18 +369,22 @@ def _calc_node_id(
         case astroid.Name():
             return NodeID(module, node.name, node.lineno, node.col_offset, node.__class__.__name__)
         case MemberAccess():
-            return NodeID(module, node.expression.as_string(), node.expression.lineno, node.expression.col_offset, node.expression.__class__.__name__)
+            return NodeID(module, node.expression.as_string(), node.expression.lineno, node.expression.col_offset,
+                          node.expression.__class__.__name__)
         case astroid.Import():
             return NodeID(module, node.as_string(), node.lineno, node.col_offset, node.__class__.__name__)
         case astroid.ImportFrom():
             return NodeID(module, node.as_string(), node.lineno, node.col_offset, node.__class__.__name__)
+        case astroid.AssignAttr():
+            return NodeID(module, node.as_string(), node.lineno, node.col_offset, node.__class__.__name__)
         case _:
             raise ValueError(f"Node type {node.__class__.__name__} is not supported yet.")
 
-    # TODO: add fitting default case
+    # TODO: add fitting default case and merge same types of cases together
 
 
-def _create_references(all_names_list: list[astroid.Name | astroid.AssignName]) -> tuple[list[NodeReference], list[NodeReference], list[NodeReference]]:
+def _create_references(all_names_list: list[astroid.Name | astroid.AssignName]) -> tuple[
+    list[NodeReference], list[NodeReference], list[NodeReference]]:
     """Create a list of references from a list of name nodes.
 
     Returns:
@@ -450,7 +452,8 @@ def _add_potential_target_references(reference: NodeReference, reference_list: l
 
 # TODO: implement caching for nodes list, scope, vars to reduce runtime
 # TODO: rework this function to respect the scope of the name
-def _find_references(name_node: astroid.Name | astroid.AssignName, all_name_nodes_list: list[astroid.Name | astroid.AssignName], scope: list[ScopeNode], variable: list[Variables]) -> list[NodeReference]:
+def _find_references(name_node: astroid.Name | astroid.AssignName,
+                     all_name_nodes_list: list[astroid.Name | astroid.AssignName], scope: list[ScopeNode]) -> list[NodeReference]:
     """Find all references for a node.
 
     Parameters:
@@ -466,8 +469,6 @@ def _find_references(name_node: astroid.Name | astroid.AssignName, all_name_node
 
     # welcher scope sind wir gerade
     # entsprechend dem Scope die zugehörigen Symbole finden
-
-
 
     # TODO: Beispiele wiederfinden zu Flow analysis
 

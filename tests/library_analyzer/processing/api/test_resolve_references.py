@@ -591,6 +591,33 @@ def assert_reference_list_equal(result: list[NodeReference], expected: list[Node
             """,
             []
         ),
+        (
+            """
+                def local_path(a):
+                    if a > 0:
+                        return a
+                    else:
+                        return -a
+            """,
+            []
+        ),
+        (
+            """
+                def local_array(a):
+                    arr = [1, 2, 3]
+                    arr[0] = a
+            """,
+            []
+        ),
+        (
+            """
+                def local_double_return(a, b):
+                    return a, b
+
+                x = local_double_return(10, 20)
+            """,
+            []
+        )
     ],
     ids=[
         "constant as local variable",
@@ -598,16 +625,19 @@ def assert_reference_list_equal(result: list[NodeReference], expected: list[Node
         "global as local variable",
         "class attribute as local variable",
         "instance attribute as local variable",
+        "path",
+        "array",
+        "double return"
     ]
 )
 def test_find_references(code, expected):
-    scope, variables = _get_scope(code)
+    scope = _get_scope(code)
     all_names_list = _get_name_nodes(code)
 
     references: list[list[NodeReference]] = []
 
     for name_node in all_names_list:
-        references.append(_find_references(name_node, all_names_list, scope, variables))
+        references.append(_find_references(name_node, all_names_list, scope))
 
     for reference in references:
         # print(reference, "\n")
