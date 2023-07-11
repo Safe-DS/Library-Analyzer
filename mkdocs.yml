@@ -1,6 +1,7 @@
 site_name: Library Analyzer
 repo_url: https://github.com/Safe-DS/Library-Analyzer
 repo_name: Safe-DS/Library-Analyzer
+edit_uri: edit/main/docs/
 site_url: !ENV READTHEDOCS_CANONICAL_URL
 
 nav:
