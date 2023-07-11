@@ -131,8 +131,9 @@ class _AstVisitor:
         self.api.add_module(module)
 
     def enter_classdef(self, class_node: astroid.ClassDef) -> None:
+        id_ = self.__get_id(class_node.name)
         qname = class_node.qname()
-        instance_attributes = get_instance_attributes(class_node)
+        instance_attributes = get_instance_attributes(class_node, id_)
 
         decorators: astroid.Decorators | None = class_node.decorators
         if decorators is not None:
@@ -144,13 +145,13 @@ class _AstVisitor:
 
         # Remember class, so we can later add methods
         class_ = Class(
-            id=self.__get_id(class_node.name),
+            id=id_,
             qname=qname,
             decorators=decorator_names,
             superclasses=class_node.basenames,
             is_public=self.is_public(class_node.name, qname),
             reexported_by=self.reexported.get(qname, []),
-            documentation=self.docstring_parser.get_class_documentation(class_node),
+            docstring=self.docstring_parser.get_class_documentation(class_node),
             code=code,
             instance_attributes=instance_attributes,
         )
@@ -197,7 +198,7 @@ class _AstVisitor:
             results=[],  # TODO: results
             is_public=is_public,
             reexported_by=self.reexported.get(qname, []),
-            documentation=self.docstring_parser.get_function_documentation(function_node),
+            docstring=self.docstring_parser.get_function_documentation(function_node),
             code=code,
         )
         self.__declaration_stack.append(function)

@@ -5,13 +5,13 @@ from library_analyzer.processing.api.model import (
     API,
     Attribute,
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
     NamedType,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
     Result,
     ResultDocstring,
 )
@@ -34,7 +34,12 @@ def create_api_super() -> tuple[API, Class, Class, Attribute, Function, Paramete
         pass""",
     )
     class_id_super = "test/test/SuperTest"
-    attribute_super = Attribute("new_test_int", NamedType("int"), class_id=class_id_super)
+    attribute_super = Attribute(
+        "test/test/SuperTest/new_test_int",
+        "new_test_int",
+        NamedType("int"),
+        class_id=class_id_super,
+    )
     class_super = Class(
         id=class_id_super,
         qname="test.SuperTest",
@@ -42,7 +47,7 @@ def create_api_super() -> tuple[API, Class, Class, Attribute, Function, Paramete
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test"),
+        docstring=ClassDocstring("This is a test"),
         code=code_a,
         instance_attributes=[attribute_super],
     )
@@ -53,7 +58,7 @@ def create_api_super() -> tuple[API, Class, Class, Attribute, Function, Paramete
         superclasses=["SuperTest"],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test"),
+        docstring=ClassDocstring("This is a test"),
         code="",
         instance_attributes=[],
     )
@@ -65,9 +70,9 @@ def create_api_super() -> tuple[API, Class, Class, Attribute, Function, Paramete
         default_value="'test_str_a'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("'test_str_a'", "", ""),
+        docstring=ParameterDocstring("'test_str_a'", "", ""),
     )
-    result_super = Result("config", ResultDocstring("dict", ""), function_id=function_id_super)
+    result_super = Result("config", "config", ResultDocstring("dict", ""), function_id=function_id_super)
     code_function_a = cleandoc(
         """
     def test_function_super(test_parameter: str):
@@ -85,7 +90,7 @@ def create_api_super() -> tuple[API, Class, Class, Attribute, Function, Paramete
         results=[result_super],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(
+        docstring=FunctionDocstring(
             "This is a test function",
         ),
         code=code_function_a,
@@ -112,7 +117,7 @@ def create_api_sub() -> tuple[API, Class, Class, Attribute, Function, Parameter,
         pass""",
     )
     class_id_sub = "test/test/SubTest"
-    attribute_sub = Attribute("new_test_int", NamedType("int"), class_id=class_id_sub)
+    attribute_sub = Attribute("test/test/SubTest/new_test_int", "new_test_int", NamedType("int"), class_id=class_id_sub)
     class_sub = Class(
         id=class_id_sub,
         qname="test.SubTest",
@@ -120,7 +125,7 @@ def create_api_sub() -> tuple[API, Class, Class, Attribute, Function, Parameter,
         superclasses=["SuperTest"],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test"),
+        docstring=ClassDocstring("This is a test"),
         code=code_a,
         instance_attributes=[attribute_sub],
     )
@@ -131,7 +136,7 @@ def create_api_sub() -> tuple[API, Class, Class, Attribute, Function, Parameter,
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test"),
+        docstring=ClassDocstring("This is a test"),
         code="",
         instance_attributes=[],
     )
@@ -143,9 +148,9 @@ def create_api_sub() -> tuple[API, Class, Class, Attribute, Function, Parameter,
         default_value="'test_str_a'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("'test_str_a'", "", ""),
+        docstring=ParameterDocstring("'test_str_a'", "", ""),
     )
-    result_sub = Result("config", ResultDocstring("dict", ""), function_id=function_id_sub)
+    result_sub = Result("config", "config", ResultDocstring("dict", ""), function_id=function_id_sub)
     code_function_a = cleandoc(
         """
     def test_function_sub(test_parameter: str):
@@ -163,7 +168,7 @@ def create_api_sub() -> tuple[API, Class, Class, Attribute, Function, Parameter,
         results=[result_sub],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(
+        docstring=FunctionDocstring(
             "This test function is only for testing",
         ),
         code=code_function_a,

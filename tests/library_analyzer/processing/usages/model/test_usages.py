@@ -20,21 +20,21 @@ def usage_counts_json() -> dict:
 
 @pytest.fixture()
 def usage_counts(usage_counts_json: dict) -> UsageCountStore:
-    return UsageCountStore.from_json(usage_counts_json)
+    return UsageCountStore.from_dict(usage_counts_json)
 
 
-def test_to_json_is_inverse_of_from_json(usage_counts_json: Any) -> None:
-    assert UsageCountStore.from_json(usage_counts_json).to_json() == usage_counts_json
+def test_to_dict_is_inverse_of_from_dict(usage_counts_json: Any) -> None:
+    assert UsageCountStore.from_dict(usage_counts_json).to_dict() == usage_counts_json
 
 
-def test_from_json_is_inverse_of_to_json(usage_counts: UsageCountStore) -> None:
-    assert UsageCountStore.from_json(usage_counts.to_json()) == usage_counts
+def test_from_dict_is_inverse_of_to_dict(usage_counts: UsageCountStore) -> None:
+    assert UsageCountStore.from_dict(usage_counts.to_dict()) == usage_counts
 
 
 def test_add_class_usage_for_new_class(usage_counts: UsageCountStore) -> None:
     usage_counts.add_class_usages("TestClass2")
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {
             "TestClass": 2,
@@ -49,7 +49,7 @@ def test_add_class_usage_for_new_class(usage_counts: UsageCountStore) -> None:
 def test_add_class_usage_for_existing_class(usage_counts: UsageCountStore) -> None:
     usage_counts.add_class_usages("TestClass", 2)
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {"TestClass": 4},
         "function_counts": {"TestClass.test_function": 2},
@@ -62,13 +62,13 @@ def test_remove_class_for_missing_class(usage_counts: UsageCountStore, usage_cou
     usage_counts.remove_class("TestClass2")
 
     # Should be unchanged
-    assert usage_counts.to_json() == usage_counts_json
+    assert usage_counts.to_dict() == usage_counts_json
 
 
 def test_remove_class_for_existing_class(usage_counts: UsageCountStore) -> None:
     usage_counts.remove_class("TestClass")
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {},
         "function_counts": {},
@@ -80,7 +80,7 @@ def test_remove_class_for_existing_class(usage_counts: UsageCountStore) -> None:
 def test_add_function_usages_for_new_function(usage_counts: UsageCountStore) -> None:
     usage_counts.add_function_usages("TestClass.test_function_2")
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {"TestClass": 2},
         "function_counts": {
@@ -97,7 +97,7 @@ def test_add_function_usages_for_existing_function(
 ) -> None:
     usage_counts.add_function_usages("TestClass.test_function", 2)
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {"TestClass": 2},
         "function_counts": {"TestClass.test_function": 4},
@@ -110,13 +110,13 @@ def test_remove_function_for_missing_function(usage_counts: UsageCountStore, usa
     usage_counts.remove_function("TestClass.test_function_2")
 
     # Should be unchanged
-    assert usage_counts.to_json() == usage_counts_json
+    assert usage_counts.to_dict() == usage_counts_json
 
 
 def test_remove_function_for_existing_function(usage_counts: UsageCountStore) -> None:
     usage_counts.remove_function("TestClass.test_function")
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {"TestClass": 2},
         "function_counts": {},
@@ -128,7 +128,7 @@ def test_remove_function_for_existing_function(usage_counts: UsageCountStore) ->
 def test_add_parameter_usages_for_new_parameter(usage_counts: UsageCountStore) -> None:
     usage_counts.add_parameter_usages("TestClass.test_function.test_parameter_2")
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {"TestClass": 2},
         "function_counts": {"TestClass.test_function": 2},
@@ -145,7 +145,7 @@ def test_add_parameter_usages_for_existing_parameter(
 ) -> None:
     usage_counts.add_parameter_usages("TestClass.test_function.test_parameter", 2)
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {"TestClass": 2},
         "function_counts": {"TestClass.test_function": 2},
@@ -158,13 +158,13 @@ def test_remove_parameter_for_missing_parameter(usage_counts: UsageCountStore, u
     usage_counts.remove_parameter("TestClass.test_function.test_parameter_2")
 
     # Should be unchanged
-    assert usage_counts.to_json() == usage_counts_json
+    assert usage_counts.to_dict() == usage_counts_json
 
 
 def test_remove_parameter_for_existing_parameter(usage_counts: UsageCountStore) -> None:
     usage_counts.remove_parameter("TestClass.test_function.test_parameter")
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {"TestClass": 2},
         "function_counts": {"TestClass.test_function": 2},
@@ -176,7 +176,7 @@ def test_remove_parameter_for_existing_parameter(usage_counts: UsageCountStore) 
 def test_add_value_usages_for_new_parameter(usage_counts: UsageCountStore) -> None:
     usage_counts.add_value_usages("TestClass.test_function.test_parameter_2", "'test'")
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {"TestClass": 2},
         "function_counts": {"TestClass.test_function": 2},
@@ -191,7 +191,7 @@ def test_add_value_usages_for_new_parameter(usage_counts: UsageCountStore) -> No
 def test_add_value_usages_for_new_value(usage_counts: UsageCountStore) -> None:
     usage_counts.add_value_usages("TestClass.test_function.test_parameter", "'test2'")
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {"TestClass": 2},
         "function_counts": {"TestClass.test_function": 2},
@@ -205,7 +205,7 @@ def test_add_value_usages_for_existing_parameter_and_value(
 ) -> None:
     usage_counts.add_value_usages("TestClass.test_function.test_parameter", "'test'", 2)
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {"TestClass": 2},
         "function_counts": {"TestClass.test_function": 2},
@@ -217,7 +217,7 @@ def test_add_value_usages_for_existing_parameter_and_value(
 def test_init_value_for_new_parameter(usage_counts: UsageCountStore) -> None:
     usage_counts.init_value("TestClass.test_function.test_parameter_2")
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {"TestClass": 2},
         "function_counts": {"TestClass.test_function": 2},
@@ -232,7 +232,7 @@ def test_init_value_for_new_parameter(usage_counts: UsageCountStore) -> None:
 def test_init_value_for_existing_parameter(usage_counts: UsageCountStore) -> None:
     usage_counts.init_value("TestClass.test_function.test_parameter")
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {"TestClass": 2},
         "function_counts": {"TestClass.test_function": 2},
@@ -299,7 +299,7 @@ def test_most_common_parameter_values_for_existing_parameter(
 
 
 def test_merge_other_into_self(usage_counts: UsageCountStore) -> None:
-    other = UsageCountStore.from_json(
+    other = UsageCountStore.from_dict(
         {
             "class_counts": {
                 "TestClass": 2,
@@ -322,7 +322,7 @@ def test_merge_other_into_self(usage_counts: UsageCountStore) -> None:
 
     usage_counts.merge_other_into_self(other)
 
-    assert usage_counts.to_json() == {
+    assert usage_counts.to_dict() == {
         "schemaVersion": USAGES_SCHEMA_VERSION,
         "class_counts": {
             "TestClass": 4,

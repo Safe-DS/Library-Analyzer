@@ -5,13 +5,13 @@ from library_analyzer.processing.api.model import (
     API,
     Attribute,
     Class,
-    ClassDocumentation,
+    ClassDocstring,
     Function,
-    FunctionDocumentation,
+    FunctionDocstring,
     NamedType,
     Parameter,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
     Result,
     ResultDocstring,
 )
@@ -27,7 +27,7 @@ def test_similarity() -> None:
         pass""",
     )
     class_id_a = "test/test/Test"
-    attribute_a = Attribute("new_test_string", NamedType("str"), class_id=class_id_a)
+    attribute_a = Attribute("test/test/Test/new_test_string", "new_test_string", NamedType("str"), class_id=class_id_a)
     class_a = Class(
         id=class_id_a,
         qname="test.Test",
@@ -35,7 +35,7 @@ def test_similarity() -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a test"),
+        docstring=ClassDocstring("This is a test"),
         code=code_a,
         instance_attributes=[attribute_a],
     )
@@ -46,7 +46,7 @@ def test_similarity() -> None:
         pass""",
     )
     class_id_b = "test/test/NewTest"
-    attribute_b = Attribute("test_string", NamedType("str"), class_id=class_id_b)
+    attribute_b = Attribute("test/test/NewTest/test_string", "test_string", NamedType("str"), class_id=class_id_b)
     class_b = Class(
         id=class_id_b,
         qname="test.newTest",
@@ -54,7 +54,7 @@ def test_similarity() -> None:
         superclasses=[],
         is_public=True,
         reexported_by=[],
-        documentation=ClassDocumentation("This is a new test"),
+        docstring=ClassDocstring("This is a new test"),
         code=code_b,
         instance_attributes=[attribute_b],
     )
@@ -69,9 +69,9 @@ def test_similarity() -> None:
         default_value="'test_str_a'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("'test_str_a'", "", ""),
+        docstring=ParameterDocstring("'test_str_a'", "", ""),
     )
-    result_a = Result("config", ResultDocstring("dict", ""), function_id=function_id_a)
+    result_a = Result("config", "config", ResultDocstring("dict", ""), function_id=function_id_a)
     code_function_a = cleandoc(
         """
     def test(test_parameter: str):
@@ -89,7 +89,7 @@ def test_similarity() -> None:
         results=[result_a],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(
+        docstring=FunctionDocstring(
             "This test function is a for testing",
         ),
         code=code_function_a,
@@ -111,9 +111,10 @@ def test_similarity() -> None:
         default_value="'test_str_b'",
         assigned_by=ParameterAssignment.POSITION_OR_NAME,
         is_public=True,
-        documentation=ParameterDocumentation("'test_str_b'", "", ""),
+        docstring=ParameterDocstring("'test_str_b'", "", ""),
     )
     result_b = Result(
+        "new_config",
         "new_config",
         ResultDocstring("dict", "A dictionary that includes the new configuration"),
         function_id=function_id_b,
@@ -126,7 +127,7 @@ def test_similarity() -> None:
         results=[result_b],
         is_public=True,
         reexported_by=[],
-        documentation=FunctionDocumentation(
+        docstring=FunctionDocstring(
             "This test function is a test",
         ),
         code=code_b,
@@ -143,23 +144,15 @@ def test_similarity() -> None:
     apiv1.add_class(class_c)
     apiv2.add_class(class_d)
 
-    class_mapping = OneToOneMapping(1.0, class_a, class_a)
-    function_mapping = OneToOneMapping(1.0, function_a, function_a)
-    attribute_mapping = OneToOneMapping(1.0, attribute_a, attribute_a)
-    parameter_mapping = OneToOneMapping(1.0, parameter_a, parameter_a)
-    result_mapping = OneToOneMapping(1.0, result_a, result_a)
-    class_mapping_changed_code = OneToOneMapping(1.0, class_c, class_d)
+    OneToOneMapping(1.0, class_a, class_a)
+    OneToOneMapping(1.0, function_a, function_a)
+    OneToOneMapping(1.0, parameter_a, parameter_a)
 
     unchanged_differ = UnchangedDiffer(None, [], apiv1, apiv2)
-    assert unchanged_differ.get_additional_mappings() == [class_mapping_changed_code]
+    assert unchanged_differ.compute_class_similarity(class_c, class_d) == 1
     apiv1.classes.pop(class_c.id)
     apiv2.classes.pop(class_d.id)
     unchanged_differ = UnchangedDiffer(None, [], apiv1, apiv1)
-    expected_mappings = [
-        class_mapping,
-        function_mapping,
-        parameter_mapping,
-        attribute_mapping,
-        result_mapping,
-    ]
-    assert unchanged_differ.get_additional_mappings() == expected_mappings
+    assert unchanged_differ.compute_class_similarity(class_a, class_a) == 1
+    assert unchanged_differ.compute_function_similarity(function_a, function_a) == 1
+    assert unchanged_differ.compute_parameter_similarity(parameter_a, parameter_a) == 1

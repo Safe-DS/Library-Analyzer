@@ -24,6 +24,7 @@
             "code": "class TestClass:\n    \"\"\"This is a TestClass.\n    It has no common use.\"\"\"\n    pass",
             "instance_attributes": [
                 {
+                    "id": "test/test/TestClass/a",
                     "name": "a",
                     "types": {
                         "kind": "NamedType",
@@ -31,6 +32,7 @@
                     }
                 },
                 {
+                    "id": "test/test/TestClass/b",
                     "name": "b",
                     "types": {
                         "kind": "NamedType",
@@ -38,6 +40,7 @@
                     }
                 },
                 {
+                    "id": "test/test/TestClass/c",
                     "name": "c",
                     "types": {
                         "kind": "NamedType",

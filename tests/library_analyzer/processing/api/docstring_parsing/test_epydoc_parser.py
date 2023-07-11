@@ -2,10 +2,10 @@ import astroid
 import pytest
 from library_analyzer.processing.api.docstring_parsing import EpydocParser
 from library_analyzer.processing.api.model import (
-    ClassDocumentation,
-    FunctionDocumentation,
+    ClassDocstring,
+    FunctionDocstring,
     ParameterAssignment,
-    ParameterDocumentation,
+    ParameterDocstring,
 )
 
 
@@ -36,14 +36,14 @@ class C:
     [
         (
             class_with_documentation,
-            ClassDocumentation(
+            ClassDocstring(
                 description="Lorem ipsum. Code::\n\npass\n\nDolor sit amet.",
                 full_docstring="Lorem ipsum. Code::\n\n    pass\n\nDolor sit amet.",
             ),
         ),
         (
             class_without_documentation,
-            ClassDocumentation(
+            ClassDocstring(
                 description="",
                 full_docstring="",
             ),
@@ -57,7 +57,7 @@ class C:
 def test_get_class_documentation(
     epydoc_parser: EpydocParser,
     python_code: str,
-    expected_class_documentation: ClassDocumentation,
+    expected_class_documentation: ClassDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
 
@@ -91,14 +91,14 @@ def f():
     [
         (
             function_with_documentation,
-            FunctionDocumentation(
+            FunctionDocstring(
                 description="Lorem ipsum. Code::\n\npass\n\nDolor sit amet.",
                 full_docstring="Lorem ipsum. Code::\n\n    pass\n\nDolor sit amet.",
             ),
         ),
         (
             function_without_documentation,
-            FunctionDocumentation(
+            FunctionDocstring(
                 description="",
                 full_docstring="",
             ),
@@ -112,7 +112,7 @@ def f():
 def test_get_function_documentation(
     epydoc_parser: EpydocParser,
     python_code: str,
-    expected_function_documentation: FunctionDocumentation,
+    expected_function_documentation: FunctionDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
 
@@ -166,7 +166,7 @@ def f():
             class_with_parameters,
             "p",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="1",
                 description="foo defaults to 1",
@@ -176,7 +176,7 @@ def f():
             class_with_parameters,
             "missing",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="",
                 default_value="",
                 description="",
@@ -186,7 +186,7 @@ def f():
             function_with_parameters,
             "no_type_no_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="",
                 default_value="",
                 description="no type and no default",
@@ -196,7 +196,7 @@ def f():
             function_with_parameters,
             "type_no_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="",
                 description="type but no default",
@@ -206,7 +206,7 @@ def f():
             function_with_parameters,
             "with_default",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(
+            ParameterDocstring(
                 type="int",
                 default_value="2",
                 description="foo that defaults to 2",
@@ -216,7 +216,7 @@ def f():
             function_with_parameters,
             "missing",
             ParameterAssignment.POSITION_OR_NAME,
-            ParameterDocumentation(type="", default_value="", description=""),
+            ParameterDocstring(type="", default_value="", description=""),
         ),
     ],
     ids=[
@@ -233,7 +233,7 @@ def test_get_parameter_documentation(
     python_code: str,
     parameter_name: str,
     parameter_assigned_by: ParameterAssignment,
-    expected_parameter_documentation: ParameterDocumentation,
+    expected_parameter_documentation: ParameterDocstring,
 ) -> None:
     node = astroid.extract_node(python_code)
     assert isinstance(node, astroid.ClassDef | astroid.FunctionDef)

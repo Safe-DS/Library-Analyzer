@@ -26,12 +26,12 @@ class UnchangedDiffer(AbstractDiffer):
         self.unchanged_api_mappings: list[Mapping] = []
         for classv1 in apiv1.classes.values():
             classv2 = apiv2.classes.get(classv1.id, None)
-            if classv2 is not None and self.have_same_api(classv1, classv2):
+            if classv2 is not None:
                 self.unchanged_api_mappings.append(OneToOneMapping(1.0, classv1, classv2))
 
         for functionv1 in apiv1.functions.values():
             functionv2 = apiv2.functions.get(functionv1.id, None)
-            if functionv2 is not None and self.have_same_api(functionv1, functionv2):
+            if functionv2 is not None:
                 self.unchanged_api_mappings.append(OneToOneMapping(1.0, functionv1, functionv2))
 
         for parameterv1 in apiv1.parameters().values():
@@ -48,6 +48,9 @@ class UnchangedDiffer(AbstractDiffer):
             resultv2 = apiv2.results().get(f"{resultv1.function_id}/{resultv1.name}", None)
             if resultv2 is not None and self.have_same_api(resultv1, resultv2):
                 self.unchanged_api_mappings.append(OneToOneMapping(1.0, resultv1, resultv2))
+            if parameterv2 is not None:
+                self.unchanged_api_mappings.append(OneToOneMapping(-1.0, parameterv1, parameterv2))
+        # Attribute und Result could be added here
 
     API_ELEMENTS = TypeVar("API_ELEMENTS", Attribute, Class, Function, Parameter, Result)
 
@@ -76,7 +79,7 @@ class UnchangedDiffer(AbstractDiffer):
         """
         return 0.0
 
-    def compute_class_similarity(self, classv1: Class, classv2: Class) -> float:  # noqa: ARG002
+    def compute_class_similarity(self, classv1: Class, classv2: Class) -> float:
         """
         Compute the similarity between classes from apiv1 and apiv2.
 
@@ -92,9 +95,11 @@ class UnchangedDiffer(AbstractDiffer):
         similarity : float
             value between 0 and 1, where 1 means that the elements are equal.
         """
+        if self.have_same_api(classv1, classv2):
+            return 1.0
         return 0.0
 
-    def compute_function_similarity(self, functionv1: Function, functionv2: Function) -> float:  # noqa: ARG002
+    def compute_function_similarity(self, functionv1: Function, functionv2: Function) -> float:
         """
         Compute the similarity between functions from apiv1 and apiv2.
 
@@ -110,9 +115,11 @@ class UnchangedDiffer(AbstractDiffer):
         similarity : float
             value between 0 and 1, where 1 means that the elements are equal.
         """
+        if self.have_same_api(functionv1, functionv2):
+            return 1.0
         return 0.0
 
-    def compute_parameter_similarity(self, parameterv1: Parameter, parameterv2: Parameter) -> float:  # noqa: ARG002
+    def compute_parameter_similarity(self, parameterv1: Parameter, parameterv2: Parameter) -> float:
         """
         Compute similarity between parameters from apiv1 and apiv2.
 
@@ -128,6 +135,8 @@ class UnchangedDiffer(AbstractDiffer):
         similarity : float
             value between 0 and 1, where 1 means that the elements are equal.
         """
+        if self.have_same_api(parameterv1, parameterv2):
+            return 1.0
         return 0.0
 
     def compute_result_similarity(self, resultv1: Result, resultv2: Result) -> float:  # noqa: ARG002
@@ -157,7 +166,7 @@ class UnchangedDiffer(AbstractDiffer):
         mappings : list[Mapping] | None
             a list of Mappings if only previously mapped api elements should be mapped to each other or else None.
         """
-        return []
+        return self.unchanged_api_mappings
 
     def notify_new_mapping(self, mappings: list[Mapping]) -> None:
         """
@@ -180,4 +189,4 @@ class UnchangedDiffer(AbstractDiffer):
         mappings : list[Mapping]
             additional mappings that should be included in the result of the differentiation.
         """
-        return self.unchanged_api_mappings
+        return []

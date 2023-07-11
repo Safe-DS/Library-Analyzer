@@ -20,11 +20,7 @@ from library_analyzer.processing.api.model import (
     UnionType,
 )
 from library_analyzer.processing.migration.model import (
-    ManyToManyMapping,
-    ManyToOneMapping,
     Mapping,
-    OneToManyMapping,
-    OneToOneMapping,
 )
 
 from ._constants import migration_author
@@ -32,80 +28,45 @@ from ._get_annotated_api_element import get_annotated_api_element_by_type
 from ._get_migration_text import get_migration_text
 
 
-def migrate_value_annotation(annotation: ValueAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
-    value_annotation = deepcopy(annotation)
-    authors = value_annotation.authors
-    authors.append(migration_author)
-    value_annotation.authors = authors
-
-    if isinstance(mapping, OneToOneMapping | ManyToOneMapping):
-        parameter = mapping.get_apiv2_elements()[0]
-        if isinstance(parameter, Attribute | Result):
-            return []
+def migrate_value_annotation(origin_annotation: ValueAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
+    migrated_annotations: list[AbstractAnnotation] = []
+    for parameter in mapping.get_apiv2_elements():
+        value_annotation = deepcopy(origin_annotation)
+        authors = value_annotation.authors
+        authors.append(migration_author)
+        value_annotation.authors = authors
         if isinstance(parameter, Parameter):
             if isinstance(value_annotation, ConstantAnnotation):
                 migrated_constant_annotation = migrate_constant_annotation(value_annotation, parameter, mapping)
                 if migrated_constant_annotation is not None:
-                    return [migrated_constant_annotation]
+                    migrated_annotations.append(migrated_constant_annotation)
+                    continue
             if isinstance(value_annotation, OmittedAnnotation):
                 migrated_omitted_annotation = migrate_omitted_annotation(value_annotation, parameter, mapping)
                 if migrated_omitted_annotation is not None:
-                    return [migrated_omitted_annotation]
+                    migrated_annotations.append(migrated_omitted_annotation)
+                    continue
             if isinstance(value_annotation, OptionalAnnotation):
                 migrated_optional_annotation = migrate_optional_annotation(value_annotation, parameter, mapping)
                 if migrated_optional_annotation is not None:
-                    return [migrated_optional_annotation]
+                    migrated_annotations.append(migrated_optional_annotation)
+                    continue
             if isinstance(value_annotation, RequiredAnnotation):
                 migrated_required_annotation = migrate_required_annotation(value_annotation, parameter, mapping)
                 if migrated_required_annotation is not None:
-                    return [migrated_required_annotation]
-        return [
-            TodoAnnotation(
-                parameter.id,
-                authors,
-                value_annotation.reviewers,
-                value_annotation.comment,
-                EnumReviewResult.NONE,
-                get_migration_text(value_annotation, mapping),
-            ),
-        ]
-    migrated_annotations: list[AbstractAnnotation] = []
-    if isinstance(mapping, OneToManyMapping | ManyToManyMapping):
-        for parameter in mapping.get_apiv2_elements():
-            if isinstance(parameter, Result | Attribute):
-                continue
-            if isinstance(parameter, Parameter):
-                if isinstance(value_annotation, ConstantAnnotation):
-                    migrated_constant_annotation = migrate_constant_annotation(value_annotation, parameter, mapping)
-                    if migrated_constant_annotation is not None:
-                        migrated_annotations.append(migrated_constant_annotation)
-                        continue
-                elif isinstance(value_annotation, OmittedAnnotation):
-                    migrated_omitted_annotation = migrate_omitted_annotation(value_annotation, parameter, mapping)
-                    if migrated_omitted_annotation is not None:
-                        migrated_annotations.append(migrated_omitted_annotation)
-                        continue
-                elif isinstance(value_annotation, OptionalAnnotation):
-                    migrated_optional_annotation = migrate_optional_annotation(value_annotation, parameter, mapping)
-                    if migrated_optional_annotation is not None:
-                        migrated_annotations.append(migrated_optional_annotation)
-                        continue
-                elif isinstance(value_annotation, RequiredAnnotation):
-                    migrated_required_annotation = migrate_required_annotation(value_annotation, parameter, mapping)
-                    if migrated_required_annotation is not None:
-                        migrated_annotations.append(migrated_required_annotation)
-                        continue
-            if not isinstance(parameter, Attribute | Result):
-                migrated_annotations.append(
-                    TodoAnnotation(
-                        parameter.id,
-                        authors,
-                        value_annotation.reviewers,
-                        value_annotation.comment,
-                        EnumReviewResult.NONE,
-                        get_migration_text(value_annotation, mapping),
-                    ),
-                )
+                    migrated_annotations.append(migrated_required_annotation)
+                    continue
+        if not isinstance(parameter, Attribute | Result):
+            migrated_annotations.append(
+                TodoAnnotation(
+                    parameter.id,
+                    authors,
+                    value_annotation.reviewers,
+                    value_annotation.comment,
+                    EnumReviewResult.NONE,
+                    get_migration_text(value_annotation, mapping),
+                ),
+            )
     return migrated_annotations
 
 
@@ -242,7 +203,9 @@ def migrate_omitted_annotation(
     parameterv1 = get_annotated_api_element_by_type(omitted_annotation, mapping.get_apiv1_elements(), Parameter)
     if parameterv1 is None:
         return None
-    if _have_same_type(parameterv1.type, parameterv2.type) and _have_same_value(
+    if not _have_same_type(parameterv1.type, parameterv2.type):
+        return None
+    if _have_same_value(
         parameterv1.default_value,
         parameterv2.default_value,
     ):
@@ -253,19 +216,13 @@ def migrate_omitted_annotation(
             omitted_annotation.comment,
             EnumReviewResult.NONE,
         )
-    if _have_same_type(parameterv1.type, parameterv2.type) and not _have_same_value(
-        parameterv1.default_value,
-        parameterv2.default_value,
-    ):
-        return OmittedAnnotation(
-            parameterv2.id,
-            omitted_annotation.authors,
-            omitted_annotation.reviewers,
-            get_migration_text(omitted_annotation, mapping),
-            EnumReviewResult.UNSURE,
-        )
-
-    return None
+    return OmittedAnnotation(
+        parameterv2.id,
+        omitted_annotation.authors,
+        omitted_annotation.reviewers,
+        get_migration_text(omitted_annotation, mapping),
+        EnumReviewResult.UNSURE,
+    )
 
 
 def migrate_optional_annotation(

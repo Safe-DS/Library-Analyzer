@@ -10,7 +10,7 @@ from library_analyzer.processing.api.model import (
 )
 
 from ._differ import AbstractDiffer
-from ._get_not_mapped_api_elements import _get_not_mapped_api_elements
+from ._get_unmapped_api_elements import _get_unmapped_api_elements
 from ._mapping import Mapping
 
 api_element = Union[Attribute, Class, Function, Parameter, Result]
@@ -35,7 +35,7 @@ class InheritanceDiffer(AbstractDiffer):
         self.boost_value = boost_value
         self.inheritance = {}
         self.new_mappings = []
-        self.related_mappings = _get_not_mapped_api_elements(self.previous_mappings, self.apiv1, self.apiv2)
+        self.related_mappings = _get_unmapped_api_elements(self.previous_mappings, self.apiv1, self.apiv2)
         for class_v2 in self.apiv2.classes.values():
             additional_v1_elements = []
             for mapping in previous_mappings:
