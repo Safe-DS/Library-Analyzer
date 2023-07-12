@@ -35,7 +35,6 @@ class Condition:
         HAS_TYPE = "has_type"
         NO_TYPE = "no_type"
 
-
     condition: str = ""
     dependee: str = ""
     combined_with: str = ""
@@ -218,8 +217,6 @@ class Action:
                 return ParameterIsRestricted.from_dict(d)
             case _:
                 raise KeyError("unknown variant found")
-
-
 
     def to_dict(self) -> dict[str, Any]:
         return {"action": self.action}
