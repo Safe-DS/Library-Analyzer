@@ -5,14 +5,14 @@ from dataclasses import dataclass
 import astroid
 import pytest
 from library_analyzer.processing.api import (
-    ClassScopeNode,
+    ClassScope,
     MemberAccess,
-    ScopeNode,
+    Scope,
+    NodeID,
     Variables,
     _calc_node_id,
     _get_name_nodes,
     _get_scope,
-    Variables,
     NodeReference,
     _create_references,
     _find_references,
@@ -439,53 +439,45 @@ def test_calc_function_id_new(
     [
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4",
-                           ScopeNode(astroid.Name("var1", lineno=1, col_offset=4),
-                                     None, None))]
+            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4),
+                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4), []))]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.Name("var2", lineno=2, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.Name("var3", lineno=30, col_offset=4,
                           parent=astroid.FunctionDef("func2", lineno=1, col_offset=0))],
-            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4",
-                           ScopeNode(astroid.Name("var1", lineno=1, col_offset=4),
-                                     None, None)),
-             NodeReference(astroid.Name("var2", lineno=2, col_offset=4), "func1.var2.2.4",
-                           ScopeNode(astroid.Name("var2", lineno=2, col_offset=4),
-                                     None, None)),
-             NodeReference(astroid.Name("var3", lineno=30, col_offset=4), "func2.var3.30.4",
-                           ScopeNode(astroid.Name("var3", lineno=30, col_offset=4),
-                                     None, None))]
+            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4),
+                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4), [])),
+             NodeReference(astroid.Name("var2", lineno=2, col_offset=4),
+                           Scope(astroid.Name("var2", lineno=2, col_offset=4), NodeID(astroid.Module(""), "var2", 2, 4), [])),
+             NodeReference(astroid.Name("var3", lineno=30, col_offset=4),
+                           Scope(astroid.Name("var3", lineno=30, col_offset=4), NodeID(astroid.Module(""), "var3", 30, 4), []))]
         ),
         (
             [astroid.AssignName("var1", lineno=12, col_offset=42,
                                 parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [NodeReference(astroid.AssignName("var1", lineno=12, col_offset=42), "func1.var1.12.42",
-                           ScopeNode(astroid.AssignName("var1", lineno=12, col_offset=42),
-                                     None, None))]
+            [NodeReference(astroid.AssignName("var1", lineno=12, col_offset=42),
+                           Scope(astroid.AssignName("var1", lineno=12, col_offset=42), NodeID(astroid.Module(""), "var1", 12, 42), []))]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.AssignName("var2", lineno=1, col_offset=8,
                                 parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "func1.var1.1.4",
-                           ScopeNode(astroid.Name("var1", lineno=1, col_offset=4),
-                                     None, None)),
-             NodeReference(astroid.AssignName("var2", lineno=1, col_offset=8), "func1.var2.1.8",
-                           ScopeNode(astroid.AssignName("var2", lineno=1, col_offset=8),
-                                     None, None))]
+            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4),
+                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4), [])),
+             NodeReference(astroid.AssignName("var2", lineno=1, col_offset=8),
+                           Scope(astroid.AssignName("var2", lineno=1, col_offset=8), NodeID(astroid.Module(""), "var2", 1, 8), []))]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.ClassDef("MyClass", lineno=1, col_offset=0))],
-            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4), "MyClass.var1.1.4",
-                           ScopeNode(astroid.Name("var1", lineno=1, col_offset=4),
-                                     None, None))]
+            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4),
+                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4), []))]
         ),
         (
             [astroid.Name("glob", lineno=1, col_offset=4, parent=astroid.Module("mod"))],
-            [NodeReference(astroid.Name("glob", lineno=1, col_offset=4), "mod.glob.1.4",
-                           ScopeNode(astroid.Name("glob", lineno=1, col_offset=4), None, None))]
+            [NodeReference(astroid.Name("glob", lineno=1, col_offset=4),
+                           Scope(astroid.Name("glob", lineno=1, col_offset=4), NodeID(astroid.Module("mod"), "glob", 1, 4), []))]
         ),
         (
             [],
@@ -513,9 +505,9 @@ def assert_reference_list_equal(result: list[NodeReference], expected: list[Node
     """ The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
     The real results name and scope are objects and not strings"""
     result = [
-        NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.referenced_declarations) for name in result]
+        NodeReference(name.name.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in result]
     expected = [
-        NodeReference(name.name.name, name.node_id, name.scope.children.__class__.__name__, name.referenced_declarations) for name in expected]
+        NodeReference(name.name.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in expected]
     assert result == expected
 
 # TODO: test this when resolve reference is implemented (disabled for now due to test failures)
@@ -527,107 +519,185 @@ def assert_reference_list_equal(result: list[NodeReference], expected: list[Node
 #     raise NotImplementedError("Test not implemented")
 
 
+@dataclass
+class ReferenceTestNode:
+    """ A simple dataclass to store the data for the reference tests"""
+    name: str
+    scope: str
+    referenced_symbols: list[str]
+
+
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        (
+        (  # language=Python
             """
-                def local_const():
-                    var1 = 20
-                    var2 = 40
-                    res = var1 + var2
-                    if res > 0:
-                        res = var1 - var2
-                    return res
-            """,
-            []
-        ),
-        (
-            """
-                def local_parameter(a):
-                    var1 = 2 * a
-                    return var1
+def local_const():
+    var1 = 1
+    return var1
 
-                local_parameter(10)
-            """,
-            []
+local_const()
+            """,  # language= None
+            [ReferenceTestNode("var1", "FunctionDef.local_const", ["LocalVariable.var1"])]
         ),
-        (
+        (  # language=Python
             """
-                glob1 = 10
-                def local_global():
-                    global glob1
-                    res = glob1
+def local_parameter(a):
+    var1 = 2 * a
+    return var1
 
-                    if res > 0:
-                        glob1 = 20
-                    else:
-                        glob1 = 30
+local_parameter(10)
+            """,  # language= None
+            [ReferenceTestNode("a", "FunctionDef.local_parameter", ["Parameter.a"]), ReferenceTestNode("var1", "FunctionDef.local_parameter", ["LocalVariable.var1"])]
+        ),
+        (  # language=Python
+            """
+glob1 = 10
+glob1 += 1
+print(glob1)
+            """,  # language= None
+            [ReferenceTestNode("global1", "Module.", ["GlobalVariable.glob1"])]
+        ),
+        (  # language=Python
+            """
+glob1 = 10
+def local_global():
+    global glob1
 
-                    return glob1
-            """,
-            []
-        ),
-        (
-            """
-                class A:
-                    class_attr1 = 20
+    return glob1
 
-                def local_class_attr():
-                    var1 = A.class_attr1
-                    return var1
-            """,
-            []
+local_global()
+            """,  # language= None
+            [ReferenceTestNode("global1", "FunctionDef.local_global", ["GlobalVariable.glob1"])]
         ),
-        (
+        (  # language=Python
             """
-                class B:
-                    def __init__(self):
-                        self.instance_attr1 = 10
+x =1
 
-                def local_instance_attr():
-                    var1 = B().instance_attr1
-                    return var1
-            """,
-            []
-        ),
-        (
-            """
-                def local_path(a):
-                    if a > 0:
-                        return a
-                    else:
-                        return -a
-            """,
-            []
-        ),
-        (
-            """
-                def local_array(a):
-                    arr = [1, 2, 3]
-                    arr[0] = a
-            """,
-            []
-        ),
-        (
-            """
-                def local_double_return(a, b):
-                    return a, b
+def f():
+    x = 2
+    global x
+    x = 3
 
-                x = local_double_return(10, 20)
+f()
+print(x)
+            """,
+            []  # TODO: some error should be raised here
+        ),
+#         (  # language=Python
+#             """
+# class A:
+#     class_attr1 = 20
+#
+# def local_class_attr():
+#     var1 = A.class_attr1
+#     return var1
+#             """,
+#             []
+#         ),
+        (  # language=Python
+            """
+class A:
+    class_attr1 = 20
+
+A.class_attr1 = 30 # TODO: right now this is not detected as a reference, since MemberAccess is not supported yet
+var1 = A.class_attr1
+print(var1)
             """,
             []
-        )
+        ),
+        (  # language=Python
+            """
+class B:
+    def __init__(self):
+        self.instance_attr1 = 10
+
+b = B()
+var1 = b.instance_attr1
+print(var1)
+            """,
+            []
+        ),
+        (  # language=Python
+            """
+var1 = 10
+if var1 > 0:
+    print(var1)
+else:
+    print(-var1)
+        """,
+            []
+        ),
+        (  # language=Python
+            """
+arr = [1, 2, 3]
+arr[0] = 10
+print(arr)
+            """,
+            []
+        ),
+        (  # language=Python
+            """
+def local_double_return(a, b):
+    return a, b
+
+x, y = local_double_return(10, 20)
+
+x = x + 10
+y = y + 20
+            """,
+            []
+        ),
+        (  # language=Python
+            """
+x = 10
+y = 20
+print(x + y)
+            """,
+            []
+
+        ),
+        (  # language=Python
+            """
+x = 10
+x = 20
+print(x)
+            """,
+            []
+        ),
+        (  # language=Python
+            """
+x = 10
+x = 20
+
+class A:
+    x = 30
+
+    def f(self):
+        print(x)
+
+    x = 50
+a = A()
+a.f()
+print(x)
+            """,
+            []
+        ),
     ],
     ids=[
         "constant as local variable",
         "parameter as local variable",
+        "global as global variable",
         "global as local variable",
-        "class attribute as local variable",
-        "instance attribute as local variable",
-        "path",
-        "array",
-        "double return"
+        "global with wrong usage",  # TODO
+        "class attribute as global variable",
+        "instance attribute as global variable",
+        "global path",
+        "global array",
+        "double return",
+        "two variables",
+        "reassignment",
+        "different scopes",
     ]
 )
 def test_find_references(code, expected):
@@ -637,7 +707,7 @@ def test_find_references(code, expected):
     references: list[list[NodeReference]] = []
 
     for name_node in all_names_list:
-        references.append(_find_references(name_node, all_names_list, scope))
+        references.append(_find_references(name_node, all_names_list, scope[0], scope[1]))
 
     for reference in references:
         # print(reference, "\n")
@@ -982,6 +1052,22 @@ class SimpleScope:
         ),
         (
             """
+                import math, datetime
+
+                a = math.pi + datetime.today()
+            """,
+            []
+        ),
+        (
+            """
+                import math as m
+
+                a = m.pi
+            """,
+            []
+        ),
+        (
+            """
                 from math import pi
 
                 class B:
@@ -996,6 +1082,22 @@ class SimpleScope:
                     ],
                 ),
             ],
+        ),
+        (
+            """
+                from math import pi, e
+
+                a = pi + e
+            """,
+            []
+        ),
+        (
+            """
+                from math import pi as pi_value
+
+                a = pi_value
+            """,
+            []
         ),
         (
             """
@@ -1174,6 +1276,12 @@ class SimpleScope:
                 ),
             ],
         ),
+        (
+            """
+                a = b
+            """,
+            [SimpleScope("Module", [SimpleScope("AssignName.a", [])])],
+        )
     ],
     ids=[
         "Seminar Example",
@@ -1188,26 +1296,32 @@ class SimpleScope:
         "Class Scope within Function Scope",
         "Function Scope within Function Scope",
         "Import Scope",
+        "Import Scope with multiple imports",
+        "Import Scope with alias",
         "Import From Scope",
+        "Import From Scope with multiple imports",
+        "Import From Scope with alias",
         "Complex Scope",
         "ASTWalker",
+        "a"
     ],
 )
 def test_get_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
-    result = _get_scope(code)
+    result = _get_scope(code)[0]
+    # assert result == expected
     assert_test_get_scope(result, expected)
 
 
-def assert_test_get_scope(result: list[ScopeNode], expected: list[SimpleScope | SimpleClassScope]) -> None:
+def assert_test_get_scope(result: list[Scope], expected: list[SimpleScope | SimpleClassScope]) -> None:
     transformed_result = [
         transform_result(node) for node in result
     ]  # The result and the expected data is simplified to make the comparison easier
     assert transformed_result == expected
 
 
-def transform_result(node: ScopeNode | ClassScopeNode) -> SimpleScope | SimpleClassScope:
+def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope:
     if node.children is not None:
-        if isinstance(node, ClassScopeNode):
+        if isinstance(node, ClassScope):
             return SimpleClassScope(
                 to_string(node.node),
                 [transform_result(child) for child in node.children],
@@ -1230,9 +1344,11 @@ def to_string(node: astroid.NodeNG) -> str:
         result = transform_member_access(node)
         return f"MemberAccess.{result}"
     elif isinstance(node, astroid.Import):
-        return f"{node.__class__.__name__}.{node.names[0][0]}"
+        return f"{node.__class__.__name__}.{node.names[0][0]}"  # TODO: handle multiple imports and aliases
     elif isinstance(node, astroid.ImportFrom):
-        return f"{node.__class__.__name__}.{node.modname}.{node.names[0][0]}"
+        return f"{node.__class__.__name__}.{node.modname}.{node.names[0][0]}"  # TODO: handle multiple imports and aliases
+    elif isinstance(node, astroid.Name):
+        return f"{node.__class__.__name__}.{node.name}"
     raise NotImplementedError(f"Unknown node type: {node.__class__.__name__}")
 
 
