@@ -37,3 +37,14 @@ You can find the full documentation [here](https://library-analyzer.safeds.com).
     ```shell
     analyze-library migrate -a1 data/api/scikit-learn_v0.24.2_api.json -a2 data/api/sklearn__apiv2.json -a data/annotations/annotations.json -o out
     ```
+
+## Contributing
+
+We welcome contributions from everyone. As a starting point, check the following resources:
+
+* [Setting up a development environment](https://library-analyzer.safeds.com/en/latest/development/environment/)
+* [Contributing page](https://github.com/Safe-DS/Library-Analyzer/contribute)
+
+If you need further help, please [use our discussion forum][forum].
+
+[forum]: https://github.com/orgs/Safe-DS/discussions
