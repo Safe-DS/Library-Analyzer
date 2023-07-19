@@ -9,11 +9,10 @@ from library_analyzer.processing.api import (
     MemberAccess,
     Scope,
     NodeID,
-    Variables,
     _calc_node_id,
     _get_name_nodes,
     _get_scope,
-    NodeReference,
+    ReferenceNode,
     _create_references,
     _find_references,
 )
@@ -439,7 +438,7 @@ def test_calc_function_id_new(
     [
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4),
+            [ReferenceNode(astroid.Name("var1", lineno=1, col_offset=4),
                            Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4), []))]
         ),
         (
@@ -447,36 +446,36 @@ def test_calc_function_id_new(
              astroid.Name("var2", lineno=2, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.Name("var3", lineno=30, col_offset=4,
                           parent=astroid.FunctionDef("func2", lineno=1, col_offset=0))],
-            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4),
+            [ReferenceNode(astroid.Name("var1", lineno=1, col_offset=4),
                            Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4), [])),
-             NodeReference(astroid.Name("var2", lineno=2, col_offset=4),
+             ReferenceNode(astroid.Name("var2", lineno=2, col_offset=4),
                            Scope(astroid.Name("var2", lineno=2, col_offset=4), NodeID(astroid.Module(""), "var2", 2, 4), [])),
-             NodeReference(astroid.Name("var3", lineno=30, col_offset=4),
+             ReferenceNode(astroid.Name("var3", lineno=30, col_offset=4),
                            Scope(astroid.Name("var3", lineno=30, col_offset=4), NodeID(astroid.Module(""), "var3", 30, 4), []))]
         ),
         (
             [astroid.AssignName("var1", lineno=12, col_offset=42,
                                 parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [NodeReference(astroid.AssignName("var1", lineno=12, col_offset=42),
+            [ReferenceNode(astroid.AssignName("var1", lineno=12, col_offset=42),
                            Scope(astroid.AssignName("var1", lineno=12, col_offset=42), NodeID(astroid.Module(""), "var1", 12, 42), []))]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.AssignName("var2", lineno=1, col_offset=8,
                                 parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4),
+            [ReferenceNode(astroid.Name("var1", lineno=1, col_offset=4),
                            Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4), [])),
-             NodeReference(astroid.AssignName("var2", lineno=1, col_offset=8),
+             ReferenceNode(astroid.AssignName("var2", lineno=1, col_offset=8),
                            Scope(astroid.AssignName("var2", lineno=1, col_offset=8), NodeID(astroid.Module(""), "var2", 1, 8), []))]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.ClassDef("MyClass", lineno=1, col_offset=0))],
-            [NodeReference(astroid.Name("var1", lineno=1, col_offset=4),
+            [ReferenceNode(astroid.Name("var1", lineno=1, col_offset=4),
                            Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4), []))]
         ),
         (
             [astroid.Name("glob", lineno=1, col_offset=4, parent=astroid.Module("mod"))],
-            [NodeReference(astroid.Name("glob", lineno=1, col_offset=4),
+            [ReferenceNode(astroid.Name("glob", lineno=1, col_offset=4),
                            Scope(astroid.Name("glob", lineno=1, col_offset=4), NodeID(astroid.Module("mod"), "glob", 1, 4), []))]
         ),
         (
@@ -501,13 +500,13 @@ def test_create_references(node: list[astroid.Name | astroid.AssignName], expect
 # TODO: rewrite this test since the results are no longer just prototypes
 
 
-def assert_reference_list_equal(result: list[NodeReference], expected: list[NodeReference]) -> None:
+def assert_reference_list_equal(result: list[ReferenceNode], expected: list[ReferenceNode]) -> None:
     """ The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
     The real results name and scope are objects and not strings"""
     result = [
-        NodeReference(name.name.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in result]
+        ReferenceNode(name.name.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in result]
     expected = [
-        NodeReference(name.name.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in expected]
+        ReferenceNode(name.name.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in expected]
     assert result == expected
 
 # TODO: test this when resolve reference is implemented (disabled for now due to test failures)
@@ -532,31 +531,65 @@ class ReferenceTestNode:
     [
         (  # language=Python
             """
-def local_const():
+def local_var():
     var1 = 1
     return var1
 
-local_const()
+local_var()
             """,  # language= None
-            [ReferenceTestNode("var1", "FunctionDef.local_const", ["LocalVariable.var1"])]
+            [ReferenceTestNode("var1", "FunctionDef.local_var", ["LocalVariable.var1.line3"])]
         ),
         (  # language=Python
             """
-def local_parameter(a):
-    var1 = 2 * a
-    return var1
+def local_parameter(pos_arg):
+    return 2 * pos_arg
 
 local_parameter(10)
             """,  # language= None
-            [ReferenceTestNode("a", "FunctionDef.local_parameter", ["Parameter.a"]), ReferenceTestNode("var1", "FunctionDef.local_parameter", ["LocalVariable.var1"])]
+            [ReferenceTestNode("pos_arg", "FunctionDef.local_parameter", ["Parameter.pos_arg.line2"])]
+        ),
+        (  # language=Python
+            """
+def local_parameter(def_arg=10):
+    return def_arg
+
+local_parameter()
+            """,  # language= None
+            [ReferenceTestNode("def_arg", "FunctionDef.local_parameter", ["Parameter.def_arg.line2"])]
+        ),
+        (  # language=Python
+            """
+def local_parameter(*args):
+    return args
+
+local_parameter()
+            """,  # language= None
+            []  # TODO: how to deal with *args?
+        ),
+        (  # language=Python
+            """
+def local_parameter(**kwargs):
+    return kwargs
+
+local_parameter()
+            """,  # language= None
+            []  # TODO: how to deal with **kwargs?
         ),
         (  # language=Python
             """
 glob1 = 10
-glob1 += 1
 print(glob1)
             """,  # language= None
-            [ReferenceTestNode("global1", "Module.", ["GlobalVariable.glob1"])]
+            [ReferenceTestNode("glob1", "Module.", ["GlobalVariable.glob1.line2"])]
+        ),
+        (  # language=Python
+            """
+glob1 = 10
+class A:
+    global glob1
+    value = glob1
+            """,  # language= None
+            [ReferenceTestNode("glob1", "ClassDef.A", ["GlobalVariable.glob1.line2"])]
         ),
         (  # language=Python
             """
@@ -568,7 +601,19 @@ def local_global():
 
 local_global()
             """,  # language= None
-            [ReferenceTestNode("global1", "FunctionDef.local_global", ["GlobalVariable.glob1"])]
+            [ReferenceTestNode("glob1", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"])]
+        ),
+        (  # language=Python
+            """
+glob1 = 10
+def local_global_shadow():
+    glob1 = 20
+
+    return glob1
+
+local_global_shadow()
+            """,  # language= None
+            [ReferenceTestNode("glob1", "FunctionDef.local_global_shadow", ["LocalVariable.glob1.line4"])]
         ),
         (  # language=Python
             """
@@ -581,7 +626,7 @@ def f():
 
 f()
 print(x)
-            """,
+            """,  # language=none
             []  # TODO: some error should be raised here
         ),
 #         (  # language=Python
@@ -603,7 +648,7 @@ class A:
 A.class_attr1 = 30 # TODO: right now this is not detected as a reference, since MemberAccess is not supported yet
 var1 = A.class_attr1
 print(var1)
-            """,
+            """,  # language=none
             []
         ),
         (  # language=Python
@@ -615,7 +660,7 @@ class B:
 b = B()
 var1 = b.instance_attr1
 print(var1)
-            """,
+            """,  # language=none
             []
         ),
         (  # language=Python
@@ -625,7 +670,7 @@ if var1 > 0:
     print(var1)
 else:
     print(-var1)
-        """,
+        """,  # language=none
             []
         ),
         (  # language=Python
@@ -633,8 +678,16 @@ else:
 arr = [1, 2, 3]
 arr[0] = 10
 print(arr)
-            """,
+            """,  # language=none
             []
+        ),
+        (  # language=Python
+            """
+x = 10
+y = 20
+print(x + y)
+            """,  # language=none
+            [ReferenceTestNode("x", "Module.", ["GlobalVariable.x.line2"]), ReferenceTestNode("y", "Module.", ["GlobalVariable.y.line3"])]
         ),
         (  # language=Python
             """
@@ -643,32 +696,22 @@ def local_double_return(a, b):
 
 x, y = local_double_return(10, 20)
 
-x = x + 10
-y = y + 20
-            """,
+print(x)
+print(y)
+            """,  # language=none
             []
-        ),
-        (  # language=Python
-            """
-x = 10
-y = 20
-print(x + y)
-            """,
-            []
-
         ),
         (  # language=Python
             """
 x = 10
 x = 20
 print(x)
-            """,
-            []
+            """,  # language=none
+            [ReferenceTestNode("x", "Module.", ["GlobalVariable.x.line2", "GlobalVariable.x.line3"])]
         ),
         (  # language=Python
             """
 x = 10
-x = 20
 
 class A:
     x = 30
@@ -680,22 +723,27 @@ class A:
 a = A()
 a.f()
 print(x)
-            """,
+            """,  # language=none
             []
         ),
     ],
     ids=[
-        "constant as local variable",
-        "parameter as local variable",
-        "global as global variable",
-        "global as local variable",
-        "global with wrong usage",  # TODO
+        "local variable in function scope",
+        "parameter in function scope",
+        "parameter in function scope with default value",
+        "parameter in function scope with *args",
+        "parameter in function scope with **kwargs",
+        "global variable in module scope",
+        "global variable in class scope",
+        "global variable in function scope",
+        "local variable in function scope shadowing global variable",
+        "global with wrong usage",  # TODO: all below are not supported yet
         "class attribute as global variable",
         "instance attribute as global variable",
         "global path",
         "global array",
-        "double return",
         "two variables",
+        "double return",
         "reassignment",
         "different scopes",
     ]
@@ -704,15 +752,21 @@ def test_find_references(code, expected):
     scope = _get_scope(code)
     all_names_list = _get_name_nodes(code)
 
-    references: list[list[NodeReference]] = []
+    references: list[list[ReferenceNode]] = []
+    transformed_references: list[list[ReferenceTestNode]] = []
 
     for name_node in all_names_list:
-        references.append(_find_references(name_node, all_names_list, scope[0], scope[1]))
+        references.append(_find_references(name_node, all_names_list, scope[0], scope[1], scope[2]))
 
-    for reference in references:
-        # print(reference, "\n")
-        # print(resolved[0].node_id.module, "\n")
-        assert reference == expected
+    for node in references[0]:
+        transformed_references.append(transform_reference_node(node))
+
+    # assert references == expected
+    assert transformed_references == expected
+
+
+def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
+    return ReferenceTestNode(node.name.name, f"{node.scope.node.__class__.__name__}.{node.scope.node.name}", [str(ref) for ref in node.referenced_symbols])
 
 
 @dataclass
