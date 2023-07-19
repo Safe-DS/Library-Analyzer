@@ -37,10 +37,11 @@ class Variables:
 @dataclass
 class Symbol(ABC):
     node: astroid.NodeNG
-    name: str  # class A = name = "A"
+    id: NodeID
+    name: str
 
     def __str__(self):
-        return f"{self.__class__.__name__}.{self.name}"
+        return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
 
 @dataclass
@@ -113,7 +114,7 @@ class ClassScope(Scope):
 
 
 @dataclass
-class NodeReference:
+class ReferenceNode:
     name: astroid.Name | astroid.AssignName | str
     scope: Scope
     referenced_symbols: list[Symbol] = field(default_factory=list)
@@ -141,7 +142,8 @@ class ScopeFinder:
 
     current_node_stack: list[Scope | ClassScope] = field(default_factory=list)
     children: list[Scope | ClassScope] = field(default_factory=list)
-    name_nodes: dict[astroid.Name, Scope] = field(default_factory=dict)
+    name_nodes: dict[astroid.Name, Scope | ClassScope] = field(default_factory=dict)
+    function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]] = field(default_factory=dict)
 
     def get_node_by_name(self, name: str) -> Scope | ClassScope | None:
         """
@@ -240,6 +242,9 @@ class ScopeFinder:
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
         self._detect_scope(node)
+
+    def enter_arguments(self, node: astroid.Arguments) -> None:
+        self.function_parameters[self.current_node_stack[-1].node] = (self.current_node_stack[-1], node.args)
 
     def enter_name(self, node: astroid.Name) -> None:
         self.name_nodes[node] = self.current_node_stack[-1]
@@ -415,14 +420,14 @@ def get_scope_node_by_node_id(scope: list[Scope], targeted_node_id: NodeID, name
             #         return found_node
 
 
-def _create_references(all_names_list: list[astroid.Name | astroid.AssignName], scope: list[Scope], name_nodes: dict[astroid.Name]) -> list[NodeReference]:
+def _create_references(all_names_list: list[astroid.Name | astroid.AssignName], scope: list[Scope], name_nodes: dict[astroid.Name]) -> list[ReferenceNode]:
     """Create a list of references from a list of name nodes.
 
     Returns:
         * references_final: contains all references that are used as targets
     """
-    references_proto: list[NodeReference] = []
-    references_final: list[NodeReference] = []
+    references_proto: list[ReferenceNode] = []
+    references_final: list[ReferenceNode] = []
     scope_node: Scope | None = field(default_factory=Scope)
 
     for name in all_names_list:
@@ -432,7 +437,7 @@ def _create_references(all_names_list: list[astroid.Name | astroid.AssignName], 
         elif isinstance(name, astroid.Name):
             scope_node = get_scope_node_by_node_id(scope, node_id, name_nodes)
 
-        references_proto.append(NodeReference(name, scope_node, []))
+        references_proto.append(ReferenceNode(name, scope_node, []))
 
     for reference in references_proto:
         if isinstance(reference.name, astroid.Name):
@@ -443,7 +448,7 @@ def _create_references(all_names_list: list[astroid.Name | astroid.AssignName], 
     # TODO: sonderfälle mit AssignName müssen separat betrachtet werden (global)
 
 
-def _add_target_references(reference: NodeReference, reference_list: list[NodeReference]) -> NodeReference:
+def _add_target_references(reference: ReferenceNode, reference_list: list[ReferenceNode]) -> ReferenceNode:
     """Add all target references to a reference.
 
     A target reference is a reference where the name is used as a target.
@@ -454,9 +459,9 @@ def _add_target_references(reference: NodeReference, reference_list: list[NodeRe
         for ref in reference_list[:reference_list.index(reference)]:
             if isinstance(ref.name, MemberAccess):
                 if ref.name.expression.as_string() == reference.name.name:
-                    complete_reference.referenced_symbols.append(Symbol(ref.name, ref.name.expression.as_string()))
+                    complete_reference.referenced_symbols.append(Symbol(ref.name, _calc_node_id(ref.name), ref.name.expression.as_string()))
             elif ref.name.name == reference.name.name and isinstance(ref.name, astroid.AssignName):
-                complete_reference.referenced_symbols.append(Symbol(ref.name, ref.name.name))
+                complete_reference.referenced_symbols.append(Symbol(ref.name, _calc_node_id(ref.name), ref.name.name))
 
     return complete_reference
 
@@ -464,7 +469,8 @@ def _add_target_references(reference: NodeReference, reference_list: list[NodeRe
 def _find_references(name_node: astroid.Name | astroid.AssignName,
                      all_name_nodes_list: list[astroid.Name | astroid.AssignName],
                      scope: list[Scope],
-                     name_nodes: dict[astroid.Name]) -> list[NodeReference]:
+                     name_nodes: dict[astroid.Name],
+                     function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]) -> list[ReferenceNode]:
     """Find all references for a node.
 
     Parameters:
@@ -478,7 +484,7 @@ def _find_references(name_node: astroid.Name | astroid.AssignName,
     # print(reference_list)
 
     for ref in reference_list:
-        _get_symbols(ref)
+        _get_symbols(ref, function_parameters)
 
     # print(reference_list)
 
@@ -488,37 +494,39 @@ def _find_references(name_node: astroid.Name | astroid.AssignName,
     return reference_list
 
 
-def _get_symbols(node: NodeReference) -> None:
+def _get_symbols(node: ReferenceNode, function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]) -> None:
     for i, symbol in enumerate(node.referenced_symbols):
         for nod in node.scope.children:
             if nod.id.name == symbol.name:
                 parent_node = nod.parent
-                specific_symbol = add_specific_symbols(parent_node, symbol)
+                specific_symbol = add_specific_symbols(parent_node, symbol, function_parameters)
                 node.referenced_symbols[i] = specific_symbol
 
             # sonst, suche im höheren scope weiter
             # sonst, gebe einen Fehler aus
 
 
-def add_specific_symbols(parent_node: Scope | ClassScope, symbol: Symbol) -> Symbol:
+def add_specific_symbols(parent_node: Scope | ClassScope, symbol: Symbol, function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]) -> Symbol:
     if isinstance(parent_node.node, astroid.Module):
-        return GlobalVariable(symbol.node, symbol.name)
+        return GlobalVariable(symbol.node, symbol.id, symbol.name)
     elif isinstance(parent_node.node, astroid.ClassDef):
         if parent_node.node:
-            return ClassVariable(symbol.node, symbol.name)
+            return ClassVariable(symbol.node, symbol.id, symbol.name)
     elif isinstance(parent_node.node, astroid.FunctionDef):
-        return LocalVariable(symbol.node, symbol.name)
+        if parent_node.node in function_parameters.keys():
+            for param in function_parameters[parent_node.node][1]:
+                if param.name == symbol.name:
+                    return Parameter(symbol.node, symbol.id, symbol.name)
+        return LocalVariable(symbol.node, symbol.id, symbol.name)
         # if function def body contains global node -> check if name node is in global node
         # if the name node is in the global node -> global variable
         # TODO: check if name node is in global node
-    elif isinstance(parent_node.node, astroid.Arguments):
-        return Parameter(symbol.node, symbol.name)  # TODO: how can we check if the name node is a parameter?  maybe we can add an identifier as we built the ast
     else:
         return symbol
     # TODO: find globals defined in lower scopes ("global" keyword)
 
 
-def _get_scope(code: str) -> tuple[list[Scope | ClassScope], dict[astroid.Name, Scope]]:  # TODO: this could return ScopeNode | ClassScopeNode since a module can only contain one node?
+def _get_scope(code: str) -> tuple[list[Scope | ClassScope], dict[astroid.Name, Scope], dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]]:  # TODO: this could return ScopeNode | ClassScopeNode since a module can only contain one node?
     """Get the scope of the given code.
 
     In order to get the scope of the given code, the code is parsed into an AST and then walked by an ASTWalker.
@@ -535,19 +543,17 @@ def _get_scope(code: str) -> tuple[list[Scope | ClassScope], dict[astroid.Name, 
     print(module.repr_tree())
     walker.walk(module)
 
-    names = scope_handler.name_nodes
-
+    names = scope_handler.name_nodes  # get the name nodes of the module
+    parameters = scope_handler.function_parameters  # get the parameters for each function of the module
     scopes = scope_handler.children  # get the children of the root node, which are the scopes of the module
-    scope_handler.children = []  # reset the children
-    scope_handler.current_node_stack = []  # reset the stack
 
-    return scopes, names
+    return scopes, names, parameters
 
 
-def resolve_references(code: str) -> list[list[NodeReference]]:
+def resolve_references(code: str) -> list[list[ReferenceNode]]:
     scope = _get_scope(code)
     name_nodes_list = _get_name_nodes(code)
-    references: list[list[NodeReference]] = []
+    references: list[list[ReferenceNode]] = []
     for name_node in name_nodes_list:
         references.append(_find_references(name_node, name_nodes_list, scope[0], scope[1]))
 
