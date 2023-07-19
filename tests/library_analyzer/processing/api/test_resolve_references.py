@@ -587,6 +587,19 @@ print(glob1)
 glob1 = 10
 class A:
     global glob1
+    a_value = glob1
+
+A()
+            """,  # language= None
+            [ReferenceTestNode("glob1", "ClassDef.A", ["GlobalVariable.glob1.line2"])]
+        ),
+        # this test is no duplicate of the previous one, since the global value is used in a different way
+        # this case leads to a problem since no reference is created for the global value since it is never assigned
+        (  # language=Python
+            """
+glob1 = 10
+class A:
+    global glob1
     print(glob1)
 
 A()
@@ -607,12 +620,30 @@ local_global()
         ),
         (  # language=Python
             """
+glob1 = 10
+class A:
+    global glob1
+    print(glob1)
+
+def local_global():
+    global glob1
+
+    return glob1
+
+A()
+local_global()
+            """,  # language= None
+            [ReferenceTestNode("glob1", "ClassDef.A", ["GlobalVariable.glob1.line2"]),
+                ReferenceTestNode("glob1", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"])]
+        ),
+        (  # language=Python
+            """
 class A:
     global glob1
     glob1 = 10
     print(glob1)
             """,  # language= None
-            []  # TODO
+            []  # TODO: is this allowed?
         ),
         (  # language=Python
             """
@@ -623,7 +654,7 @@ def local_global():
 
 local_global()
             """,  # language= None
-            []  # TODO
+            []  # TODO: is this allowed?
         ),
         (  # language=Python
             """
@@ -653,14 +684,24 @@ print(glob1)
         (  # language=Python
             """
 glob1 = 10
+def local_global_access():
+    return glob1
+
+local_global_access() # returns 10
+            """,  # language= None
+            [ReferenceTestNode("glob1", "FunctionDef.local_global_access", ["GlobalVariable.glob1.line2"])]
+        ),  # TODO: is this ["GlobalVariable.glob1.line2"] correct?
+        (  # language=Python
+            """
+glob1 = 10
 def local_global_shadow():
     glob1 = 20
 
     return glob1
 
-local_global_shadow()
+local_global_shadow() # returns 20
             """,  # language= None
-            [ReferenceTestNode("glob1", "FunctionDef.local_global_shadow", ["LocalVariable.glob1.line4"])]
+            [ReferenceTestNode("glob1", "FunctionDef.local_global_shadow", ["GlobalVariable.glob1.line2", "LocalVariable.glob1.line4"])]
         ),
         (  # language=Python
             """
@@ -673,7 +714,7 @@ class A:
 A()
             """,  # language= None
             [ReferenceTestNode("glob1", "ClassDef.A", ["GlobalVariable.glob1.line2"]),
-             ReferenceTestNode("glob2", "ClassDef.A", ["GlobalVariable.glob2.line2"])]
+             ReferenceTestNode("glob2", "ClassDef.A", ["GlobalVariable.glob2.line3"])]
         ),
         (  # language=Python
             """
@@ -717,7 +758,7 @@ class A:
 A.class_attr1 = 30 # TODO: right now this is not detected as a reference, since MemberAccess is not supported yet
 print(A.class_attr1)
             """,  # language=none
-            []
+            [""]
         ),
         (  # language=Python
             """
@@ -802,17 +843,20 @@ print(x)
         "parameter in function scope with *args",
         "parameter in function scope with **kwargs",
         "global variable in module scope",
-        "global variable in class scope",
+        "global variable in class scope assignment",
+        "global variable in class scope print",
         "global variable in function scope",
+        "global variable in class scope and function scope",
         "new global variable in class scope",
         "new global variable in function scope",
         "new global variable in class scope with outer scope usage",
         "new global variable in function scope with outer scope usage",
-        "local variable in function scope shadowing global variable",
-        "global with wrong usage",  # TODO: all below are not supported yet
+        "access of global variable without global keyword",
+        "local variable in function scope shadowing global variable without global keyword",
         "two globals in class scope",
-        "class attribute as global variable",
-        "class attribute as global variable with global overwriting",
+        "global with wrong usage",  # TODO: all below are not supported yet
+        "class attribute",
+        "class attribute with overwriting",
         "instance attribute as global variable",
         "global path",
         "global array",

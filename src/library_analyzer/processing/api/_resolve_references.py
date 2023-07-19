@@ -146,7 +146,7 @@ class ScopeFinder:
     children: list[Scope | ClassScope] = field(default_factory=list)
     name_nodes: dict[astroid.Name, Scope | ClassScope] = field(default_factory=dict)
     function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]] = field(default_factory=dict)
-    global_variables: dict[astroid.Global | astroid.AssignName, Scope | ClassScope] = field(default_factory=dict)
+    global_variables: dict[str, Scope | ClassScope] = field(default_factory=dict)
     # TODO: do we need to store ClassDefs and FunctionDefs as global variables?
 
     def get_node_by_name(self, name: str) -> Scope | ClassScope | None:
@@ -276,8 +276,8 @@ class ScopeFinder:
             class_node = self.get_node_by_name(node.parent.parent.name)
             if isinstance(class_node, ClassScope):
                 class_node.class_variables.append(node)
-        if isinstance(node.parent.parent, astroid.Module):
-            self.global_variables[node] = self.current_node_stack[-1]
+        # if isinstance(node.parent.parent, astroid.Module):
+        #     self.global_variables[node] = self.current_node_stack[-1]
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
@@ -285,7 +285,8 @@ class ScopeFinder:
         self.children.append(scope_node)
 
     def enter_global(self, node: astroid.Global) -> None:
-        self.global_variables[node] = self.current_node_stack[-1]
+        for name in node.names:
+            self.global_variables[name] = self.current_node_stack[-1]
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
@@ -481,7 +482,7 @@ def _find_references(name_node: astroid.Name | astroid.AssignName,
                      scope: list[Scope],
                      name_nodes: dict[astroid.Name],
                      function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
-                     global_variables: dict[Global | AssignName, Scope | ClassScope]) -> list[ReferenceNode]:
+                     global_variables: dict[str, Scope | ClassScope]) -> list[ReferenceNode]:
     """Find all references for a node.
 
     Parameters:
@@ -507,13 +508,20 @@ def _find_references(name_node: astroid.Name | astroid.AssignName,
 
 def _get_symbols(node: ReferenceNode,
                  function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
-                 global_variables: dict[Global | AssignName, Scope | ClassScope]) -> None:
+                 global_variables: dict[str, Scope | ClassScope]) -> None:
+
     for i, symbol in enumerate(node.referenced_symbols):
+        current_symbol = node.referenced_symbols[i]
         for nod in node.scope.children:
             if nod.id.name == symbol.name:
                 parent_node = nod.parent
                 specified_symbol = specify_symbols(parent_node, symbol, function_parameters, global_variables)
                 node.referenced_symbols[i] = specified_symbol
+        # TODO: ideally the functionality of the next block should be in the specify_symbols function
+        if current_symbol.name in global_variables.keys():
+            current_symbol_parent = global_variables.get(current_symbol.name)
+            if current_symbol_parent is not None:
+                node.referenced_symbols[i] = GlobalVariable(current_symbol.node, current_symbol.id, current_symbol.name)
 
             # sonst, suche im höheren scope weiter
             # sonst, gebe einen Fehler aus
@@ -521,16 +529,16 @@ def _get_symbols(node: ReferenceNode,
 
 def specify_symbols(parent_node: Scope | ClassScope, symbol: Symbol,
                     function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
-                    global_variables: dict[Global | AssignName, Scope | ClassScope]) -> Symbol:
+                    global_variables: dict[str, Scope | ClassScope]) -> Symbol:
     if isinstance(parent_node.node, astroid.Module):
         return GlobalVariable(symbol.node, symbol.id, symbol.name)
     elif isinstance(parent_node.node, astroid.ClassDef):
         if parent_node.node:  # TODO: check if node is class attribute or instance attribute
             return ClassVariable(symbol.node, symbol.id, symbol.name)
-        if global_variables:
-            for key in global_variables.keys():
-                if key.name == symbol.name:
-                    return GlobalVariable(symbol.node, symbol.id, symbol.name)
+        # if global_variables:
+        #     for key in global_variables.keys():
+        #         if key == symbol.name:
+        #             return GlobalVariable(symbol.node, symbol.id, symbol.name)
     elif isinstance(parent_node.node, astroid.FunctionDef):
         if parent_node.node in function_parameters.keys():
             for param in function_parameters[parent_node.node][1]:
@@ -538,17 +546,12 @@ def specify_symbols(parent_node: Scope | ClassScope, symbol: Symbol,
                     return Parameter(symbol.node, symbol.id, symbol.name)
 
         return LocalVariable(symbol.node, symbol.id, symbol.name)
-        # if function def body contains global node -> check if name node is in global node
-        # if the name node is in the global node -> global variable
-        # TODO: check if name node is in global node
     else:
         return symbol
-    # TODO: find globals defined in lower scopes ("global" keyword)
 
 
-def _get_scope(code: str) -> tuple[list[Scope | ClassScope], dict[Name, Scope | ClassScope],  # TODO: this could return ScopeNode | ClassScopeNode  instead of list[SN|CSN] since a module can only contain one node?
-    dict[FunctionDef, tuple[Scope | ClassScope, list[AssignName]]],
-    dict[Global | AssignName, Scope | ClassScope]]:
+def _get_scope(code: str) -> tuple[list[Scope | ClassScope], dict[Name, Scope | ClassScope], dict[
+    FunctionDef, tuple[Scope | ClassScope, list[AssignName]]], dict[str, Scope | ClassScope]]:
     """Get the scope of the given code.
 
     In order to get the scope of the given code, the code is parsed into an AST and then walked by an ASTWalker.
