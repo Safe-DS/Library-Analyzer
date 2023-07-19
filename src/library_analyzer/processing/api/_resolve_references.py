@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass, field
+from typing import Tuple, List, Dict
 
 import astroid
+from astroid import Name, FunctionDef, AssignName, Global
 
 from library_analyzer.processing.api.model import Expression, Reference
 from library_analyzer.utils import ASTWalker
@@ -144,6 +146,8 @@ class ScopeFinder:
     children: list[Scope | ClassScope] = field(default_factory=list)
     name_nodes: dict[astroid.Name, Scope | ClassScope] = field(default_factory=dict)
     function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]] = field(default_factory=dict)
+    global_variables: dict[astroid.Global | astroid.AssignName, Scope | ClassScope] = field(default_factory=dict)
+    # TODO: do we need to store ClassDefs and FunctionDefs as global variables?
 
     def get_node_by_name(self, name: str) -> Scope | ClassScope | None:
         """
@@ -214,6 +218,7 @@ class ScopeFinder:
         self.current_node_stack.append(
             Scope(node=node, id=_calc_node_id(node), children=[], parent=None),
         )
+        # self.global_variables[node] = node.globals
 
     def leave_module(self, node: astroid.Module) -> None:
         self._detect_scope(node)
@@ -271,11 +276,16 @@ class ScopeFinder:
             class_node = self.get_node_by_name(node.parent.parent.name)
             if isinstance(class_node, ClassScope):
                 class_node.class_variables.append(node)
+        if isinstance(node.parent.parent, astroid.Module):
+            self.global_variables[node] = self.current_node_stack[-1]
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
         scope_node = Scope(node=node, id=_calc_node_id(node), children=[], parent=parent)
         self.children.append(scope_node)
+
+    def enter_global(self, node: astroid.Global) -> None:
+        self.global_variables[node] = self.current_node_stack[-1]
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
@@ -470,7 +480,8 @@ def _find_references(name_node: astroid.Name | astroid.AssignName,
                      all_name_nodes_list: list[astroid.Name | astroid.AssignName],
                      scope: list[Scope],
                      name_nodes: dict[astroid.Name],
-                     function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]) -> list[ReferenceNode]:
+                     function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
+                     global_variables: dict[Global | AssignName, Scope | ClassScope]) -> list[ReferenceNode]:
     """Find all references for a node.
 
     Parameters:
@@ -484,7 +495,7 @@ def _find_references(name_node: astroid.Name | astroid.AssignName,
     # print(reference_list)
 
     for ref in reference_list:
-        _get_symbols(ref, function_parameters)
+        _get_symbols(ref, function_parameters, global_variables)
 
     # print(reference_list)
 
@@ -494,29 +505,38 @@ def _find_references(name_node: astroid.Name | astroid.AssignName,
     return reference_list
 
 
-def _get_symbols(node: ReferenceNode, function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]) -> None:
+def _get_symbols(node: ReferenceNode,
+                 function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
+                 global_variables: dict[Global | AssignName, Scope | ClassScope]) -> None:
     for i, symbol in enumerate(node.referenced_symbols):
         for nod in node.scope.children:
             if nod.id.name == symbol.name:
                 parent_node = nod.parent
-                specific_symbol = add_specific_symbols(parent_node, symbol, function_parameters)
-                node.referenced_symbols[i] = specific_symbol
+                specified_symbol = specify_symbols(parent_node, symbol, function_parameters, global_variables)
+                node.referenced_symbols[i] = specified_symbol
 
             # sonst, suche im höheren scope weiter
             # sonst, gebe einen Fehler aus
 
 
-def add_specific_symbols(parent_node: Scope | ClassScope, symbol: Symbol, function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]) -> Symbol:
+def specify_symbols(parent_node: Scope | ClassScope, symbol: Symbol,
+                    function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
+                    global_variables: dict[Global | AssignName, Scope | ClassScope]) -> Symbol:
     if isinstance(parent_node.node, astroid.Module):
         return GlobalVariable(symbol.node, symbol.id, symbol.name)
     elif isinstance(parent_node.node, astroid.ClassDef):
-        if parent_node.node:
+        if parent_node.node:  # TODO: check if node is class attribute or instance attribute
             return ClassVariable(symbol.node, symbol.id, symbol.name)
+        if global_variables:
+            for key in global_variables.keys():
+                if key.name == symbol.name:
+                    return GlobalVariable(symbol.node, symbol.id, symbol.name)
     elif isinstance(parent_node.node, astroid.FunctionDef):
         if parent_node.node in function_parameters.keys():
             for param in function_parameters[parent_node.node][1]:
                 if param.name == symbol.name:
                     return Parameter(symbol.node, symbol.id, symbol.name)
+
         return LocalVariable(symbol.node, symbol.id, symbol.name)
         # if function def body contains global node -> check if name node is in global node
         # if the name node is in the global node -> global variable
@@ -526,7 +546,9 @@ def add_specific_symbols(parent_node: Scope | ClassScope, symbol: Symbol, functi
     # TODO: find globals defined in lower scopes ("global" keyword)
 
 
-def _get_scope(code: str) -> tuple[list[Scope | ClassScope], dict[astroid.Name, Scope], dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]]:  # TODO: this could return ScopeNode | ClassScopeNode since a module can only contain one node?
+def _get_scope(code: str) -> tuple[list[Scope | ClassScope], dict[Name, Scope | ClassScope],  # TODO: this could return ScopeNode | ClassScopeNode  instead of list[SN|CSN] since a module can only contain one node?
+    dict[FunctionDef, tuple[Scope | ClassScope, list[AssignName]]],
+    dict[Global | AssignName, Scope | ClassScope]]:
     """Get the scope of the given code.
 
     In order to get the scope of the given code, the code is parsed into an AST and then walked by an ASTWalker.
@@ -543,11 +565,12 @@ def _get_scope(code: str) -> tuple[list[Scope | ClassScope], dict[astroid.Name, 
     print(module.repr_tree())
     walker.walk(module)
 
+    scopes = scope_handler.children  # get the children of the root node, which are the scopes of the module
     names = scope_handler.name_nodes  # get the name nodes of the module
     parameters = scope_handler.function_parameters  # get the parameters for each function of the module
-    scopes = scope_handler.children  # get the children of the root node, which are the scopes of the module
+    globs = scope_handler.global_variables  # get the global nodes of the module
 
-    return scopes, names, parameters
+    return scopes, names, parameters, globs
 
 
 def resolve_references(code: str) -> list[list[ReferenceNode]]:
@@ -555,6 +578,6 @@ def resolve_references(code: str) -> list[list[ReferenceNode]]:
     name_nodes_list = _get_name_nodes(code)
     references: list[list[ReferenceNode]] = []
     for name_node in name_nodes_list:
-        references.append(_find_references(name_node, name_nodes_list, scope[0], scope[1]))
+        references.append(_find_references(name_node, name_nodes_list, scope[0], scope[1], scope[2], scope[3]))
 
     return references

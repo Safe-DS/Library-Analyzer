@@ -581,12 +581,15 @@ glob1 = 10
 print(glob1)
             """,  # language= None
             [ReferenceTestNode("glob1", "Module.", ["GlobalVariable.glob1.line2"])]
-        ),        (  # language=Python
+        ),
+        (  # language=Python
             """
 glob1 = 10
 class A:
     global glob1
-    value = glob1
+    print(glob1)
+
+A()
             """,  # language= None
             [ReferenceTestNode("glob1", "ClassDef.A", ["GlobalVariable.glob1.line2"])]
         ),
@@ -606,7 +609,8 @@ local_global()
             """
 class A:
     global glob1
-    value = glob1
+    glob1 = 10
+    print(glob1)
             """,  # language= None
             []  # TODO
         ),
@@ -660,6 +664,19 @@ local_global_shadow()
         ),
         (  # language=Python
             """
+glob1 = 10
+glob2 = 20
+class A:
+    global glob1, glob2
+    print(glob1, glob2)
+
+A()
+            """,  # language= None
+            [ReferenceTestNode("glob1", "ClassDef.A", ["GlobalVariable.glob1.line2"]),
+             ReferenceTestNode("glob2", "ClassDef.A", ["GlobalVariable.glob2.line2"])]
+        ),
+        (  # language=Python
+            """
 x =1
 
 def f():
@@ -688,9 +705,17 @@ print(x)
 class A:
     class_attr1 = 20
 
+print(A.class_attr1)  # TODO: right now this is not detected as a reference, since MemberAccess is not supported yet
+            """,  # language=none
+            [ReferenceTestNode("class_attr1", "ClassDef.A", ["ClassAttribute.class_attr1.line2"])]
+        ),
+        (  # language=Python
+            """
+class A:
+    class_attr1 = 20
+
 A.class_attr1 = 30 # TODO: right now this is not detected as a reference, since MemberAccess is not supported yet
-var1 = A.class_attr1
-print(var1)
+print(A.class_attr1)
             """,  # language=none
             []
         ),
@@ -785,7 +810,9 @@ print(x)
         "new global variable in function scope with outer scope usage",
         "local variable in function scope shadowing global variable",
         "global with wrong usage",  # TODO: all below are not supported yet
+        "two globals in class scope",
         "class attribute as global variable",
+        "class attribute as global variable with global overwriting",
         "instance attribute as global variable",
         "global path",
         "global array",
@@ -793,7 +820,7 @@ print(x)
         "double return",
         "reassignment",
         "different scopes",
-    ]
+    ]  # TODO: Right now there are no testcases where a variable is only declared outside of its scope
 )
 def test_find_references(code, expected):
     scope = _get_scope(code)
@@ -803,7 +830,7 @@ def test_find_references(code, expected):
     transformed_references: list[list[ReferenceTestNode]] = []
 
     for name_node in all_names_list:
-        references.append(_find_references(name_node, all_names_list, scope[0], scope[1], scope[2]))
+        references.append(_find_references(name_node, all_names_list, scope[0], scope[1], scope[2], scope[3]))
 
     for node in references[0]:
         transformed_references.append(transform_reference_node(node))
