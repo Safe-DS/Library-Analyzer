@@ -581,8 +581,7 @@ glob1 = 10
 print(glob1)
             """,  # language= None
             [ReferenceTestNode("glob1", "Module.", ["GlobalVariable.glob1.line2"])]
-        ),
-        (  # language=Python
+        ),        (  # language=Python
             """
 glob1 = 10
 class A:
@@ -602,6 +601,50 @@ def local_global():
 local_global()
             """,  # language= None
             [ReferenceTestNode("glob1", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"])]
+        ),
+        (  # language=Python
+            """
+class A:
+    global glob1
+    value = glob1
+            """,  # language= None
+            []  # TODO
+        ),
+        (  # language=Python
+            """
+def local_global():
+    global glob1
+
+    return glob1
+
+local_global()
+            """,  # language= None
+            []  # TODO
+        ),
+        (  # language=Python
+            """
+class A:
+    global glob1
+    value = glob1
+
+a = A().value
+glob1 = 10
+print(glob1)
+            """,  # language= None
+            []  # TODO
+        ),
+        (  # language=Python
+            """
+def local_global():
+    global glob1
+
+    return glob1
+
+lg = local_global()
+glob1 = 10
+print(glob1)
+            """,  # language= None
+            []  # TODO
         ),
         (  # language=Python
             """
@@ -736,6 +779,10 @@ print(x)
         "global variable in module scope",
         "global variable in class scope",
         "global variable in function scope",
+        "new global variable in class scope",
+        "new global variable in function scope",
+        "new global variable in class scope with outer scope usage",
+        "new global variable in function scope with outer scope usage",
         "local variable in function scope shadowing global variable",
         "global with wrong usage",  # TODO: all below are not supported yet
         "class attribute as global variable",
