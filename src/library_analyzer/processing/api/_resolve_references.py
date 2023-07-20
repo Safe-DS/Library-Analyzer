@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass, field
-from typing import Tuple, List, Dict
 
 import astroid
-from astroid import Name, FunctionDef, AssignName, Global
+from astroid import Name, FunctionDef, AssignName
 
 from library_analyzer.processing.api.model import Expression, Reference
 from library_analyzer.utils import ASTWalker
@@ -24,7 +23,6 @@ class NodeID:
     name: str
     line: int
     col: int
-    # node_type: str | None  # TODO: this can be removed after Symbol is implemented since it will be redundant
 
     def __str__(self) -> str:
         return f"{self.module}.{self.name}.{self.line}.{self.col}"
@@ -87,18 +85,55 @@ class Scope:
 
     Attributes
     ----------
-        node        is the node in the AST that defines the scope of the node.
-        node_id     is the id of the node.
-        children    is a list of ScopeNodes that are defined in the scope of the node, is None if the node is a leaf node.
-        parent      is the parent node in the scope tree, is None if the node is the root node.
+        _node        is the node in the AST that defines the scope of the node.
+        _id          is the id of the node.
+        _children    is a list of Scope or ClassScope instances that are defined in the scope of the node, is None if the node is a leaf node.
+        _parent      is the parent node in the scope tree, is None if the node is the root node.
     """
 
-    node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | MemberAccess
-    id: NodeID
-    children: list[Scope | ClassScope] = field(default_factory=list)
-    parent: Scope | ClassScope | None = None
-    # _symbol: dict[Symbol] = field(default_factory=dict)
-    # TODO: make fields private (_name)
+    _node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | MemberAccess
+    _id: NodeID
+    _children: list[Scope | ClassScope] = field(default_factory=list)
+    _parent: Scope | ClassScope | None = None
+
+    def __iter__(self):
+        yield self
+
+    @property
+    def node(self):
+        return self._node
+
+    @node.setter
+    def node(self, new_node):
+        if not isinstance(new_node, (astroid.Module, astroid.FunctionDef, astroid.ClassDef, astroid.Name,
+                                     astroid.AssignName, astroid.AssignAttr, astroid.Attribute,
+                                     astroid.Import, astroid.ImportFrom, MemberAccess)):
+            raise ValueError("Invalid node type.")
+        self._node = new_node
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def children(self):
+        return self._children
+
+    @children.setter
+    def children(self, new_children):
+        if not isinstance(new_children, list):
+            raise ValueError("Children must be a list.")
+        self._children = new_children
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @parent.setter
+    def parent(self, new_parent):
+        if not isinstance(new_parent, (Scope, ClassScope, type(None))):
+            raise ValueError("Invalid parent type.")
+        self._parent = new_parent
 
 
 @dataclass
@@ -216,7 +251,7 @@ class ScopeFinder:
         The module node is also the first node that is visited, so the current_node_stack is empty before entering the module node.
         """
         self.current_node_stack.append(
-            Scope(node=node, id=_calc_node_id(node), children=[], parent=None),
+            Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=None),
         )
         # self.global_variables[node] = node.globals
 
@@ -226,10 +261,10 @@ class ScopeFinder:
     def enter_classdef(self, node: astroid.ClassDef) -> None:
         self.current_node_stack.append(
             ClassScope(
-                node=node,
-                id=_calc_node_id(node),
-                children=[],
-                parent=self.current_node_stack[-1],
+                _node=node,
+                _id=_calc_node_id(node),
+                _children=[],
+                _parent=self.current_node_stack[-1],
                 instance_variables=[],
                 class_variables=[],
             ),
@@ -240,7 +275,7 @@ class ScopeFinder:
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
         self.current_node_stack.append(
-            Scope(node=node, id=_calc_node_id(node), children=[], parent=self.current_node_stack[-1]),
+            Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=self.current_node_stack[-1]),
         )
         if node.name == "__init__":
             self._analyze_constructor(node)
@@ -268,7 +303,7 @@ class ScopeFinder:
             | astroid.AnnAssign,
         ):
             parent = self.current_node_stack[-1]
-            scope_node = Scope(node=node, id=_calc_node_id(node), children=[], parent=parent)
+            scope_node = Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=parent)
             self.children.append(scope_node)
 
         # add class variables to the class_variables list of the class
@@ -281,7 +316,7 @@ class ScopeFinder:
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
-        scope_node = Scope(node=node, id=_calc_node_id(node), children=[], parent=parent)
+        scope_node = Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=parent)
         self.children.append(scope_node)
 
     def enter_global(self, node: astroid.Global) -> None:
@@ -290,12 +325,12 @@ class ScopeFinder:
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
-        scope_node = Scope(node=node, id=_calc_node_id(node), children=[], parent=parent)
+        scope_node = Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=parent)
         self.children.append(scope_node)
 
     def enter_importfrom(self, node: astroid.ImportFrom) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
-        scope_node = Scope(node=node, id=_calc_node_id(node), children=[], parent=parent)
+        scope_node = Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=parent)
         self.children.append(scope_node)
 
 
@@ -368,7 +403,6 @@ def _get_name_nodes(code: str) -> list[astroid.Name | astroid.AssignName]:
 
     if isinstance(module, astroid.Module):
         for node in module.body:
-            # print(node.as_string())
             walker.walk(node)
             name_nodes.extend(name_node_handler.names_list)
             name_node_handler.names_list = []
@@ -410,7 +444,7 @@ def _calc_node_id(
     # TODO: add fitting default case and merge same types of cases together
 
 
-def get_scope_node_by_node_id(scope: list[Scope], targeted_node_id: NodeID, name_nodes: dict[astroid.Name] | None) -> Scope:
+def get_scope_node_by_node_id(scope: Scope | list[Scope], targeted_node_id: NodeID, name_nodes: dict[astroid.Name] | None) -> Scope:
     if name_nodes is None:
         for node in scope:
             if node.id == targeted_node_id:
@@ -425,13 +459,11 @@ def get_scope_node_by_node_id(scope: list[Scope], targeted_node_id: NodeID, name
             name_id = _calc_node_id(name)
             if name_id == targeted_node_id:
                 return name_nodes.get(name)
-            # else:
-            #     found_node = get_scope_node_by_node_id(scope, targeted_node_id, name_nodes)
-            #     if found_node is not None:
-            #         return found_node
 
 
-def _create_references(all_names_list: list[astroid.Name | astroid.AssignName], scope: list[Scope], name_nodes: dict[astroid.Name]) -> list[ReferenceNode]:
+def _create_references(all_names_list: list[astroid.Name | astroid.AssignName],
+                       scope: Scope,
+                       name_nodes: dict[astroid.Name]) -> list[ReferenceNode]:
     """Create a list of references from a list of name nodes.
 
     Returns:
@@ -456,7 +488,7 @@ def _create_references(all_names_list: list[astroid.Name | astroid.AssignName], 
             references_final.append(target_ref)
 
     return references_final
-    # TODO: sonderfälle mit AssignName müssen separat betrachtet werden (global)
+    # TODO: sonderfälle mit AssignName müssen separat betrachtet werden (global) ?? was bedeutet das?
 
 
 def _add_target_references(reference: ReferenceNode, reference_list: list[ReferenceNode]) -> ReferenceNode:
@@ -477,9 +509,9 @@ def _add_target_references(reference: ReferenceNode, reference_list: list[Refere
     return complete_reference
 
 
-def _find_references(name_node: astroid.Name | astroid.AssignName,
+def _find_references(name_node: astroid.Name,
                      all_name_nodes_list: list[astroid.Name | astroid.AssignName],
-                     scope: list[Scope],
+                     scope: Scope,
                      name_nodes: dict[astroid.Name],
                      function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
                      global_variables: dict[str, Scope | ClassScope]) -> list[ReferenceNode]:
@@ -491,19 +523,15 @@ def _find_references(name_node: astroid.Name | astroid.AssignName,
     * scope: the scopes of the module
 
     """
-    reference_list = _create_references(all_name_nodes_list, scope, name_nodes)  # contains a list of all referenced symbols for each node in the module
+    references = _create_references(all_name_nodes_list, scope, name_nodes)  # contains a list of all referenced symbols for each node in the module
 
-    # print(reference_list)
-
-    for ref in reference_list:
+    for ref in references:
         _get_symbols(ref, function_parameters, global_variables)
-
-    # print(reference_list)
+        if ref.name == name_node:  # TODO: it would be more efficient to remove the node from the list before creating the references
+            return [ref]
 
     # welcher scope sind wir gerade
     # entsprechend dem Scope die zugehörigen Symbole finden
-
-    return reference_list
 
 
 def _get_symbols(node: ReferenceNode,
@@ -511,25 +539,23 @@ def _get_symbols(node: ReferenceNode,
                  global_variables: dict[str, Scope | ClassScope]) -> None:
 
     for i, symbol in enumerate(node.referenced_symbols):
-        current_symbol = node.referenced_symbols[i]
         for nod in node.scope.children:
             if nod.id.name == symbol.name:
                 parent_node = nod.parent
-                specified_symbol = specify_symbols(parent_node, symbol, function_parameters, global_variables)
+                specified_symbol = specify_symbols(parent_node, symbol, function_parameters)
                 node.referenced_symbols[i] = specified_symbol
         # TODO: ideally the functionality of the next block should be in the specify_symbols function
-        if current_symbol.name in global_variables.keys():
-            current_symbol_parent = global_variables.get(current_symbol.name)
+        if symbol.name in global_variables.keys():
+            current_symbol_parent = global_variables.get(symbol.name)
             if current_symbol_parent is not None:
-                node.referenced_symbols[i] = GlobalVariable(current_symbol.node, current_symbol.id, current_symbol.name)
+                node.referenced_symbols[i] = GlobalVariable(symbol.node, symbol.id, symbol.name)
 
             # sonst, suche im höheren scope weiter
             # sonst, gebe einen Fehler aus
 
 
 def specify_symbols(parent_node: Scope | ClassScope, symbol: Symbol,
-                    function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
-                    global_variables: dict[str, Scope | ClassScope]) -> Symbol:
+                    function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]) -> Symbol:
     if isinstance(parent_node.node, astroid.Module):
         return GlobalVariable(symbol.node, symbol.id, symbol.name)
     elif isinstance(parent_node.node, astroid.ClassDef):
@@ -550,8 +576,8 @@ def specify_symbols(parent_node: Scope | ClassScope, symbol: Symbol,
         return symbol
 
 
-def _get_scope(code: str) -> tuple[list[Scope | ClassScope], dict[Name, Scope | ClassScope], dict[
-    FunctionDef, tuple[Scope | ClassScope, list[AssignName]]], dict[str, Scope | ClassScope]]:
+def _get_scope(code: str) -> tuple[Scope | ClassScope, dict[Name, Scope | ClassScope], dict[
+        FunctionDef, tuple[Scope | ClassScope, list[AssignName]]], dict[str, Scope | ClassScope]]:
     """Get the scope of the given code.
 
     In order to get the scope of the given code, the code is parsed into an AST and then walked by an ASTWalker.
@@ -568,7 +594,7 @@ def _get_scope(code: str) -> tuple[list[Scope | ClassScope], dict[Name, Scope | 
     print(module.repr_tree())
     walker.walk(module)
 
-    scopes = scope_handler.children  # get the children of the root node, which are the scopes of the module
+    scopes = scope_handler.children[0]  # get the children of the root node, which are the scopes of the module
     names = scope_handler.name_nodes  # get the name nodes of the module
     parameters = scope_handler.function_parameters  # get the parameters for each function of the module
     globs = scope_handler.global_variables  # get the global nodes of the module
@@ -576,11 +602,14 @@ def _get_scope(code: str) -> tuple[list[Scope | ClassScope], dict[Name, Scope | 
     return scopes, names, parameters, globs
 
 
-def resolve_references(code: str) -> list[list[ReferenceNode]]:
+def resolve_references(code: str) -> list[ReferenceNode]:
     scope = _get_scope(code)
     name_nodes_list = _get_name_nodes(code)
-    references: list[list[ReferenceNode]] = []
+    references: list[ReferenceNode] = []
+
     for name_node in name_nodes_list:
-        references.append(_find_references(name_node, name_nodes_list, scope[0], scope[1], scope[2], scope[3]))
+        if isinstance(name_node, astroid.Name):
+            references_for_name_node = _find_references(name_node, name_nodes_list, scope[0], scope[1], scope[2], scope[3])
+            references.extend(references_for_name_node)
 
     return references

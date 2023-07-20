@@ -33,6 +33,7 @@ from ._resolve_references import (
     ReferenceNode,
     Scope,
     Variables,
+    resolve_references,
     _add_target_references,
     _calc_node_id,
     _create_references,
@@ -76,4 +77,5 @@ __all__ = [
     "Variables",
     "ClassScope",
     "NodeID",
+    "resolve_references",
 ]

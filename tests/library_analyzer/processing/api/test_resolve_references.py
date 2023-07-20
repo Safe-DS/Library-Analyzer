@@ -15,6 +15,7 @@ from library_analyzer.processing.api import (
     ReferenceNode,
     _create_references,
     _find_references,
+    resolve_references,
 )
 
 
@@ -439,7 +440,8 @@ def test_calc_function_id_new(
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
             [ReferenceNode(astroid.Name("var1", lineno=1, col_offset=4),
-                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4), []))]
+                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4),
+                                 []))]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
@@ -447,36 +449,44 @@ def test_calc_function_id_new(
              astroid.Name("var3", lineno=30, col_offset=4,
                           parent=astroid.FunctionDef("func2", lineno=1, col_offset=0))],
             [ReferenceNode(astroid.Name("var1", lineno=1, col_offset=4),
-                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4), [])),
+                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4),
+                                 [])),
              ReferenceNode(astroid.Name("var2", lineno=2, col_offset=4),
-                           Scope(astroid.Name("var2", lineno=2, col_offset=4), NodeID(astroid.Module(""), "var2", 2, 4), [])),
+                           Scope(astroid.Name("var2", lineno=2, col_offset=4), NodeID(astroid.Module(""), "var2", 2, 4),
+                                 [])),
              ReferenceNode(astroid.Name("var3", lineno=30, col_offset=4),
-                           Scope(astroid.Name("var3", lineno=30, col_offset=4), NodeID(astroid.Module(""), "var3", 30, 4), []))]
+                           Scope(astroid.Name("var3", lineno=30, col_offset=4),
+                                 NodeID(astroid.Module(""), "var3", 30, 4), []))]
         ),
         (
             [astroid.AssignName("var1", lineno=12, col_offset=42,
                                 parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
             [ReferenceNode(astroid.AssignName("var1", lineno=12, col_offset=42),
-                           Scope(astroid.AssignName("var1", lineno=12, col_offset=42), NodeID(astroid.Module(""), "var1", 12, 42), []))]
+                           Scope(astroid.AssignName("var1", lineno=12, col_offset=42),
+                                 NodeID(astroid.Module(""), "var1", 12, 42), []))]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
              astroid.AssignName("var2", lineno=1, col_offset=8,
                                 parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
             [ReferenceNode(astroid.Name("var1", lineno=1, col_offset=4),
-                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4), [])),
+                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4),
+                                 [])),
              ReferenceNode(astroid.AssignName("var2", lineno=1, col_offset=8),
-                           Scope(astroid.AssignName("var2", lineno=1, col_offset=8), NodeID(astroid.Module(""), "var2", 1, 8), []))]
+                           Scope(astroid.AssignName("var2", lineno=1, col_offset=8),
+                                 NodeID(astroid.Module(""), "var2", 1, 8), []))]
         ),
         (
             [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.ClassDef("MyClass", lineno=1, col_offset=0))],
             [ReferenceNode(astroid.Name("var1", lineno=1, col_offset=4),
-                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4), []))]
+                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4),
+                                 []))]
         ),
         (
             [astroid.Name("glob", lineno=1, col_offset=4, parent=astroid.Module("mod"))],
             [ReferenceNode(astroid.Name("glob", lineno=1, col_offset=4),
-                           Scope(astroid.Name("glob", lineno=1, col_offset=4), NodeID(astroid.Module("mod"), "glob", 1, 4), []))]
+                           Scope(astroid.Name("glob", lineno=1, col_offset=4),
+                                 NodeID(astroid.Module("mod"), "glob", 1, 4), []))]
         ),
         (
             [],
@@ -497,6 +507,8 @@ def test_create_references(node: list[astroid.Name | astroid.AssignName], expect
     result = _create_references(node)[0]
     assert result == expected
     assert_reference_list_equal(result, expected)
+
+
 # TODO: rewrite this test since the results are no longer just prototypes
 
 
@@ -504,17 +516,16 @@ def assert_reference_list_equal(result: list[ReferenceNode], expected: list[Refe
     """ The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
     The real results name and scope are objects and not strings"""
     result = [
-        ReferenceNode(name.name.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in result]
+        ReferenceNode(name.name.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in
+        result]
     expected = [
-        ReferenceNode(name.name.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in expected]
+        ReferenceNode(name.name.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in
+        expected]
     assert result == expected
 
-# TODO: test this when resolve reference is implemented (disabled for now due to test failures)
-# def test_add_potential_value_reference() -> None:
-#     raise NotImplementedError("Test not implemented")
 
 # TODO: test this when resolve reference is implemented (disabled for now due to test failures)
-# def test_add_potential_target_reference() -> None:
+# def test_add_target_references() -> None:
 #     raise NotImplementedError("Test not implemented")
 
 
@@ -634,7 +645,7 @@ A()
 local_global()
             """,  # language= None
             [ReferenceTestNode("glob1", "ClassDef.A", ["GlobalVariable.glob1.line2"]),
-                ReferenceTestNode("glob1", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"])]
+             ReferenceTestNode("glob1", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"])]
         ),
         (  # language=Python
             """
@@ -701,7 +712,8 @@ def local_global_shadow():
 
 local_global_shadow() # returns 20
             """,  # language= None
-            [ReferenceTestNode("glob1", "FunctionDef.local_global_shadow", ["GlobalVariable.glob1.line2", "LocalVariable.glob1.line4"])]
+            [ReferenceTestNode("glob1", "FunctionDef.local_global_shadow",
+                               ["GlobalVariable.glob1.line2", "LocalVariable.glob1.line4"])]
         ),
         (  # language=Python
             """
@@ -730,17 +742,17 @@ print(x)
             """,  # language=none
             []  # TODO: some error should be raised here
         ),
-#         (  # language=Python
-#             """
-# class A:
-#     class_attr1 = 20
-#
-# def local_class_attr():
-#     var1 = A.class_attr1
-#     return var1
-#             """,
-#             []
-#         ),
+        #         (  # language=Python
+        #             """
+        # class A:
+        #     class_attr1 = 20
+        #
+        # def local_class_attr():
+        #     var1 = A.class_attr1
+        #     return var1
+        #             """,
+        #             []
+        #         ),
         (  # language=Python
             """
 class A:
@@ -785,7 +797,7 @@ else:
         (  # language=Python
             """
 arr = [1, 2, 3]
-arr[0] = 10
+arr[0] = 10  # TODO: this is not detected right now
 print(arr)
             """,  # language=none
             []
@@ -796,7 +808,8 @@ x = 10
 y = 20
 print(x + y)
             """,  # language=none
-            [ReferenceTestNode("x", "Module.", ["GlobalVariable.x.line2"]), ReferenceTestNode("y", "Module.", ["GlobalVariable.y.line3"])]
+            [ReferenceTestNode("x", "Module.", ["GlobalVariable.x.line2"]),
+             ReferenceTestNode("y", "Module.", ["GlobalVariable.y.line3"])]
         ),
         (  # language=Python
             """
@@ -866,17 +879,11 @@ print(x)
         "different scopes",
     ]  # TODO: Right now there are no testcases where a variable is only declared outside of its scope
 )
-def test_find_references(code, expected):
-    scope = _get_scope(code)
-    all_names_list = _get_name_nodes(code)
+def test_resolve_references(code, expected):
+    references = resolve_references(code)
+    transformed_references: list[ReferenceTestNode] = []
 
-    references: list[list[ReferenceNode]] = []
-    transformed_references: list[list[ReferenceTestNode]] = []
-
-    for name_node in all_names_list:
-        references.append(_find_references(name_node, all_names_list, scope[0], scope[1], scope[2], scope[3]))
-
-    for node in references[0]:
+    for node in references:
         transformed_references.append(transform_reference_node(node))
 
     # assert references == expected
@@ -884,7 +891,9 @@ def test_find_references(code, expected):
 
 
 def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
-    return ReferenceTestNode(node.name.name, f"{node.scope.node.__class__.__name__}.{node.scope.node.name}", [str(ref) for ref in node.referenced_symbols])
+    return ReferenceTestNode(name=node.name.name,
+                             scope=f"{node.scope.node.__class__.__name__}.{node.scope.node.name}",
+                             referenced_symbols=[str(ref) for ref in node.referenced_symbols])
 
 
 @dataclass
@@ -1484,7 +1493,7 @@ def test_get_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) ->
     assert_test_get_scope(result, expected)
 
 
-def assert_test_get_scope(result: list[Scope], expected: list[SimpleScope | SimpleClassScope]) -> None:
+def assert_test_get_scope(result: Scope, expected: list[SimpleScope | SimpleClassScope]) -> None:
     transformed_result = [
         transform_result(node) for node in result
     ]  # The result and the expected data is simplified to make the comparison easier
