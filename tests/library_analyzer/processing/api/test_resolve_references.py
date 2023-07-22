@@ -29,6 +29,7 @@ class SimpleScope:
 class SimpleClassScope(SimpleScope):
     class_variables: list[str]
     instance_variables: list[str]
+    super_class: list[str] | None = None
 
 
 @pytest.mark.parametrize(
@@ -545,77 +546,73 @@ class ReferenceTestNode:
 def local_var():
     var1 = 1
     return var1
-
-local_var()
             """,  # language= None
-            [ReferenceTestNode("var1", "FunctionDef.local_var", ["LocalVariable.var1.line3"])]
+            [ReferenceTestNode("var1.line4", "FunctionDef.local_var", ["LocalVariable.var1.line3"])]
         ),
         (  # language=Python
             """
 def local_parameter(pos_arg):
     return 2 * pos_arg
-
-local_parameter(10)
             """,  # language= None
-            [ReferenceTestNode("pos_arg", "FunctionDef.local_parameter", ["Parameter.pos_arg.line2"])]
+            [ReferenceTestNode("pos_arg.line3", "FunctionDef.local_parameter", ["Parameter.pos_arg.line2"])]
+        ),
+        (  # language=Python
+            """
+def local_parameter(*, key_arg_only):
+    return 2 * key_arg_only
+            """,  # language= None
+            [ReferenceTestNode("key_arg_only.line3", "FunctionDef.local_parameter", ["Parameter.key_arg_only.line2"])]
+        ),        (  # language=Python
+            """
+def local_parameter(pos_arg_only, /):
+    return 2 * pos_arg_only
+            """,  # language= None
+            [ReferenceTestNode("pos_arg_only.line3", "FunctionDef.local_parameter", ["Parameter.pos_arg_only.line2"])]
         ),
         (  # language=Python
             """
 def local_parameter(def_arg=10):
     return def_arg
-
-local_parameter()
             """,  # language= None
-            [ReferenceTestNode("def_arg", "FunctionDef.local_parameter", ["Parameter.def_arg.line2"])]
+            [ReferenceTestNode("def_arg.line3", "FunctionDef.local_parameter", ["Parameter.def_arg.line2"])]
         ),
         (  # language=Python
             """
 def local_parameter(*args):
     return args
-
-local_parameter()
             """,  # language= None
-            []  # TODO: how to deal with *args?
+            [ReferenceTestNode("args.line3", "FunctionDef.local_parameter", ["Parameter.args.line2"])]
         ),
         (  # language=Python
             """
 def local_parameter(**kwargs):
     return kwargs
-
-local_parameter()
             """,  # language= None
-            []  # TODO: how to deal with **kwargs?
+            [ReferenceTestNode("kwargs.line3", "FunctionDef.local_parameter", ["Parameter.kwargs.line2"])]
+        ),
+        (  # language=Python
+            """
+def local_double_parameter(a, b):
+    return a, b
+            """,  # language= None
+            [ReferenceTestNode("a.line3", "FunctionDef.local_double_parameter", ["Parameter.a.line2"]),
+             ReferenceTestNode("b.line3", "FunctionDef.local_double_parameter", ["Parameter.b.line2"])]
         ),
         (  # language=Python
             """
 glob1 = 10
 print(glob1)
             """,  # language= None
-            [ReferenceTestNode("glob1", "Module.", ["GlobalVariable.glob1.line2"])]
+            [ReferenceTestNode("glob1.line3", "Module.", ["GlobalVariable.glob1.line2"])]
         ),
-        (  # language=Python
-            """
-glob1 = 10
-class A:
-    global glob1
-    a_value = glob1
-
-A()
-            """,  # language= None
-            [ReferenceTestNode("glob1", "ClassDef.A", ["GlobalVariable.glob1.line2"])]
-        ),
-        # this test is no duplicate of the previous one, since the global value is used in a different way
-        # this case leads to a problem since no reference is created for the global value since it is never assigned
         (  # language=Python
             """
 glob1 = 10
 class A:
     global glob1
     print(glob1)
-
-A()
             """,  # language= None
-            [ReferenceTestNode("glob1", "ClassDef.A", ["GlobalVariable.glob1.line2"])]
+            [ReferenceTestNode("glob1.line5", "ClassDef.A", ["GlobalVariable.glob1.line2"])]
         ),
         (  # language=Python
             """
@@ -624,10 +621,8 @@ def local_global():
     global glob1
 
     return glob1
-
-local_global()
             """,  # language= None
-            [ReferenceTestNode("glob1", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"])]
+            [ReferenceTestNode("glob1.line6", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"])]
         ),
         (  # language=Python
             """
@@ -640,12 +635,9 @@ def local_global():
     global glob1
 
     return glob1
-
-A()
-local_global()
             """,  # language= None
-            [ReferenceTestNode("glob1", "ClassDef.A", ["GlobalVariable.glob1.line2"]),
-             ReferenceTestNode("glob1", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"])]
+            [ReferenceTestNode("glob1.line5", "ClassDef.A", ["GlobalVariable.glob1.line2"]),
+             ReferenceTestNode("glob1.line10", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"])]
         ),
         (  # language=Python
             """
@@ -654,7 +646,7 @@ class A:
     glob1 = 10
     print(glob1)
             """,  # language= None
-            []  # TODO: is this allowed?
+            []  # TODO: add error message incase the the global variable is not declared in the module scope
         ),
         (  # language=Python
             """
@@ -665,7 +657,7 @@ def local_global():
 
 local_global()
             """,  # language= None
-            []  # TODO: is this allowed?
+            []  # TODO: error message
         ),
         (  # language=Python
             """
@@ -675,9 +667,10 @@ class A:
 
 a = A().value
 glob1 = 10
-print(glob1)
+b = A().value
+print(a, b)
             """,  # language= None
-            []  # TODO
+            []  # TODO: error message
         ),
         (  # language=Python
             """
@@ -690,18 +683,16 @@ lg = local_global()
 glob1 = 10
 print(glob1)
             """,  # language= None
-            []  # TODO
+            []  # TODO: error message
         ),
         (  # language=Python
             """
 glob1 = 10
 def local_global_access():
     return glob1
-
-local_global_access() # returns 10
             """,  # language= None
-            [ReferenceTestNode("glob1", "FunctionDef.local_global_access", ["GlobalVariable.glob1.line2"])]
-        ),  # TODO: is this ["GlobalVariable.glob1.line2"] correct?
+            [ReferenceTestNode("glob1.line4", "FunctionDef.local_global_access", ["GlobalVariable.glob1.line2"])]
+        ),
         (  # language=Python
             """
 glob1 = 10
@@ -709,10 +700,8 @@ def local_global_shadow():
     glob1 = 20
 
     return glob1
-
-local_global_shadow() # returns 20
             """,  # language= None
-            [ReferenceTestNode("glob1", "FunctionDef.local_global_shadow",
+            [ReferenceTestNode("glob1.line6", "FunctionDef.local_global_shadow",
                                ["GlobalVariable.glob1.line2", "LocalVariable.glob1.line4"])]
         ),
         (  # language=Python
@@ -722,37 +711,10 @@ glob2 = 20
 class A:
     global glob1, glob2
     print(glob1, glob2)
-
-A()
             """,  # language= None
-            [ReferenceTestNode("glob1", "ClassDef.A", ["GlobalVariable.glob1.line2"]),
-             ReferenceTestNode("glob2", "ClassDef.A", ["GlobalVariable.glob2.line3"])]
+            [ReferenceTestNode("glob1.line6", "ClassDef.A", ["GlobalVariable.glob1.line2"]),
+             ReferenceTestNode("glob2.line6", "ClassDef.A", ["GlobalVariable.glob2.line3"])]
         ),
-        (  # language=Python
-            """
-x =1
-
-def f():
-    x = 2
-    global x
-    x = 3
-
-f()
-print(x)
-            """,  # language=none
-            []  # TODO: some error should be raised here
-        ),
-        #         (  # language=Python
-        #             """
-        # class A:
-        #     class_attr1 = 20
-        #
-        # def local_class_attr():
-        #     var1 = A.class_attr1
-        #     return var1
-        #             """,
-        #             []
-        #         ),
         (  # language=Python
             """
 class A:
@@ -768,9 +730,9 @@ class A:
     class_attr1 = 20
 
 A.class_attr1 = 30 # TODO: right now this is not detected as a reference, since MemberAccess is not supported yet
-print(A.class_attr1)
             """,  # language=none
-            [""]
+            [ReferenceTestNode("A.class_attr1", "ClassDef.A", ["ClassAttribute.class_attr1.line2"]),
+             ReferenceTestNode("A.class_attr1", "Module.", ["GlobalVariable.A.class_attr1.line4"])]
         ),
         (  # language=Python
             """
@@ -780,9 +742,48 @@ class B:
 
 b = B()
 var1 = b.instance_attr1
-print(var1)
             """,  # language=none
-            []
+            [ReferenceTestNode("B", "Module.", ["GlobalVariable.B.line2"]),
+             ReferenceTestNode("b", "Module.", ["GlobalVariable.b.line6"]),
+             ReferenceTestNode("b.instance_attr1", "ClassDef.B", ["InstanceAttr.b.instance_attr1.line4"])
+             ]
+        ),
+        (  # language=Python
+            """
+class B:
+    def __init__(self):
+        self.instance_attr1 = 10
+
+b = B()
+b.instance_attr1 = 1
+            """,  # language=none
+            [ReferenceTestNode("B", "Module.", ["GlobalVariable.B.line2"]),
+             ReferenceTestNode("b", "Module.", ["GlobalVariable.b.line6"]),
+             ReferenceTestNode("b.instance_attr1", "ClassDef.B", ["InstanceAttr.b.instance_attr1.line4"])
+             ]
+        ),
+        (  # language=Python
+            """
+def get_state(self):
+    return self.state
+            """,  # language= None
+            []  # TODO
+        ),
+        (  # language=Python
+            """
+def set_state(self, state):
+    self.state = state
+            """,  # language= None
+            []  # TODO
+        ),
+        (  # language=Python
+            """
+var1 = 10
+if var1 > 0:
+    print(var1)
+        """,  # language=none
+            [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var1.line4", "Module.", ["GlobalVariable.var1.line2"])]
         ),
         (  # language=Python
             """
@@ -790,17 +791,64 @@ var1 = 10
 if var1 > 0:
     print(var1)
 else:
-    print(-var1)
+    print(2 * var1)
         """,  # language=none
-            []
+            [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var1.line4", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var1.line6", "Module.", ["GlobalVariable.var1.line2"])]
+        ),
+        (  # language=Python
+            """
+var1 = 10
+if var1 > 0:
+    print(var1)
+elif var1 < 0:
+    print(-var1)  # TODO: detect this: UnaryOp
+else:
+    print(var1)
+        """,  # language=none
+            [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var1.line4", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var1.line5", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var1.line6", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var1.line8", "Module.", ["GlobalVariable.var1.line2"])]
+        ),
+        (  # language=Python
+            """
+var1 = 10
+for i in range(var1):
+    print(i)
+        """,  # language=none
+            [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("i.line4", "Module.", ["GlobalVariable.i.line3"])]  # TODO: is i really a global variable?
+        ),
+        (  # language=Python
+            """
+var1 = 10
+while var1 > 0:
+    print(var1)
+        """,  # language=none
+            [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var1.line4", "Module.", ["GlobalVariable.var1.line2"])]
+        ),
+        (  # language=Python
+            """
+var1 = 10
+match var1:
+    case 1: print(1)
+    case 2: print(2)
+    case _: print(var1)
+        """,  # language=none
+            [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var1.line6", "Module.", ["GlobalVariable.var1.line2"])]
         ),
         (  # language=Python
             """
 arr = [1, 2, 3]
-arr[0] = 10  # TODO: this is not detected right now
+arr[0] = 10  # TODO: this is not detected right now but should be
 print(arr)
             """,  # language=none
-            []
+            [ReferenceTestNode("arr.line4", "Module.", ["GlobalVariable.arr.line2", "GlobalVariable.arr.line3"])]
         ),
         (  # language=Python
             """
@@ -808,20 +856,23 @@ x = 10
 y = 20
 print(x + y)
             """,  # language=none
-            [ReferenceTestNode("x", "Module.", ["GlobalVariable.x.line2"]),
-             ReferenceTestNode("y", "Module.", ["GlobalVariable.y.line3"])]
+            [ReferenceTestNode("x.line4", "Module.", ["GlobalVariable.x.line2"]),
+             ReferenceTestNode("y.line4", "Module.", ["GlobalVariable.y.line3"])]
         ),
         (  # language=Python
             """
-def local_double_return(a, b):
+def double_return(a, b):
     return a, b
 
-x, y = local_double_return(10, 20)
+x, y = double_return(10, 20)
 
 print(x)
 print(y)
             """,  # language=none
-            []
+            [ReferenceTestNode("a.line3", "FunctionDef.local_double_return", ["Parameter.a.line2"]),
+             ReferenceTestNode("b.line3", "FunctionDef.local_double_return", ["Parameter.b.line2"]),
+             ReferenceTestNode("x.line7", "Module.", ["GlobalVariable.x.line5"]),
+             ReferenceTestNode("y.line8", "Module.", ["GlobalVariable.y.line6"])]
         ),
         (  # language=Python
             """
@@ -829,7 +880,7 @@ x = 10
 x = 20
 print(x)
             """,  # language=none
-            [ReferenceTestNode("x", "Module.", ["GlobalVariable.x.line2", "GlobalVariable.x.line3"])]
+            [ReferenceTestNode("x.line4", "Module.", ["GlobalVariable.x.line2", "GlobalVariable.x.line3"])]
         ),
         (  # language=Python
             """
@@ -852,12 +903,14 @@ print(x)
     ids=[
         "local variable in function scope",
         "parameter in function scope",
+        "parameter in function scope with keyword only",
+        "parameter in function scope with positional only",
         "parameter in function scope with default value",
         "parameter in function scope with *args",
         "parameter in function scope with **kwargs",
+        "two parameters in function scope",
         "global variable in module scope",
-        "global variable in class scope assignment",
-        "global variable in class scope print",
+        "global variable in class scope",
         "global variable in function scope",
         "global variable in class scope and function scope",
         "new global variable in class scope",
@@ -866,18 +919,25 @@ print(x)
         "new global variable in function scope with outer scope usage",
         "access of global variable without global keyword",
         "local variable in function scope shadowing global variable without global keyword",
-        "two globals in class scope",
-        "global with wrong usage",  # TODO: all below are not supported yet
-        "class attribute",
-        "class attribute with overwriting",
-        "instance attribute as global variable",
-        "global path",
-        "global array",
+        "two globals in class scope",  # TODO: all below are not supported yet
+        "class attribute value",
+        "class attribute target",
+        "instance attribute value",
+        "instance attribute target",
+        "getter function",
+        "setter function",
+        "if statement global scope",
+        "if else statement global scope",
+        "if elif else statement global scope",
+        "for loop global scope",
+        "while loop global scope",
+        "match statement",
+        "array and indexed array global scope",
         "two variables",
         "double return",
         "reassignment",
         "different scopes",
-    ]  # TODO: Right now there are no testcases where a variable is only declared outside of its scope
+    ]  # TODO: testcases for calls and imports
 )
 def test_resolve_references(code, expected):
     references = resolve_references(code)
@@ -891,7 +951,7 @@ def test_resolve_references(code, expected):
 
 
 def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
-    return ReferenceTestNode(name=node.name.name,
+    return ReferenceTestNode(name=f"{node.name.name}.line{node.name.lineno}",
                              scope=f"{node.scope.node.__class__.__name__}.{node.scope.node.name}",
                              referenced_symbols=[str(ref) for ref in node.referenced_symbols])
 

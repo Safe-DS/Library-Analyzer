@@ -45,8 +45,7 @@ class Symbol(ABC):
 
 
 @dataclass
-class Parameter(Symbol):
-    node: astroid.AssignName  # TODO: find correct node type and add fields for each subclass
+class Parameter(Symbol):  # TODO: find correct node type and add fields with further infos for each subclass
     pass
 
 
