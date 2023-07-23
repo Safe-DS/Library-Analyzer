@@ -283,9 +283,25 @@ class ScopeFinder:
         self._detect_scope(node)
 
     def enter_arguments(self, node: astroid.Arguments) -> None:
-        self.function_parameters[self.current_node_stack[-1].node] = (self.current_node_stack[-1], node.args)
+        if node.args:
+            self.function_parameters[self.current_node_stack[-1].node] = (self.current_node_stack[-1], node.args)
+        if node.kwonlyargs:
+            self.function_parameters[self.current_node_stack[-1].node] = (self.current_node_stack[-1], node.kwonlyargs)
+        if node.posonlyargs:
+            self.function_parameters[self.current_node_stack[-1].node] = (self.current_node_stack[-1], node.posonlyargs)
 
-    def enter_name(self, node: astroid.Name) -> None:
+    def enter_name(self, node: astroid.Name) -> None:  # TODO: this could be more efficient if unnecessary nodes are not added to the dict
+        # if isinstance(
+        #     node.parent,
+        #     astroid.Assign
+        #     | astroid.AugAssign
+        #     | astroid.Return
+        #     | astroid.Compare
+        #     | astroid.For
+        #     | astroid.BinOp
+        #     | astroid.BoolOp
+        #     | astroid.UnaryOp
+        # ):
         self.name_nodes[node] = self.current_node_stack[-1]
 
     def enter_assignname(self, node: astroid.AssignName) -> None:
@@ -347,7 +363,10 @@ class NameNodeFinder:
             | astroid.Compare
             | astroid.For
             | astroid.BinOp
-            | astroid.BoolOp,
+            | astroid.BoolOp
+            | astroid.UnaryOp
+            | astroid.Match
+            | astroid.Tuple
         ):
             self.names_list.append(node)
         if (
@@ -410,7 +429,7 @@ def _get_name_nodes(code: str) -> list[astroid.Name | astroid.AssignName]:
 
 
 def _calc_node_id(
-    node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name | astroid.AssignAttr | astroid.Import | astroid.ImportFrom | MemberAccess
+    node: astroid.NodeNG | astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name | astroid.AssignAttr | astroid.Import | astroid.ImportFrom | MemberAccess
 ) -> NodeID | None:
     if isinstance(node, MemberAccess):
         module = node.expression.root().name
@@ -437,6 +456,8 @@ def _calc_node_id(
             return NodeID(module, node.as_string(), node.lineno, node.col_offset)
         case astroid.AssignAttr():
             return NodeID(module, node.attrname, node.lineno, node.col_offset)
+        case astroid.NodeNG():
+            return NodeID(module, node.as_string(), node.lineno, node.col_offset)
         case _:
             raise ValueError(f"Node type {node.__class__.__name__} is not supported yet.")
 
@@ -520,6 +541,9 @@ def _find_references(name_node: astroid.Name,
     * name_node: the node for which we want to find all references
     * all_name_nodes_list: a list of all name nodes in the module
     * scope: the scopes of the module
+    * name_nodes: a dict of all name nodes in the module
+    * function_parameters: a dict of all function parameters for each function in the module
+    * global_variables: a dict of all global variables in the module
 
     """
     references = _create_references(all_name_nodes_list, scope, name_nodes)  # contains a list of all referenced symbols for each node in the module
@@ -547,7 +571,10 @@ def _get_symbols(node: ReferenceNode,
         if symbol.name in global_variables.keys():
             current_symbol_parent = global_variables.get(symbol.name)
             if current_symbol_parent is not None:
-                node.referenced_symbols[i] = GlobalVariable(symbol.node, symbol.id, symbol.name)
+                if check_if_global_is_in_parent_scope(current_symbol_parent, symbol.node):
+                    node.referenced_symbols[i] = GlobalVariable(symbol.node, symbol.id, symbol.name)
+                else:
+                    raise ValueError(f"Symbol {symbol.name} is not defined in the module scope")
 
             # sonst, suche im höheren scope weiter
             # sonst, gebe einen Fehler aus
@@ -573,6 +600,16 @@ def specify_symbols(parent_node: Scope | ClassScope, symbol: Symbol,
         return LocalVariable(symbol.node, symbol.id, symbol.name)
     else:
         return symbol
+
+
+def check_if_global_is_in_parent_scope(scope: Scope | ClassScope, node: astroid.NodeNG) -> bool:
+    if isinstance(scope.node, astroid.Module):
+        for child in scope.children:
+            if child.id == _calc_node_id(node):
+                return True
+        return False
+    else:
+        return check_if_global_is_in_parent_scope(scope.parent, node)
 
 
 def _get_scope(code: str) -> tuple[Scope | ClassScope, dict[Name, Scope | ClassScope], dict[

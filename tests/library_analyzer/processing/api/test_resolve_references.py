@@ -646,7 +646,7 @@ class A:
     glob1 = 10
     print(glob1)
             """,  # language= None
-            []  # TODO: add error message incase the the global variable is not declared in the module scope
+            [ValueError]  # TODO: add error message incase the the global variable is not declared in the module scope
         ),
         (  # language=Python
             """
@@ -657,7 +657,7 @@ def local_global():
 
 local_global()
             """,  # language= None
-            []  # TODO: error message
+            [ValueError]  # TODO: error message
         ),
         (  # language=Python
             """
@@ -670,7 +670,7 @@ glob1 = 10
 b = A().value
 print(a, b)
             """,  # language= None
-            []  # TODO: error message
+            [ValueError]  # TODO: error message
         ),
         (  # language=Python
             """
@@ -683,7 +683,7 @@ lg = local_global()
 glob1 = 10
 print(glob1)
             """,  # language= None
-            []  # TODO: error message
+            [ValueError]  # TODO: error message
         ),
         (  # language=Python
             """
@@ -764,15 +764,21 @@ b.instance_attr1 = 1
         ),
         (  # language=Python
             """
-def get_state(self):
-    return self.state
+class C:
+    state: int
+
+    def get_state(self):
+        return self.state
             """,  # language= None
             []  # TODO
         ),
         (  # language=Python
             """
-def set_state(self, state):
-    self.state = state
+class C:
+    state: int
+
+    def set_state(self, state):
+        self.state = state
             """,  # language= None
             []  # TODO
         ),
@@ -803,7 +809,7 @@ var1 = 10
 if var1 > 0:
     print(var1)
 elif var1 < 0:
-    print(-var1)  # TODO: detect this: UnaryOp
+    print(-var1)
 else:
     print(var1)
         """,  # language=none
@@ -948,6 +954,11 @@ def test_resolve_references(code, expected):
 
     # assert references == expected
     assert transformed_references == expected
+    # if expected[0] is ValueError:
+    #     with pytest.raises(ValueError, match="Symbol is not defined in the module scope"):
+    #         assert transformed_references == expected
+    # else:
+    #     assert transformed_references == expected
 
 
 def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
@@ -1534,6 +1545,7 @@ class SimpleScope:
         "Class Scope with instance attribute and Class function",
         "Class Scope with instance attribute and Modul function",
         "Class Scope within Class Scope",
+        "Class Scope with subclass",
         "Class Scope within Function Scope",
         "Function Scope within Function Scope",
         "Import Scope",
