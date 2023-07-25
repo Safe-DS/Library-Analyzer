@@ -1,0 +1,45 @@
+{
+    "test/test/some_global_function/parameter_with_function_dependency": {
+        "target": "test/test/some_global_function/parameter_with_function_dependency",
+        "authors": ["$autogen$"],
+        "reviewers": [],
+        "comment": "I turned this in a dependency because the phrase 'Only available if parameter_without_dependency equals None' was found.",
+        "reviewResult": "",
+        "is_depending_on": ["test/test/some_global_function/parameter_without_dependency"],
+        "has_dependent_parameter": [],
+        "condition": {
+            "variant": "is_none",
+            "condition": "Only available if parameter_without_dependency equals None",
+            "dependee": "parameter_without_dependency",
+            "also": false
+        },
+        "action": {
+            "variant": "is_ignored",
+            "action": "not ignored"
+        }
+    },
+
+    "test/test/some_global_function/parameter_with_init_dependency": {
+        "target": "test/test/some_global_function/parameter_with_init_dependency",
+        "authors": ["$autogen$"],
+        "reviewers": [],
+        "comment": "I turned this in a dependency because the phrase 'Only available if init_parameter equals auto' was found.",
+        "reviewResult": "",
+        "is_depending_on": ["test/test/__init__/init_parameter"],
+        "has_dependent_parameter": [],
+        "condition": {
+            "variant": "has_value",
+            "condition": "Only available if init_parameter equals auto",
+            "dependee": "init_parameter",
+            "value": "auto",
+            "also": false,
+            "check_dependee": false,
+            "combined_with": ""
+        },
+        "action": {
+            "variant": "is_ignored",
+            "action": "not ignored"
+        }
+    }
+
+}

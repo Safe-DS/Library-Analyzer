@@ -14,6 +14,7 @@ from library_analyzer.processing.usages.model import UsageCountStore
         "enumAnnotations",
         "removeAnnotations",
         "valueAnnotations",
+        "dependencyAnnotations"
     ],
 )
 def test_generate_annotations(

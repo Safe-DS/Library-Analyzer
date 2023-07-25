@@ -26,7 +26,7 @@ _dep_matcher = DependencyMatcher(_nlp.vocab)
 @dataclass
 class Condition:
 
-    class Variant(Enum):
+    class Variant(str, Enum):
         CONDITION = "condition"
         IN_RELATION = "in_relation"
         HAS_VALUE = "has_value"
@@ -62,6 +62,7 @@ class Condition:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "variant": Condition.Variant.CONDITION,
             "condition": self.condition,
             "dependee": self.dependee,
             "combined_with": self.combined_with
@@ -194,7 +195,7 @@ class ParameterHasType(Condition):
 class Action:
     action: str
 
-    class Variant(Enum):
+    class Variant(str, Enum):
         ACTION = "action"
         IS_IGNORED = "is_ignored"
         IS_ILLEGAL = "is_illegal"
@@ -219,7 +220,10 @@ class Action:
                 raise KeyError("unknown variant found")
 
     def to_dict(self) -> dict[str, Any]:
-        return {"action": self.action}
+        return {
+            "variant": Action.Variant.ACTION,
+            "action": self.action
+        }
 
 
 class ParameterIsIgnored(Action):
@@ -410,10 +414,16 @@ def _shorten_and_check_string(dependee: str, doc: Doc, passive: bool = False) ->
     change = False
 
     for token in doc:
+
         if token.pos_ == "SCONJ":
             sconj_idx = token.i + 1
+
         elif token.text in ["and", "or"]:
-            change = True
+            if len(doc) > token.i + 3 and token.nbor(2).text == "by":
+                change = False
+            else:
+                change = True
+
             if token.text == "and":
                 _combined_condition.append(dependee)
 
@@ -421,7 +431,7 @@ def _shorten_and_check_string(dependee: str, doc: Doc, passive: bool = False) ->
             first_dep_val = doc[and_or_idx - 2]
 
             for child in first_dep_val.children:
-                if child.nbor(-1).text in ["and", "or"] and child.nbor(1).pos_ not in ["AUX", "VERB"]:
+                if (0 < child.i < len(doc) - 2) and child.nbor(-1).text in ["and", "or"] and child.nbor(1).pos_ not in ["AUX", "VERB"]:
                     if passive:
                         and_or_idx += 1
                         sconj_idx = and_or_idx - 2
@@ -1001,7 +1011,7 @@ def extract_param_dependencies(
 
     Returns
     -------
-    list[tuple[str, Condition, Action]]
+    list[tuple]
         List of all found dependencies.
         A dependency tuple always consists of the parameter name, the condition and the resulting action.
 
@@ -1175,6 +1185,18 @@ _dep_cond_when = [
         "REL_OP": ";",
         "RIGHT_ID": "punctuation",
         "RIGHT_ATTRS": {"ORTH": "("}
+    },
+    {
+        "LEFT_ID": "condition_start",
+        "REL_OP": ".*",
+        "RIGHT_ID": "action_verb",
+        "RIGHT_ATTRS": {"LOWER": {"IN": ["equals", "is"]}}
+    },
+    {
+        "LEFT_ID": "action_verb",
+        "REL_OP": ".*",
+        "RIGHT_ID": "right_bracket",
+        "RIGHT_ATTRS": {"ORTH": ")"}
     }
 ]
 

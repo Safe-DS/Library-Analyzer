@@ -1,0 +1,28 @@
+{
+    "class_counts": {},
+    "function_counts": {
+        "test/test/some_global_function": 1,
+        "test/test/__init__": 1
+    },
+    "parameter_counts": {
+        "test/test/some_global_function/parameter_with_function_dependency": 1,
+        "test/test/some_global_function/parameter_with_init_dependency": 1,
+        "test/test/some_global_function/parameter_without_dependency": 1,
+        "test/test/__init__/init_parameter": 1
+
+    },
+    "value_counts": {
+        "test/test/some_global_function/parameter_with_function_dependency": {
+            "'auto'": 1
+        },
+        "test/test/some_global_function/parameter_with_init_dependency": {
+            "'auto'": 1
+        },
+        "test/test/some_global_function/parameter_without_dependency": {
+            "'auto'": 1
+        },
+        "test/test/__init__/init_parameter": {
+            "'auto'": 1
+        }
+    }
+}

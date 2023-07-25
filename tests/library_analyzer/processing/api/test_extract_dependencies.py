@@ -272,7 +272,7 @@ from library_analyzer.processing.api import (
             [
                 (
                     "alpha",
-                    ParameterHasValue("(when fit_inverse_transform equals True", "fit_inverse_transform", "True"),
+                    ParameterHasValue("(when fit_inverse_transform equals True).", "fit_inverse_transform", "True"),
                     ParameterIsIgnored("not ignored")
                 )
             ]
@@ -371,6 +371,21 @@ from library_analyzer.processing.api import (
                     ParameterIsIllegal("Raises ValueError")
                 )
             ]
+        ),
+
+        # https://github.com/scikit-learn/scikit-learn/blob/702316c2718d07b7f51d1cf8ce96d5270a2db1e4/sklearn/linear_model/_ridge.py#L499-L500
+        (
+            "positive",
+            "When set to ``True``, forces the coefficients to be positive. Only 'lbfgs' solver is supported in this "
+            "case.",
+            [
+                (
+                    "positive",
+                    ParameterHasValue("When set to True", "this_parameter", "True"),
+                    ParameterWillBeSetTo("Only lbfgs solver is supported", "solver", "lbfgs")
+                )
+            ]
+
         )
     ]
 )
@@ -379,4 +394,4 @@ def test_extract_param_dependencies(
     description: str,
     expected_dependencies: list[tuple[str, Condition, Action]]
 ) -> None:
-    assert extract_param_dependencies(param_name, description, show_matches=True) == expected_dependencies
+    assert extract_param_dependencies(param_name, description) == expected_dependencies

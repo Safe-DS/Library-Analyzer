@@ -5,10 +5,12 @@ from dataclasses import asdict, dataclass
 from enum import Enum
 from typing import Any
 
+from library_analyzer.processing.api import Condition, Action
+
 ANNOTATION_SCHEMA_VERSION = 2
 
 
-class EnumReviewResult(Enum):
+class EnumReviewResult(str, Enum):
     CORRECT = "correct"
     UNSURE = "unsure"
     WRONG = "wrong"
@@ -45,6 +47,42 @@ class AbstractAnnotation(ABC):
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self, dict_factory=EnumReviewResult.to_dict)
+
+
+@dataclass
+class DependencyAnnotation(AbstractAnnotation):
+    has_dependent_parameter: list[str]
+    is_depending_on: list[str]
+    condition: Condition
+    action: Action
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> DependencyAnnotation:
+        annotation = AbstractAnnotation.from_dict(d)
+        return DependencyAnnotation(
+            annotation.target,
+            annotation.authors,
+            annotation.reviewers,
+            annotation.comment,
+            annotation.reviewResult,
+            d["has_dependent_parameter"],
+            d["is_depending_on"],
+            Condition.from_dict(d["condition"]),
+            Action.from_dict(d["action"])
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "target": self.target,
+            "authors": self.authors,
+            "reviewers": self.reviewers,
+            "comment": self.comment,
+            "reviewResult": self.reviewResult,
+            "has_dependent_parameter": self.has_dependent_parameter,
+            "is_depending_on": self.is_depending_on,
+            "condition": self.condition.to_dict(),
+            "action": self.action.to_dict()
+        }
 
 
 @dataclass

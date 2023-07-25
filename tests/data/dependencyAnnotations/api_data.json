@@ -1,0 +1,68 @@
+{
+    "distribution": "test",
+    "package": "test",
+    "version": "0.0.1",
+    "modules": [
+        {
+            "id": "test/test",
+            "name": "test",
+            "functions": [
+                "test/test/some_global_function",
+                "test/test/__init__"
+            ]
+        }
+    ],
+    "functions": [
+        {
+            "id": "test/test/some_global_function",
+            "name": "some_global_function",
+            "qname": "test.some_global_function",
+            "parameters": [
+                {
+                    "id": "test/test/some_global_function/parameter_with_function_dependency",
+                    "name": "parameter_with_function_dependency",
+                    "qname": "test.some_global_function/parameter_with_function_dependency",
+                    "docstring": {
+                        "type": "str",
+                        "description": "Only available if parameter_without_dependency=None."
+                    }
+                },
+                {
+                    "id": "test/test/some_global_function/parameter_with_init_dependency",
+                    "name": "parameter_with_init_dependency",
+                    "qname": "test.some_global_function/parameter_with_init_dependency",
+                    "docstring": {
+                        "type": "str",
+                        "description": "Only available if init_parameter='auto'"
+                    }
+                },
+                {
+                    "id": "test/test/some_global_function/parameter_without_dependency",
+                    "name": "parameter_without_dependency",
+                    "qname": "test.some_global_function/parameter_without_dependency",
+                    "docstring": {
+                        "type": "str",
+                        "description": "If a CSR, CSC, COO or BSR sparse matrix is supplied and accepted by accept_sparse, accept_large_sparse=False will cause it to be accepted only if its indices are stored with a 32-bit dtype."
+                    }
+                }
+            ]
+        },
+
+        {
+            "id": "test/test/__init__",
+            "name": "__init__",
+            "qname": "test.__init__",
+            "parameters": [
+                {
+                    "id": "test/test/__init__/init_parameter",
+                    "name": "init_parameter",
+                    "qname": "test.__init__/init_parameter",
+                    "docstring": {
+                        "type": "str",
+                        "description": ""
+                    }
+                }
+            ]
+        }
+    ]
+}
