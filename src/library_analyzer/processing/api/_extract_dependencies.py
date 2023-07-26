@@ -13,7 +13,6 @@ from library_analyzer.utils import load_language
 if TYPE_CHECKING:
     from spacy.tokens import Doc, Token
 
-
 _condition_list: list[Condition] = []
 _action_list: list[Action] = []
 _combined_condition: list[str] = []
@@ -25,7 +24,6 @@ _dep_matcher = DependencyMatcher(_nlp.vocab)
 
 @dataclass
 class Condition:
-
     class Variant(str, Enum):
         CONDITION = "condition"
         IN_RELATION = "in_relation"
@@ -66,7 +64,7 @@ class Condition:
             "condition": self.condition,
             "dependee": self.dependee,
             "combined_with": self.combined_with
-                }
+        }
 
 
 class ParametersInRelation(Condition):
@@ -431,7 +429,9 @@ def _shorten_and_check_string(dependee: str, doc: Doc, passive: bool = False) ->
             first_dep_val = doc[and_or_idx - 2]
 
             for child in first_dep_val.children:
-                if (0 < child.i < len(doc) - 2) and child.nbor(-1).text in ["and", "or"] and child.nbor(1).pos_ not in ["AUX", "VERB"]:
+                if (0 < child.i < len(doc) - 2) and child.nbor(-1).text in ["and", "or"] \
+                    and child.nbor(1).pos_ not in ["AUX", "VERB"]:
+
                     if passive:
                         and_or_idx += 1
                         sconj_idx = and_or_idx - 2
@@ -510,14 +510,14 @@ def _add_condition(dependee: str, value: str, cond_str: str, passive: bool = Fal
         cond.also = also
     elif value == "not callable":
         cond = ParameterDoesNotHaveType(cond_str, dependee, value)
+        cond.check_dependee = passive
     elif type_ in types:
         cond = ParameterHasType(cond_str, dependee, type_)
+        cond.check_dependee = passive
     else:
         cond = ParameterHasValue(cond_str, dependee, value)
         cond.also = also
-
-    if passive and not isinstance(cond, ParameterIsNone):
-        cond.check_dependee = True
+        cond.check_dependee = passive
 
     if _combined_condition:
         _condition_list[-1].combined_with = dependee
@@ -550,6 +550,7 @@ def _extract_must_be_condition(
         List of matches found by the matcher.
 
     """
+    restriction: Action
     match = matches[i]
     start = min(match[1])
 
@@ -697,7 +698,7 @@ def _extract_ignored_condition_action(
 
 
 def _extract_pure_only_condition_action(
-    matcher: DependencyMatcher, # noqa : ARG001
+    matcher: DependencyMatcher,  # noqa : ARG001
     doc: Doc,
     i: int,
     matches: list[tuple[Any, ...]],
@@ -929,7 +930,7 @@ def _extract_cond_only_noun(
         if cond_start != -1 and (len(_condition_list) > 0) and (len(_condition_list) == len(_action_list)):
             cond = _condition_list[-1]
         else:
-            cond_string = doc[cond_start:cond_end+1].text
+            cond_string = doc[cond_start:cond_end + 1].text
             value_ = doc[cond_end].text
 
             if cond_end - cond_start == 3:
@@ -1050,7 +1051,7 @@ _dep_cond_only_verb = [
         "REL_OP": ".",
         "RIGHT_ID": "action_start",
         "RIGHT_ATTRS": {"POS": "SCONJ"}
-     },
+    },
     {
         "LEFT_ID": "action_start",
         "REL_OP": "<",
@@ -1069,7 +1070,7 @@ _dep_cond_only_adj = [
         "REL_OP": ".",
         "RIGHT_ID": "action_start",
         "RIGHT_ATTRS": {"POS": "SCONJ"}
-     },
+    },
     {
         "LEFT_ID": "action_start",
         "REL_OP": "<",
@@ -1171,7 +1172,6 @@ _dep_cond_used2 = [
     }
 ]
 
-
 # ... (<if | when | ...> ... <action VERB>)
 _dep_cond_when = [
     {"RIGHT_ID": "condition_start", "RIGHT_ATTRS": {"POS": "SCONJ", "DEP": {"IN": ["mark", "advmod"]}}},
@@ -1246,10 +1246,10 @@ _dep_cond_relational = [
         "RIGHT_ATTRS": {"POS": "SCONJ", "DEP": {"IN": ["mark", "advmod"]}}
     },
     {
-      "LEFT_ID": "sconj",
-      "REL_OP": ".*",
-      "RIGHT_ID": "rel_operator",
-      "RIGHT_ATTRS": {"POS": "SYM", "ORTH": {"IN": ["$LT$", "$GT$", "$GEQ$", "$LEQ$"]}}
+        "LEFT_ID": "sconj",
+        "REL_OP": ".*",
+        "RIGHT_ID": "rel_operator",
+        "RIGHT_ATTRS": {"POS": "SYM", "ORTH": {"IN": ["$LT$", "$GT$", "$GEQ$", "$LEQ$"]}}
     }
 ]
 # Raises <ERROR>...<if | when | ...>
@@ -1316,7 +1316,6 @@ _dep_cond_param_also_value = [
     }
 ]
 
-
 _dep_matcher.add("DEPENDENCY_IMPLICIT_IGNORED_ONLY", [_dep_cond_only_verb, _dep_cond_only_adj],
                  on_match=_extract_only_condition_action)
 _dep_matcher.add(
@@ -1350,7 +1349,6 @@ _dep_matcher.add("DEPENDENCY_COND_ALSO_VALUE", [_dep_cond_param_also_value], on_
 _dep_matcher.add("DEPENDENCY_COND_RAISE_ERROR_START", [_dep_cond_raise_error_start], on_match=_extract_raise_error)
 _dep_matcher.add("DEPENDENCY_COND_RAISE_ERROR_END", [_dep_cond_raise_error_end], on_match=_extract_raise_error)
 
-
 _pattern_hyphened_values = [{"IS_ASCII": True}, {"ORTH": "-"}, {"IS_ASCII": True}]
 _pattern_hyphened_values2 = [{"IS_ASCII": True}, {"ORTH": "-"}, {"IS_ASCII": True}, {"ORTH": "-"}, {"IS_ASCII": True}]
 _pattern_aux_be = [{"LOWER": {"IN": ["must", "will"]}}, {"LOWER": "be"}]
@@ -1367,7 +1365,6 @@ _pattern_cond_value_assignment = [
     {"LOWER": {"IN": ["equals", "set", "is"]}},
     {"LOWER": "to", "OP": "?"}
 ]
-
 
 _merger_matcher.add("HYPHENED_VALUE", [_pattern_hyphened_values, _pattern_hyphened_values2], greedy="LONGEST")
 _merger_matcher.add("AUXPASS", [_pattern_aux_be])
