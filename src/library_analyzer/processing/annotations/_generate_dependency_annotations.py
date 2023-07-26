@@ -93,7 +93,7 @@ def _create_dependency_annotation(
     condition: Condition | None = None,
     action: Action | None = None,
     is_depending_on: list[str] | None = None,
-    has_dependent_parameter: list[str] | None = None
+    has_dependent_parameter: list[str] | None = None,
 ) -> DependencyAnnotation:
     """Create a dependency annotation with the passed parameters.
 
@@ -139,7 +139,7 @@ def _create_dependency_annotation(
         is_depending_on=is_depending,
         has_dependent_parameter=has_dependent,
         condition=cond,
-        action=act
+        action=act,
     )
 
 
@@ -148,7 +148,7 @@ def _add_properties_to_existing_dependency(
     annotations: AnnotationStore,
     cond: Condition | None = None,
     act: Action | None = None,
-    is_depending_on: list[str] | None = None
+    is_depending_on: list[str] | None = None,
 ) -> None:
     """Add more properties to an existing dependency annotation.
 
@@ -227,7 +227,6 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
                             _add_dependency_parameter(right_dependee, is_depending_on)
 
                         case _:
-
                             is_depending_on_param = _search_for_parameter(condition.dependee, parameters, init_func)
                             _add_dependency_parameter(is_depending_on_param, is_depending_on)
 
@@ -244,23 +243,20 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
                     if is_depending_on or has_dependent_parameter:
                         if param.id not in dependency_targets:
                             annotation = _create_dependency_annotation(
-                                target=param.id,
-                                condition=condition,
-                                action=action,
-                                is_depending_on=is_depending_on
+                                target=param.id, condition=condition, action=action, is_depending_on=is_depending_on,
                             )
                             annotations.add_annotation(annotation)
 
                             for dependee_id in is_depending_on:
                                 if dependee_id not in dependency_targets:
                                     dependee_annotation = _create_dependency_annotation(
-                                        target=dependee_id,
-                                        has_dependent_parameter=[param.id]
+                                        target=dependee_id, has_dependent_parameter=[param.id],
                                     )
                                     annotations.add_annotation(dependee_annotation)
                                 else:
                                     _add_properties_to_existing_dependency(dependee_id, annotations)
 
-
                         else:
-                            _add_properties_to_existing_dependency(param.id, annotations, condition, action, is_depending_on)
+                            _add_properties_to_existing_dependency(
+                                param.id, annotations, condition, action, is_depending_on,
+                            )

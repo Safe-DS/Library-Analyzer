@@ -96,7 +96,6 @@
                         "description": "parameter_with_relational_dependency = False if X > Y"
                     }
                 }
-
             ]
         }
     ]
