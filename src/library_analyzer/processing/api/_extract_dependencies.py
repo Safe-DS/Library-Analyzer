@@ -510,10 +510,8 @@ def _add_condition(dependee: str, value: str, cond_str: str, passive: bool = Fal
         cond.also = also
     elif value == "not callable":
         cond = ParameterDoesNotHaveType(cond_str, dependee, value)
-        cond.check_dependee = passive
     elif type_ in types:
         cond = ParameterHasType(cond_str, dependee, type_)
-        cond.check_dependee = passive
     else:
         cond = ParameterHasValue(cond_str, dependee, value)
         cond.also = also
@@ -901,6 +899,9 @@ def _extract_cond_only_noun(
         List of matches found by the matcher.
 
     """
+    action_: Action
+    cond: Condition
+
     match_ = matches[i]
     parameter_token = doc[match_[1][2]]
     start = min(match_[1])

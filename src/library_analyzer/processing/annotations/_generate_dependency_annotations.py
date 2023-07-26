@@ -1,12 +1,16 @@
-from library_analyzer.processing.annotations.model import AnnotationStore, DependencyAnnotation, EnumReviewResult
-from library_analyzer.processing.api import ParameterWillBeSetTo, extract_param_dependencies, ParameterHasValue, \
-    ParametersInRelation, ParameterIsNone
-from library_analyzer.processing.api.model import API, Parameter, Function
-
 from library_analyzer.processing.annotations._constants import autogen_author
+from library_analyzer.processing.annotations.model import AnnotationStore, DependencyAnnotation, EnumReviewResult
+from library_analyzer.processing.api import (
+    ParameterHasValue,
+    ParameterIsNone,
+    ParametersInRelation,
+    ParameterWillBeSetTo,
+    extract_param_dependencies,
+)
+from library_analyzer.processing.api.model import API, Function, Parameter
 
 
-def _search_for_parameter(name: str, parameters: list[Parameter], init_func: Function = None) -> str | None:
+def _search_for_parameter(name: str, parameter_list: list[Parameter], init_func: Function) -> str | None:
     """Search for the passed parameter name.
 
     The parameter name is searched in the list of function parameters.
@@ -18,7 +22,7 @@ def _search_for_parameter(name: str, parameters: list[Parameter], init_func: Fun
     name
         Parameter name to be searched
 
-    parameters
+    parameter_list
         Parameter list to be searched for the parameter to be found.
 
     init_func
@@ -26,14 +30,14 @@ def _search_for_parameter(name: str, parameters: list[Parameter], init_func: Fun
 
     Returns
     -------
-    str
+    str | None
         Paramter id of the found paramter
 
     """
     if init_func is not None:
-        test_params = parameters + init_func.parameters
+        test_params = parameter_list + init_func.parameters
     else:
-        test_params = parameters
+        test_params = parameter_list
 
     for param_ in test_params:
         if param_.name == name:
@@ -72,11 +76,10 @@ def _get_init_func(function_id: str, functions: dict[str, Function]) -> Function
 
     Returns
     -------
-    Function
+    Function | None
         __init__ function of the class to which the function to be examined also belongs.
 
     """
-
     splitted = function_id.split("/")
     splitted[-1] = "__init__"
     new_id = "/".join(splitted)
@@ -84,7 +87,7 @@ def _get_init_func(function_id: str, functions: dict[str, Function]) -> Function
     return functions.get(new_id, None)
 
 
-def _generate_dependency_annotations(api: API, annotations: AnnotationStore):
+def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> None:
     """Generate the dependency annotations for the found dependencies.
 
     Parameters
@@ -107,8 +110,8 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore):
 
             if dependencies:
                 for _, condition, action in dependencies:
-                    is_depending_on = []
-                    has_dependent_parameter = []
+                    is_depending_on: list[str] = []
+                    has_dependent_parameter: list[str] = []
                     init_func = _get_init_func(func.id, functions)
 
                     match condition:
@@ -137,7 +140,7 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore):
                             _add_dependency_parameter(depending_on_param, is_depending_on)
 
                         case _:
-                            has_dependent_parameter_id = _search_for_parameter(condition.dependee, parameters)
+                            has_dependent_parameter_id = _search_for_parameter(condition.dependee, parameters, init_func)
 
                             _add_dependency_parameter(has_dependent_parameter_id, has_dependent_parameter)
 
