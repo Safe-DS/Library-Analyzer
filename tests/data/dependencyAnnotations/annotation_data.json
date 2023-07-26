@@ -87,7 +87,10 @@
         "reviewers": [],
         "comment": "I turned this in a dependency because the phrase 'if X > Y' was found.",
         "reviewResult": "",
-        "is_depending_on": ["test/other_test/some_other_global_function/X", "test/other_test/some_other_global_function/Y"],
+        "is_depending_on": [
+            "test/other_test/some_other_global_function/X",
+            "test/other_test/some_other_global_function/Y"
+        ],
         "has_dependent_parameter": [],
         "condition": {
             "variant": "in_relation",
@@ -103,13 +106,12 @@
             "depender": "parameter_with_relational_dependency",
             "value": "False"
         }
-
     },
     "test/other_test/some_other_global_function/X": {
         "target": "test/other_test/some_other_global_function/X",
         "authors": ["$autogen$"],
         "reviewers": [],
-        "comment":"",
+        "comment": "",
         "reviewResult": "",
         "is_depending_on": [],
         "has_dependent_parameter": [
@@ -126,14 +128,13 @@
             "variant": "action",
             "action": ""
         }
-
     },
 
     "test/other_test/some_other_global_function/Y": {
         "target": "test/other_test/some_other_global_function/Y",
         "authors": ["$autogen$"],
         "reviewers": [],
-        "comment":"",
+        "comment": "",
         "reviewResult": "",
         "is_depending_on": [],
         "has_dependent_parameter": [

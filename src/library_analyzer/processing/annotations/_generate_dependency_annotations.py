@@ -228,7 +228,6 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
                             _add_dependency_parameter(right_dependee, is_depending_on)
 
                         case _:
-
                             is_depending_on_param = _search_for_parameter(condition.dependee, parameters, init_func)
                             _add_dependency_parameter(is_depending_on_param, is_depending_on)
 
@@ -264,4 +263,10 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
                                     _add_properties_to_existing_dependency(dependee_id, annotations, param_id=param.id)
 
                         else:
-                            _add_properties_to_existing_dependency(param.id, annotations, condition, action, is_depending_on)
+                            _add_properties_to_existing_dependency(
+                                param.id,
+                                annotations,
+                                condition,
+                                action,
+                                is_depending_on,
+                            )
