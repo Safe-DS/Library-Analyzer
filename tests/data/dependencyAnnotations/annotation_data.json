@@ -31,7 +31,7 @@
             "variant": "condition",
             "condition": "",
             "dependee": "",
-            "combined_with": ""
+            "combined_with": []
         },
         "action": {
             "variant": "action",
@@ -54,7 +54,7 @@
             "value": "auto",
             "also": false,
             "check_dependee": false,
-            "combined_with": ""
+            "combined_with": []
         },
         "action": {
             "variant": "is_ignored",
@@ -73,7 +73,7 @@
             "variant": "condition",
             "condition": "",
             "dependee": "",
-            "combined_with": ""
+            "combined_with": []
         },
         "action": {
             "variant": "action",
@@ -92,7 +92,7 @@
         "condition": {
             "variant": "in_relation",
             "condition": "if X > Y",
-            "combined_with": "",
+            "combined_with": [],
             "left_dependee": "X",
             "right_dependee": "Y",
             "rel_op": ">"
@@ -112,12 +112,15 @@
         "comment":"",
         "reviewResult": "",
         "is_depending_on": [],
-        "has_dependent_parameter": ["test/other_test/some_other_global_function/parameter_with_relational_dependency"],
+        "has_dependent_parameter": [
+            "test/other_test/some_other_global_function/parameter_with_relational_dependency",
+            "test/other_test/some_other_global_function/parameter_with_combined_dependency"
+        ],
         "condition": {
             "variant": "condition",
             "condition": "",
             "dependee": "",
-            "combined_with": ""
+            "combined_with": []
         },
         "action": {
             "variant": "action",
@@ -125,6 +128,7 @@
         }
 
     },
+
     "test/other_test/some_other_global_function/Y": {
         "target": "test/other_test/some_other_global_function/Y",
         "authors": ["$autogen$"],
@@ -132,17 +136,56 @@
         "comment":"",
         "reviewResult": "",
         "is_depending_on": [],
-        "has_dependent_parameter": ["test/other_test/some_other_global_function/parameter_with_relational_dependency"],
+        "has_dependent_parameter": [
+            "test/other_test/some_other_global_function/parameter_with_relational_dependency",
+            "test/other_test/some_other_global_function/parameter_with_combined_dependency"
+        ],
         "condition": {
             "variant": "condition",
             "condition": "",
             "dependee": "",
-            "combined_with": ""
+            "combined_with": []
         },
         "action": {
             "variant": "action",
             "action": ""
         }
 
+    },
+
+    "test/other_test/some_other_global_function/parameter_with_combined_dependency": {
+        "target": "test/other_test/some_other_global_function/parameter_with_combined_dependency",
+        "authors": ["$autogen$"],
+        "reviewers": [],
+        "comment": "I turned this in a dependency because the phrase 'Only available if Y equals False' was found.",
+        "reviewResult": "",
+        "is_depending_on": [
+            "test/other_test/some_other_global_function/Y",
+            "test/other_test/some_other_global_function/X"
+        ],
+        "has_dependent_parameter": [],
+        "condition": {
+            "variant": "has_value",
+            "condition": "Only available if Y equals False",
+            "dependee": "Y",
+            "value": "False",
+            "also": false,
+            "check_dependee": false,
+            "combined_with":[
+                {
+                    "variant": "has_value",
+                    "condition": "Only available if X equals True",
+                    "dependee": "X",
+                    "value": "True",
+                    "also": false,
+                    "check_dependee": false,
+                    "combined_with": []
+                }
+            ]
+        },
+        "action": {
+            "variant": "is_ignored",
+            "action": "not ignored"
+        }
     }
 }

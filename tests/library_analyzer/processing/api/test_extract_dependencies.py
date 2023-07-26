@@ -98,19 +98,20 @@ from library_analyzer.processing.api import (
                 (
                     "intercept_scaling",
                     ParameterHasValue(
-                        "only when the solver liblinear is used",
-                        "solver",
-                        "liblinear",
+                        "only when self.fit_intercept is True",
                         "self.fit_intercept",
+                        "True",
+                        [
+                            ParameterHasValue(
+                                "only when the solver liblinear is used",
+                                "solver",
+                                "liblinear",
+                            )
+                        ],
                         check_dependee=True,
                     ),
                     ParameterIsIgnored("not ignored"),
-                ),
-                (
-                    "intercept_scaling",
-                    ParameterHasValue("only when self.fit_intercept is True", "self.fit_intercept", "True", "solver"),
-                    ParameterIsIgnored("not ignored"),
-                ),
+                )
             ],
         ),
         # Test was derived from previous test.

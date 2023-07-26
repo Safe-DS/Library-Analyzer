@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
@@ -35,13 +35,17 @@ class Condition:
 
     condition: str = ""
     dependee: str = ""
-    combined_with: str = ""
+    combined_with: list[Condition] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Condition:
         match d["variant"]:
             case Condition.Variant.CONDITION:
-                return cls(d["condition"], d["dependee"], d["combined_with"])
+                return cls(
+                    d["condition"],
+                    d["dependee"],
+                    [Condition.from_dict(cond_dict) for cond_dict in d["combined_with"]]
+                )
             case Condition.Variant.IN_RELATION:
                 return ParametersInRelation.from_dict(d)
             case Condition.Variant.HAS_VALUE:
@@ -62,7 +66,7 @@ class Condition:
             "variant": Condition.Variant.CONDITION,
             "condition": self.condition,
             "dependee": self.dependee,
-            "combined_with": self.combined_with,
+            "combined_with": [cond.to_dict() for cond in self.combined_with],
         }
 
 
@@ -81,7 +85,7 @@ class ParametersInRelation(Condition):
         return {
             "variant": Condition.Variant.IN_RELATION,
             "condition": self.condition,
-            "combined_with": self.combined_with,
+            "combined_with": [cond.to_dict() for cond in self.combined_with],
             "left_dependee": self.left_dependee,
             "right_dependee": self.right_dependee,
             "rel_op": self.rel_op,
@@ -94,18 +98,26 @@ class ParameterHasValue(Condition):
         cond: str,
         dependee: str,
         value: str,
-        combined_with: str = "",
+        combined_with: list[Condition] | None = None,
         check_dependee: bool = False,
         also: bool = False,
     ) -> None:
-        super().__init__(cond, dependee, combined_with)
+        combined_with_list = combined_with if combined_with is not None else []
+        super().__init__(cond, dependee, combined_with_list)
         self.check_dependee: bool = check_dependee
         self.value: str = value
         self.also = also
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Condition:
-        return cls(d["condition"], d["dependee"], d["value"], d["combined_with"], d["check_dependee"], d["also"])
+        return cls(
+            d["condition"],
+            d["dependee"],
+            d["value"],
+            [Condition.from_dict(cond_dict) for cond_dict in d["combined_with"]],
+            d["check_dependee"],
+            d["also"]
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -113,7 +125,7 @@ class ParameterHasValue(Condition):
             "condition": self.condition,
             "dependee": self.dependee,
             "value": self.value,
-            "combined_with": self.combined_with,
+            "combined_with": [cond.to_dict() for cond in self.combined_with],
             "check_dependee": self.check_dependee,
             "also": self.also,
         }
@@ -502,8 +514,9 @@ def _add_condition(dependee: str, value: str, cond_str: str, passive: bool = Fal
         cond.check_dependee = passive
 
     if _combined_condition:
-        _condition_list[-1].combined_with = dependee
-        cond.combined_with = _condition_list[-1].dependee
+        cond.combined_with.append(Condition.from_dict(_condition_list[-1].to_dict()))
+        _condition_list.pop()
+        _action_list.pop()
 
     _condition_list.append(cond)
 

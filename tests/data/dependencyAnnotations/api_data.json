@@ -95,6 +95,16 @@
                         "type": "str",
                         "description": "parameter_with_relational_dependency = False if X > Y"
                     }
+                },
+
+                {
+                    "id": "test/other_test/some_other_global_function/parameter_with_combined_dependency",
+                    "name": "parameter_with_combined_dependency",
+                    "qname": "other_test.some_other_global_function/parameter_with_combined_dependency",
+                    "docstring": {
+                        "type": "str",
+                        "description": "Only available if X = True and Y = False."
+                    }
                 }
 
             ]
