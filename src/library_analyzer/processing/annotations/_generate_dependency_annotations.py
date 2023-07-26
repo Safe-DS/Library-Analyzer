@@ -10,7 +10,7 @@ from library_analyzer.processing.api import (
 from library_analyzer.processing.api.model import API, Function, Parameter
 
 
-def _search_for_parameter(name: str, parameter_list: list[Parameter], init_func: Function) -> str | None:
+def _search_for_parameter(name: str, parameter_list: list[Parameter], init_func: Function | None) -> str | None:
     """Search for the passed parameter name.
 
     The parameter name is searched in the list of function parameters.
@@ -46,7 +46,7 @@ def _search_for_parameter(name: str, parameter_list: list[Parameter], init_func:
     return None
 
 
-def _add_dependency_parameter(param_id: str, target_list: list[str]) -> None:
+def _add_dependency_parameter(param_id: str | None, target_list: list[str]) -> None:
     """Add the parameter to the passed list.
 
     Parameters
@@ -99,6 +99,8 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
         AnnotationStore to which all dependency annotations will be added.
 
     """
+    init_func: Function | None
+
     functions = api.functions
 
     for func in functions.values():
