@@ -500,6 +500,7 @@ def _add_condition(dependee: str, value: str, cond_str: str, passive: bool = Fal
         True if the dependee has the same value as the depender.
 
     """
+    cond: Condition
     types = ["integer", "float", "bool", "str", "string"]
     type_ = value.split(" ")[1].lower() if len(value.split(" ")) == 2 else ""
 
@@ -515,7 +516,7 @@ def _add_condition(dependee: str, value: str, cond_str: str, passive: bool = Fal
         cond = ParameterHasValue(cond_str, dependee, value)
         cond.also = also
 
-    if passive:
+    if passive and not isinstance(cond, ParameterIsNone):
         cond.check_dependee = True
 
     if _combined_condition:
@@ -913,25 +914,25 @@ def _extract_cond_only_noun(
 
     # If the condition is spread over two sentences, the phrase 'in this case' in the second sentence indicates this.
     if any(match_id_string == "IN_THIS_CASE" for match_id_string, _, _ in match_id_strings):
-        start_cond = -1
-        end_cond = -1
+        cond_start = -1
+        cond_end = -1
         action_ = ParameterWillBeSetTo(matched_str, parameter, value_)
 
         for match_id_string, start_, end_ in match_id_strings:
             if match_id_string == "COND_VALUE_ASSIGNMENT":
-                start_cond = start_
-                end_cond = end_
+                cond_start = start_
+                cond_end = end_
                 break
 
         # If a condition and an action were found in the first block,
         # the condition from the first sentence is additionally used for the action from the second sentence.
-        if start_cond != -1 and (len(_condition_list) > 0) and (len(_condition_list) == len(_action_list)):
+        if cond_start != -1 and (len(_condition_list) > 0) and (len(_condition_list) == len(_action_list)):
             cond = _condition_list[-1]
         else:
-            cond_string = doc[start_cond:end_cond+1].text
-            value_ = doc[end_cond].text
+            cond_string = doc[cond_start:cond_end+1].text
+            value_ = doc[cond_end].text
 
-            if end_cond - start_cond == 3:
+            if cond_end - cond_start == 3:
                 dependee = "this_parameter"
             else:
                 dependee = doc[start + 1].text
