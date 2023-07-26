@@ -107,7 +107,6 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
         parameters = func.parameters
 
         for param in parameters:
-
             dependencies = extract_param_dependencies(param.qname, param.docstring.description)
 
             if dependencies:
@@ -130,7 +129,6 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
                             _add_dependency_parameter(is_depending_on_param, is_depending_on)
 
                         case ParametersInRelation():
-
                             left_dependee = _search_for_parameter(condition.left_dependee, parameters, init_func)
                             right_dependee = _search_for_parameter(condition.right_dependee, parameters, init_func)
 
@@ -142,7 +140,9 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
                             _add_dependency_parameter(depending_on_param, is_depending_on)
 
                         case _:
-                            has_dependent_parameter_id = _search_for_parameter(condition.dependee, parameters, init_func)
+                            has_dependent_parameter_id = _search_for_parameter(
+                                condition.dependee, parameters, init_func,
+                            )
 
                             _add_dependency_parameter(has_dependent_parameter_id, has_dependent_parameter)
 
@@ -152,12 +152,14 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
                                 target=param.id,
                                 authors=[autogen_author],
                                 reviewers=[],
-                                comment=f"I turned this in a dependency because the phrase '{condition.condition}' "
-                                        f"was found.",
+                                comment=(
+                                    f"I turned this in a dependency because the phrase '{condition.condition}' "
+                                    "was found."
+                                ),
                                 reviewResult=EnumReviewResult.NONE,
                                 is_depending_on=is_depending_on,
                                 has_dependent_parameter=has_dependent_parameter,
                                 condition=condition,
-                                action=action
-                            )
+                                action=action,
+                            ),
                         )

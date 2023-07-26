@@ -39,7 +39,6 @@ class Condition:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Condition:
-
         match d["variant"]:
             case Condition.Variant.CONDITION:
                 return cls(d["condition"], d["dependee"], d["combined_with"])
@@ -63,7 +62,7 @@ class Condition:
             "variant": Condition.Variant.CONDITION,
             "condition": self.condition,
             "dependee": self.dependee,
-            "combined_with": self.combined_with
+            "combined_with": self.combined_with,
         }
 
 
@@ -85,7 +84,7 @@ class ParametersInRelation(Condition):
             "combined_with": self.combined_with,
             "left_dependee": self.left_dependee,
             "right_dependee": self.right_dependee,
-            "rel_op": self.rel_op
+            "rel_op": self.rel_op,
         }
 
 
@@ -97,7 +96,7 @@ class ParameterHasValue(Condition):
         value: str,
         combined_with: str = "",
         check_dependee: bool = False,
-        also: bool = False
+        also: bool = False,
     ) -> None:
         super().__init__(cond, dependee, combined_with)
         self.check_dependee: bool = check_dependee
@@ -116,7 +115,7 @@ class ParameterHasValue(Condition):
             "value": self.value,
             "combined_with": self.combined_with,
             "check_dependee": self.check_dependee,
-            "also": self.also
+            "also": self.also,
         }
 
 
@@ -129,10 +128,7 @@ class ParameterHasNotValue(Condition):
         return cls(d["condition"])
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "variant": Condition.Variant.NO_VALUE,
-            "condition": self.condition
-        }
+        return {"variant": Condition.Variant.NO_VALUE, "condition": self.condition}
 
 
 class ParameterIsNone(Condition):
@@ -149,7 +145,7 @@ class ParameterIsNone(Condition):
             "variant": Condition.Variant.IS_NONE,
             "condition": self.condition,
             "dependee": self.dependee,
-            "also": self.also
+            "also": self.also,
         }
 
 
@@ -167,7 +163,7 @@ class ParameterDoesNotHaveType(Condition):
             "variant": Condition.Variant.NO_TYPE,
             "condition": self.condition,
             "dependee": self.dependee,
-            "type": self.type_
+            "type": self.type_,
         }
 
 
@@ -185,7 +181,7 @@ class ParameterHasType(Condition):
             "variant": Condition.Variant.HAS_TYPE,
             "condition": self.condition,
             "dependee": self.dependee,
-            "type": self.type_
+            "type": self.type_,
         }
 
 
@@ -202,7 +198,6 @@ class Action:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Action:
-
         match d["variant"]:
             case Action.Variant.ACTION:
                 return cls(d["action"])
@@ -218,10 +213,7 @@ class Action:
                 raise KeyError("unknown variant found")
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "variant": Action.Variant.ACTION,
-            "action": self.action
-        }
+        return {"variant": Action.Variant.ACTION, "action": self.action}
 
 
 class ParameterIsIgnored(Action):
@@ -233,10 +225,7 @@ class ParameterIsIgnored(Action):
         return cls(d["action"])
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "variant": Action.Variant.IS_IGNORED,
-            "action": self.action
-        }
+        return {"variant": Action.Variant.IS_IGNORED, "action": self.action}
 
 
 class ParameterIsIllegal(Action):
@@ -248,10 +237,7 @@ class ParameterIsIllegal(Action):
         return cls(d["action"])
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "variant": Action.Variant.IS_ILLEGAL,
-            "action": self.action
-        }
+        return {"variant": Action.Variant.IS_ILLEGAL, "action": self.action}
 
 
 class ParameterWillBeSetTo(Action):
@@ -269,7 +255,7 @@ class ParameterWillBeSetTo(Action):
             "variant": Action.Variant.WILL_BE_SET,
             "action": self.action,
             "depender": self.depender,
-            "value": self.value_
+            "value": self.value_,
         }
 
 
@@ -282,10 +268,7 @@ class ParameterIsRestricted(Action):
         return cls(d["action"])
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "variant": Action.Variant.IS_RESTRICTED,
-            "action": self.action
-        }
+        return {"variant": Action.Variant.IS_RESTRICTED, "action": self.action}
 
 
 @Language.component("merger")
@@ -412,7 +395,6 @@ def _shorten_and_check_string(dependee: str, doc: Doc, passive: bool = False) ->
     change = False
 
     for token in doc:
-
         if token.pos_ == "SCONJ":
             sconj_idx = token.i + 1
 
@@ -429,9 +411,11 @@ def _shorten_and_check_string(dependee: str, doc: Doc, passive: bool = False) ->
             first_dep_val = doc[and_or_idx - 2]
 
             for child in first_dep_val.children:
-                if (0 < child.i < len(doc) - 2) and child.nbor(-1).text in ["and", "or"] \
-                    and child.nbor(1).pos_ not in ["AUX", "VERB"]:
-
+                if (
+                    (0 < child.i < len(doc) - 2)
+                    and child.nbor(-1).text in ["and", "or"]
+                    and child.nbor(1).pos_ not in ["AUX", "VERB"]
+                ):
                     if passive:
                         and_or_idx += 1
                         sconj_idx = and_or_idx - 2
@@ -555,8 +539,8 @@ def _extract_must_be_condition(
     cond_token = doc[match[1][0]]
     action_token = doc[match[1][2]]
 
-    condition_string = doc[start:cond_token.i + 2].text
-    action_string = doc[action_token.i:-1].text
+    condition_string = doc[start : cond_token.i + 2].text
+    action_string = doc[action_token.i : -1].text
 
     if action_token.nbor(-1).is_punct:
         dependee, dependee_value = _extract_dependee_value(cond_token)
@@ -825,8 +809,8 @@ def _extract_relational_condition(
         case _:
             rel_op = ""
 
-    condition_string = doc[match_[1][1]:cond_token.i].text + rel_op + doc[cond_token.i + 1:-1].text
-    action_string = doc[:match_[1][1]].text
+    condition_string = doc[match_[1][1] : cond_token.i].text + rel_op + doc[cond_token.i + 1 : -1].text
+    action_string = doc[: match_[1][1]].text
 
     _condition_list.append(ParametersInRelation(condition_string, left_dependee, right_dependee, rel_op.strip()))
     _action_list.append(ParameterWillBeSetTo(action_string, depender, value))
@@ -862,11 +846,11 @@ def _extract_raise_error(
     match_id_string = _nlp.vocab.strings[match_[0]]
 
     if match_id_string == "DEPENDENCY_COND_RAISE_ERROR_START":
-        action_string = doc[match_[1][1]:match_[1][0] + 1].text
+        action_string = doc[match_[1][1] : match_[1][0] + 1].text
         cond = Condition(doc.text)
     else:
         dependee, value_ = _extract_dependee_value(doc[match_[1][3]])
-        action_string = doc[match_[1][1]:match_[1][0] + 1].text
+        action_string = doc[match_[1][1] : match_[1][0] + 1].text
         cond = ParameterHasValue(doc.text, dependee, value_)
 
     _condition_list.append(cond)
@@ -931,7 +915,7 @@ def _extract_cond_only_noun(
         if cond_start != -1 and (len(_condition_list) > 0) and (len(_condition_list) == len(_action_list)):
             cond = _condition_list[-1]
         else:
-            cond_string = doc[cond_start:cond_end + 1].text
+            cond_string = doc[cond_start : cond_end + 1].text
             value_ = doc[cond_end].text
 
             if cond_end - cond_start == 3:
@@ -1040,85 +1024,43 @@ _conditional_only = {
     "LEFT_ID": "condition_head",
     "REL_OP": ">",
     "RIGHT_ID": "conditional_only",
-    "RIGHT_ATTRS": {"LOWER": "only"}
+    "RIGHT_ATTRS": {"LOWER": "only"},
 }
 
 # only <VERB> ... <if | when | ...> ... <action VERB>
 _dep_cond_only_verb = [
     {"RIGHT_ID": "condition_head", "RIGHT_ATTRS": {"POS": "VERB"}},
     _conditional_only,
-    {
-        "LEFT_ID": "condition_head",
-        "REL_OP": ".",
-        "RIGHT_ID": "action_start",
-        "RIGHT_ATTRS": {"POS": "SCONJ"}
-    },
-    {
-        "LEFT_ID": "action_start",
-        "REL_OP": "<",
-        "RIGHT_ID": "action",
-        "RIGHT_ATTRS": {"POS": {"IN": ["AUX", "VERB"]}}
-
-    }
+    {"LEFT_ID": "condition_head", "REL_OP": ".", "RIGHT_ID": "action_start", "RIGHT_ATTRS": {"POS": "SCONJ"}},
+    {"LEFT_ID": "action_start", "REL_OP": "<", "RIGHT_ID": "action", "RIGHT_ATTRS": {"POS": {"IN": ["AUX", "VERB"]}}},
 ]
 
 # only <ADJ> ... <if | when | ...> ... <action VERB>
 _dep_cond_only_adj = [
     {"RIGHT_ID": "condition_head", "RIGHT_ATTRS": {"POS": "ADJ"}},
     _conditional_only,
-    {
-        "LEFT_ID": "condition_head",
-        "REL_OP": ".",
-        "RIGHT_ID": "action_start",
-        "RIGHT_ATTRS": {"POS": "SCONJ"}
-    },
-    {
-        "LEFT_ID": "action_start",
-        "REL_OP": "<",
-        "RIGHT_ID": "action",
-        "RIGHT_ATTRS": {"POS": {"IN": ["AUX", "VERB"]}}
-
-    }
+    {"LEFT_ID": "condition_head", "REL_OP": ".", "RIGHT_ID": "action_start", "RIGHT_ATTRS": {"POS": "SCONJ"}},
+    {"LEFT_ID": "action_start", "REL_OP": "<", "RIGHT_ID": "action", "RIGHT_ATTRS": {"POS": {"IN": ["AUX", "VERB"]}}},
 ]
 
 # only  <if | when | ...> ... <action VERB>
 _dep_cond_only = [
     {"RIGHT_ID": "condition_head", "RIGHT_ATTRS": {"POS": "SCONJ", "DEP": {"IN": ["mark", "advmod"]}}},
-    {
-        "LEFT_ID": "condition_head",
-        "REL_OP": ";",
-        "RIGHT_ID": "conditional_only",
-        "RIGHT_ATTRS": {"LOWER": "only"}
-    },
+    {"LEFT_ID": "condition_head", "REL_OP": ";", "RIGHT_ID": "conditional_only", "RIGHT_ATTRS": {"LOWER": "only"}},
     {
         "LEFT_ID": "condition_head",
         "REL_OP": "<",
         "RIGHT_ID": "action_head",
-        "RIGHT_ATTRS": {"POS": {"IN": ["VERB", "AUX"]}}
-    }
+        "RIGHT_ATTRS": {"POS": {"IN": ["VERB", "AUX"]}},
+    },
 ]
 
 # only <NOUN> ... <passive action VERB>
 _dep_cond_only_noun = [
     {"RIGHT_ID": "action_head", "RIGHT_ATTRS": {"POS": {"IN": ["AUX", "VERB"]}}},
-    {
-        "LEFT_ID": "action_head",
-        "REL_OP": ">",
-        "RIGHT_ID": "auxpass",
-        "RIGHT_ATTRS": {"DEP": "auxpass"}
-    },
-    {
-        "LEFT_ID": "action_head",
-        "REL_OP": ">",
-        "RIGHT_ID": "parameter",
-        "RIGHT_ATTRS": {"DEP": "nsubjpass"}
-    },
-    {
-        "LEFT_ID": "parameter",
-        "REL_OP": ">",
-        "RIGHT_ID": "conditional_only",
-        "RIGHT_ATTRS": {"LOWER": "only"}
-    }
+    {"LEFT_ID": "action_head", "REL_OP": ">", "RIGHT_ID": "auxpass", "RIGHT_ATTRS": {"DEP": "auxpass"}},
+    {"LEFT_ID": "action_head", "REL_OP": ">", "RIGHT_ID": "parameter", "RIGHT_ATTRS": {"DEP": "nsubjpass"}},
+    {"LEFT_ID": "parameter", "REL_OP": ">", "RIGHT_ID": "conditional_only", "RIGHT_ATTRS": {"LOWER": "only"}},
 ]
 
 # ... ignored <if | when | ...> ... <action VERB>
@@ -1128,14 +1070,14 @@ _dep_cond_ignored = [
         "LEFT_ID": "action_head",
         "REL_OP": ">",
         "RIGHT_ID": "condition_head",
-        "RIGHT_ATTRS": {"POS": {"IN": ["VERB", "AUX"]}, "DEP": {"NOT_IN": ["auxpass"]}}
+        "RIGHT_ATTRS": {"POS": {"IN": ["VERB", "AUX"]}, "DEP": {"NOT_IN": ["auxpass"]}},
     },
     {
         "LEFT_ID": "condition_head",
         "REL_OP": ">",
         "RIGHT_ID": "condition_start",
-        "RIGHT_ATTRS": {"DEP": {"IN": ["advmod", "mark"]}, "POS": "SCONJ"}
-    }
+        "RIGHT_ATTRS": {"DEP": {"IN": ["advmod", "mark"]}, "POS": "SCONJ"},
+    },
 ]
 
 # Used ... <if | when | ...> ... <action VERB>
@@ -1145,14 +1087,14 @@ _dep_cond_used = [
         "LEFT_ID": "conditional_used",
         "REL_OP": ">",
         "RIGHT_ID": "action_head",
-        "RIGHT_ATTRS": {"POS": {"IN": ["AUX", "VERB"]}, "DEP": {"IN": ["advcl", "ccomp"]}}
+        "RIGHT_ATTRS": {"POS": {"IN": ["AUX", "VERB"]}, "DEP": {"IN": ["advcl", "ccomp"]}},
     },
     {
         "LEFT_ID": "action_head",
         "REL_OP": ">",
         "RIGHT_ID": "condition_start",
-        "RIGHT_ATTRS": {"POS": "SCONJ", "DEP": {"IN": ["advmod", "mark"]}}
-    }
+        "RIGHT_ATTRS": {"POS": "SCONJ", "DEP": {"IN": ["advmod", "mark"]}},
+    },
 ]
 
 # Used ... <if | when | ...> ... <action VERB>
@@ -1163,14 +1105,9 @@ _dep_cond_used2 = [
         "LEFT_ID": "conditional_used",
         "REL_OP": "<",
         "RIGHT_ID": "action_head",
-        "RIGHT_ATTRS": {"POS": {"IN": ["AUX", "VERB"]}}
+        "RIGHT_ATTRS": {"POS": {"IN": ["AUX", "VERB"]}},
     },
-    {
-        "LEFT_ID": "conditional_used",
-        "REL_OP": ">>",
-        "RIGHT_ID": "condition_start",
-        "RIGHT_ATTRS": {"POS": "SCONJ"}
-    }
+    {"LEFT_ID": "conditional_used", "REL_OP": ">>", "RIGHT_ID": "condition_start", "RIGHT_ATTRS": {"POS": "SCONJ"}},
 ]
 
 # ... (<if | when | ...> ... <action VERB>)
@@ -1180,26 +1117,16 @@ _dep_cond_when = [
         "LEFT_ID": "condition_start",
         "REL_OP": "<",
         "RIGHT_ID": "action_head",
-        "RIGHT_ATTRS": {"POS": {"IN": ["AUX", "VERB"]}}
+        "RIGHT_ATTRS": {"POS": {"IN": ["AUX", "VERB"]}},
     },
-    {
-        "LEFT_ID": "condition_start",
-        "REL_OP": ";",
-        "RIGHT_ID": "punctuation",
-        "RIGHT_ATTRS": {"ORTH": "("}
-    },
+    {"LEFT_ID": "condition_start", "REL_OP": ";", "RIGHT_ID": "punctuation", "RIGHT_ATTRS": {"ORTH": "("}},
     {
         "LEFT_ID": "condition_start",
         "REL_OP": ".*",
         "RIGHT_ID": "action_verb",
-        "RIGHT_ATTRS": {"LOWER": {"IN": ["equals", "is"]}}
+        "RIGHT_ATTRS": {"LOWER": {"IN": ["equals", "is"]}},
     },
-    {
-        "LEFT_ID": "action_verb",
-        "REL_OP": ".*",
-        "RIGHT_ID": "right_bracket",
-        "RIGHT_ATTRS": {"ORTH": ")"}
-    }
+    {"LEFT_ID": "action_verb", "REL_OP": ".*", "RIGHT_ID": "right_bracket", "RIGHT_ATTRS": {"ORTH": ")"}},
 ]
 
 # <If | When | ...> ... <action VERB>  must be ...
@@ -1209,14 +1136,9 @@ _dep_cond_if_must_be1 = [
         "LEFT_ID": "action_head",
         "REL_OP": ">",
         "RIGHT_ID": "action_start",
-        "RIGHT_ATTRS": {"POS": "SCONJ", "DEP": {"IN": ["mark", "advmod"]}}
+        "RIGHT_ATTRS": {"POS": "SCONJ", "DEP": {"IN": ["mark", "advmod"]}},
     },
-    {
-        "LEFT_ID": "action_head",
-        "REL_OP": "<",
-        "RIGHT_ID": "must_be",
-        "RIGHT_ATTRS": {"ORTH": "must be"}
-    }
+    {"LEFT_ID": "action_head", "REL_OP": "<", "RIGHT_ID": "must_be", "RIGHT_ATTRS": {"ORTH": "must be"}},
 ]
 
 # <If | When | ...> ... <action VERB>  must be ...
@@ -1227,14 +1149,9 @@ _dep_cond_if_must_be2 = [
         "LEFT_ID": "action_head",
         "REL_OP": ">",
         "RIGHT_ID": "action_start",
-        "RIGHT_ATTRS": {"POS": "SCONJ", "DEP": {"IN": ["mark", "advmod"]}}
+        "RIGHT_ATTRS": {"POS": "SCONJ", "DEP": {"IN": ["mark", "advmod"]}},
     },
-    {
-        "LEFT_ID": "action_head",
-        "REL_OP": "$++",
-        "RIGHT_ID": "must_be",
-        "RIGHT_ATTRS": {"ORTH": "must be"}
-    }
+    {"LEFT_ID": "action_head", "REL_OP": "$++", "RIGHT_ID": "must_be", "RIGHT_ATTRS": {"ORTH": "must be"}},
 ]
 
 # ... <equals | is>  .. <if | when| ...> ... <dependee1> <rel_op> <dependee2>
@@ -1244,54 +1161,28 @@ _dep_cond_relational = [
         "LEFT_ID": "action_head",
         "REL_OP": ">>",
         "RIGHT_ID": "sconj",
-        "RIGHT_ATTRS": {"POS": "SCONJ", "DEP": {"IN": ["mark", "advmod"]}}
+        "RIGHT_ATTRS": {"POS": "SCONJ", "DEP": {"IN": ["mark", "advmod"]}},
     },
     {
         "LEFT_ID": "sconj",
         "REL_OP": ".*",
         "RIGHT_ID": "rel_operator",
-        "RIGHT_ATTRS": {"POS": "SYM", "ORTH": {"IN": ["$LT$", "$GT$", "$GEQ$", "$LEQ$"]}}
-    }
+        "RIGHT_ATTRS": {"POS": "SYM", "ORTH": {"IN": ["$LT$", "$GT$", "$GEQ$", "$LEQ$"]}},
+    },
 ]
 # Raises <ERROR>...<if | when | ...>
 _dep_cond_raise_error_start = [
     {"RIGHT_ID": "error", "RIGHT_ATTRS": {"ORTH": {"REGEX": r".*Error"}}},
-    {
-        "LEFT_ID": "error",
-        "REL_OP": ">",
-        "RIGHT_ID": "action_head",
-        "RIGHT_ATTRS": {"LOWER": {"FUZZY1": "raise"}}
-    },
-    {
-        "LEFT_ID": "error",
-        "REL_OP": ".",
-        "RIGHT_ID": "cond_start",
-        "RIGHT_ATTRS": {"POS": "SCONJ"}
-    }
+    {"LEFT_ID": "error", "REL_OP": ">", "RIGHT_ID": "action_head", "RIGHT_ATTRS": {"LOWER": {"FUZZY1": "raise"}}},
+    {"LEFT_ID": "error", "REL_OP": ".", "RIGHT_ID": "cond_start", "RIGHT_ATTRS": {"POS": "SCONJ"}},
 ]
 
 # ... <equals | is> ... <ERROR> will be risen.
 _dep_cond_raise_error_end = [
     {"RIGHT_ID": "error", "RIGHT_ATTRS": {"LOWER": "error"}},
-    {
-        "LEFT_ID": "error",
-        "REL_OP": "<",
-        "RIGHT_ID": "action_head",
-        "RIGHT_ATTRS": {"LEMMA": "raise"}
-    },
-    {
-        "LEFT_ID": "action_head",
-        "REL_OP": "<",
-        "RIGHT_ID": "verb",
-        "RIGHT_ATTRS": {"POS": "VERB"}
-
-    },
-    {
-        "LEFT_ID": "verb",
-        "REL_OP": ">>",
-        "RIGHT_ID": "cond_head",
-        "RIGHT_ATTRS": {"ORTH": {"IN": ["is", "equals"]}}
-    }
+    {"LEFT_ID": "error", "REL_OP": "<", "RIGHT_ID": "action_head", "RIGHT_ATTRS": {"LEMMA": "raise"}},
+    {"LEFT_ID": "action_head", "REL_OP": "<", "RIGHT_ID": "verb", "RIGHT_ATTRS": {"POS": "VERB"}},
+    {"LEFT_ID": "verb", "REL_OP": ">>", "RIGHT_ID": "cond_head", "RIGHT_ATTRS": {"ORTH": {"IN": ["is", "equals"]}}},
 ]
 
 # ... <VERB> also ...
@@ -1301,34 +1192,23 @@ _dep_cond_param_also_value = [
         "LEFT_ID": "cond_head",
         "REL_OP": ">",
         "RIGHT_ID": "cond_start",
-        "RIGHT_ATTRS": {"POS": "SCONJ", "DEP": {"IN": ["mark", "advmod"]}}
+        "RIGHT_ATTRS": {"POS": "SCONJ", "DEP": {"IN": ["mark", "advmod"]}},
     },
-    {
-        "LEFT_ID": "cond_head",
-        "REL_OP": ">",
-        "RIGHT_ID": "also",
-        "RIGHT_ATTRS": {"LOWER": "also"}
-    },
-    {
-        "LEFT_ID": "cond_head",
-        "REL_OP": "<",
-        "RIGHT_ID": "action_head",
-        "RIGHT_ATTRS": {"POS": "VERB"}
-    }
+    {"LEFT_ID": "cond_head", "REL_OP": ">", "RIGHT_ID": "also", "RIGHT_ATTRS": {"LOWER": "also"}},
+    {"LEFT_ID": "cond_head", "REL_OP": "<", "RIGHT_ID": "action_head", "RIGHT_ATTRS": {"POS": "VERB"}},
 ]
 
-_dep_matcher.add("DEPENDENCY_IMPLICIT_IGNORED_ONLY", [_dep_cond_only_verb, _dep_cond_only_adj],
-                 on_match=_extract_only_condition_action)
 _dep_matcher.add(
-    "DEPENDENCY_IMPLICIT_IGNORED_PURE_ONLY",
-    [_dep_cond_only],
-    on_match=_extract_pure_only_condition_action
+    "DEPENDENCY_IMPLICIT_IGNORED_ONLY",
+    [_dep_cond_only_verb, _dep_cond_only_adj],
+    on_match=_extract_only_condition_action,
+)
+_dep_matcher.add(
+    "DEPENDENCY_IMPLICIT_IGNORED_PURE_ONLY", [_dep_cond_only], on_match=_extract_pure_only_condition_action,
 )
 
 _dep_matcher.add(
-    "DEPENDENCY_IMPLICIT_IGNORED_USED",
-    [_dep_cond_used, _dep_cond_used2],
-    on_match=_extract_used_condition_action
+    "DEPENDENCY_IMPLICIT_IGNORED_USED", [_dep_cond_used, _dep_cond_used2], on_match=_extract_used_condition_action,
 )
 
 _dep_matcher.add("DEPENDENCY_COND_IGNORED", [_dep_cond_ignored], on_match=_extract_ignored_condition_action)
@@ -1336,9 +1216,7 @@ _dep_matcher.add("DEPENDENCY_COND_IGNORED", [_dep_cond_ignored], on_match=_extra
 _dep_matcher.add("DEPENDENCY_COND_WHEN_BRACKETS", [_dep_cond_when], on_match=_extract_used_condition_action)
 
 _dep_matcher.add(
-    "DEPENDENCY_COND_MUST_BE",
-    [_dep_cond_if_must_be1, _dep_cond_if_must_be2],
-    on_match=_extract_must_be_condition
+    "DEPENDENCY_COND_MUST_BE", [_dep_cond_if_must_be1, _dep_cond_if_must_be2], on_match=_extract_must_be_condition,
 )
 
 _dep_matcher.add("DEPENDENCY_COND_RELATIONAL", [_dep_cond_relational], on_match=_extract_relational_condition)
@@ -1364,7 +1242,7 @@ _pattern_cond_value_assignment = [
     {"ORTH": {"IN": ["When", "If"]}},
     {"OP": "?"},
     {"LOWER": {"IN": ["equals", "set", "is"]}},
-    {"LOWER": "to", "OP": "?"}
+    {"LOWER": "to", "OP": "?"},
 ]
 
 _merger_matcher.add("HYPHENED_VALUE", [_pattern_hyphened_values, _pattern_hyphened_values2], greedy="LONGEST")

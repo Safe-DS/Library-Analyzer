@@ -25,10 +25,7 @@ from library_analyzer.processing.annotations.model import (
     TodoAnnotation,
     ValueAnnotation,
 )
-from library_analyzer.processing.api import (
-    Condition,
-    Action
-)
+from library_analyzer.processing.api import Action, Condition
 
 
 def test_annotation_store() -> None:
@@ -129,8 +126,8 @@ def test_annotation_store() -> None:
             has_dependent_parameter=["test/test/test"],
             is_depending_on=["test/test/test"],
             condition=Condition("If test=test", "test"),
-            action=Action("this will be set to test")
-        )
+            action=Action("this will be set to test"),
+        ),
     )
     annotations.descriptionAnnotations.append(
         DescriptionAnnotation(
@@ -310,13 +307,10 @@ def test_annotation_store() -> None:
                     "variant": Condition.Variant.CONDITION,
                     "condition": "If test=test",
                     "dependee": "test",
-                    "combined_with": ""
+                    "combined_with": "",
                 },
-                "action": {
-                    "variant": Action.Variant.ACTION,
-                    "action": "this will be set to test"
-                }
-            }
+                "action": {"variant": Action.Variant.ACTION, "action": "this will be set to test"},
+            },
         },
         "descriptionAnnotations": {
             "test/test": {
@@ -604,7 +598,7 @@ def test_annotation_store() -> None:
                 has_dependent_parameter=["test/test/test"],
                 is_depending_on=["test/test/test"],
                 condition=Condition("If test=test", "test"),
-                action=Action("this will be set to test")
+                action=Action("this will be set to test"),
             ),
             {
                 "target": "test/test",
@@ -618,13 +612,10 @@ def test_annotation_store() -> None:
                     "variant": Condition.Variant.CONDITION,
                     "condition": "If test=test",
                     "dependee": "test",
-                    "combined_with": ""
+                    "combined_with": "",
                 },
-                "action": {
-                    "variant": Action.Variant.ACTION,
-                    "action": "this will be set to test"
-                }
-            }
+                "action": {"variant": Action.Variant.ACTION, "action": "this will be set to test"},
+            },
         ),
         (
             DescriptionAnnotation(

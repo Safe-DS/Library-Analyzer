@@ -5,7 +5,7 @@ from dataclasses import asdict, dataclass
 from enum import Enum
 from typing import Any
 
-from library_analyzer.processing.api import Condition, Action
+from library_analyzer.processing.api import Action, Condition
 
 ANNOTATION_SCHEMA_VERSION = 2
 
@@ -68,7 +68,7 @@ class DependencyAnnotation(AbstractAnnotation):
             d["has_dependent_parameter"],
             d["is_depending_on"],
             Condition.from_dict(d["condition"]),
-            Action.from_dict(d["action"])
+            Action.from_dict(d["action"]),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -81,7 +81,7 @@ class DependencyAnnotation(AbstractAnnotation):
             "has_dependent_parameter": self.has_dependent_parameter,
             "is_depending_on": self.is_depending_on,
             "condition": self.condition.to_dict(),
-            "action": self.action.to_dict()
+            "action": self.action.to_dict(),
         }
 
 

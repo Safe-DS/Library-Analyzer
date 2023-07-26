@@ -6,10 +6,7 @@
         {
             "id": "test/test",
             "name": "test",
-            "functions": [
-                "test/test/some_global_function",
-                "test/test/__init__"
-            ]
+            "functions": ["test/test/some_global_function", "test/test/__init__"]
         }
     ],
     "functions": [
