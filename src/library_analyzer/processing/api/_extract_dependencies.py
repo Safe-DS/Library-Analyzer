@@ -1204,11 +1204,15 @@ _dep_matcher.add(
     on_match=_extract_only_condition_action,
 )
 _dep_matcher.add(
-    "DEPENDENCY_IMPLICIT_IGNORED_PURE_ONLY", [_dep_cond_only], on_match=_extract_pure_only_condition_action,
+    "DEPENDENCY_IMPLICIT_IGNORED_PURE_ONLY",
+    [_dep_cond_only],
+    on_match=_extract_pure_only_condition_action,
 )
 
 _dep_matcher.add(
-    "DEPENDENCY_IMPLICIT_IGNORED_USED", [_dep_cond_used, _dep_cond_used2], on_match=_extract_used_condition_action,
+    "DEPENDENCY_IMPLICIT_IGNORED_USED",
+    [_dep_cond_used, _dep_cond_used2],
+    on_match=_extract_used_condition_action,
 )
 
 _dep_matcher.add("DEPENDENCY_COND_IGNORED", [_dep_cond_ignored], on_match=_extract_ignored_condition_action)
@@ -1216,7 +1220,9 @@ _dep_matcher.add("DEPENDENCY_COND_IGNORED", [_dep_cond_ignored], on_match=_extra
 _dep_matcher.add("DEPENDENCY_COND_WHEN_BRACKETS", [_dep_cond_when], on_match=_extract_used_condition_action)
 
 _dep_matcher.add(
-    "DEPENDENCY_COND_MUST_BE", [_dep_cond_if_must_be1, _dep_cond_if_must_be2], on_match=_extract_must_be_condition,
+    "DEPENDENCY_COND_MUST_BE",
+    [_dep_cond_if_must_be1, _dep_cond_if_must_be2],
+    on_match=_extract_must_be_condition,
 )
 
 _dep_matcher.add("DEPENDENCY_COND_RELATIONAL", [_dep_cond_relational], on_match=_extract_relational_condition)

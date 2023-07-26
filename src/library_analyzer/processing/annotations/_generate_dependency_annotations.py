@@ -141,7 +141,9 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
 
                         case _:
                             has_dependent_parameter_id = _search_for_parameter(
-                                condition.dependee, parameters, init_func,
+                                condition.dependee,
+                                parameters,
+                                init_func,
                             )
 
                             _add_dependency_parameter(has_dependent_parameter_id, has_dependent_parameter)

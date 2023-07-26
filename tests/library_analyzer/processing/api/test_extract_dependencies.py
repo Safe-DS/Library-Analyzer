@@ -230,14 +230,20 @@ from library_analyzer.processing.api import (
                 (
                     "random_state",
                     ParameterHasValue(
-                        "Used when the randomized or arpack solvers are used.", "arpack", "solvers", check_dependee=True,
+                        "Used when the randomized or arpack solvers are used.",
+                        "arpack",
+                        "solvers",
+                        check_dependee=True,
                     ),
                     ParameterIsIgnored("not ignored"),
                 ),
                 (
                     "random_state",
                     ParameterHasValue(
-                        "Used when the randomized solvers are used.", "randomized", "solvers", check_dependee=True,
+                        "Used when the randomized solvers are used.",
+                        "randomized",
+                        "solvers",
+                        check_dependee=True,
                     ),
                     ParameterIsIgnored("not ignored"),
                 ),
@@ -326,7 +332,9 @@ from library_analyzer.processing.api import (
                 (
                     "metric",
                     ParameterHasValue(
-                        "metric equals precomputed was deprecated and now raises an error", "metric", "precomputed",
+                        "metric equals precomputed was deprecated and now raises an error",
+                        "metric",
+                        "precomputed",
                     ),
                     ParameterIsIllegal("raises an error"),
                 ),
@@ -362,6 +370,8 @@ from library_analyzer.processing.api import (
     ],
 )
 def test_extract_param_dependencies(
-    param_name: str, description: str, expected_dependencies: list[tuple[str, Condition, Action]],
+    param_name: str,
+    description: str,
+    expected_dependencies: list[tuple[str, Condition, Action]],
 ) -> None:
     assert extract_param_dependencies(param_name, description) == expected_dependencies
