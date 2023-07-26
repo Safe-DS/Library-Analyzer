@@ -60,6 +60,44 @@
                     }
                 }
             ]
+        },
+
+        {
+            "id": "test/other_test/some_other_global_function",
+            "name": "some_other_global_function",
+            "qname": "other_test.some_other_global_function",
+            "parameters": [
+                {
+                    "id": "test/other_test/some_other_global_function/X",
+                    "name": "X",
+                    "qname": "other_test.some_other_global_function/X",
+                    "docstring": {
+                        "type": "str",
+                        "description": ""
+                    }
+                },
+
+                {
+                    "id": "test/other_test/some_other_global_function/Y",
+                    "name": "Y",
+                    "qname": "other_test.some_other_global_function/Y",
+                    "docstring": {
+                        "type": "str",
+                        "description": ""
+                    }
+                },
+
+                {
+                    "id": "test/other_test/some_other_global_function/parameter_with_relational_dependency",
+                    "name": "parameter_with_relational_dependency",
+                    "qname": "other_test.some_other_global_function/parameter_with_relational_dependency",
+                    "docstring": {
+                        "type": "str",
+                        "description": "parameter_with_relational_dependency = False if X > Y"
+                    }
+                }
+
+            ]
         }
     ]
 }

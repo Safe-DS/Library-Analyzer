@@ -5,7 +5,7 @@ from library_analyzer.processing.api import (
     ParameterIsNone,
     ParametersInRelation,
     ParameterWillBeSetTo,
-    extract_param_dependencies,
+    extract_param_dependencies, Condition, Action,
 )
 from library_analyzer.processing.api.model import API, Function, Parameter
 
@@ -87,6 +87,100 @@ def _get_init_func(function_id: str, functions: dict[str, Function]) -> Function
     return functions.get(new_id, None)
 
 
+def _create_dependency_annotation(
+    target: str,
+    condition: Condition | None = None,
+    action: Action | None = None,
+    is_depending_on: list[str] | None = None,
+    has_dependent_parameter: list[str] | None = None
+) -> DependencyAnnotation:
+    """Create a dependency annotation with the passed parameters.
+
+    Parameters
+    ----------
+    target
+        Parameter_id of the parameter belonging to the annotation.
+
+    condition
+        condition of the dependency annotation
+
+    action
+        action of the dependency annotation
+
+    is_depending_on
+        Parameter_ids of the parameters on which the considered parameter depends
+
+    has_dependent_parameter
+        Parameter_ids of the parameters that depend on the parameter under consideration
+
+    Returns
+    -------
+        DependencyAnnotation
+
+    """
+    if condition is None:
+        cond = Condition()
+        comment = ""
+    else:
+        cond = condition
+        comment = f"I turned this in a dependency because the phrase '{condition.condition}' was found."
+
+    act = action if action is not None else Action()
+    has_dependent = has_dependent_parameter if has_dependent_parameter is not None else []
+    is_depending = is_depending_on if is_depending_on is not None else []
+
+    return DependencyAnnotation(
+        target=target,
+        authors=[autogen_author],
+        reviewers=[],
+        comment=comment,
+        reviewResult=EnumReviewResult.NONE,
+        is_depending_on=is_depending,
+        has_dependent_parameter=has_dependent,
+        condition=cond,
+        action=act
+    )
+
+
+def _add_properties_to_existing_dependency(
+    target: str,
+    annotations: AnnotationStore,
+    cond: Condition | None = None,
+    act: Action | None = None,
+    is_depending_on: list[str] | None = None
+) -> None:
+    """Add more properties to an existing dependency annotation.
+
+    Parameters
+    ----------
+    target
+        target the existing dependency annotation
+
+    annotations
+        AnnotationStore that contains the dependency annotations
+
+    cond
+        condition to be added to a parameter that so far only has dependencies to itself
+
+    act
+        action to be added to a parameter that so far only has dependencies to itself
+
+    is_depending_on
+        Contains parameter_ids that represent dependencies to other parameters
+
+    """
+    for annotation in annotations.dependencyAnnotations:
+        if annotation.target == target:
+            if is_depending_on is not None:
+                annotation.is_depending_on = is_depending_on
+                annotation.condition = cond
+                annotation.action = act
+                break
+            else:
+                annotation.has_dependent_parameter.append(target)
+                break
+
+
 def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> None:
     """Generate the dependency annotations for the found dependencies.
 
@@ -124,9 +218,9 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
 
                             _add_dependency_parameter(is_depending_on_param, is_depending_on)
 
-                        case ParameterIsNone():
-                            is_depending_on_param = _search_for_parameter(condition.dependee, parameters, init_func)
-                            _add_dependency_parameter(is_depending_on_param, is_depending_on)
+                        # case ParameterIsNone():
+                        # is_depending_on_param = _search_for_parameter(condition.dependee, parameters, init_func)
+                        # _add_dependency_parameter(is_depending_on_param, is_depending_on)
 
                         case ParametersInRelation():
                             left_dependee = _search_for_parameter(condition.left_dependee, parameters, init_func)
@@ -135,33 +229,74 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
                             _add_dependency_parameter(left_dependee, is_depending_on)
                             _add_dependency_parameter(right_dependee, is_depending_on)
 
-                        case ParameterWillBeSetTo():
-                            depending_on_param = _search_for_parameter(condition.depender, parameters, init_func)
-                            _add_dependency_parameter(depending_on_param, is_depending_on)
+                        # case ParameterWillBeSetTo():
+                        #     depending_on_param = _search_for_parameter(condition.depender, parameters, init_func)
+                        #     _add_dependency_parameter(depending_on_param, is_depending_on)
 
                         case _:
-                            has_dependent_parameter_id = _search_for_parameter(
-                                condition.dependee,
-                                parameters,
-                                init_func,
-                            )
+                            # has_dependent_parameter_id = _search_for_parameter(
+                            #     condition.dependee,
+                            #     parameters,
+                            #     init_func,
+                            # )
+                            #
+                            # _add_dependency_parameter(has_dependent_parameter_id, has_dependent_parameter)
+                            is_depending_on_param = _search_for_parameter(condition.dependee, parameters, init_func)
+                            _add_dependency_parameter(is_depending_on_param, is_depending_on)
 
-                            _add_dependency_parameter(has_dependent_parameter_id, has_dependent_parameter)
+                    if condition.combined_with != "":
+                        is_depending_on_param = _search_for_parameter(condition.combined_with, parameters, init_func)
+                        is_depending_on.append(is_depending_on_param)
+
+                    if isinstance(action, ParameterWillBeSetTo):
+                        has_dependent_parameter_id = _search_for_parameter(action.depender, parameters, init_func)
+                        _add_dependency_parameter(has_dependent_parameter_id, has_dependent_parameter)
+
+
+                    dependency_targets = [annotation.target for annotation in annotations.dependencyAnnotations]
 
                     if is_depending_on or has_dependent_parameter:
-                        annotations.add_annotation(
-                            DependencyAnnotation(
+                        if param.id not in dependency_targets:
+                            annotation = _create_dependency_annotation(
                                 target=param.id,
-                                authors=[autogen_author],
-                                reviewers=[],
-                                comment=(
-                                    f"I turned this in a dependency because the phrase '{condition.condition}' "
-                                    "was found."
-                                ),
-                                reviewResult=EnumReviewResult.NONE,
-                                is_depending_on=is_depending_on,
-                                has_dependent_parameter=has_dependent_parameter,
                                 condition=condition,
                                 action=action,
-                            ),
-                        )
+                                is_depending_on=is_depending_on
+                            )
+                            annotations.add_annotation(annotation)
+                            # annotations.add_annotation(
+                            #     DependencyAnnotation(
+                            #         target=param.id,
+                            #         authors=[autogen_author],
+                            #         reviewers=[],
+                            #         comment=(
+                            #             f"I turned this in a dependency because the phrase '{condition.condition}' "
+                            #             "was found."
+                            #         ),
+                            #         reviewResult=EnumReviewResult.NONE,
+                            #         is_depending_on=is_depending_on,
+                            #         has_dependent_parameter=has_dependent_parameter,
+                            #         condition=condition,
+                            #         action=action,
+                            #     )
+                            # )
+
+                            for dependee_id in is_depending_on:
+                                if dependee_id not in dependency_targets:
+                                    dependee_annotation = _create_dependency_annotation(
+                                        target=dependee_id,
+                                        has_dependent_parameter=[param.id]
+                                    )
+                                    annotations.add_annotation(dependee_annotation)
+                                else:
+                                    _add_properties_to_existing_dependency(dependee_id, annotations)
+                                    # for annotation in annotations.dependencyAnnotations:
+                                    #     if annotation.target == dependee_id:
+                                    #         annotation.has_dependent_parameter.append(param.id)
+
+                        else:
+                            _add_properties_to_existing_dependency(param.id, annotations, condition, action, is_depending_on)
+                            # for annotation in annotations.dependencyAnnotations:
+                            #     if annotation.target == param.id:
+                            #         annotation.is_depending_on = is_depending_on
+                            #         break

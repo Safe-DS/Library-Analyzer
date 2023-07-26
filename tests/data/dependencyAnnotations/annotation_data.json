@@ -19,6 +19,26 @@
         }
     },
 
+    "test/test/some_global_function/parameter_without_dependency": {
+        "target": "test/test/some_global_function/parameter_without_dependency",
+        "authors": ["$autogen$"],
+        "reviewers": [],
+        "comment": "",
+        "reviewResult": "",
+        "is_depending_on": [],
+        "has_dependent_parameter": ["test/test/some_global_function/parameter_with_function_dependency"],
+        "condition": {
+            "variant": "condition",
+            "condition": "",
+            "dependee": "",
+            "combined_with": ""
+        },
+        "action": {
+            "variant": "action",
+            "action": ""
+        }
+    },
+
     "test/test/some_global_function/parameter_with_init_dependency": {
         "target": "test/test/some_global_function/parameter_with_init_dependency",
         "authors": ["$autogen$"],
@@ -40,5 +60,89 @@
             "variant": "is_ignored",
             "action": "not ignored"
         }
+    },
+    "test/test/__init__/init_parameter": {
+        "target": "test/test/__init__/init_parameter",
+        "authors": ["$autogen$"],
+        "reviewers": [],
+        "comment": "",
+        "reviewResult": "",
+        "is_depending_on": [],
+        "has_dependent_parameter": ["test/test/some_global_function/parameter_with_init_dependency"],
+        "condition": {
+            "variant": "condition",
+            "condition": "",
+            "dependee": "",
+            "combined_with": ""
+        },
+        "action": {
+            "variant": "action",
+            "action": ""
+        }
+    },
+
+    "test/other_test/some_other_global_function/parameter_with_relational_dependency": {
+        "target": "test/other_test/some_other_global_function/parameter_with_relational_dependency",
+        "authors": ["$autogen$"],
+        "reviewers": [],
+        "comment": "I turned this in a dependency because the phrase 'if X > Y' was found.",
+        "reviewResult": "",
+        "is_depending_on": ["test/other_test/some_other_global_function/X", "test/other_test/some_other_global_function/Y"],
+        "has_dependent_parameter": [],
+        "condition": {
+            "variant": "in_relation",
+            "condition": "if X > Y",
+            "combined_with": "",
+            "left_dependee": "X",
+            "right_dependee": "Y",
+            "rel_op": ">"
+        },
+        "action": {
+            "variant": "will_be_set",
+            "action": "parameter_with_relational_dependency equals False",
+            "depender": "parameter_with_relational_dependency",
+            "value": "False"
+        }
+
+    },
+    "test/other_test/some_other_global_function/X": {
+        "target": "test/other_test/some_other_global_function/X",
+        "authors": ["$autogen$"],
+        "reviewers": [],
+        "comment":"",
+        "reviewResult": "",
+        "is_depending_on": [],
+        "has_dependent_parameter": ["test/other_test/some_other_global_function/parameter_with_relational_dependency"],
+        "condition": {
+            "variant": "condition",
+            "condition": "",
+            "dependee": "",
+            "combined_with": ""
+        },
+        "action": {
+            "variant": "action",
+            "action": ""
+        }
+
+    },
+    "test/other_test/some_other_global_function/Y": {
+        "target": "test/other_test/some_other_global_function/Y",
+        "authors": ["$autogen$"],
+        "reviewers": [],
+        "comment":"",
+        "reviewResult": "",
+        "is_depending_on": [],
+        "has_dependent_parameter": ["test/other_test/some_other_global_function/parameter_with_relational_dependency"],
+        "condition": {
+            "variant": "condition",
+            "condition": "",
+            "dependee": "",
+            "combined_with": ""
+        },
+        "action": {
+            "variant": "action",
+            "action": ""
+        }
+
     }
 }
