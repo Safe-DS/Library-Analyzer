@@ -34,7 +34,7 @@ class AnnotationStore:
     boundaryAnnotations: list[BoundaryAnnotation] = field(default_factory=list)  # noqa: N815
     calledAfterAnnotations: list[CalledAfterAnnotation] = field(default_factory=list)  # noqa: N815
     completeAnnotations: list[CompleteAnnotation] = field(default_factory=list)  # noqa: N815
-    dependencyAnnotations: list[DependencyAnnotation] = field(default_factory=list)  # noqa : N815
+    dependencyAnnotations: list[DependencyAnnotation] = field(default_factory=list)  # noqa: N815
     descriptionAnnotations: list[DescriptionAnnotation] = field(default_factory=list)  # noqa: N815
     enumAnnotations: list[EnumAnnotation] = field(default_factory=list)  # noqa: N815
     expertAnnotations: list[ExpertAnnotation] = field(default_factory=list)  # noqa: N815

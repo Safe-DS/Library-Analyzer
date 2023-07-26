@@ -696,7 +696,7 @@ def _extract_ignored_condition_action(
 
 
 def _extract_pure_only_condition_action(
-    matcher: DependencyMatcher,  # noqa : ARG001
+    matcher: DependencyMatcher,  # noqa: ARG001
     doc: Doc,
     i: int,
     matches: list[tuple[Any, ...]],
