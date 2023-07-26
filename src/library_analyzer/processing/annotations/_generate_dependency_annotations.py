@@ -245,14 +245,18 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
                     if is_depending_on or has_dependent_parameter:
                         if param.id not in dependency_targets:
                             annotation = _create_dependency_annotation(
-                                target=param.id, condition=condition, action=action, is_depending_on=is_depending_on,
+                                target=param.id,
+                                condition=condition,
+                                action=action,
+                                is_depending_on=is_depending_on,
                             )
                             annotations.add_annotation(annotation)
 
                             for dependee_id in is_depending_on:
                                 if dependee_id not in dependency_targets:
                                     dependee_annotation = _create_dependency_annotation(
-                                        target=dependee_id, has_dependent_parameter=[param.id],
+                                        target=dependee_id,
+                                        has_dependent_parameter=[param.id],
                                     )
                                     annotations.add_annotation(dependee_annotation)
                                 else:
