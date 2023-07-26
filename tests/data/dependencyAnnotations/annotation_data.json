@@ -151,7 +151,6 @@
             "variant": "action",
             "action": ""
         }
-
     },
 
     "test/other_test/some_other_global_function/parameter_with_combined_dependency": {
@@ -172,7 +171,7 @@
             "value": "False",
             "also": false,
             "check_dependee": false,
-            "combined_with":[
+            "combined_with": [
                 {
                     "variant": "has_value",
                     "condition": "Only available if X equals True",

@@ -42,9 +42,7 @@ class Condition:
         match d["variant"]:
             case Condition.Variant.CONDITION:
                 return cls(
-                    d["condition"],
-                    d["dependee"],
-                    [Condition.from_dict(cond_dict) for cond_dict in d["combined_with"]]
+                    d["condition"], d["dependee"], [Condition.from_dict(cond_dict) for cond_dict in d["combined_with"]],
                 )
             case Condition.Variant.IN_RELATION:
                 return ParametersInRelation.from_dict(d)
@@ -116,7 +114,7 @@ class ParameterHasValue(Condition):
             d["value"],
             [Condition.from_dict(cond_dict) for cond_dict in d["combined_with"]],
             d["check_dependee"],
-            d["also"]
+            d["also"],
         )
 
     def to_dict(self) -> dict[str, Any]:

@@ -106,12 +106,12 @@ from library_analyzer.processing.api import (
                                 "only when the solver liblinear is used",
                                 "solver",
                                 "liblinear",
-                            )
+                            ),
                         ],
                         check_dependee=True,
                     ),
                     ParameterIsIgnored("not ignored"),
-                )
+                ),
             ],
         ),
         # Test was derived from previous test.
