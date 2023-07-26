@@ -539,8 +539,8 @@ def _extract_must_be_condition(
     cond_token = doc[match[1][0]]
     action_token = doc[match[1][2]]
 
-    condition_string = doc[start: cond_token.i + 2].text
-    action_string = doc[action_token.i: -1].text
+    condition_string = doc[start : cond_token.i + 2].text
+    action_string = doc[action_token.i : -1].text
 
     if action_token.nbor(-1).is_punct:
         dependee, dependee_value = _extract_dependee_value(cond_token)
@@ -809,7 +809,7 @@ def _extract_relational_condition(
         case _:
             rel_op = ""
 
-    condition_string = doc[match_[1][1]: cond_token.i].text + rel_op + doc[cond_token.i + 1: -1].text
+    condition_string = doc[match_[1][1] : cond_token.i].text + rel_op + doc[cond_token.i + 1 : -1].text
     action_string = doc[: match_[1][1]].text
 
     _condition_list.append(ParametersInRelation(condition_string, left_dependee, right_dependee, rel_op.strip()))
@@ -846,11 +846,11 @@ def _extract_raise_error(
     match_id_string = _nlp.vocab.strings[match_[0]]
 
     if match_id_string == "DEPENDENCY_COND_RAISE_ERROR_START":
-        action_string = doc[match_[1][1]:match_[1][0] + 1].text
+        action_string = doc[match_[1][1] : match_[1][0] + 1].text
         cond = Condition(doc.text)
     else:
         dependee, value_ = _extract_dependee_value(doc[match_[1][3]])
-        action_string = doc[match_[1][1]:match_[1][0] + 1].text
+        action_string = doc[match_[1][1] : match_[1][0] + 1].text
         cond = ParameterHasValue(doc.text, dependee, value_)
 
     _condition_list.append(cond)
@@ -915,7 +915,7 @@ def _extract_cond_only_noun(
         if cond_start != -1 and (len(_condition_list) > 0) and (len(_condition_list) == len(_action_list)):
             cond = _condition_list[-1]
         else:
-            cond_string = doc[cond_start:cond_end + 1].text
+            cond_string = doc[cond_start : cond_end + 1].text
             value_ = doc[cond_end].text
 
             if cond_end - cond_start == 3:
