@@ -641,52 +641,6 @@ def local_global():
         ),
         (  # language=Python
             """
-class A:
-    global glob1
-    glob1 = 10
-    print(glob1)
-            """,  # language= None
-            ValueError  # TODO: add error message incase the the global variable is not declared in the module scope
-        ),
-        (  # language=Python
-            """
-def local_global():
-    global glob1
-
-    return glob1
-
-local_global()
-            """,  # language= None
-            ValueError  # TODO: error message
-        ),
-        (  # language=Python
-            """
-class A:
-    global glob1
-    value = glob1
-
-a = A().value
-glob1 = 10
-b = A().value
-print(a, b)
-            """,  # language= None
-            ValueError  # TODO: error message
-        ),
-        (  # language=Python
-            """
-def local_global():
-    global glob1
-
-    return glob1
-
-lg = local_global()
-glob1 = 10
-print(glob1)
-            """,  # language= None
-            ValueError  # TODO: error message
-        ),
-        (  # language=Python
-            """
 glob1 = 10
 def local_global_access():
     return glob1  # TODO: this is not detected as a node inside the function scope, which is correct
@@ -855,8 +809,8 @@ def func1():
     for i in range(var1):
         print(i)
         """,  # language=none
-            [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
-             ReferenceTestNode("i.line5", "Module.", ["LocalVariable.i.line4"])]
+            [ReferenceTestNode("var1.line4", "FunctionDef.func1", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("i.line5", "FunctionDef.func1.", ["LocalVariable.i.line4"])]
         ),
         (  # language=Python
             """
@@ -864,7 +818,8 @@ nums = ["one", "two", "three"]
 for num in nums:
     print(num)
         """,  # language=none
-            []
+            [ReferenceTestNode("nums.line2", "Module.", ["GlobalVariable.nums.line2"]),
+             ReferenceTestNode("num.line3", "Module.", ["GlobalVariable.num.line3"])]
         ),
         (  # language=Python
             """
@@ -872,7 +827,9 @@ nums = ["one", "two", "three"]
 lengths = [len(num) for num in nums]  # TODO: list comprehension should get its own scope (LATER: for further improvement)
 print(lengths)
         """,  # language=none
-            []
+            [ReferenceTestNode("nums.line2", "Module.", ["GlobalVariable.nums.line2"]),
+             ReferenceTestNode("num.line3", "List.", ["LocalVariable.num.line3"]),
+             ReferenceTestNode("lengths.line4", "Module.", ["GlobalVariable.lengths.line4"])]
         ),
         (  # language=Python
             """
@@ -921,7 +878,7 @@ arr[0] = 10  # TODO: this is not detected right now but should be
 dictionary = {"key1": 1, "key2": 2}
 dictionary["key1"] = 0 # TODO: this is not detected right now but should be
             """,  # language=none
-            []
+            [ReferenceTestNode("dictionary.line3", "Module.", ["GlobalVariable.dictionary.line2"])]
         ),
         (  # language=Python
             """
@@ -961,7 +918,8 @@ x = 10
 y = 20
 print(x, y)
             """,  # language=none
-            []
+            [ReferenceTestNode("x.line4", "Module.", ["GlobalVariable.x.line2"]),
+             ReferenceTestNode("y.line4", "Module.", ["GlobalVariable.y.line3"])]
         ),
         (  # language=Python
             """
@@ -981,7 +939,10 @@ var2 = 20
 
 res = var1 + var2 - (var1 * var2)
             """,  # language=none
-            []
+            [ReferenceTestNode("var1.line5", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var2.line5", "Module.", ["GlobalVariable.var2.line3"]),
+             ReferenceTestNode("var1.line5", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var2.line5", "Module.", ["GlobalVariable.var2.line3"])]
         ),
         (  # language=Python
             """
@@ -1023,10 +984,6 @@ f()
         "global variable in class scope",
         "global variable in function scope",
         "global variable in class scope and function scope",
-        "new global variable in class scope",
-        "new global variable in function scope",
-        "new global variable in class scope with outer scope usage",
-        "new global variable in function scope with outer scope usage",
         "access of global variable without global keyword",
         "local variable in function scope shadowing global variable without global keyword",
         "two globals in class scope",  # TODO: all below are not supported yet
@@ -1069,13 +1026,78 @@ def test_resolve_references(code, expected):
 
     # assert references == expected
     assert transformed_references == expected
-    # if expected is ValueError:
-    #     with pytest.raises(ValueError, match="Symbol is not defined in the module scope"):
-    #         assert transformed_references == expected
-    # else:
-    #     assert transformed_references == expected
 
-# TODO: separate testcase for errors
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python
+            """
+class A:
+    global glob1
+    glob1 = 10
+    print(glob1)
+            """,  # language= None
+            [ReferenceTestNode("glob1.line3", "ClassDef.A", ["GlobalVariable.glob1.line2"])]
+        ),
+        (  # language=Python
+            """
+def local_global():
+    global glob1
+
+    return glob1
+            """,  # language= None
+            [ReferenceTestNode("glob1.line3", "FunctionDef.local_global", [])]
+        ),
+        (  # language=Python
+            """
+class A:
+    global glob1
+    value = glob1
+
+a = A().value
+glob1 = 10
+b = A().value
+print(a, b)
+            """,  # language= None
+            []
+        ),
+        (  # language=Python
+            """
+def local_global():
+    global glob1
+
+    return glob1
+
+lg = local_global()
+glob1 = 10
+print(glob1)
+            """,  # language= None
+            ValueError  # TODO: error message
+        )  # Problem: we can not check weather a function is called before the global variable is declared since
+        # this would need a context-sensitive approach
+        # I would suggest to just check if the global variable is declared in the module scope at the cost of loosing precision
+    ],
+    ids=[
+        "new global variable in class scope",
+        "new global variable in function scope",
+        "new global variable in class scope with outer scope usage",
+        "new global variable in function scope with outer scope usage",
+    ]
+)
+def test_resolve_references_error(code, expected):
+    # with pytest.raises(ValueError):
+    #     resolve_references(code)
+
+    references = resolve_references(code)
+    transformed_references: list[ReferenceTestNode] = []
+
+    for node in references:
+        transformed_references.append(transform_reference_node(node))
+
+    # assert references == expected
+    assert transformed_references == expected
+
 
 def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
     return ReferenceTestNode(name=f"{node.name.name}.line{node.name.lineno}",
@@ -1337,6 +1359,34 @@ class SimpleScope:
                             ],
                             ["var1"],
                             [],
+                        ),
+                    ],
+                ),
+            ],
+        ), (
+            """
+                class A:
+                    var1 = 10
+
+                class B(A):
+                    var2 = 20
+            """,
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleClassScope(
+                            "ClassDef.A",
+                            [SimpleScope("AssignName.var1", [])],
+                            ["var1"],
+                            []
+                        ),
+                        SimpleClassScope(
+                                    "ClassDef.B",
+                                    [SimpleScope("AssignName.var2", [])],
+                                    ["var2"],
+                                    [],
+                                    ["ClassDef.A"],
                         ),
                     ],
                 ),
@@ -1673,7 +1723,7 @@ class SimpleScope:
         "Complex Scope",
         "ASTWalker",
         "a"
-    ],
+    ],  # TODO: add tests for lambda and generator expressions
 )
 def test_get_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
     result = _get_scope(code)[0]

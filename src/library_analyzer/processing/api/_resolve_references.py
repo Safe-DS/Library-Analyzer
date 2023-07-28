@@ -15,6 +15,8 @@ class MemberAccess(Expression):
     expression: astroid.NodeNG
     value: MemberAccess | Reference
     parent: astroid.NodeNG | None = field(default=None)
+    # TODO: when detecting MemberAccess, we will only search for the nodes name in all class scopes ->
+    #  add a list of all classes of a module to easily access their instance nodes (their names)
 
 
 @dataclass
@@ -147,6 +149,7 @@ class ClassScope(Scope):
 
     class_variables: list[astroid.AssignName] = field(default_factory=list)
     instance_variables: list[astroid.AssignAttr] = field(default_factory=list)
+    super_class: list[astroid.ClassDef] | None = field(default=None)  # TODO: implement functionality to detect this
 
 
 @dataclass
@@ -181,7 +184,8 @@ class ScopeFinder:
     name_nodes: dict[astroid.Name, Scope | ClassScope] = field(default_factory=dict)
     function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]] = field(default_factory=dict)
     global_variables: dict[str, Scope | ClassScope] = field(default_factory=dict)
-    # TODO: do we need to store ClassDefs and FunctionDefs as global variables?
+    functions: dict[str, Scope | ClassScope] = field(default_factory=dict)
+    # TODO: we need to store FunctionDefs as global variable to be able to determine function calls
 
     def get_node_by_name(self, name: str) -> Scope | ClassScope | None:
         """
@@ -337,7 +341,9 @@ class ScopeFinder:
 
     def enter_global(self, node: astroid.Global) -> None:
         for name in node.names:
-            self.global_variables[name] = self.current_node_stack[-1]
+            if self.check_if_global(name, node):
+                self.global_variables[name] = self.current_node_stack[-1]
+                print(self.global_variables)
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
@@ -348,6 +354,13 @@ class ScopeFinder:
         parent = self.current_node_stack[-1]
         scope_node = Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=parent)
         self.children.append(scope_node)
+
+    def check_if_global(self, name: str, node: astroid.NodeNG) -> bool:
+        if not isinstance(node, astroid.Module):
+            return self.check_if_global(name, node.parent)
+        else:
+            if name in node.globals:
+                return True
 
 
 @dataclass
@@ -573,10 +586,14 @@ def _get_symbols(node: ReferenceNode,
         if symbol.name in global_variables.keys():
             current_symbol_parent = global_variables.get(symbol.name)
             if current_symbol_parent is not None:
-                if check_if_global_is_in_parent_scope(current_symbol_parent, symbol.node):
-                    node.referenced_symbols[i] = GlobalVariable(symbol.node, symbol.id, symbol.name)
-                else:
-                    raise ValueError(f"Symbol {symbol.name} is not defined in the module scope")
+                node.referenced_symbols[i] = GlobalVariable(symbol.node, symbol.id, symbol.name)
+
+
+            # if current_symbol_parent is not None:
+            #     if check_if_global_is_in_parent_scope(current_symbol_parent, symbol.node):
+            #         node.referenced_symbols[i] = GlobalVariable(symbol.node, symbol.id, symbol.name)
+            #     else:
+            #         raise ValueError(f"Symbol {symbol.name} is not defined in the module scope")
 
             # sonst, suche im höheren scope weiter
             # sonst, gebe einen Fehler aus
@@ -606,13 +623,11 @@ def specify_symbols(parent_node: Scope | ClassScope,
 
 
 def check_if_global_is_in_parent_scope(scope: Scope | ClassScope, node: astroid.NodeNG) -> bool:
-    if isinstance(scope.node, astroid.Module):
-        for child in scope.children:
-            if child.id == _calc_node_id(node):
-                return True
-        return False
+    if not isinstance(scope.node, astroid.Module):
+        check_if_global_is_in_parent_scope(scope.parent, node)
     else:
-        return check_if_global_is_in_parent_scope(scope.parent, node)
+        if node in scope.node.globals:
+            return True
 
 
 def _get_scope(code: str) -> tuple[Scope | ClassScope, dict[Name, Scope | ClassScope], dict[
@@ -626,6 +641,8 @@ def _get_scope(code: str) -> tuple[Scope | ClassScope, dict[Name, Scope | ClassS
     -------
         scopes:     list of ScopeNode instances that represent the scope tree of the given code.
         variables:  list of class variables and list of instance variables for all classes in the given code.
+        parameters: list of parameters for all functions in the given code.
+        globs:      list of global variables in the given code.
     """
     scope_handler = ScopeFinder()
     walker = ASTWalker(scope_handler)
