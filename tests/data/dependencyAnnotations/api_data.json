@@ -67,25 +67,7 @@
             "name": "some_other_global_function",
             "qname": "other_test.some_other_global_function",
             "parameters": [
-                {
-                    "id": "test/other_test/some_other_global_function/X",
-                    "name": "X",
-                    "qname": "other_test.some_other_global_function/X",
-                    "docstring": {
-                        "type": "str",
-                        "description": ""
-                    }
-                },
 
-                {
-                    "id": "test/other_test/some_other_global_function/Y",
-                    "name": "Y",
-                    "qname": "other_test.some_other_global_function/Y",
-                    "docstring": {
-                        "type": "str",
-                        "description": "Only available if X is not None."
-                    }
-                },
 
                 {
                     "id": "test/other_test/some_other_global_function/parameter_with_relational_dependency",
@@ -93,7 +75,27 @@
                     "qname": "other_test.some_other_global_function/parameter_with_relational_dependency",
                     "docstring": {
                         "type": "str",
-                        "description": "parameter_with_relational_dependency = False if X > Y"
+                        "description": "parameter_with_relational_dependency = False if parameter_with_relational_dependency_X > parameter_with_relational_dependency_Y"
+                    }
+                },
+
+                                {
+                    "id": "test/other_test/some_other_global_function/parameter_with_relational_dependency_X",
+                    "name": "parameter_with_relational_dependency_X",
+                    "qname": "other_test.some_other_global_function/parameter_with_relational_dependency_X",
+                    "docstring": {
+                        "type": "str",
+                        "description": ""
+                    }
+                },
+
+                {
+                    "id": "test/other_test/some_other_global_function/parameter_with_relational_dependency_Y",
+                    "name": "parameter_with_relational_dependency_Y",
+                    "qname": "other_test.some_other_global_function/parameter_with_relational_dependency_Y",
+                    "docstring": {
+                        "type": "str",
+                        "description": "Only available if parameter_with_relational_dependency_X is not None."
                     }
                 },
 
@@ -103,7 +105,7 @@
                     "qname": "other_test.some_other_global_function/parameter_with_combined_dependency",
                     "docstring": {
                         "type": "str",
-                        "description": "Only available if X = True and Y = False."
+                        "description": "Only available if parameter_with_relational_dependency_X = True and parameter_with_relational_dependency_Y = False."
                     }
                 }
             ]

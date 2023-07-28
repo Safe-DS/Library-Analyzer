@@ -85,19 +85,19 @@
         "target": "test/other_test/some_other_global_function/parameter_with_relational_dependency",
         "authors": ["$autogen$"],
         "reviewers": [],
-        "comment": "I turned this in a dependency because the phrase 'if X > Y' was found.",
+        "comment": "I turned this in a dependency because the phrase 'if parameter_with_relational_dependency_X > parameter_with_relational_dependency_Y' was found.",
         "reviewResult": "",
         "is_depending_on": [
-            "test/other_test/some_other_global_function/X",
-            "test/other_test/some_other_global_function/Y"
+            "test/other_test/some_other_global_function/parameter_with_relational_dependency_X",
+            "test/other_test/some_other_global_function/parameter_with_relational_dependency_Y"
         ],
         "has_dependent_parameter": [],
         "condition": {
             "variant": "in_relation",
-            "condition": "if X > Y",
+            "condition": "if parameter_with_relational_dependency_X > parameter_with_relational_dependency_Y",
             "combined_with": [],
-            "left_dependee": "X",
-            "right_dependee": "Y",
+            "left_dependee": "parameter_with_relational_dependency_X",
+            "right_dependee": "parameter_with_relational_dependency_Y",
             "rel_op": ">"
         },
         "action": {
@@ -107,15 +107,15 @@
             "value": "False"
         }
     },
-    "test/other_test/some_other_global_function/X": {
-        "target": "test/other_test/some_other_global_function/X",
+    "test/other_test/some_other_global_function/parameter_with_relational_dependency_X": {
+        "target": "test/other_test/some_other_global_function/parameter_with_relational_dependency_X",
         "authors": ["$autogen$"],
         "reviewers": [],
         "comment": "",
         "reviewResult": "",
         "is_depending_on": [],
         "has_dependent_parameter": [
-            "test/other_test/some_other_global_function/Y",
+            "test/other_test/some_other_global_function/parameter_with_relational_dependency_Y",
             "test/other_test/some_other_global_function/parameter_with_relational_dependency",
             "test/other_test/some_other_global_function/parameter_with_combined_dependency"
         ],
@@ -131,21 +131,21 @@
         }
     },
 
-    "test/other_test/some_other_global_function/Y": {
-        "target": "test/other_test/some_other_global_function/Y",
+    "test/other_test/some_other_global_function/parameter_with_relational_dependency_Y": {
+        "target": "test/other_test/some_other_global_function/parameter_with_relational_dependency_Y",
         "authors": ["$autogen$"],
         "reviewers": [],
-        "comment": "I turned this in a dependency because the phrase 'Only available if X is not None' was found.",
+        "comment": "I turned this in a dependency because the phrase 'Only available if parameter_with_relational_dependency_X is not None' was found.",
         "reviewResult": "",
-        "is_depending_on": ["test/other_test/some_other_global_function/X"],
+        "is_depending_on": ["test/other_test/some_other_global_function/parameter_with_relational_dependency_X"],
         "has_dependent_parameter": [
             "test/other_test/some_other_global_function/parameter_with_relational_dependency",
             "test/other_test/some_other_global_function/parameter_with_combined_dependency"
         ],
         "condition": {
             "variant": "has_value",
-            "condition": "Only available if X is not None",
-            "dependee": "X",
+            "condition": "Only available if parameter_with_relational_dependency_X is not None",
+            "dependee": "parameter_with_relational_dependency_X",
             "value": "not None",
             "combined_with": [],
             "also": false,
@@ -161,25 +161,25 @@
         "target": "test/other_test/some_other_global_function/parameter_with_combined_dependency",
         "authors": ["$autogen$"],
         "reviewers": [],
-        "comment": "I turned this in a dependency because the phrase 'Only available if Y equals False' was found.",
+        "comment": "I turned this in a dependency because the phrase 'Only available if parameter_with_relational_dependency_Y equals False' was found.",
         "reviewResult": "",
         "is_depending_on": [
-            "test/other_test/some_other_global_function/Y",
-            "test/other_test/some_other_global_function/X"
+            "test/other_test/some_other_global_function/parameter_with_relational_dependency_Y",
+            "test/other_test/some_other_global_function/parameter_with_relational_dependency_X"
         ],
         "has_dependent_parameter": [],
         "condition": {
             "variant": "has_value",
-            "condition": "Only available if Y equals False",
-            "dependee": "Y",
+            "condition": "Only available if parameter_with_relational_dependency_Y equals False",
+            "dependee": "parameter_with_relational_dependency_Y",
             "value": "False",
             "also": false,
             "check_dependee": false,
             "combined_with": [
                 {
                     "variant": "has_value",
-                    "condition": "Only available if X equals True",
-                    "dependee": "X",
+                    "condition": "Only available if parameter_with_relational_dependency_X equals True",
+                    "dependee": "parameter_with_relational_dependency_X",
                     "value": "True",
                     "also": false,
                     "check_dependee": false,
