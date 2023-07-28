@@ -83,7 +83,7 @@
                     "qname": "other_test.some_other_global_function/Y",
                     "docstring": {
                         "type": "str",
-                        "description": ""
+                        "description": "Only available if X is not None."
                     }
                 },
 

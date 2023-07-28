@@ -115,6 +115,7 @@
         "reviewResult": "",
         "is_depending_on": [],
         "has_dependent_parameter": [
+            "test/other_test/some_other_global_function/Y",
             "test/other_test/some_other_global_function/parameter_with_relational_dependency",
             "test/other_test/some_other_global_function/parameter_with_combined_dependency"
         ],
@@ -134,22 +135,25 @@
         "target": "test/other_test/some_other_global_function/Y",
         "authors": ["$autogen$"],
         "reviewers": [],
-        "comment": "",
+        "comment": "I turned this in a dependency because the phrase 'Only available if X is not None' was found.",
         "reviewResult": "",
-        "is_depending_on": [],
+        "is_depending_on": ["test/other_test/some_other_global_function/X"],
         "has_dependent_parameter": [
             "test/other_test/some_other_global_function/parameter_with_relational_dependency",
             "test/other_test/some_other_global_function/parameter_with_combined_dependency"
         ],
         "condition": {
-            "variant": "condition",
-            "condition": "",
-            "dependee": "",
-            "combined_with": []
+            "variant": "has_value",
+            "condition": "Only available if X is not None",
+            "dependee": "X",
+            "value": "not None",
+            "combined_with": [],
+            "also": false,
+            "check_dependee": false
         },
         "action": {
-            "variant": "action",
-            "action": ""
+            "variant": "is_ignored",
+            "action": "not ignored"
         }
     },
 
