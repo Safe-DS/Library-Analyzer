@@ -315,7 +315,8 @@ class ScopeFinder:
             | astroid.AssignAttr
             | astroid.Attribute
             | astroid.AugAssign
-            | astroid.AnnAssign,
+            | astroid.AnnAssign
+            | astroid.Tuple
         ):
             parent = self.current_node_stack[-1]
             scope_node = Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=parent)
@@ -389,7 +390,8 @@ class NameNodeFinder:
             | astroid.AnnAssign
             | astroid.Return
             | astroid.Compare
-            | astroid.For,
+            | astroid.For
+            | astroid.Tuple
         ):
             self.names_list.append(node)
 
@@ -580,7 +582,8 @@ def _get_symbols(node: ReferenceNode,
             # sonst, gebe einen Fehler aus
 
 
-def specify_symbols(parent_node: Scope | ClassScope, symbol: Symbol,
+def specify_symbols(parent_node: Scope | ClassScope,
+                    symbol: Symbol,
                     function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]) -> Symbol:
     if isinstance(parent_node.node, astroid.Module):
         return GlobalVariable(symbol.node, symbol.id, symbol.name)

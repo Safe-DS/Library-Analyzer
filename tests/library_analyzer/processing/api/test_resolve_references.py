@@ -646,7 +646,7 @@ class A:
     glob1 = 10
     print(glob1)
             """,  # language= None
-            [ValueError]  # TODO: add error message incase the the global variable is not declared in the module scope
+            ValueError  # TODO: add error message incase the the global variable is not declared in the module scope
         ),
         (  # language=Python
             """
@@ -657,7 +657,7 @@ def local_global():
 
 local_global()
             """,  # language= None
-            [ValueError]  # TODO: error message
+            ValueError  # TODO: error message
         ),
         (  # language=Python
             """
@@ -670,7 +670,7 @@ glob1 = 10
 b = A().value
 print(a, b)
             """,  # language= None
-            [ValueError]  # TODO: error message
+            ValueError  # TODO: error message
         ),
         (  # language=Python
             """
@@ -683,13 +683,13 @@ lg = local_global()
 glob1 = 10
 print(glob1)
             """,  # language= None
-            [ValueError]  # TODO: error message
+            ValueError  # TODO: error message
         ),
         (  # language=Python
             """
 glob1 = 10
 def local_global_access():
-    return glob1
+    return glob1  # TODO: this is not detected as a node inside the function scope, which is correct
             """,  # language= None
             [ReferenceTestNode("glob1.line4", "FunctionDef.local_global_access", ["GlobalVariable.glob1.line2"])]
         ),
@@ -765,20 +765,40 @@ b.instance_attr1 = 1
         (  # language=Python
             """
 class C:
-    state: int
+    state: int = 0
 
     def get_state(self):
         return self.state
+            """,  # language= None
+            [""]  # TODO
+        ),
+        (  # language=Python
+            """
+class C:
+    state: int = 0
+
+    def get_state(self):
+        return C.state
+            """,  # language= None
+            [""]  # TODO
+        ),
+        (  # language=Python
+            """
+class C:
+    state: int = 0
+
+    def set_state(self, state):
+        self.state = state
             """,  # language= None
             []  # TODO
         ),
         (  # language=Python
             """
 class C:
-    state: int
+    state: int = 0
 
     def set_state(self, state):
-        self.state = state
+        C.state = state
             """,  # language= None
             []  # TODO
         ),
@@ -826,7 +846,33 @@ for i in range(var1):
     print(i)
         """,  # language=none
             [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
-             ReferenceTestNode("i.line4", "Module.", ["GlobalVariable.i.line3"])]  # TODO: is i really a global variable?
+             ReferenceTestNode("i.line4", "Module.", ["GlobalVariable.i.line3"])]  # TODO: do we really tread i as a global variable? -yes implement it
+        ),
+        (  # language=Python
+            """
+var1 = 10
+def func1():
+    for i in range(var1):
+        print(i)
+        """,  # language=none
+            [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("i.line5", "Module.", ["LocalVariable.i.line4"])]
+        ),
+        (  # language=Python
+            """
+nums = ["one", "two", "three"]
+for num in nums:
+    print(num)
+        """,  # language=none
+            []
+        ),
+        (  # language=Python
+            """
+nums = ["one", "two", "three"]
+lengths = [len(num) for num in nums]  # TODO: list comprehension should get its own scope (LATER: for further improvement)
+print(lengths)
+        """,  # language=none
+            []
         ),
         (  # language=Python
             """
@@ -843,18 +889,39 @@ var1 = 10
 match var1:
     case 1: print(1)
     case 2: print(2)
-    case _: print(var1)
+    case (a, b): print(var1, a, b)  # TODO: Match should get its own scope (LATER: for further improvement)  maybe add its parent
         """,  # language=none
             [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
              ReferenceTestNode("var1.line6", "Module.", ["GlobalVariable.var1.line2"])]
         ),
         (  # language=Python
             """
+try:
+    num1 = int(input("Enter a number: "))
+    num2 = int(input("Enter another number: "))
+    result = num1 / num2
+    print("Result:", result)
+except ValueError:
+    print("Invalid input. Please enter valid numbers.")
+except ZeroDivisionError as zde:   # TODO: zde is not detected as a global variable # TODO: Except should get its own scope (LATER: for further improvement)
+    print("Error: Cannot divide by zero.")
+    print(zde)
+        """,  # language=none
+            []
+        ),
+        (  # language=Python
+            """
 arr = [1, 2, 3]
 arr[0] = 10  # TODO: this is not detected right now but should be
-print(arr)
             """,  # language=none
-            [ReferenceTestNode("arr.line4", "Module.", ["GlobalVariable.arr.line2", "GlobalVariable.arr.line3"])]
+            [ReferenceTestNode("arr.line3", "Module.", ["GlobalVariable.arr.line2"])]
+        ),
+        (  # language=Python
+            """
+dictionary = {"key1": 1, "key2": 2}
+dictionary["key1"] = 0 # TODO: this is not detected right now but should be
+            """,  # language=none
+            []
         ),
         (  # language=Python
             """
@@ -875,10 +942,10 @@ x, y = double_return(10, 20)
 print(x)
 print(y)
             """,  # language=none
-            [ReferenceTestNode("a.line3", "FunctionDef.local_double_return", ["Parameter.a.line2"]),
-             ReferenceTestNode("b.line3", "FunctionDef.local_double_return", ["Parameter.b.line2"]),
+            [ReferenceTestNode("a.line3", "FunctionDef.double_return", ["Parameter.a.line2"]),
+             ReferenceTestNode("b.line3", "FunctionDef.double_return", ["Parameter.b.line2"]),
              ReferenceTestNode("x.line7", "Module.", ["GlobalVariable.x.line5"]),
-             ReferenceTestNode("y.line8", "Module.", ["GlobalVariable.y.line6"])]
+             ReferenceTestNode("y.line8", "Module.", ["GlobalVariable.y.line5"])]
         ),
         (  # language=Python
             """
@@ -887,6 +954,34 @@ x = 20
 print(x)
             """,  # language=none
             [ReferenceTestNode("x.line4", "Module.", ["GlobalVariable.x.line2", "GlobalVariable.x.line3"])]
+        ),
+        (  # language=Python
+            """
+x = 10
+y = 20
+print(x, y)
+            """,  # language=none
+            []
+        ),
+        (  # language=Python
+            """
+x = 10
+y = 20
+print(f"{x} + {y} = {x + y}")  # TODO: this is not correctly detected right now
+            """,  # language=none
+            [ReferenceTestNode("x.line4", "Module.", ["GlobalVariable.x.line2"]),
+             ReferenceTestNode("y.line4", "Module.", ["GlobalVariable.y.line3"]),
+             ReferenceTestNode("x.line4", "Module.", ["GlobalVariable.x.line2"]),
+             ReferenceTestNode("y.line4", "Module.", ["GlobalVariable.y.line3"])]
+        ),
+        (  # language=Python
+            """
+var1 = 10
+var2 = 20
+
+res = var1 + var2 - (var1 * var2)
+            """,  # language=none
+            []
         ),
         (  # language=Python
             """
@@ -904,6 +999,15 @@ a.f()
 print(x)
             """,  # language=none
             []
+        ),
+        (  # language=Python
+            """
+def f():
+    pass
+
+f()
+            """,  # language=none
+            [ReferenceTestNode("f.line4", "Module.", ["FunctionDef.f.line1"])]
         ),
     ],
     ids=[
@@ -930,19 +1034,30 @@ print(x)
         "class attribute target",
         "instance attribute value",
         "instance attribute target",
-        "getter function",
-        "setter function",
+        "getter function with self",
+        "getter function with classname",
+        "setter function with self",
+        "setter function with classname",
         "if statement global scope",
         "if else statement global scope",
         "if elif else statement global scope",
-        "for loop global scope",
+        "for loop with global runtime variable global scope",
+        "for loop wih local runtime variable local scope",
+        "for loop with local runtime variable global scope",
+        "for loop in list comprehension global scope",
         "while loop global scope",
-        "match statement",
+        "match statement global scope",
+        "try except statement global scope",
         "array and indexed array global scope",
+        "dictionary global scope",
         "two variables",
         "double return",
         "reassignment",
+        "double print",
+        "f-string",
+        "multiple references in one line",
         "different scopes",
+        "function call",
     ]  # TODO: testcases for calls and imports
 )
 def test_resolve_references(code, expected):
@@ -954,12 +1069,13 @@ def test_resolve_references(code, expected):
 
     # assert references == expected
     assert transformed_references == expected
-    # if expected[0] is ValueError:
+    # if expected is ValueError:
     #     with pytest.raises(ValueError, match="Symbol is not defined in the module scope"):
     #         assert transformed_references == expected
     # else:
     #     assert transformed_references == expected
 
+# TODO: separate testcase for errors
 
 def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
     return ReferenceTestNode(name=f"{node.name.name}.line{node.name.lineno}",
