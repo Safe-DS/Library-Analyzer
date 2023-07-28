@@ -115,8 +115,8 @@
         "reviewResult": "",
         "is_depending_on": [],
         "has_dependent_parameter": [
-            "test/other_test/some_other_global_function/parameter_with_relational_dependency_Y",
             "test/other_test/some_other_global_function/parameter_with_relational_dependency",
+            "test/other_test/some_other_global_function/parameter_with_relational_dependency_Y",
             "test/other_test/some_other_global_function/parameter_with_combined_dependency"
         ],
         "condition": {
