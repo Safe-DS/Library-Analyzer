@@ -230,7 +230,7 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
         API to be examined for dependencies
 
     annotations
-        AnnotationStore to which all dependency annotations will be added.
+        AnnotationStore to which all dependency annotations will be added
 
     """
     init_func: Function | None
