@@ -175,12 +175,13 @@ def _add_properties_to_existing_dependency(
         if annotation.target == target:
             if is_depending_on is not None:
                 annotation.is_depending_on = is_depending_on
-                annotation.condition = cond if cond is not None else Condition()
-                annotation.action = act if act is not None else Action()
-                annotation.comment = f"I turned this in a dependency because the phrase '{cond.condition}' was found."
+                annotation.condition = cond if (cond is not None) else Condition()
+                annotation.action = act if (act is not None) else Action()
+                annotation.comment = (f"I turned this in a dependency because the phrase"
+                                      f" '{annotation.condition.condition}' was found.")
                 break
             else:
-                if param_id not in  annotation.has_dependent_parameter:
+                if param_id not in annotation.has_dependent_parameter:
                     annotation.has_dependent_parameter.append(param_id)
                 break
 
