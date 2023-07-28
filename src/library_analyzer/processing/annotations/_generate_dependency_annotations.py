@@ -188,7 +188,10 @@ def _add_properties_to_existing_dependency(
 
 
 def _add_depending_on_dependencies(
-    param_id: str, dependency_targets: list[str], is_depending_on: list[str], annotations: AnnotationStore,
+    param_id: str,
+    dependency_targets: list[str],
+    is_depending_on: list[str],
+    annotations: AnnotationStore,
 ) -> None:
     """Add the depending_on dependencies to the annotation store.
 
