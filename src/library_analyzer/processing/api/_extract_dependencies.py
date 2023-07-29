@@ -925,7 +925,7 @@ def _extract_cond_only_noun(
                 second_matched_token_text = doc[start_ + 1].text
                 break
 
-        cond_string = doc[cond_start: cond_end + 1].text
+        cond_string = doc[cond_start : cond_end + 1].text
         value_ = doc[cond_end].text
 
         if second_matched_token_text in ["is", "equals", "set"]:
@@ -943,7 +943,6 @@ def _extract_cond_only_noun(
 
     _action_list.append(action_)
     return None
-
 
 
 def _extract_cond_also_value(

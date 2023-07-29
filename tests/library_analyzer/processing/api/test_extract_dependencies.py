@@ -407,7 +407,6 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 ),
             ],
         ),
-
         # test case was derived from the previous one
         (
             "positive",
@@ -423,13 +422,10 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 ),
             ],
         ),
-
         # test case was derived from the previous one
         (
             "positive",
-            (
-                "When set to ``True``, forces the coefficients to be positive. Only 'lbfgs' solver is supported."
-            ),
+            "When set to ``True``, forces the coefficients to be positive. Only 'lbfgs' solver is supported.",
             [
                 (
                     "positive",
@@ -438,8 +434,6 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 ),
             ],
         ),
-
-
     ],
 )
 def test_extract_param_dependencies(
