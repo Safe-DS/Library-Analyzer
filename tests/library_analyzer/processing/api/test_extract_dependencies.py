@@ -410,6 +410,39 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 ),
             ],
         ),
+
+        # test case was derived from the previous one
+        (
+            "positive",
+            (
+                "When x is ``True``, forces the coefficients to be positive. Only 'lbfgs' solver is supported in this"
+                " case."
+            ),
+            [
+                (
+                    "positive",
+                    ParameterHasValue("When x is True", "x", "True"),
+                    ParameterWillBeSetTo("Only lbfgs solver is supported", "solver", "lbfgs"),
+                ),
+            ],
+        ),
+
+        # test case was derived from the previous one
+        (
+            "positive",
+            (
+                "When set to ``True``, forces the coefficients to be positive. Only 'lbfgs' solver is supported."
+            ),
+            [
+                (
+                    "positive",
+                    ParameterHasValue("Only lbfgs solver is supported", "solver", "lbfgs"),
+                    ParameterIsIgnored("not ignored"),
+                ),
+            ],
+        ),
+
+
     ],
 )
 def test_extract_param_dependencies(

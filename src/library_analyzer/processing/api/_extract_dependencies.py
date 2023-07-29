@@ -916,28 +916,25 @@ def _extract_cond_only_noun(
     if any(match_id_string == "IN_THIS_CASE" for match_id_string, _, _ in match_id_strings):
         cond_start = -1
         cond_end = -1
+        second_matched_token_text = ""
         action_ = ParameterWillBeSetTo(matched_str, parameter, value_)
 
         for match_id_string, start_, end_ in match_id_strings:
             if match_id_string == "COND_VALUE_ASSIGNMENT":
                 cond_start = start_
                 cond_end = end_
+                second_matched_token_text = doc[start_ + 1].text
                 break
 
-        # If a condition and an action were found in the first block,
-        # the condition from the first sentence is additionally used for the action from the second sentence.
-        if cond_start != -1 and (len(_condition_list) > 0) and (len(_condition_list) == len(_action_list)):
-            cond = _condition_list[-1]
+        cond_string = doc[cond_start: cond_end + 1].text
+        value_ = doc[cond_end].text
+
+        if second_matched_token_text in ["is", "equals", "set"]:
+            dependee = "this_parameter"
         else:
-            cond_string = doc[cond_start : cond_end + 1].text
-            value_ = doc[cond_end].text
+            dependee = doc[cond_start + 1].text
 
-            if cond_end - cond_start == 3:
-                dependee = "this_parameter"
-            else:
-                dependee = doc[start + 1].text
-
-            cond = ParameterHasValue(cond_string, dependee, value_)
+        cond = ParameterHasValue(cond_string, dependee, value_)
 
         _condition_list.append(cond)
 
@@ -947,6 +944,7 @@ def _extract_cond_only_noun(
 
     _action_list.append(action_)
     return None
+
 
 
 def _extract_cond_also_value(
