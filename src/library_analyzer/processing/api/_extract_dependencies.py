@@ -822,7 +822,6 @@ def _extract_relational_condition(
         case "$LEQ$":
             rel_op = " <= "
 
-
     condition_string = doc[match_[1][1] : cond_token.i].text + rel_op + doc[cond_token.i + 1].text
     action_string = doc[: match_[1][1]].text
 
