@@ -810,6 +810,8 @@ def _extract_relational_condition(
 
     depender, value = _extract_dependee_value(action_token)
 
+    rel_op = ""
+
     match cond_token.text:
         case "$GT$":
             rel_op = " > "
@@ -819,8 +821,7 @@ def _extract_relational_condition(
             rel_op = " >= "
         case "$LEQ$":
             rel_op = " <= "
-        case _:
-            rel_op = ""
+
 
     condition_string = doc[match_[1][1] : cond_token.i].text + rel_op + doc[cond_token.i + 1].text
     action_string = doc[: match_[1][1]].text
