@@ -316,7 +316,6 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 ),
             ],
         ),
-
         # Test was derived from previous test.
         (
             "dual",
@@ -341,7 +340,6 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 ),
             ],
         ),
-
         # Test was derived from previous test.
         (
             "dual",
@@ -354,7 +352,6 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 ),
             ],
         ),
-
         # https://github.com/scikit-learn/scikit-learn/blob/5d145bf760539d40f4e2c50c0f4c46200945c978/sklearn/model_selection/_split.py#L1778-L1779
         (
             "test_size",
@@ -419,6 +416,7 @@ def test_extract_param_dependencies(
 ) -> None:
     assert extract_param_dependencies(param_name, description) == expected_dependencies
 
+
 @pytest.mark.parametrize(
     ("dictionary", "expected_class"),
     [
@@ -427,16 +425,10 @@ def test_extract_param_dependencies(
                 "variant": "condition",
                 "condition": "Only available if x is a vector",
                 "dependee": "x",
-                "combined_with": []
+                "combined_with": [],
             },
-
-            Condition(
-                condition="Only available if x is a vector",
-                dependee="x",
-                combined_with=[]
-            )
+            Condition(condition="Only available if x is a vector", dependee="x", combined_with=[]),
         ),
-
         (
             {
                 "variant": "in_relation",
@@ -444,17 +436,10 @@ def test_extract_param_dependencies(
                 "combined_with": [],
                 "left_dependee": "x",
                 "right_dependee": "y",
-                "rel_op": ">"
+                "rel_op": ">",
             },
-
-            ParametersInRelation(
-                cond="if x > y",
-                left_dependee="x",
-                right_dependee="y",
-                rel_op=">"
-            )
+            ParametersInRelation(cond="if x > y", left_dependee="x", right_dependee="y", rel_op=">"),
         ),
-
         (
             {
                 "variant": "has_value",
@@ -463,168 +448,74 @@ def test_extract_param_dependencies(
                 "value": "auto",
                 "combined_with": [],
                 "check_dependee": False,
-                "also": False
+                "also": False,
             },
-
             ParameterHasValue(
                 cond="Only available if x equals auto",
                 dependee="x",
                 value="auto",
                 combined_with=[],
                 check_dependee=False,
-                also=False
-            )
+                also=False,
+            ),
         ),
-
+        ({"variant": "no_value", "condition": "x has no value"}, ParameterHasNotValue("x has no value")),
         (
-            {
-                "variant": "no_value",
-                "condition": "x has no value"
-            },
-
-            ParameterHasNotValue("x has no value")
+            {"variant": "is_none", "condition": "Only available if x is None", "dependee": "x", "also": False},
+            ParameterIsNone(cond="Only available if x is None", dependee="x", also=False),
         ),
-
-        (
-            {
-                "variant": "is_none",
-                "condition": "Only available if x is None",
-                "dependee": "x",
-                "also": False
-            },
-
-            ParameterIsNone(
-                cond="Only available if x is None",
-                dependee="x",
-                also=False
-            )
-        ),
-
         (
             {
                 "variant": "has_type",
                 "condition": "Only available if x is an integer",
                 "dependee": "x",
-                "type": "integer"
+                "type": "integer",
             },
-
-            ParameterHasType(
-                cond="Only available if x is an integer",
-                dependee="x",
-                type_="integer"
-            )
+            ParameterHasType(cond="Only available if x is an integer", dependee="x", type_="integer"),
         ),
-
         (
-            {
-                "variant": "no_type",
-                "condition": "if x is not callable",
-                "dependee": "x",
-                "type": "not callable"
-            },
-
-            ParameterDoesNotHaveType(
-                cond="if x is not callable",
-                dependee="x",
-                type_="not callable"
-            )
-        )
-
-
-    ]
+            {"variant": "no_type", "condition": "if x is not callable", "dependee": "x", "type": "not callable"},
+            ParameterDoesNotHaveType(cond="if x is not callable", dependee="x", type_="not callable"),
+        ),
+    ],
 )
 def test_cond_dict_methods(dictionary: dict[str, Any], expected_class: Condition) -> None:
     from_dict_class = Condition.from_dict(dictionary)
     assert from_dict_class == expected_class
     assert expected_class.to_dict() == dictionary
 
+
 @pytest.mark.parametrize(
     ("dictionary", "expected_class"),
     [
+        ({"variant": "action", "action": "will be set to None"}, Action(action="will be set to None")),
+        ({"variant": "is_ignored", "action": "ignored"}, ParameterIsIgnored(action_="ignored")),
+        ({"variant": "is_illegal", "action": "raises KeyError"}, ParameterIsIllegal(action_="raises KeyError")),
         (
-            {
-                "variant": "action",
-                "action": "will be set to None"
-            },
-
-            Action(
-                action="will be set to None"
-            )
+            {"variant": "will_be_set", "action": "y will be set to None", "depender": "y", "value": "None"},
+            ParameterWillBeSetTo(action_="y will be set to None", depender="y", value_="None"),
         ),
-
         (
-            {
-                "variant": "is_ignored",
-                "action": "ignored"
-            },
-
-            ParameterIsIgnored(
-                action_="ignored"
-            )
+            {"variant": "is_restricted", "action": "x must be between 0 and 1"},
+            ParameterIsRestricted(action_="x must be between 0 and 1"),
         ),
-
-        (
-            {
-                "variant": "is_illegal",
-                "action": "raises KeyError"
-            },
-
-            ParameterIsIllegal(
-                action_="raises KeyError"
-            )
-        ),
-
-        (
-            {
-                "variant": "will_be_set",
-                "action": "y will be set to None",
-                "depender": "y",
-                "value": "None"
-            },
-
-            ParameterWillBeSetTo(
-                action_="y will be set to None",
-                depender="y",
-                value_="None"
-            )
-        ),
-
-        (
-            {
-                "variant": "is_restricted",
-                "action": "x must be between 0 and 1"
-            },
-
-            ParameterIsRestricted(
-                action_="x must be between 0 and 1"
-            )
-        )
-    ]
+    ],
 )
 def test_action_dict_methods(dictionary: dict[str, Any], expected_class: Action) -> None:
-
     from_dict_class = Action.from_dict(dictionary)
     assert from_dict_class == expected_class
     assert expected_class.to_dict() == dictionary
 
 
 def test_cond_key_error() -> None:
-    d = {
-        "variant": "super_condition",
-        "condition": "this must be super variable"
-    }
+    d = {"variant": "super_condition", "condition": "this must be super variable"}
 
     with pytest.raises(KeyError):
         Condition.from_dict(d)
 
 
 def test_action_key_error() -> None:
-    d = {
-            "variant": "is_super_restricted",
-            "action": "x must be 1 in all cases"
-        }
+    d = {"variant": "is_super_restricted", "action": "x must be 1 in all cases"}
 
     with pytest.raises(KeyError):
         Action.from_dict(d)
-
-
