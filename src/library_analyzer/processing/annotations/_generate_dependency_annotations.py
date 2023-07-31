@@ -32,17 +32,18 @@ def _search_for_parameter(name: str, parameter_list: list[Parameter], init_func:
     Returns
     -------
     str | None
-        Paramter id of the found paramter
+        Paramter id of the found paramter.
+        If the name is not found in either list, None is returned.
 
     """
-    if init_func is not None:
-        test_params = parameter_list + init_func.parameters
-    else:
-        test_params = parameter_list
+    for param in parameter_list:
+        if param.name == name:
+            return param.id
 
-    for param_ in test_params:
-        if param_.name == name:
-            return param_.id
+    if init_func is not None:
+        for param in init_func.parameters:
+            if param.name == name:
+                return param.id
 
     return None
 
@@ -79,6 +80,7 @@ def _get_init_func(function_id: str, functions: dict[str, Function]) -> Function
     -------
     Function | None
         __init__ function of the class to which the function to be examined also belongs.
+        If the __init__ function could not be found, None is returned.
 
     """
     splitted = function_id.split("/")

@@ -24,7 +24,7 @@ _dep_matcher = DependencyMatcher(_nlp.vocab)
 
 @dataclass
 class Condition:
-    class Variant(str, Enum):
+    class Variant(Enum):
         CONDITION = "condition"
         IN_RELATION = "in_relation"
         HAS_VALUE = "has_value"
@@ -201,7 +201,7 @@ class ParameterHasType(Condition):
 class Action:
     action: str = ""
 
-    class Variant(str, Enum):
+    class Variant(Enum):
         ACTION = "action"
         IS_IGNORED = "is_ignored"
         IS_ILLEGAL = "is_illegal"
