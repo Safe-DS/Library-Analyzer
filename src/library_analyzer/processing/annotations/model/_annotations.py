@@ -10,7 +10,7 @@ from library_analyzer.processing.api import Action, Condition
 ANNOTATION_SCHEMA_VERSION = 2
 
 
-class EnumReviewResult(Enum):
+class EnumReviewResult(str, Enum):
     CORRECT = "correct"
     UNSURE = "unsure"
     WRONG = "wrong"
