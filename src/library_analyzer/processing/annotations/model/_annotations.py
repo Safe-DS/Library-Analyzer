@@ -10,7 +10,7 @@ from library_analyzer.processing.api import Action, Condition
 ANNOTATION_SCHEMA_VERSION = 2
 
 
-class EnumReviewResult(str, Enum):
+class EnumReviewResult(Enum):
     CORRECT = "correct"
     UNSURE = "unsure"
     WRONG = "wrong"
@@ -77,7 +77,7 @@ class DependencyAnnotation(AbstractAnnotation):
             "authors": self.authors,
             "reviewers": self.reviewers,
             "comment": self.comment,
-            "reviewResult": self.reviewResult,
+            "reviewResult": self.reviewResult.value,
             "has_dependent_parameter": self.has_dependent_parameter,
             "is_depending_on": self.is_depending_on,
             "condition": self.condition.to_dict(),

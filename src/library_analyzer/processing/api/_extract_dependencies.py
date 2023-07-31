@@ -307,7 +307,6 @@ def _merger(doc: Doc) -> Doc:
         matched_spans.append((match_id_str, doc[start:end]))
 
     with doc.retokenize() as retokenizer:
-        # matched_spans = filter_spans(matched_spans)
         for match_id_str, span_ in matched_spans:
             if match_id_str == "AUXPASS":
                 attrs = {"POS": "AUX"}
