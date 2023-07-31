@@ -40,30 +40,30 @@ class Condition:
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Condition:
         match d["variant"]:
-            case Condition.Variant.CONDITION:
+            case Condition.Variant.CONDITION.value:
                 return cls(
                     d["condition"],
                     d["dependee"],
                     [Condition.from_dict(cond_dict) for cond_dict in d["combined_with"]],
                 )
-            case Condition.Variant.IN_RELATION:
+            case Condition.Variant.IN_RELATION.value:
                 return ParametersInRelation.from_dict(d)
-            case Condition.Variant.HAS_VALUE:
+            case Condition.Variant.HAS_VALUE.value:
                 return ParameterHasValue.from_dict(d)
-            case Condition.Variant.NO_VALUE:
+            case Condition.Variant.NO_VALUE.value:
                 return ParameterHasNotValue.from_dict(d)
-            case Condition.Variant.IS_NONE:
+            case Condition.Variant.IS_NONE.value:
                 return ParameterIsNone.from_dict(d)
-            case Condition.Variant.HAS_TYPE:
+            case Condition.Variant.HAS_TYPE.value:
                 return ParameterHasType.from_dict(d)
-            case Condition.Variant.NO_TYPE:
+            case Condition.Variant.NO_TYPE.value:
                 return ParameterDoesNotHaveType.from_dict(d)
             case _:
                 raise KeyError("unknown variant found")
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "variant": Condition.Variant.CONDITION,
+            "variant": Condition.Variant.CONDITION.value,
             "condition": self.condition,
             "dependee": self.dependee,
             "combined_with": [cond.to_dict() for cond in self.combined_with],
@@ -83,7 +83,7 @@ class ParametersInRelation(Condition):
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "variant": Condition.Variant.IN_RELATION,
+            "variant": Condition.Variant.IN_RELATION.value,
             "condition": self.condition,
             "combined_with": [cond.to_dict() for cond in self.combined_with],
             "left_dependee": self.left_dependee,
@@ -121,7 +121,7 @@ class ParameterHasValue(Condition):
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "variant": Condition.Variant.HAS_VALUE,
+            "variant": Condition.Variant.HAS_VALUE.value,
             "condition": self.condition,
             "dependee": self.dependee,
             "value": self.value,
@@ -140,7 +140,7 @@ class ParameterHasNotValue(Condition):
         return cls(d["condition"])
 
     def to_dict(self) -> dict[str, Any]:
-        return {"variant": Condition.Variant.NO_VALUE, "condition": self.condition}
+        return {"variant": Condition.Variant.NO_VALUE.value, "condition": self.condition}
 
 
 class ParameterIsNone(Condition):
@@ -154,7 +154,7 @@ class ParameterIsNone(Condition):
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "variant": Condition.Variant.IS_NONE,
+            "variant": Condition.Variant.IS_NONE.value,
             "condition": self.condition,
             "dependee": self.dependee,
             "also": self.also,
@@ -172,7 +172,7 @@ class ParameterDoesNotHaveType(Condition):
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "variant": Condition.Variant.NO_TYPE,
+            "variant": Condition.Variant.NO_TYPE.value,
             "condition": self.condition,
             "dependee": self.dependee,
             "type": self.type_,
@@ -190,7 +190,7 @@ class ParameterHasType(Condition):
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "variant": Condition.Variant.HAS_TYPE,
+            "variant": Condition.Variant.HAS_TYPE.value,
             "condition": self.condition,
             "dependee": self.dependee,
             "type": self.type_,
@@ -201,7 +201,7 @@ class ParameterHasType(Condition):
 class Action:
     action: str = ""
 
-    class Variant(str, Enum):
+    class Variant(Enum):
         ACTION = "action"
         IS_IGNORED = "is_ignored"
         IS_ILLEGAL = "is_illegal"
@@ -211,21 +211,21 @@ class Action:
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Action:
         match d["variant"]:
-            case Action.Variant.ACTION:
+            case Action.Variant.ACTION.value:
                 return cls(d["action"])
-            case Action.Variant.IS_IGNORED:
+            case Action.Variant.IS_IGNORED.value:
                 return ParameterIsIgnored.from_dict(d)
-            case Action.Variant.IS_ILLEGAL:
+            case Action.Variant.IS_ILLEGAL.value:
                 return ParameterIsIllegal.from_dict(d)
-            case Action.Variant.WILL_BE_SET:
+            case Action.Variant.WILL_BE_SET.value:
                 return ParameterWillBeSetTo.from_dict(d)
-            case Action.Variant.IS_RESTRICTED:
+            case Action.Variant.IS_RESTRICTED.value:
                 return ParameterIsRestricted.from_dict(d)
             case _:
                 raise KeyError("unknown variant found")
 
     def to_dict(self) -> dict[str, Any]:
-        return {"variant": Action.Variant.ACTION, "action": self.action}
+        return {"variant": Action.Variant.ACTION.value, "action": self.action}
 
 
 class ParameterIsIgnored(Action):
@@ -237,7 +237,7 @@ class ParameterIsIgnored(Action):
         return cls(d["action"])
 
     def to_dict(self) -> dict[str, Any]:
-        return {"variant": Action.Variant.IS_IGNORED, "action": self.action}
+        return {"variant": Action.Variant.IS_IGNORED.value, "action": self.action}
 
 
 class ParameterIsIllegal(Action):
@@ -249,7 +249,7 @@ class ParameterIsIllegal(Action):
         return cls(d["action"])
 
     def to_dict(self) -> dict[str, Any]:
-        return {"variant": Action.Variant.IS_ILLEGAL, "action": self.action}
+        return {"variant": Action.Variant.IS_ILLEGAL.value, "action": self.action}
 
 
 class ParameterWillBeSetTo(Action):
@@ -264,7 +264,7 @@ class ParameterWillBeSetTo(Action):
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "variant": Action.Variant.WILL_BE_SET,
+            "variant": Action.Variant.WILL_BE_SET.value,
             "action": self.action,
             "depender": self.depender,
             "value": self.value_,
@@ -280,7 +280,7 @@ class ParameterIsRestricted(Action):
         return cls(d["action"])
 
     def to_dict(self) -> dict[str, Any]:
-        return {"variant": Action.Variant.IS_RESTRICTED, "action": self.action}
+        return {"variant": Action.Variant.IS_RESTRICTED.value, "action": self.action}
 
 
 @Language.component("merger")

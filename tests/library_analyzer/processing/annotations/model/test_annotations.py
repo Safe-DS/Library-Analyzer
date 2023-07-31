@@ -304,12 +304,12 @@ def test_annotation_store() -> None:
                 "has_dependent_parameter": ["test/test/test"],
                 "is_depending_on": ["test/test/test"],
                 "condition": {
-                    "variant": Condition.Variant.CONDITION,
+                    "variant": "condition",
                     "condition": "If test=test",
                     "dependee": "test",
                     "combined_with": [],
                 },
-                "action": {"variant": Action.Variant.ACTION, "action": "this will be set to test"},
+                "action": {"variant": "action", "action": "this will be set to test"},
             },
         },
         "descriptionAnnotations": {
@@ -609,12 +609,12 @@ def test_annotation_store() -> None:
                 "has_dependent_parameter": ["test/test/test"],
                 "is_depending_on": ["test/test/test"],
                 "condition": {
-                    "variant": Condition.Variant.CONDITION,
+                    "variant": "condition",
                     "condition": "If test=test",
                     "dependee": "test",
                     "combined_with": [],
                 },
-                "action": {"variant": Action.Variant.ACTION, "action": "this will be set to test"},
+                "action": {"variant": "action", "action": "this will be set to test"},
             },
         ),
         (
