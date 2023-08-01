@@ -38,7 +38,7 @@ class Variables:
 
 @dataclass
 class Symbol(ABC):
-    node: astroid.NodeNG
+    node: Scope | ClassScope
     id: NodeID
     name: str
 
@@ -321,6 +321,7 @@ class ScopeFinder:
             | astroid.AugAssign
             | astroid.AnnAssign
             | astroid.Tuple
+            | astroid.For
         ):
             parent = self.current_node_stack[-1]
             scope_node = Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=parent)
@@ -385,6 +386,8 @@ class NameNodeFinder:
             | astroid.UnaryOp
             | astroid.Match
             | astroid.Tuple
+            | astroid.Subscript
+            | astroid.FormattedValue
         ):
             self.names_list.append(node)
         if (
@@ -527,7 +530,6 @@ def _create_references(all_names_list: list[astroid.Name | astroid.AssignName],
             references_final.append(target_ref)
 
     return references_final
-    # TODO: sonderfälle mit AssignName müssen separat betrachtet werden (global) ?? was bedeutet das?
 
 
 def _add_target_references(reference: ReferenceNode, reference_list: list[ReferenceNode]) -> ReferenceNode:
@@ -541,9 +543,9 @@ def _add_target_references(reference: ReferenceNode, reference_list: list[Refere
         for ref in reference_list[:reference_list.index(reference)]:
             if isinstance(ref.name, MemberAccess):
                 if ref.name.expression.as_string() == reference.name.name:
-                    complete_reference.referenced_symbols.append(Symbol(ref.name, _calc_node_id(ref.name), ref.name.expression.as_string()))
+                    complete_reference.referenced_symbols.append(Symbol(node=ref.name, id=_calc_node_id(ref.name), name=ref.name.expression.as_string()))
             elif ref.name.name == reference.name.name and isinstance(ref.name, astroid.AssignName):
-                complete_reference.referenced_symbols.append(Symbol(ref.name, _calc_node_id(ref.name), ref.name.name))
+                complete_reference.referenced_symbols.append(Symbol(node=ref.scope, id=_calc_node_id(ref.name), name=ref.name.name))
 
     return complete_reference
 
@@ -620,6 +622,8 @@ def specify_symbols(parent_node: Scope | ClassScope,
             for param in function_parameters[parent_node.node][1]:
                 if param.name == symbol.name:
                     return Parameter(symbol.node, symbol.id, symbol.name)
+        if isinstance(symbol.node.parent.node, astroid.Module):
+            return GlobalVariable(symbol.node, symbol.id, symbol.name)
 
         return LocalVariable(symbol.node, symbol.id, symbol.name)
     else:
@@ -644,7 +648,7 @@ def _get_scope(code: str) -> tuple[Scope | ClassScope, dict[Name, Scope | ClassS
     Returns
     -------
         scopes:     list of ScopeNode instances that represent the scope tree of the given code.
-        variables:  list of class variables and list of instance variables for all classes in the given code.
+        names:      list of all name nodes in the given code.
         parameters: list of parameters for all functions in the given code.
         globs:      list of global variables in the given code.
     """

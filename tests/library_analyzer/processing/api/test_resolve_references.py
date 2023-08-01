@@ -821,7 +821,7 @@ def func1():
         print(i)
         """,  # language=none
             [ReferenceTestNode("var1.line4", "FunctionDef.func1", ["GlobalVariable.var1.line2"]),
-             ReferenceTestNode("i.line5", "FunctionDef.func1.", ["LocalVariable.i.line4"])]
+             ReferenceTestNode("i.line5", "FunctionDef.func1", ["LocalVariable.i.line4"])]
         ),
         (  # language=Python
             """
@@ -829,8 +829,8 @@ nums = ["one", "two", "three"]
 for num in nums:
     print(num)
         """,  # language=none
-            [ReferenceTestNode("nums.line2", "Module.", ["GlobalVariable.nums.line2"]),
-             ReferenceTestNode("num.line3", "Module.", ["GlobalVariable.num.line3"])]
+            [ReferenceTestNode("nums.line3", "Module.", ["GlobalVariable.nums.line2"]),
+             ReferenceTestNode("num.line4", "Module.", ["GlobalVariable.num.line3"])]
         ),
         (  # language=Python
             """
@@ -838,9 +838,9 @@ nums = ["one", "two", "three"]
 lengths = [len(num) for num in nums]  # TODO: list comprehension should get its own scope (LATER: for further improvement)
 print(lengths)
         """,  # language=none
-            [ReferenceTestNode("nums.line2", "Module.", ["GlobalVariable.nums.line2"]),
+            [ReferenceTestNode("nums.line3", "Module.", ["GlobalVariable.nums.line2"]),
              ReferenceTestNode("num.line3", "List.", ["LocalVariable.num.line3"]),
-             ReferenceTestNode("lengths.line4", "Module.", ["GlobalVariable.lengths.line4"])]
+             ReferenceTestNode("lengths.line4", "Module.", ["GlobalVariable.lengths.line3"])]
         ),
         (  # language=Python
             """
@@ -880,14 +880,18 @@ except ZeroDivisionError as zde:   # TODO: zde is not detected as a global varia
         (  # language=Python
             """
 arr = [1, 2, 3]
-arr[0] = 10  # TODO: this is not detected right now but should be
+val = arr
+res = arr[0]
+arr[0] = 10
             """,  # language=none
-            [ReferenceTestNode("arr.line3", "Module.", ["GlobalVariable.arr.line2"])]
+            [ReferenceTestNode("arr.line3", "Module.", ["GlobalVariable.arr.line2"]),
+             ReferenceTestNode("arr.line4", "Module.", ["GlobalVariable.arr.line2"]),
+             ReferenceTestNode("arr.line5", "Module.", ["GlobalVariable.arr.line2"])]
         ),
         (  # language=Python
             """
 dictionary = {"key1": 1, "key2": 2}
-dictionary["key1"] = 0 # TODO: this is not detected right now but should be
+dictionary["key1"] = 0
             """,  # language=none
             [ReferenceTestNode("dictionary.line3", "Module.", ["GlobalVariable.dictionary.line2"])]
         ),
@@ -936,7 +940,7 @@ print(x, y)
             """
 x = 10
 y = 20
-print(f"{x} + {y} = {x + y}")  # TODO: this is not correctly detected right now
+print(f"{x} + {y} = {x + y}")
             """,  # language=none
             [ReferenceTestNode("x.line4", "Module.", ["GlobalVariable.x.line2"]),
              ReferenceTestNode("y.line4", "Module.", ["GlobalVariable.y.line3"]),
@@ -1091,7 +1095,7 @@ print(glob1)
         )  # Problem: we can not check weather a function is called before the global variable is declared since
         # this would need a context-sensitive approach
         # I would suggest to just check if the global variable is declared in the module scope at the cost of loosing precision
-        # for now we check if the global variable is declared in the module scope, if its not we simply ignore it
+        # for now we check if the global variable is declared in the module scope, if it isn't we simply ignore it
     ],
     ids=[
         "new global variable in class scope",
