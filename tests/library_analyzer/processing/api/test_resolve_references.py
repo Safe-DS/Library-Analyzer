@@ -626,6 +626,17 @@ def local_global():
         ),
         (  # language=Python
             """
+def local_global():
+    global glob1
+
+    return glob1  # TODO: this is not detected as a global variable, because the node is not added to the module.globals when looking at this functiondef
+
+glob1 = 10
+            """,  # language= None
+            [ReferenceTestNode("glob1.line5", "FunctionDef.local_global", ["GlobalVariable.glob1.line7"])]
+        ),
+        (  # language=Python
+            """
 glob1 = 10
 class A:
     global glob1
@@ -983,6 +994,7 @@ f()
         "global variable in module scope",
         "global variable in class scope",
         "global variable in function scope",
+        "global variable in function scope but after definition",
         "global variable in class scope and function scope",
         "access of global variable without global keyword",
         "local variable in function scope shadowing global variable without global keyword",
@@ -1038,7 +1050,7 @@ class A:
     glob1 = 10
     print(glob1)
             """,  # language= None
-            [ReferenceTestNode("glob1.line3", "ClassDef.A", ["GlobalVariable.glob1.line2"])]
+            [ReferenceTestNode("glob1.line5", "ClassDef.A", ["ClassVariable.glob1.line4"])]
         ),
         (  # language=Python
             """
@@ -1047,7 +1059,7 @@ def local_global():
 
     return glob1
             """,  # language= None
-            [ReferenceTestNode("glob1.line3", "FunctionDef.local_global", [])]
+            [ReferenceTestNode("glob1.line5", "FunctionDef.local_global", [])]
         ),
         (  # language=Python
             """
@@ -1060,7 +1072,9 @@ glob1 = 10
 b = A().value
 print(a, b)
             """,  # language= None
-            []
+            [ReferenceTestNode("glob1.line4", "ClassDef.A", [""]),
+             ReferenceTestNode("a.line9", "Module.", ["GlobalVariable.a.line6"]),
+             ReferenceTestNode("b.line9", "Module.", ["GlobalVariable.b.line8"])]
         ),
         (  # language=Python
             """
@@ -1077,6 +1091,7 @@ print(glob1)
         )  # Problem: we can not check weather a function is called before the global variable is declared since
         # this would need a context-sensitive approach
         # I would suggest to just check if the global variable is declared in the module scope at the cost of loosing precision
+        # for now we check if the global variable is declared in the module scope, if its not we simply ignore it
     ],
     ids=[
         "new global variable in class scope",

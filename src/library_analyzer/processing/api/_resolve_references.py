@@ -356,6 +356,10 @@ class ScopeFinder:
         self.children.append(scope_node)
 
     def check_if_global(self, name: str, node: astroid.NodeNG) -> bool:
+        """
+        Checks if a name is a global variable inside the root of the given node
+        Returns True if the name is listed in root.globals dict, False otherwise
+        """
         if not isinstance(node, astroid.Module):
             return self.check_if_global(name, node.parent)
         else:
