@@ -381,7 +381,6 @@ def _preprocess_docstring(docstring: str) -> str:
     return re.sub(r"is set to", "is", docstring)
 
 
-
 def _shorten_and_check_string(dependee: str, doc: Doc, passive: bool = False) -> None:
     """Shorten and recheck the passed Doc object if there is a multiple condition.
 
