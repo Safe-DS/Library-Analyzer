@@ -472,10 +472,10 @@ def _calc_node_id(
             return NodeID(module, node.name, node.lineno, node.col_offset)
         case MemberAccess():
             return NodeID(module, node.expression.as_string(), node.expression.lineno, node.expression.col_offset)
-        case astroid.Import():
-            return NodeID(module, node.as_string(), node.lineno, node.col_offset)
+        case astroid.Import():  # TODO: we need a special treatment for imports and import from
+            return NodeID(module, node.names[0][0], node.lineno, node.col_offset)
         case astroid.ImportFrom():
-            return NodeID(module, node.as_string(), node.lineno, node.col_offset)
+            return NodeID(module, node.names[0][1], node.lineno, node.col_offset)
         case astroid.AssignAttr():
             return NodeID(module, node.attrname, node.lineno, node.col_offset)
         case astroid.NodeNG():

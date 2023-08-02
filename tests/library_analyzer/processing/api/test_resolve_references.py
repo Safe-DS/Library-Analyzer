@@ -105,17 +105,17 @@ class SimpleClassScope(SimpleScope):
         ),
         (
             """
-                def aug_assign():
-                    var1 += 1
-            """,
-            ["AssignName.var1"],
-        ),
-        (
-            """
                 def assign_attr():
                     a.res = 1
             """,
             ["MemberAccess.a.res"],
+        ),
+        (
+            """
+                def aug_assign():
+                    var1 += 1
+            """,
+            ["AssignName.var1"],
         ),
         (
             """
@@ -299,10 +299,10 @@ class SimpleClassScope(SimpleScope):
         "Global and Assign",
         "Assign Class Attribute",
         "Assign Instance Attribute",
-        "Assign Chain",
-        "Assign Chain Reversed",
-        "AugAssign",
+        "Assign MemberAccess as value",
+        "Assign MemberAccess as target",
         "AssignAttr",
+        "AugAssign",
         "Return",
         "While",
         "For",
@@ -411,6 +411,26 @@ def transform_member_access(member_access: MemberAccess) -> str:
             ),
             "numpy.glob.20.0",
         ),
+        (
+            astroid.Import(names=[("numpy", None)], lineno=1, col_offset=0, parent=astroid.Module("my_module")),
+            "my_module.numpy.1.0",
+        ),
+        (
+            astroid.Import(names=[("numpy", None), ("sys", None)], lineno=1, col_offset=0, parent=astroid.Module("my_module")),
+            "my_module.numpy.1.0",  # TODO: this is a problem since one node can contain multiple imports and therefore each one needs its own id
+        ),
+        (
+            astroid.Import(names=[("numpy", "np")], lineno=1, col_offset=0, parent=astroid.Module("my_module")),
+            "my_module.np.1.0",
+        ),
+        (
+            astroid.ImportFrom(fromname='math', names=[('sqrt', None)], level=0, lineno=1, col_offset=0, parent=astroid.Module("my_module")),
+            "my_module.sqrt.1.0",
+        ),
+        (
+            astroid.ImportFrom(fromname='math', names=[('sqrt', 's')], level=0, lineno=1, col_offset=0, parent=astroid.Module("my_module")),
+            "my_module.s.1.0",
+        )
     ],
     ids=[
         "Module",
@@ -420,14 +440,14 @@ def transform_member_access(member_access: MemberAccess) -> str:
         "AssignName (parent FunctionDef)",
         "Name (parent FunctionDef)",
         "Name (parent FunctionDef, parent ClassDef, parent Module)",
-        # "Name incorrect (wrong parent)",
-        # "Name incorrect (wrong name)",
-        # "Name incorrect (wrong lineno)",
-        # "Name incorrect (wrong col_offset)",
-        # TODO: see above
+        "Import",
+        "Import multiple",
+        "Import as",
+        "Import From",
+        "Import From as",
     ],
 )
-def test_calc_function_id_new(
+def test_calc_node_id(
     node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name,
     expected: str,
 ) -> None:
@@ -985,6 +1005,66 @@ f()
             """,  # language=none
             [ReferenceTestNode("f.line4", "Module.", ["FunctionDef.f.line1"])]
         ),
+        (  # language=Python
+            """
+import math
+
+print(math.pi)
+            """,  # language=none
+            [""]  # TODO
+        ),
+        (  # language=Python
+            """
+import math, sys
+
+print(math.pi)
+print(sys.version)
+            """,  # language=none
+            [""]  # TODO
+        ),
+        (  # language=Python
+            """
+import math as m
+
+print(m.pi)
+            """,  # language=none
+            [""]  # TODO
+        ),
+        (  # language=Python
+            """
+from math import sqrt
+
+print(sqrt(4))
+            """,  # language=none
+            [""]  # TODO
+        ),
+        (  # language=Python
+            """
+from math import pi, sqrt
+
+print(pi)
+print(sqrt(4))
+            """,  # language=none
+            [""]  # TODO
+        ),
+        (  # language=Python
+            """
+from math import sqrt as s
+
+print(s(4))
+            """,  # language=none
+            [""]  # TODO
+        ),
+        (  # language=Python
+            """
+from math import pi as p, sqrt as s
+
+print(p)
+print(s(4))
+            """,  # language=none
+            [""]  # TODO
+        ),
+
     ],
     ids=[
         "local variable in function scope",
@@ -1031,6 +1111,13 @@ f()
         "multiple references in one line",
         "different scopes",
         "function call",
+        "import",
+        "import multiple",
+        "import as",
+        "import from",
+        "import from multiple",
+        "import from as",
+        "import from as multiple",
     ]  # TODO: testcases for calls and imports
 )
 def test_resolve_references(code, expected):
