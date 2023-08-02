@@ -378,9 +378,8 @@ def _preprocess_docstring(docstring: str) -> str:
     docstring = re.sub(r"\s+", " ", docstring)
 
     docstring = re.sub(r"none", "None", docstring)
-    docstring = re.sub(r"is set to", "is", docstring)
+    return re.sub(r"is set to", "is", docstring)
 
-    return docstring
 
 
 def _shorten_and_check_string(dependee: str, doc: Doc, passive: bool = False) -> None:
