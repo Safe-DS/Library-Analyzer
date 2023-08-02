@@ -12,6 +12,7 @@ from ._annotations import (
     BoundaryAnnotation,
     CalledAfterAnnotation,
     CompleteAnnotation,
+    DependencyAnnotation,
     DescriptionAnnotation,
     EnumAnnotation,
     ExpertAnnotation,
@@ -33,6 +34,7 @@ class AnnotationStore:
     boundaryAnnotations: list[BoundaryAnnotation] = field(default_factory=list)  # noqa: N815
     calledAfterAnnotations: list[CalledAfterAnnotation] = field(default_factory=list)  # noqa: N815
     completeAnnotations: list[CompleteAnnotation] = field(default_factory=list)  # noqa: N815
+    dependencyAnnotations: list[DependencyAnnotation] = field(default_factory=list)  # noqa: N815
     descriptionAnnotations: list[DescriptionAnnotation] = field(default_factory=list)  # noqa: N815
     enumAnnotations: list[EnumAnnotation] = field(default_factory=list)  # noqa: N815
     expertAnnotations: list[ExpertAnnotation] = field(default_factory=list)  # noqa: N815
@@ -67,6 +69,10 @@ class AnnotationStore:
         complete_annotations = []
         for annotation in d["completeAnnotations"].values():
             complete_annotations.append(CompleteAnnotation.from_dict(annotation))
+
+        dependency_annotations = []
+        for annotation in d["dependencyAnnotations"].values():
+            dependency_annotations.append(DependencyAnnotation.from_dict(annotation))
 
         description_annotations = []
         for annotation in d["descriptionAnnotations"].values():
@@ -112,6 +118,7 @@ class AnnotationStore:
             boundary_annotations,
             called_after_annotations,
             complete_annotations,
+            dependency_annotations,
             description_annotations,
             enum_annotations,
             expert_annotations,
@@ -131,6 +138,8 @@ class AnnotationStore:
             self.calledAfterAnnotations.append(annotation)
         elif isinstance(annotation, CompleteAnnotation):
             self.completeAnnotations.append(annotation)
+        elif isinstance(annotation, DependencyAnnotation):
+            self.dependencyAnnotations.append(annotation)
         elif isinstance(annotation, DescriptionAnnotation):
             self.descriptionAnnotations.append(annotation)
         elif isinstance(annotation, EnumAnnotation):
@@ -165,6 +174,9 @@ class AnnotationStore:
                 annotation.target: annotation.to_dict() for annotation in self.calledAfterAnnotations
             },
             "completeAnnotations": {annotation.target: annotation.to_dict() for annotation in self.completeAnnotations},
+            "dependencyAnnotations": {
+                annotation.target: annotation.to_dict() for annotation in self.dependencyAnnotations
+            },
             "descriptionAnnotations": {
                 annotation.target: annotation.to_dict() for annotation in self.descriptionAnnotations
             },
