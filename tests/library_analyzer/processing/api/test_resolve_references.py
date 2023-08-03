@@ -7,6 +7,8 @@ import pytest
 from library_analyzer.processing.api import (
     ClassScope,
     MemberAccess,
+    MemberAccessTarget,
+    MemberAccessValue,
     Scope,
     NodeID,
     _calc_node_id,
@@ -651,7 +653,7 @@ def local_global():
 
     return glob1  # TODO: this is not detected as a global variable, because the node is not added to the module.globals when looking at this functiondef
 
-glob1 = 10
+glob1 = 10  # TODO: this can be fixed by removing [:reference_list.index(reference)] in line 580
             """,  # language= None
             [ReferenceTestNode("glob1.line5", "FunctionDef.local_global", ["GlobalVariable.glob1.line7"])]
         ),
@@ -707,7 +709,7 @@ class A:
 
 print(A.class_attr1)  # TODO: right now this is not detected as a reference, since MemberAccess is not supported yet
             """,  # language=none
-            [ReferenceTestNode("class_attr1", "ClassDef.A", ["ClassAttribute.class_attr1.line2"])]
+            [ReferenceTestNode("A.class_attr1.line5", "Module.", ["ClassVariable.A.class_attr1.line3"])]
         ),
         (  # language=Python
             """
@@ -715,9 +717,10 @@ class A:
     class_attr1 = 20
 
 A.class_attr1 = 30 # TODO: right now this is not detected as a reference, since MemberAccess is not supported yet
+print(A.class_attr1)
             """,  # language=none
-            [ReferenceTestNode("A.class_attr1", "ClassDef.A", ["ClassAttribute.class_attr1.line2"]),
-             ReferenceTestNode("A.class_attr1", "Module.", ["GlobalVariable.A.class_attr1.line4"])]
+            [ReferenceTestNode("A.class_attr1.line6", "Module.", ["GlobalVariable.A.class_attr1.line5",
+                                                                  "ClassVariable.A.class_attr1.line3"])]
         ),
         (  # language=Python
             """
@@ -728,10 +731,9 @@ class B:
 b = B()
 var1 = b.instance_attr1
             """,  # language=none
-            [ReferenceTestNode("B", "Module.", ["GlobalVariable.B.line2"]),
-             ReferenceTestNode("b", "Module.", ["GlobalVariable.b.line6"]),
-             ReferenceTestNode("b.instance_attr1", "ClassDef.B", ["InstanceAttr.b.instance_attr1.line4"])
-             ]
+            [ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"]),
+             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
+             ReferenceTestNode("b.instance_attr1.line7", "Module.", ["InstanceVariable.b.instance_attr1.line4"])]
         ),
         (  # language=Python
             """
@@ -741,11 +743,26 @@ class B:
 
 b = B()
 b.instance_attr1 = 1
+print(b.instance_attr1)
             """,  # language=none
-            [ReferenceTestNode("B", "Module.", ["GlobalVariable.B.line2"]),
-             ReferenceTestNode("b", "Module.", ["GlobalVariable.b.line6"]),
-             ReferenceTestNode("b.instance_attr1", "ClassDef.B", ["InstanceAttr.b.instance_attr1.line4"])
+            [ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"]),
+             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
+             ReferenceTestNode("b.instance_attr1.line8", "Module.", ["GlobalVariable.b.instance_attr1.line7",
+                                                                     "InstanceVariable.b.instance_attr1.line4"])
              ]
+        ),
+        (  # language=Python
+            """
+class B:
+    def __init__(self, name):
+        self.name = name
+
+b = B("test")
+print(b.name)
+            """,  # language=none
+            [ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"]),
+             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
+             ReferenceTestNode("b.name.line7", "Module.", ["InstanceVariable.b.name.line4"])]
         ),
         (  # language=Python
             """
@@ -755,7 +772,7 @@ class C:
     def get_state(self):
         return self.state
             """,  # language= None
-            [""]  # TODO
+            [ReferenceTestNode("self.state.line6", "FunctionDef.get_state", ["ClassVariable.C.state.line3"])]  # TODO
         ),
         (  # language=Python
             """
@@ -989,12 +1006,22 @@ class A:
     def f(self):
         print(x)
 
-    x = 50
 a = A()
 a.f()
 print(x)
             """,  # language=none
             []
+        ),
+        (  # language=Python
+            """
+a = 10
+b = a
+c = b
+print(c)
+            """,  # language=none
+            [ReferenceTestNode("a.line3", "Module.", ["GlobalVariable.a.line2"]),
+             ReferenceTestNode("b.line4", "Module.", ["GlobalVariable.b.line3"]),
+             ReferenceTestNode("c.line5", "Module.", ["GlobalVariable.c.line4"])]
         ),
         (  # language=Python
             """
@@ -1087,6 +1114,7 @@ print(s(4))
         "class attribute target",
         "instance attribute value",
         "instance attribute target",
+        "instance attribute with parameter",
         "getter function with self",
         "getter function with classname",
         "setter function with self",
@@ -1110,6 +1138,7 @@ print(s(4))
         "f-string",
         "multiple references in one line",
         "different scopes",
+        "aliases",
         "function call",
         "import",
         "import multiple",
@@ -1206,6 +1235,10 @@ def test_resolve_references_error(code, expected):
 
 
 def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
+    if isinstance(node.name, MemberAccess | MemberAccessValue | MemberAccessTarget):
+        return ReferenceTestNode(name=f"{node.name.name}.line{node.name.expression.lineno}",
+                                 scope=f"{node.scope.node.__class__.__name__}.{node.scope.node.name}",
+                                 referenced_symbols=[str(ref) for ref in node.referenced_symbols])
     return ReferenceTestNode(name=f"{node.name.name}.line{node.name.lineno}",
                              scope=f"{node.scope.node.__class__.__name__}.{node.scope.node.name}",
                              referenced_symbols=[str(ref) for ref in node.referenced_symbols])

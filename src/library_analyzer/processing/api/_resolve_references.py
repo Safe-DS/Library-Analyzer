@@ -15,8 +15,30 @@ class MemberAccess(Expression):
     expression: astroid.NodeNG
     value: MemberAccess | Reference
     parent: astroid.NodeNG | None = field(default=None)
+    name: str = field(init=False)
     # TODO: when detecting MemberAccess, we will only search for the nodes name in all class scopes ->
     #  add a list of all classes of a module to easily access their instance nodes (their names)
+
+    # def __str__(self):
+    #     return f"{self.expression.name}.{self.value.name}"
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __post_init__(self):
+        self.name = f"{self.expression.name}.{self.value.name}"
+
+
+@dataclass
+class MemberAccessTarget(MemberAccess):
+    def __hash__(self):
+        return hash(str(self))
+
+
+@dataclass
+class MemberAccessValue(MemberAccess):
+    def __hash__(self):
+        return hash(str(self))
 
 
 @dataclass
@@ -100,6 +122,11 @@ class Scope:
     def __iter__(self):
         yield self
 
+    def root(self) -> Scope | ClassScope:
+        if self.parent:
+            return self.parent.root()
+        return self
+
     @property
     def node(self):
         return self._node
@@ -154,7 +181,7 @@ class ClassScope(Scope):
 
 @dataclass
 class ReferenceNode:
-    name: astroid.Name | astroid.AssignName | str
+    name: astroid.Name | astroid.AssignName | MemberAccess | str
     scope: Scope
     referenced_symbols: list[Symbol] = field(default_factory=list)
 
@@ -337,8 +364,14 @@ class ScopeFinder:
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
-        scope_node = Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=parent)
+        member_access = _construct_member_access(node)
+        scope_node = Scope(_node=member_access, _id=_calc_node_id(node), _children=[], _parent=parent)
         self.children.append(scope_node)
+        self.name_nodes[member_access] = self.current_node_stack[-1]
+
+    def enter_attribute(self, node: astroid.Attribute) -> None:
+        member_access = _construct_member_access(node)
+        self.name_nodes[member_access] = self.current_node_stack[-1]
 
     def enter_global(self, node: astroid.Global) -> None:
         for name in node.names:
@@ -429,10 +462,16 @@ class NameNodeFinder:
 
 
 def _construct_member_access(node: astroid.Attribute | astroid.AssignAttr) -> MemberAccess:
-    if isinstance(node.expr, astroid.Attribute | astroid.AssignAttr):
-        return MemberAccess(_construct_member_access(node.expr), Reference(node.attrname))
-    else:
-        return MemberAccess(node.expr, Reference(node.attrname))
+    if isinstance(node, astroid.Attribute):
+        if isinstance(node.expr, astroid.Attribute | astroid.AssignAttr):
+            return MemberAccessValue(_construct_member_access(node.expr), Reference(node.attrname))
+        else:
+            return MemberAccessValue(node.expr, Reference(node.attrname))
+    elif isinstance(node, astroid.AssignAttr):
+        if isinstance(node.expr, astroid.Attribute | astroid.AssignAttr):
+            return MemberAccessTarget(_construct_member_access(node.expr), Reference(node.attrname))
+        else:
+            return MemberAccessTarget(node.expr, Reference(node.attrname))
 
 
 def _get_name_nodes(code: str) -> list[astroid.Name | astroid.AssignName]:
@@ -471,7 +510,8 @@ def _calc_node_id(
         case astroid.Name():
             return NodeID(module, node.name, node.lineno, node.col_offset)
         case MemberAccess():
-            return NodeID(module, node.expression.as_string(), node.expression.lineno, node.expression.col_offset)
+            # TODO: check if the MemberAccess is nested
+            return NodeID(module, f"{node.expression.name}.{node.value.name}", node.expression.lineno, node.expression.col_offset)
         case astroid.Import():  # TODO: we need a special treatment for imports and import from
             return NodeID(module, node.names[0][0], node.lineno, node.col_offset)
         case astroid.ImportFrom():
@@ -503,7 +543,7 @@ def get_scope_node_by_node_id(scope: Scope | list[Scope], targeted_node_id: Node
                 return name_nodes.get(name)
 
 
-def _create_references(all_names_list: list[astroid.Name | astroid.AssignName],
+def _create_references(all_names_list: list[astroid.Name | astroid.AssignName | MemberAccess],
                        scope: Scope,
                        name_nodes: dict[astroid.Name]) -> list[ReferenceNode]:
     """Create a list of references from a list of name nodes.
@@ -521,11 +561,13 @@ def _create_references(all_names_list: list[astroid.Name | astroid.AssignName],
             scope_node = get_scope_node_by_node_id(scope, node_id, None)
         elif isinstance(name, astroid.Name):
             scope_node = get_scope_node_by_node_id(scope, node_id, name_nodes)
+        elif isinstance(name, MemberAccess):
+            scope_node = get_scope_node_by_node_id(scope, node_id, name_nodes)
 
         references_proto.append(ReferenceNode(name, scope_node, []))
 
     for reference in references_proto:
-        if isinstance(reference.name, astroid.Name):
+        if isinstance(reference.name, astroid.Name | MemberAccessValue):
             target_ref = _add_target_references(reference, references_proto)
             references_final.append(target_ref)
 
@@ -540,14 +582,55 @@ def _add_target_references(reference: ReferenceNode, reference_list: list[Refere
     """
     complete_reference = reference
     if reference in reference_list:
-        for ref in reference_list[:reference_list.index(reference)]:
-            if isinstance(ref.name, MemberAccess):
-                if ref.name.expression.as_string() == reference.name.name:
-                    complete_reference.referenced_symbols.append(Symbol(node=ref.name, id=_calc_node_id(ref.name), name=ref.name.expression.as_string()))
-            elif ref.name.name == reference.name.name and isinstance(ref.name, astroid.AssignName):
+        for ref in reference_list:
+            # if isinstance(ref.name, MemberAccessTarget):
+            #     root = ref.scope.root()
+            #     if isinstance(root.node, astroid.Module):
+            #         classes_of_module = [node for node in ref.scope.children if isinstance(node, ClassScope)]  # TODO: nested classes are not detected
+            #         for class_scope in classes_of_module:
+            #             print(class_scope)
+            #             for variable in class_scope.class_variables:
+            #                 if reference.name.value.name == variable.name:
+            #                     print(variable.name)
+            #                     complete_reference.referenced_symbols.append(
+            #                         ClassVariable(node=class_scope, id=_calc_node_id(variable), name=f"{class_scope.node.name}.{variable.name}"))
+            if isinstance(ref.name, MemberAccessValue):
+                root = ref.scope.root()
+                if isinstance(root.node, astroid.Module):
+                    classes_of_module = [node for node in ref.scope.children if isinstance(node, ClassScope)]  # TODO: nested classes are not detected
+                    for class_scope in classes_of_module:
+                        print(class_scope)
+                        for variable in class_scope.class_variables:
+                            if reference.name.value.name == variable.name:
+                                print(variable.name)
+                                complete_reference.referenced_symbols.append(
+                                    ClassVariable(node=class_scope, id=_calc_node_id(variable), name=f"{class_scope.node.name}.{variable.name}"))
+
+            if isinstance(ref.name, MemberAccessTarget) and isinstance(reference.name, MemberAccessValue):
+                print("MemberAccess")
+                if ref.name.name == reference.name.name:
+                    complete_reference.referenced_symbols.append(
+                        Symbol(node=ref.scope, id=_calc_node_id(ref.name), name=ref.name.name))
+
+            elif isinstance(ref.name, astroid.AssignName) and ref.name.name == reference.name.name:
                 complete_reference.referenced_symbols.append(Symbol(node=ref.scope, id=_calc_node_id(ref.name), name=ref.name.name))
 
     return complete_reference
+
+# if reference in reference_list:
+#     for ref in reference_list[:reference_list.index(reference)]:
+#
+#         if isinstance(ref.name, MemberAccessTarget) and isinstance(reference.name, MemberAccessValue):
+#             print("MemberAccess")
+#             if ref.name.name == reference.name.name:
+#                 complete_reference.referenced_symbols.append(Symbol(node=ref.scope, id=_calc_node_id(ref.name), name=ref.name.name))
+#
+#
+#
+#         if isinstance(ref.name and reference, astroid.AssignName) and ref.name.name == reference.name.name:
+#             complete_reference.referenced_symbols.append(Symbol(node=ref.scope, id=_calc_node_id(ref.name), name=ref.name.name))
+#
+# return complete_reference
 
 
 def _find_references(name_node: astroid.Name,
@@ -571,6 +654,9 @@ def _find_references(name_node: astroid.Name,
 
     for ref in references:
         _get_symbols(ref, function_parameters, global_variables)
+        if isinstance(ref.name or name_node, MemberAccess):
+            if ref.name.name == name_node.name:
+                return [ref]
         if ref.name == name_node:  # TODO: it would be more efficient to remove the node from the list before creating the references
             return [ref]
 
@@ -584,6 +670,11 @@ def _get_symbols(node: ReferenceNode,
 
     for i, symbol in enumerate(node.referenced_symbols):
         for nod in node.scope.children:
+            if isinstance(nod.node, MemberAccessTarget):
+                if nod.node.name == symbol.name:
+                    parent_node = nod.parent
+                    specified_symbol = specify_symbols(parent_node, symbol, function_parameters)
+                    node.referenced_symbols[i] = specified_symbol
             if nod.id.name == symbol.name:
                 parent_node = nod.parent
                 specified_symbol = specify_symbols(parent_node, symbol, function_parameters)
@@ -608,6 +699,8 @@ def _get_symbols(node: ReferenceNode,
 def specify_symbols(parent_node: Scope | ClassScope,
                     symbol: Symbol,
                     function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]) -> Symbol:
+    if isinstance(symbol, ClassVariable | InstanceVariable | Parameter | GlobalVariable):
+        return symbol
     if isinstance(parent_node.node, astroid.Module):
         return GlobalVariable(symbol.node, symbol.id, symbol.name)
     elif isinstance(parent_node.node, astroid.ClassDef):
@@ -672,7 +765,7 @@ def resolve_references(code: str) -> list[ReferenceNode]:
     references: list[ReferenceNode] = []
 
     for name_node in name_nodes_list:
-        if isinstance(name_node, astroid.Name):
+        if isinstance(name_node, astroid.Name | MemberAccessValue):
             references_for_name_node = _find_references(name_node, name_nodes_list, scope[0], scope[1], scope[2], scope[3])
             references.extend(references_for_name_node)
 
