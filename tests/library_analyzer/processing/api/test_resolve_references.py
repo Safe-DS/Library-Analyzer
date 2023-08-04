@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import astroid
 import pytest
@@ -31,7 +31,7 @@ class SimpleScope:
 class SimpleClassScope(SimpleScope):
     class_variables: list[str]
     instance_variables: list[str]
-    super_class: list[str] | None = None
+    super_class: list[str] = field(default_factory=list)
 
 
 @pytest.mark.parametrize(
@@ -1512,12 +1512,16 @@ class SimpleScope:
                     ],
                 ),
             ],
-        ), (
+        ),
+        (
             """
                 class A:
                     var1 = 10
 
-                class B(A):
+                class X:
+                    var3 = 30
+
+                class B(A, X):
                     var2 = 20
             """,
             [
@@ -1531,11 +1535,17 @@ class SimpleScope:
                             []
                         ),
                         SimpleClassScope(
+                            "ClassDef.X",
+                            [SimpleScope("AssignName.var3", [])],
+                            ["var3"],
+                            []
+                        ),
+                        SimpleClassScope(
                                     "ClassDef.B",
                                     [SimpleScope("AssignName.var2", [])],
                                     ["var2"],
                                     [],
-                                    ["ClassDef.A"],
+                                    ["ClassDef.A", "ClassDef.X"]
                         ),
                     ],
                 ),
@@ -1874,7 +1884,7 @@ class SimpleScope:
         "Import From Scope with alias",
         "Complex Scope",
         "ASTWalker",
-        "a"
+        "AssignName",
     ],  # TODO: add tests for lambda and generator expressions
 )
 def test_get_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
@@ -1898,6 +1908,7 @@ def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope
                 [transform_result(child) for child in node.children],
                 [to_string_class(child) for child in node.class_variables],
                 [to_string_class(child) for child in node.instance_variables],
+                [to_string_class(child) for child in node.super_classes],
             )
         return SimpleScope(to_string(node.node), [transform_result(child) for child in node.children])
     else:
@@ -1928,4 +1939,6 @@ def to_string_class(node: astroid.NodeNG) -> str:
         return f"{node.attrname}"
     elif isinstance(node, astroid.AssignName):
         return f"{node.name}"
+    elif isinstance(node, ClassScope):
+        return f"{node.node.__class__.__name__}.{node.node.name}"
     raise NotImplementedError(f"Unknown node type: {node.__class__.__name__}")

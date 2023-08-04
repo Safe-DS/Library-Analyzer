@@ -189,7 +189,7 @@ class ClassScope(Scope):
 
     class_variables: list[astroid.AssignName] = field(default_factory=list)
     instance_variables: list[astroid.AssignAttr] = field(default_factory=list)
-    super_class: list[astroid.ClassDef] | None = field(default=None)  # TODO: implement functionality to detect this
+    super_classes: list[ClassScope] | None = field(default=None)
 
 
 @dataclass
@@ -221,7 +221,7 @@ class ScopeFinder:
 
     current_node_stack: list[Scope | ClassScope] = field(default_factory=list)
     children: list[Scope | ClassScope] = field(default_factory=list)
-    name_nodes: dict[astroid.Name, Scope | ClassScope] = field(default_factory=dict)
+    name_nodes: dict[astroid.Name | MemberAccess, Scope | ClassScope] = field(default_factory=dict)
     function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]] = field(
         default_factory=dict)
     global_variables: dict[str, Scope | ClassScope] = field(default_factory=dict)
@@ -301,7 +301,6 @@ class ScopeFinder:
         self.current_node_stack.append(
             Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=None),
         )
-        # self.global_variables[node] = node.globals
 
     def leave_module(self, node: astroid.Module) -> None:
         self._detect_scope(node)
@@ -315,12 +314,12 @@ class ScopeFinder:
                 _parent=self.current_node_stack[-1],
                 instance_variables=[],
                 class_variables=[],
+                super_classes=self.find_base_classes(node),
             ),
         )
 
     def leave_classdef(self, node: astroid.ClassDef) -> None:
         self._detect_scope(node)
-        # self.classes[node.name] = self.current_node_stack[-1]  # TODO: change to hold ClassScope
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
         self.current_node_stack.append(
@@ -380,8 +379,6 @@ class ScopeFinder:
             class_node = self.get_node_by_name(node.parent.parent.name)
             if isinstance(class_node, ClassScope):
                 class_node.class_variables.append(node)
-        # if isinstance(node.parent.parent, astroid.Module):
-        #     self.global_variables[node] = self.current_node_stack[-1]
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
@@ -398,7 +395,6 @@ class ScopeFinder:
         for name in node.names:
             if self.check_if_global(name, node):
                 self.global_variables[name] = self.current_node_stack[-1]
-                print(self.global_variables)
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
@@ -420,6 +416,27 @@ class ScopeFinder:
         else:
             if name in node.globals:
                 return True
+
+    def find_base_classes(self, node: astroid.ClassDef) -> list[ClassScope]:
+        """
+        Returns a list of all base classes of the given class
+        """
+        base_classes = []
+        for base in node.bases:
+            if isinstance(base, astroid.Name):
+                base_class = self.get_class_by_name(base.name)
+                if isinstance(base_class, ClassScope):
+                    base_classes.append(base_class)
+        return base_classes
+
+    def get_class_by_name(self, name: str) -> ClassScope | None:
+        """
+        Returns the class with the given name
+        """
+        for klass in self.classes:
+            if klass == name:
+                return self.classes[klass]
+        return None
 
 
 @dataclass
