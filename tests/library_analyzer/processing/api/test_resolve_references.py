@@ -998,19 +998,20 @@ res = var1 + var2 - (var1 * var2)
         ),
         (  # language=Python
             """
-x = 10
-
-class A:
-    x = 30
-
-    def f(self):
-        print(x)
-
-a = A()
-a.f()
-print(x)
+y = (x := 3) + 10
+print(x, y)
             """,  # language=none
-            []
+            [ReferenceTestNode("x.line3", "Module.", ["GlobalVariable.x.line2"]),
+             ReferenceTestNode("y.line3", "Module.", ["GlobalVariable.y.line2"])]
+        ),
+        (  # language=Python
+            """
+a = 1
+b = 2
+a, b = b, a
+            """,  # language=none
+            [ReferenceTestNode("b.line4", "Module.", ["GlobalVariable.b.line3", "GlobalVariable.b.line4"]),
+             ReferenceTestNode("a.line4", "Module.", ["GlobalVariable.a.line2", "GlobalVariable.a.line4"])]
         ),
         (  # language=Python
             """
@@ -1118,7 +1119,7 @@ print(s(4))
         "global variable in class scope and function scope",
         "access of global variable without global keyword",
         "local variable in function scope shadowing global variable without global keyword",
-        "two globals in class scope",  # TODO: all below are not supported yet
+        "two globals in class scope",
         "class attribute value",
         "class attribute target",
         "instance attribute value",
@@ -1146,7 +1147,8 @@ print(s(4))
         "double print",
         "f-string",
         "multiple references in one line",
-        "different scopes",
+        "walrus operator",
+        "variable swap",
         "aliases",
         "function call",
         "class instantiation",
@@ -1157,7 +1159,7 @@ print(s(4))
         "import from multiple",
         "import from as",
         "import from as multiple",
-    ]  # TODO: testcases for calls and imports
+    ]  # TODO: testcases for calls
 )
 def test_resolve_references(code, expected):
     references = resolve_references(code)

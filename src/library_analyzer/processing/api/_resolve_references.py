@@ -271,6 +271,8 @@ class ScopeFinder:
         self.children.append(self.current_node_stack[-1])  # add the current node to the children
         if isinstance(node, astroid.ClassDef):
             self.classes[node.name] = self.current_node_stack[-1]
+        if isinstance(node, astroid.FunctionDef):
+            self.functions[node.name] = self.current_node_stack[-1]
         self.current_node_stack.pop()  # remove the current node from the stack
 
     def _analyze_constructor(self, node: astroid.FunctionDef) -> None:
@@ -330,7 +332,6 @@ class ScopeFinder:
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
         self._detect_scope(node)
-        self.functions[node.name] = self.current_node_stack[-1]
 
     def enter_arguments(self, node: astroid.Arguments) -> None:
         if node.args:
@@ -369,6 +370,7 @@ class ScopeFinder:
             | astroid.AnnAssign
             | astroid.Tuple
             | astroid.For
+            | astroid.NamedExpr
         ):
             parent = self.current_node_stack[-1]
             scope_node = Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=parent)
@@ -483,6 +485,7 @@ class NameNodeFinder:
             | astroid.Compare
             | astroid.For
             | astroid.Tuple
+            | astroid.NamedExpr
         ):
             self.names_list.append(node)
 
