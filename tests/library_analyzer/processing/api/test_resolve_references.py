@@ -13,7 +13,7 @@ from library_analyzer.processing.api import (
     NodeID,
     _calc_node_id,
     _get_name_nodes,
-    _get_scope,
+    _get_module_data,
     ReferenceNode,
     _create_references,
     _find_references,
@@ -707,7 +707,7 @@ class A:
 class A:
     class_attr1 = 20
 
-print(A.class_attr1)  # TODO: right now this is not detected as a reference, since MemberAccess is not supported yet
+print(A.class_attr1)
             """,  # language=none
             [ReferenceTestNode("A.class_attr1.line5", "Module.", ["ClassVariable.A.class_attr1.line3"])]
         ),
@@ -716,10 +716,10 @@ print(A.class_attr1)  # TODO: right now this is not detected as a reference, sin
 class A:
     class_attr1 = 20
 
-A.class_attr1 = 30 # TODO: right now this is not detected as a reference, since MemberAccess is not supported yet
+A.class_attr1 = 30
 print(A.class_attr1)
             """,  # language=none
-            [ReferenceTestNode("A.class_attr1.line6", "Module.", ["GlobalVariable.A.class_attr1.line5",
+            [ReferenceTestNode("A.class_attr1.line6", "Module.", ["ClassVariable.A.class_attr1.line5",
                                                                   "ClassVariable.A.class_attr1.line3"])]
         ),
         (  # language=Python
@@ -772,7 +772,7 @@ class C:
     def get_state(self):
         return self.state
             """,  # language= None
-            [ReferenceTestNode("self.state.line6", "FunctionDef.get_state", ["ClassVariable.C.state.line3"])]  # TODO
+            [ReferenceTestNode("self.state.line6", "FunctionDef.get_state", ["ClassVariable.C.state.line3"])]
         ),
         (  # language=Python
             """
@@ -782,7 +782,7 @@ class C:
     def get_state(self):
         return C.state
             """,  # language= None
-            [""]  # TODO
+            [ReferenceTestNode("C.state.line6", "FunctionDef.get_state", ["ClassVariable.C.state.line3"])]
         ),
         (  # language=Python
             """
@@ -1030,7 +1030,16 @@ def f():
 
 f()
             """,  # language=none
-            [ReferenceTestNode("f.line4", "Module.", ["FunctionDef.f.line1"])]
+            [ReferenceTestNode("f.line5", "Module.", ["GlobalVariable.f.line2"])]
+        ),
+        (  # language=Python
+            """
+class F:
+    pass
+
+F()
+            """,  # language=none
+            [ReferenceTestNode("F.line5", "Module.", ["GlobalVariable.F.line2"])]
         ),
         (  # language=Python
             """
@@ -1140,6 +1149,7 @@ print(s(4))
         "different scopes",
         "aliases",
         "function call",
+        "class instantiation",
         "import",
         "import multiple",
         "import as",
@@ -1276,8 +1286,8 @@ class SimpleScope:
                                 SimpleScope(
                                     "FunctionDef.__init__",
                                     [
-                                        SimpleScope("AssignAttr.value", []),
-                                        SimpleScope("AssignAttr.test", []),
+                                        SimpleScope("MemberAccess.self.value", []),
+                                        SimpleScope("MemberAccess.self.test", []),
                                     ],
                                 ),
                                 SimpleScope(
@@ -1426,7 +1436,7 @@ class SimpleScope:
                                 SimpleScope("AssignName.local_class_attr2", []),
                                 SimpleScope(
                                     "FunctionDef.__init__",
-                                    [SimpleScope("AssignAttr.instance_attr1", [])],
+                                    [SimpleScope("MemberAccess.self.instance_attr1", [])],
                                 ),
                                 SimpleScope(
                                     "FunctionDef.local_instance_attr",
@@ -1459,7 +1469,7 @@ class SimpleScope:
                             [
                                 SimpleScope(
                                     "FunctionDef.__init__",
-                                    [SimpleScope("AssignAttr.instance_attr1", [])],
+                                    [SimpleScope("MemberAccess.self.instance_attr1", [])],
                                 ),
                             ],
                             [],
@@ -1782,8 +1792,8 @@ class SimpleScope:
                                     "FunctionDef.__init__",
                                     [
                                         SimpleScope("AssignName.handler", []),
-                                        SimpleScope("AssignAttr._handler", []),
-                                        SimpleScope("AssignAttr._cache", []),
+                                        SimpleScope("MemberAccess.self._handler", []),
+                                        SimpleScope("MemberAccess.self._cache", []),
                                     ],
                                 ),
                                 SimpleScope(
@@ -1797,6 +1807,7 @@ class SimpleScope:
                                     [
                                         SimpleScope("AssignName.node", []),
                                         SimpleScope("AssignName.visited_nodes", []),
+                                        SimpleScope("AssignName.child_node", []),
                                     ],
                                 ),
                                 SimpleScope(
@@ -1821,6 +1832,8 @@ class SimpleScope:
                                         SimpleScope("AssignName.methods", []),
                                         SimpleScope("AssignName.handler", []),
                                         SimpleScope("AssignName.class_name", []),
+                                        SimpleScope("AssignName.enter_method", []),
+                                        SimpleScope("AssignName.leave_method", []),
                                         SimpleScope("AssignName.enter_method", []),
                                         SimpleScope("AssignName.leave_method", []),
                                     ],
@@ -1865,7 +1878,7 @@ class SimpleScope:
     ],  # TODO: add tests for lambda and generator expressions
 )
 def test_get_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
-    result = _get_scope(code)[0]
+    result = _get_module_data(code).scope
     # assert result == expected
     assert_test_get_scope(result, expected)
 

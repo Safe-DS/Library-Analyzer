@@ -41,7 +41,7 @@ from ._resolve_references import (
     _create_references,
     _find_references,
     _get_name_nodes,
-    _get_scope,
+    _get_module_data,
 )
 
 __all__ = [
@@ -77,7 +77,7 @@ __all__ = [
     "_create_references",
     "_add_target_references",
     "_calc_node_id",
-    "_get_scope",
+    "_get_module_data",
     "Variables",
     "ClassScope",
     "NodeID",
