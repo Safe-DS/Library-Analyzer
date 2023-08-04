@@ -1,6 +1,7 @@
 from library_analyzer.processing.annotations._generate_boundary_annotations import (
     _generate_boundary_annotations,
 )
+from library_analyzer.processing.annotations._generate_dependency_annotations import _generate_dependency_annotations
 from library_analyzer.processing.annotations._generate_enum_annotations import (
     _generate_enum_annotations,
 )
@@ -26,4 +27,5 @@ def generate_annotations(api: API, usages: UsageCountStore) -> AnnotationStore:
     _generate_value_annotations(api, usages, annotations)
     _generate_enum_annotations(api, annotations)
     _generate_boundary_annotations(api, annotations)
+    _generate_dependency_annotations(api, annotations)
     return annotations
