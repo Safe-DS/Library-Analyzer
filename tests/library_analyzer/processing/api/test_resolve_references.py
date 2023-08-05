@@ -651,9 +651,9 @@ def local_global():
 def local_global():
     global glob1
 
-    return glob1  # TODO: this is not detected as a global variable, because the node is not added to the module.globals when looking at this functiondef
+    return glob1
 
-glob1 = 10  # TODO: this can be fixed by removing [:reference_list.index(reference)] in line 580
+glob1 = 10
             """,  # language= None
             [ReferenceTestNode("glob1.line5", "FunctionDef.local_global", ["GlobalVariable.glob1.line7"])]
         ),
@@ -676,7 +676,7 @@ def local_global():
             """
 glob1 = 10
 def local_global_access():
-    return glob1  # TODO: this is not detected as a node inside the function scope, which is correct
+    return glob1  # TODO: this is not detected as a node inside the function scope, which is correct.
             """,  # language= None
             [ReferenceTestNode("glob1.line4", "FunctionDef.local_global_access", ["GlobalVariable.glob1.line2"])]
         ),

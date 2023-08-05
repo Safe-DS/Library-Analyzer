@@ -672,7 +672,7 @@ def _find_references(name_node: astroid.Name,
                                     module_data.names, module_data.classes)  # contains a list of all referenced symbols for each node in the module
 
     for ref in references:
-        _get_symbols(ref, module_data.parameters, module_data.globals)
+        _get_symbols(ref, ref.scope, module_data.parameters, module_data.globals)
         if isinstance(ref.name or name_node, MemberAccess):
             if ref.name.name == name_node.name:
                 return [ref]
@@ -684,33 +684,36 @@ def _find_references(name_node: astroid.Name,
 
 
 def _get_symbols(node: ReferenceNode,
+                 current_scope: Scope | ClassScope,
                  function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
                  global_variables: dict[str, Scope | ClassScope]) -> None:
-    for i, symbol in enumerate(node.referenced_symbols):
-        for nod in node.scope.children:
-            if isinstance(nod.node, MemberAccessTarget):
-                if nod.node.name == symbol.name:
-                    parent_node = nod.parent
-                    specified_symbol = specify_symbols(parent_node, symbol, function_parameters)
-                    node.referenced_symbols[i] = specified_symbol
-            if nod.id.name == symbol.name:
-                parent_node = nod.parent
-                specified_symbol = specify_symbols(parent_node, symbol, function_parameters)
-                node.referenced_symbols[i] = specified_symbol
-        # TODO: ideally the functionality of the next block should be in the specify_symbols function
-        if symbol.name in global_variables.keys():
-            current_symbol_parent = global_variables.get(symbol.name)
-            if current_symbol_parent is not None:
-                node.referenced_symbols[i] = GlobalVariable(symbol.node, symbol.id, symbol.name)
+    try:
+        for i, symbol in enumerate(node.referenced_symbols):
+            if current_scope.children:
+                for nod in current_scope.children:
+                    if isinstance(nod.node, MemberAccessTarget) and nod.node.name == symbol.name:
+                        parent_node = nod.parent
+                        specified_symbol = specify_symbols(parent_node, symbol, function_parameters)
+                        node.referenced_symbols[i] = specified_symbol
 
-            # if current_symbol_parent is not None:
-            #     if check_if_global_is_in_parent_scope(current_symbol_parent, symbol.node):
-            #         node.referenced_symbols[i] = GlobalVariable(symbol.node, symbol.id, symbol.name)
-            #     else:
-            #         raise ValueError(f"Symbol {symbol.name} is not defined in the module scope")
+                    elif isinstance(nod.node, astroid.AssignName) and nod.node.name == symbol.name:
+                        parent_node = nod.parent
+                        specified_symbol = specify_symbols(parent_node, symbol, function_parameters)
+                        node.referenced_symbols[i] = specified_symbol
 
-            # sonst, suche im höheren scope weiter
-            # sonst, gebe einen Fehler aus
+                    # else:
+                    #     _get_symbols(node, current_scope.parent, function_parameters, global_variables)
+                    #     break
+                    #  would fix: "for loop with local runtime variable local scope" but break everything else
+            else:
+                _get_symbols(node, current_scope.parent, function_parameters, global_variables)
+            # TODO: ideally the functionality of the next block should be in the specify_symbols function
+            if symbol.name in global_variables.keys():
+                current_symbol_parent = global_variables.get(symbol.name)
+                if current_symbol_parent is not None:
+                    node.referenced_symbols[i] = GlobalVariable(symbol.node, symbol.id, symbol.name)
+    except ChildProcessError:
+        raise ChildProcessError(f"Parent node {node.scope.node.name} of {node.name.name} does not have any (detected) children.")
 
 
 def specify_symbols(parent_node: Scope | ClassScope,
