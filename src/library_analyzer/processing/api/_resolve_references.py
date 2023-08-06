@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass, field
+from types import NoneType
 
 import astroid
 from astroid import Name, FunctionDef, AssignName
@@ -671,22 +672,26 @@ def _find_references(name_node: astroid.Name,
     references = _create_references(all_name_nodes_list, module_data.scope,
                                     module_data.names, module_data.classes)  # contains a list of all referenced symbols for each node in the module
 
-    for ref in references:
-        _get_symbols(ref, ref.scope, module_data.parameters, module_data.globals)
+    # for i, ref in enumerate(references):
+    #     references[i] = _get_symbols(ref, ref.scope, module_data.parameters, module_data.globals)
+    #     if isinstance(ref.name or name_node, MemberAccess):
+    #         if ref.name.name == name_node.name:
+    #             return [ref]
+    #     if ref.name == name_node:  # TODO: it would be more efficient to remove the node from the list before creating the references
+    #         return [ref]
+
+    for i, ref in enumerate(references):
         if isinstance(ref.name or name_node, MemberAccess):
             if ref.name.name == name_node.name:
-                return [ref]
-        if ref.name == name_node:  # TODO: it would be more efficient to remove the node from the list before creating the references
-            return [ref]
-
-    # welcher scope sind wir gerade
-    # entsprechend dem Scope die zugehörigen Symbole finden
+                return [_get_symbols(ref, ref.scope, module_data.parameters, module_data.globals)]
+        if ref.name == name_node:
+            return [_get_symbols(ref, ref.scope, module_data.parameters, module_data.globals)]
 
 
 def _get_symbols(node: ReferenceNode,
                  current_scope: Scope | ClassScope,
                  function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
-                 global_variables: dict[str, Scope | ClassScope]) -> None:
+                 global_variables: dict[str, Scope | ClassScope]) -> ReferenceNode:
     try:
         for i, symbol in enumerate(node.referenced_symbols):
             if current_scope.children:
@@ -701,17 +706,18 @@ def _get_symbols(node: ReferenceNode,
                         specified_symbol = specify_symbols(parent_node, symbol, function_parameters)
                         node.referenced_symbols[i] = specified_symbol
 
-                    # else:
-                    #     _get_symbols(node, current_scope.parent, function_parameters, global_variables)
-                    #     break
-                    #  would fix: "for loop with local runtime variable local scope" but break everything else
+                # if not isinstance(current_scope.parent, NoneType):
+                #     return _get_symbols(node, current_scope.parent, function_parameters, global_variables)
+
+                #  would fix: "for loop with local runtime variable local scope" but break other case
             else:
-                _get_symbols(node, current_scope.parent, function_parameters, global_variables)
+                return _get_symbols(node, current_scope.parent, function_parameters, global_variables)
             # TODO: ideally the functionality of the next block should be in the specify_symbols function
             if symbol.name in global_variables.keys():
                 current_symbol_parent = global_variables.get(symbol.name)
                 if current_symbol_parent is not None:
                     node.referenced_symbols[i] = GlobalVariable(symbol.node, symbol.id, symbol.name)
+        return node
     except ChildProcessError:
         raise ChildProcessError(f"Parent node {node.scope.node.name} of {node.name.name} does not have any (detected) children.")
 
