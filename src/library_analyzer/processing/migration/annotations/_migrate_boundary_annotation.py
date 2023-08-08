@@ -9,18 +9,12 @@ from library_analyzer.processing.annotations.model import (
 )
 from library_analyzer.processing.api.model import (
     AbstractType,
-    Attribute,
     NamedType,
     Parameter,
-    Result,
     UnionType,
 )
 from library_analyzer.processing.migration.model import (
-    ManyToManyMapping,
-    ManyToOneMapping,
     Mapping,
-    OneToManyMapping,
-    OneToOneMapping,
 )
 
 from ._constants import migration_author
@@ -70,20 +64,17 @@ def _contains_number_and_is_discrete(
     return False, False
 
 
-def migrate_boundary_annotation(boundary_annotation: BoundaryAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
-    boundary_annotation = deepcopy(boundary_annotation)
-    authors = boundary_annotation.authors
-    authors.append(migration_author)
-    boundary_annotation.authors = authors
-
-    annotated_apiv1_element = get_annotated_api_element(boundary_annotation, mapping.get_apiv1_elements())
+def migrate_boundary_annotation(origin_annotation: BoundaryAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
+    annotated_apiv1_element = get_annotated_api_element(origin_annotation, mapping.get_apiv1_elements())
     if annotated_apiv1_element is None or not isinstance(annotated_apiv1_element, Parameter):
         return []
 
-    if isinstance(mapping, OneToOneMapping | ManyToOneMapping):
-        parameter = mapping.get_apiv2_elements()[0]
-        if isinstance(parameter, Attribute | Result):
-            return []
+    migrated_annotations: list[AbstractAnnotation] = []
+    for parameter in mapping.get_apiv2_elements():
+        boundary_annotation = deepcopy(origin_annotation)
+        authors = boundary_annotation.authors
+        authors.append(migration_author)
+        boundary_annotation.authors = authors
         if isinstance(parameter, Parameter):
             (
                 parameter_expects_number,
@@ -93,7 +84,8 @@ def migrate_boundary_annotation(boundary_annotation: BoundaryAnnotation, mapping
                 boundary_annotation.reviewResult = EnumReviewResult.UNSURE
                 boundary_annotation.comment = get_migration_text(boundary_annotation, mapping)
                 boundary_annotation.target = parameter.id
-                return [boundary_annotation]
+                migrated_annotations.append(boundary_annotation)
+                continue
             if parameter_expects_number or (parameter.type is None and annotated_apiv1_element.type is None):
                 if (parameter_type_is_discrete != boundary_annotation.interval.isDiscrete) and not (
                     parameter.type is None and annotated_apiv1_element.type is None
@@ -106,8 +98,9 @@ def migrate_boundary_annotation(boundary_annotation: BoundaryAnnotation, mapping
                             parameter_type_is_discrete,
                         )
                 boundary_annotation.target = parameter.id
-                return [boundary_annotation]
-        return [
+                migrated_annotations.append(boundary_annotation)
+                continue
+        migrated_annotations.append(
             TodoAnnotation(
                 parameter.id,
                 authors,
@@ -116,60 +109,5 @@ def migrate_boundary_annotation(boundary_annotation: BoundaryAnnotation, mapping
                 EnumReviewResult.NONE,
                 get_migration_text(boundary_annotation, mapping, for_todo_annotation=True),
             ),
-        ]
-    migrated_annotations: list[AbstractAnnotation] = []
-    if isinstance(mapping, OneToManyMapping | ManyToManyMapping):
-        for parameter in mapping.get_apiv2_elements():
-            if isinstance(parameter, Parameter):
-                is_number, is_discrete = _contains_number_and_is_discrete(parameter.type)
-                if (
-                    parameter.type is not None and is_number and is_discrete == boundary_annotation.interval.isDiscrete
-                ) or (parameter.type is None and annotated_apiv1_element.type is None):
-                    migrated_annotations.append(
-                        BoundaryAnnotation(
-                            parameter.id,
-                            authors,
-                            boundary_annotation.reviewers,
-                            boundary_annotation.comment,
-                            EnumReviewResult.NONE,
-                            boundary_annotation.interval,
-                        ),
-                    )
-                elif parameter.type is not None and is_number:
-                    migrated_annotations.append(
-                        BoundaryAnnotation(
-                            parameter.id,
-                            authors,
-                            boundary_annotation.reviewers,
-                            get_migration_text(boundary_annotation, mapping),
-                            EnumReviewResult.UNSURE,
-                            migrate_interval_to_fit_parameter_type(
-                                boundary_annotation.interval,
-                                is_discrete,
-                            ),
-                        ),
-                    )
-                elif parameter.type is None:
-                    migrated_annotations.append(
-                        BoundaryAnnotation(
-                            parameter.id,
-                            authors,
-                            boundary_annotation.reviewers,
-                            get_migration_text(boundary_annotation, mapping),
-                            EnumReviewResult.UNSURE,
-                            boundary_annotation.interval,
-                        ),
-                    )
-                continue
-            if not isinstance(parameter, Attribute | Result):
-                migrated_annotations.append(
-                    TodoAnnotation(
-                        parameter.id,
-                        authors,
-                        boundary_annotation.reviewers,
-                        boundary_annotation.comment,
-                        EnumReviewResult.NONE,
-                        get_migration_text(boundary_annotation, mapping, for_todo_annotation=True),
-                    ),
-                )
+        )
     return migrated_annotations

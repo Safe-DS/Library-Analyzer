@@ -4,6 +4,7 @@ from ._api import (
     API,
     API_SCHEMA_VERSION,
     Attribute,
+    AttributeAssignment,
     Class,
     FromImport,
     Function,
@@ -14,6 +15,7 @@ from ._api import (
     Result,
 )
 from ._docstring import (
+    AttributeDocstring,
     ClassDocstring,
     FunctionDocstring,
     ParameterDocstring,
@@ -54,6 +56,8 @@ __all__ = [
     "AbstractType",
     "Attribute",
     "AttributeAccess",
+    "AttributeAssignment",
+    "AttributeDocstring",
     "BoundaryType",
     "BuiltInFunction",
     "Call",

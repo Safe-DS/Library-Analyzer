@@ -1,5 +1,19 @@
 """Analysis of the API of a Python library."""
 
+from ._extract_dependencies import (
+    Action,
+    Condition,
+    ParameterDoesNotHaveType,
+    ParameterHasType,
+    ParameterHasValue,
+    ParameterIsIgnored,
+    ParameterIsIllegal,
+    ParameterIsNone,
+    ParameterIsRestricted,
+    ParametersInRelation,
+    ParameterWillBeSetTo,
+    extract_param_dependencies,
+)
 from ._get_api import get_api
 from ._get_instance_attributes import get_instance_attributes
 from ._get_parameter_list import get_parameter_list
@@ -26,6 +40,7 @@ from ._package_metadata import (
     package_files,
     package_root,
 )
+from ._resolve_references import ClassScopeNode, MemberAccess, ScopeNode, get_scope
 
 __all__ = [
     "DefinitelyImpure",
@@ -50,4 +65,20 @@ __all__ = [
     "infer_purity",
     "package_files",
     "package_root",
+    "extract_param_dependencies",
+    "Action",
+    "Condition",
+    "ParameterHasValue",
+    "ParameterIsIgnored",
+    "ParameterIsNone",
+    "ParameterDoesNotHaveType",
+    "ParameterIsRestricted",
+    "ParameterWillBeSetTo",
+    "ParameterIsIllegal",
+    "ParameterHasType",
+    "ParametersInRelation",
+    "ScopeNode",
+    "MemberAccess",
+    "get_scope",
+    "ClassScopeNode",
 ]

@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from typing import Any
 
-import spacy
 from spacy import Language
 from spacy.matcher import Matcher
 from spacy.tokens import Doc, Span
+
+from library_analyzer.utils import load_language
 
 _enum_valid_values_are = [{"LOWER": "valid"}, {"LOWER": "values"}, {"LOWER": "are"}]
 
@@ -34,7 +35,7 @@ class MatcherConfiguration:
     single_vals: bool = True
 
     def __post_init__(self) -> None:
-        self._nlp = spacy.load("en_core_web_sm")
+        self._nlp = load_language("en_core_web_sm")
         self._matcher = Matcher(self._nlp.vocab)
 
         self._matcher.add("ENUM_STR", [_enum_str])
