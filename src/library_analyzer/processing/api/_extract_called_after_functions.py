@@ -9,7 +9,7 @@ from spacy.matcher import Matcher
 _nlp = load_language("en_core_web_sm")
 _matcher = Matcher(_nlp.vocab)
 _called_after_functions: list[str] = []
-_after_or_before = ""
+
 
 
 @dataclass
@@ -94,12 +94,11 @@ def _extract_function(
         List of matches found by the matcher.
 
     """
-    global _after_or_before
+
     match_ = matches[i]
     match_id_string = _nlp.vocab.strings[match_[0]]
 
     if match_id_string == "CALLED_AFTER:MUST_BE_CALLED_AFTER":
-        _after_or_before = "after"
         after_token = doc[match_[2]]
         func_names = [after_token.text]
 
@@ -107,7 +106,6 @@ def _extract_function(
             func_names.append(after_token.nbor(2).text)
 
     elif match_id_string == "CALLED_AFTER:MUST_BE_CALLED_BEFORE":
-        _after_or_before = "before"
         first_token = doc[match_[1]]
         func_names = [first_token.nbor(-1).text]
 
@@ -115,7 +113,6 @@ def _extract_function(
             func_names.append(first_token.nbor(-3).text)
 
     elif match_id_string == "CALLED_AFTER:IS_CALLED":
-        _after_or_before = "after"
         func_names = [doc[match_[2] + 1].text]
 
     else:
@@ -147,9 +144,17 @@ def extract_called_after_functions(function_qname: str, description: str) -> Cal
 
     description_preprocessed = _preprocess_docstring(description)
     description_doc = _nlp.make_doc(description_preprocessed)
-    _matcher(description_doc)
+    matches = _matcher(description_doc)
+    match_id_str = _nlp.vocab.strings[matches[0][0]]
 
-    return CalledAfterValues(function_qname, _called_after_functions, _after_or_before)
+    if match_id_str in ["CALLED_AFTER:MUST_BE_CALLED_AFTER", "CALLED_AFTER:IS_CALLED"]:
+        after_or_before = "after"
+    elif match_id_str == "CALLED_AFTER:MUST_BE_CALLED_BEFORE":
+        after_or_before = "before"
+    else:
+        after_or_before = ""
+
+    return CalledAfterValues(function_qname, _called_after_functions, after_or_before)
 
 
 _matcher.add("CALLED_AFTER:MUST_BE_CALLED_BEFORE", [_must_be_called_before], on_match=_extract_function)
