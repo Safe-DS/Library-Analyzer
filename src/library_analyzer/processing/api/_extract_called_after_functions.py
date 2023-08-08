@@ -1,15 +1,15 @@
+import re
 from dataclasses import dataclass
 from typing import Any
-import re
+
+from spacy.matcher import Matcher
 from spacy.tokens import Doc
 
 from library_analyzer.utils import load_language
-from spacy.matcher import Matcher
 
 _nlp = load_language("en_core_web_sm")
 _matcher = Matcher(_nlp.vocab)
 _called_after_functions: list[str] = []
-
 
 
 @dataclass
@@ -19,19 +19,9 @@ class CalledAfterValues:
     after_or_before: str
 
 
-_must_be_called_after = [
-    {"LOWER": "must"},
-    {"LOWER": "be"},
-    {"LOWER": "called"},
-    {"LOWER": "after"}
-]
+_must_be_called_after = [{"LOWER": "must"}, {"LOWER": "be"}, {"LOWER": "called"}, {"LOWER": "after"}]
 
-_must_be_called_before = [
-    {"LOWER": "must"},
-    {"LOWER": "be"},
-    {"LOWER": "called"},
-    {"LOWER": "before"}
-]
+_must_be_called_before = [{"LOWER": "must"}, {"LOWER": "be"}, {"LOWER": "called"}, {"LOWER": "before"}]
 
 _is_called = [
     {"LOWER": {"IN": ["before", "after"]}},
@@ -39,7 +29,7 @@ _is_called = [
     {"OP": "?"},
     {"OP": "?"},
     {"LOWER": "is"},
-    {"LOWER": "called"}
+    {"LOWER": "called"},
 ]
 
 
@@ -94,7 +84,6 @@ def _extract_function(
         List of matches found by the matcher.
 
     """
-
     match_ = matches[i]
     match_id_string = _nlp.vocab.strings[match_[0]]
 

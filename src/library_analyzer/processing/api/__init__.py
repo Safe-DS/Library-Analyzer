@@ -1,5 +1,6 @@
 """Analysis of the API of a Python library."""
 
+from ._extract_called_after_functions import CalledAfterValues, extract_called_after_functions
 from ._extract_dependencies import (
     Action,
     Condition,
@@ -13,10 +14,6 @@ from ._extract_dependencies import (
     ParametersInRelation,
     ParameterWillBeSetTo,
     extract_param_dependencies,
-)
-from ._extract_called_after_functions import (
-    extract_called_after_functions,
-    CalledAfterValues
 )
 from ._get_api import get_api
 from ._get_instance_attributes import get_instance_attributes
@@ -86,5 +83,5 @@ __all__ = [
     "get_scope",
     "ClassScopeNode",
     "extract_called_after_functions",
-    "CalledAfterValues"
+    "CalledAfterValues",
 ]
