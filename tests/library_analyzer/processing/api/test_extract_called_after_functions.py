@@ -1,6 +1,7 @@
 import pytest
 from library_analyzer.processing.api import extract_called_after_functions, CalledAfterValues
 
+
 @pytest.mark.parametrize(
     ("function_qname", "description", "expected_values"),
     [

@@ -42,6 +42,7 @@ _is_called = [
     {"LOWER": "called"}
 ]
 
+
 def _preprocess_docstring(docstring: str) -> str:
     """
     Preprocess docstring to make it easier to parse.
@@ -75,6 +76,24 @@ def _extract_function(
     i: int,
     matches: list[tuple[Any, ...]],
 ) -> Any | None:
+    """on-match function for the spaCy Matcher.
+
+    Extract the function that must be called before or after a function.
+
+    Parameters
+    ----------
+    matcher
+        Parameter is ignored.
+    doc
+        Doc object that is checked for the active rules.
+
+    i
+        Index of the match that was recognized by the rule.
+
+    matches
+        List of matches found by the matcher.
+
+    """
     global _after_or_before
     match_ = matches[i]
     match_id_string = _nlp.vocab.strings[match_[0]]
@@ -108,6 +127,22 @@ def _extract_function(
 
 
 def extract_called_after_functions(function_qname: str, description: str) -> CalledAfterValues:
+    """Extract all CalledAfter functions of the function to be examined.
+
+    Parameters
+    ----------
+    function_qname
+        Quality name of the function to be examined.
+
+    description
+        Description of the function to be examined.
+
+    Returns
+    -------
+    CalledAfterValues
+        All Called-After functions are returned that were found in the context of the function to be examined.
+
+    """
     _called_after_functions.clear()
 
     description_preprocessed = _preprocess_docstring(description)
@@ -120,5 +155,3 @@ def extract_called_after_functions(function_qname: str, description: str) -> Cal
 _matcher.add("CALLED_AFTER:MUST_BE_CALLED_BEFORE", [_must_be_called_before], on_match=_extract_function)
 _matcher.add("CALLED_AFTER:MUST_BE_CALLED_AFTER", [_must_be_called_after], on_match=_extract_function)
 _matcher.add("CALLED_AFTER:IS_CALLED", [_is_called], greedy="LONGEST", on_match=_extract_function)
-
-
