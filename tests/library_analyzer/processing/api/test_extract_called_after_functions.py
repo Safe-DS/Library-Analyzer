@@ -32,6 +32,8 @@ from library_analyzer.processing.api import CalledAfterValues, extract_called_af
     ],
 )
 def test_extract_called_after_functions(
-    function_qname: str, description: str, expected_values: CalledAfterValues,
+    function_qname: str,
+    description: str,
+    expected_values: CalledAfterValues,
 ) -> None:
     assert extract_called_after_functions(function_qname, description) == expected_values
