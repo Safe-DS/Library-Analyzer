@@ -87,25 +87,24 @@ def _extract_function(
     match_ = matches[i]
     match_id_string = _nlp.vocab.strings[match_[0]]
 
+    func_names: list[str] = []
+
     if match_id_string == "CALLED_AFTER:MUST_BE_CALLED_AFTER":
         after_token = doc[match_[2]]
-        func_names = [after_token.text]
+        func_names.append(after_token.text)
 
         if after_token.nbor(1).text == "or":
             func_names.append(after_token.nbor(2).text)
 
     elif match_id_string == "CALLED_AFTER:MUST_BE_CALLED_BEFORE":
         first_token = doc[match_[1]]
-        func_names = [first_token.nbor(-1).text]
+        func_names.append(first_token.nbor(-1).text)
 
         if first_token.nbor(-2).text == "or":
             func_names.append(first_token.nbor(-3).text)
 
     elif match_id_string == "CALLED_AFTER:IS_CALLED":
-        func_names = [doc[match_[2] + 1].text]
-
-    else:
-        raise KeyError(f"Unknown match_id_string({match_id_string}) was found")
+        func_names.append(doc[match_[2] + 1].text)
 
     for func_name in func_names:
         _called_after_functions.append(func_name)
@@ -136,12 +135,12 @@ def extract_called_after_functions(function_qname: str, description: str) -> Cal
     matches = _matcher(description_doc)
     match_id_str = _nlp.vocab.strings[matches[0][0]]
 
+    after_or_before = ""
+
     if match_id_str in ["CALLED_AFTER:MUST_BE_CALLED_AFTER", "CALLED_AFTER:IS_CALLED"]:
         after_or_before = "after"
     elif match_id_str == "CALLED_AFTER:MUST_BE_CALLED_BEFORE":
         after_or_before = "before"
-    else:
-        after_or_before = ""
 
     return CalledAfterValues(function_qname, _called_after_functions, after_or_before)
 
