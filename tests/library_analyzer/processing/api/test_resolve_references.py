@@ -323,7 +323,7 @@ class SimpleClassScope(SimpleScope):
     ],
 )
 def test_get_name_nodes(code: str, expected: str) -> None:
-    names_list = _get_name_nodes(code)
+    names_list = _get_name_nodes(code)[0]
 
     assert_names_list(names_list, expected)
 
@@ -676,7 +676,7 @@ def local_global():
             """
 glob1 = 10
 def local_global_access():
-    return glob1  # TODO: this is not detected as a node inside the function scope, which is correct.
+    return glob1
             """,  # language= None
             [ReferenceTestNode("glob1.line4", "FunctionDef.local_global_access", ["GlobalVariable.glob1.line2"])]
         ),
@@ -792,7 +792,7 @@ class C:
     def set_state(self, state):
         self.state = state
             """,  # language= None
-            []  # TODO
+            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5", "ClassVariable.C.state.line3"])]
         ),
         (  # language=Python
             """
@@ -802,7 +802,7 @@ class C:
     def set_state(self, state):
         C.state = state
             """,  # language= None
-            []  # TODO
+            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5", "ClassVariable.C.state.line3"])]
         ),
         (  # language=Python
             """
@@ -848,7 +848,7 @@ for i in range(var1):
     print(i)
         """,  # language=none
             [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
-             ReferenceTestNode("i.line4", "Module.", ["GlobalVariable.i.line3"])]  # TODO: do we really tread i as a global variable? -yes implement it
+             ReferenceTestNode("i.line4", "Module.", ["GlobalVariable.i.line3"])]
         ),
         (  # language=Python
             """
@@ -1026,12 +1026,42 @@ print(c)
         ),
         (  # language=Python
             """
+print("Hello, World!")
+            """,  # language=none
+            [ReferenceTestNode("print.line2", "Module.", [])]
+        ),
+        (  # language=Python
+            """
 def f():
     pass
 
 f()
             """,  # language=none
             [ReferenceTestNode("f.line5", "Module.", ["GlobalVariable.f.line2"])]
+        ),
+        (  # language=Python
+            """
+def f(a):
+    return a
+
+x = 10
+f(x)
+            """,  # language=none
+            [ReferenceTestNode("f.line6", "Module.", ["GlobalVariable.f.line2"]),
+             ReferenceTestNode("a.line3", "FunctionDef.f", ["Parameter.a.line2"]),
+             ReferenceTestNode("x.line6", "Module.", ["GlobalVariable.x.line5"])]
+        ),
+        (  # language=Python
+            """
+def f(value):
+    return value
+
+x = 10
+f(value=x)
+            """,  # language=none
+            [ReferenceTestNode("f.line6", "Module.", ["GlobalVariable.f.line2"]),
+             ReferenceTestNode("value.line3", "FunctionDef.f", ["Parameter.value.line2"]),
+             ReferenceTestNode("x.line6", "Module.", ["GlobalVariable.x.line5"])]
         ),
         (  # language=Python
             """
@@ -1150,7 +1180,10 @@ print(s(4))
         "walrus operator",
         "variable swap",
         "aliases",
+        "builtin function call",
         "function call",
+        "function call with parameter",
+        "function call with keyword parameter",
         "class instantiation",
         "import",
         "import multiple",
@@ -1251,6 +1284,10 @@ def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
         return ReferenceTestNode(name=f"{node.name.name}.line{node.name.expression.lineno}",
                                  scope=f"{node.scope.node.__class__.__name__}.{node.scope.node.name}",
                                  referenced_symbols=[str(ref) for ref in node.referenced_symbols])
+    if isinstance(node.name, astroid.Call):
+        return ReferenceTestNode(name=f"{node.name.func.name}.line{node.name.func.lineno}",
+                                    scope=f"{node.scope.node.__class__.__name__}.{node.scope.node.name}",
+                                    referenced_symbols=[str(ref) for ref in node.referenced_symbols])
     return ReferenceTestNode(name=f"{node.name.name}.line{node.name.lineno}",
                              scope=f"{node.scope.node.__class__.__name__}.{node.scope.node.name}",
                              referenced_symbols=[str(ref) for ref in node.referenced_symbols])
