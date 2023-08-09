@@ -445,8 +445,9 @@ class ScopeFinder:
 @dataclass
 class NameNodeFinder:
     names_list: list[astroid.Name | astroid.AssignName | MemberAccess] = field(default_factory=list)
+    function_calls: list[astroid.Call] = field(default_factory=list)
 
-    # AssignName is used to find the name if it is used as a value in an assignment
+    # Name is used to find the name if it is used as a value
     def enter_name(self, node: astroid.Name) -> None:
         if isinstance(
             node.parent,
@@ -472,7 +473,7 @@ class NameNodeFinder:
             # append a node only then when it is not the name node of the function
             self.names_list.append(node)
 
-    # AssignName is used to find the name if it is used as a target in an assignment
+    # AssignName is used to find the name if it is used as a target
     def enter_assignname(self, node: astroid.AssignName) -> None:
         if isinstance(
             node.parent,
@@ -498,6 +499,10 @@ class NameNodeFinder:
         member_access = _construct_member_access(node)
         self.names_list.append(member_access)
 
+    def enter_call(self, node: astroid.Call) -> None:
+        self.function_calls.append(node)
+        print(node.func.name)
+
     # def enter_import(self, node: astroid.Import) -> None:
     #     for name in node.names:
     #         self.names_list.append(name[0])
@@ -516,19 +521,22 @@ def _construct_member_access(node: astroid.Attribute | astroid.AssignAttr) -> Me
             return MemberAccessTarget(node.expr, Reference(node.attrname))
 
 
-def _get_name_nodes(code: str) -> list[astroid.Name | astroid.AssignName]:
+def _get_name_nodes(code: str) -> tuple[list[astroid.Name | astroid.AssignName], list[astroid.Call]]:
     module = astroid.parse(code)
     name_node_handler = NameNodeFinder()
     walker = ASTWalker(name_node_handler)
     name_nodes: list[astroid.Name | astroid.AssignName] = []
+    function_calls: list[astroid.Call] = []
 
     if isinstance(module, astroid.Module):
         for node in module.body:
             walker.walk(node)
             name_nodes.extend(name_node_handler.names_list)
+            function_calls = name_node_handler.function_calls
             name_node_handler.names_list = []
+            name_node_handler.function_calls = []
 
-    return name_nodes
+    return name_nodes, function_calls
 
 
 def _calc_node_id(
@@ -631,19 +639,16 @@ def _add_target_references(reference: ReferenceNode, reference_list: list[Refere
             if isinstance(ref.name, MemberAccessValue):
                 root = ref.scope.root()
                 if isinstance(root.node, astroid.Module):
-                    # classes_of_module = [node for node in ref.scope.children if
-                    #                      isinstance(node, ClassScope)]  # TODO: nested classes are not detected
                     for class_scope in classes.values():
-                        print(class_scope)
+                        # print(class_scope)
                         for variable in class_scope.class_variables:
                             if reference.name.value.name == variable.name:
-                                print(variable.name)
+                                # print(variable.name)
                                 complete_reference.referenced_symbols.append(
                                     ClassVariable(node=class_scope, id=_calc_node_id(variable),
                                                   name=f"{class_scope.node.name}.{variable.name}"))
 
             if isinstance(ref.name, MemberAccessTarget) and isinstance(reference.name, MemberAccessValue):
-                print("MemberAccess")
                 if ref.name.name == reference.name.name:
                     complete_reference.referenced_symbols.append(
                         ClassVariable(node=ref.scope, id=_calc_node_id(ref.name), name=ref.name.name))
@@ -663,11 +668,7 @@ def _find_references(name_node: astroid.Name,
     Parameters:
     * name_node: the node for which we want to find all references
     * all_name_nodes_list: a list of all name nodes in the module
-    * scope: the scopes of the module
-    * name_nodes: a dict of all name nodes in the module
-    * function_parameters: a dict of all function parameters for each function in the module
-    * global_variables: a dict of all global variables in the module
-
+    * module_data: the data of the module
     """
     references = _create_references(all_name_nodes_list, module_data.scope,
                                     module_data.names, module_data.classes)  # contains a list of all referenced symbols for each node in the module
@@ -679,6 +680,7 @@ def _find_references(name_node: astroid.Name,
     #             return [ref]
     #     if ref.name == name_node:  # TODO: it would be more efficient to remove the node from the list before creating the references
     #         return [ref]
+    # 166 calls
 
     for i, ref in enumerate(references):
         if isinstance(ref.name or name_node, MemberAccess):
@@ -686,6 +688,7 @@ def _find_references(name_node: astroid.Name,
                 return [_get_symbols(ref, ref.scope, module_data.parameters, module_data.globals)]
         if ref.name == name_node:
             return [_get_symbols(ref, ref.scope, module_data.parameters, module_data.globals)]
+    # 100 calls
 
 
 def _get_symbols(node: ReferenceNode,
@@ -783,7 +786,8 @@ def _get_module_data(code: str) -> ModuleData:
 
 def resolve_references(code: str) -> list[ReferenceNode]:
     module_data = _get_module_data(code)
-    name_nodes_list = _get_name_nodes(code)
+    name_nodes_list, function_call_list = _get_name_nodes(code)
+    # TODO: it should be possible to merge _get_name_nodes and _get_module_data into one function
     references: list[ReferenceNode] = []
 
     for name_node in name_nodes_list:
