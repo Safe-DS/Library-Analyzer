@@ -100,7 +100,6 @@ class _AstVisitor:
                         if node is None:
                             logging.warning(
                                 f"Could not resolve 'from {global_node.modname} import {declaration}",
-
                             )
                             continue
 
