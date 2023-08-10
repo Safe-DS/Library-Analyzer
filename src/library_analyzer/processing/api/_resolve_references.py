@@ -245,16 +245,15 @@ class ScopeFinder:
 
     current_node_stack: list[Scope | ClassScope] = field(default_factory=list)
     children: list[Scope | ClassScope] = field(default_factory=list)
-    name_nodes: dict[astroid.Name | MemberAccess, Scope | ClassScope] = field(default_factory=dict)
-    function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]] = field(
-        default_factory=dict)
-    global_variables: dict[str, Scope | ClassScope] = field(default_factory=dict)
     classes: dict[str, ClassScope] = field(default_factory=dict)
     functions: dict[str, Scope | ClassScope] = field(default_factory=dict)
+    name_nodes: dict[astroid.Name | MemberAccess, Scope | ClassScope] = field(default_factory=dict)
+    global_variables: dict[str, Scope | ClassScope] = field(default_factory=dict)
+    function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]] = field(
+        default_factory=dict)
     names_list: list[astroid.Name | astroid.AssignName | MemberAccess] = field(default_factory=list)
     function_calls: list[tuple[astroid.Call, Scope | ClassScope]] = field(default_factory=list)
 
-    # TODO: restructure this class, to display some kind of tree structure of the scope tree
 
     def get_node_by_name(self, name: str) -> Scope | ClassScope | None:
         """
@@ -506,72 +505,6 @@ class ScopeFinder:
                 return self.classes[klass]
         return None
 
-#
-# @dataclass
-# class NameNodeFinder:
-#     names_list: list[astroid.Name | astroid.AssignName | MemberAccess] = field(default_factory=list)
-#     function_calls: list[astroid.Call] = field(default_factory=list)
-#
-#     # Name is used to find the name if it is used as a value
-#     def enter_name(self, node: astroid.Name) -> None:
-#         if isinstance(
-#             node.parent,
-#             astroid.Assign
-#             | astroid.AugAssign
-#             | astroid.Return
-#             | astroid.Compare
-#             | astroid.For
-#             | astroid.BinOp
-#             | astroid.BoolOp
-#             | astroid.UnaryOp
-#             | astroid.Match
-#             | astroid.Tuple
-#             | astroid.Subscript
-#             | astroid.FormattedValue
-#         ):
-#             self.names_list.append(node)
-#         if (
-#             isinstance(node.parent, astroid.Call)
-#             and isinstance(node.parent.func, astroid.Name)
-#             and node.parent.func.name != node.name
-#         ):
-#             # append a node only then when it is not the name node of the function
-#             self.names_list.append(node)
-#
-#     # AssignName is used to find the name if it is used as a target
-#     def enter_assignname(self, node: astroid.AssignName) -> None:
-#         if isinstance(
-#             node.parent,
-#             astroid.Assign
-#             | astroid.Arguments
-#             | astroid.AssignAttr
-#             | astroid.Attribute
-#             | astroid.AugAssign
-#             | astroid.AnnAssign
-#             | astroid.Return
-#             | astroid.Compare
-#             | astroid.For
-#             | astroid.Tuple
-#             | astroid.NamedExpr
-#         ):
-#             self.names_list.append(node)
-#
-#     def enter_attribute(self, node: astroid.Attribute) -> None:
-#         member_access = _construct_member_access(node)
-#         self.names_list.append(member_access)
-#
-#     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
-#         member_access = _construct_member_access(node)
-#         self.names_list.append(member_access)
-#
-#     def enter_call(self, node: astroid.Call) -> None:
-#         self.function_calls.append(node)
-#         print(node.func.name)
-#
-#     # def enter_import(self, node: astroid.Import) -> None:
-#     #   for name in node.names:
-#     #       self.names_list.append(name[0])
-
 
 def _construct_member_access(node: astroid.Attribute | astroid.AssignAttr) -> MemberAccess:
     if isinstance(node, astroid.Attribute):
@@ -584,24 +517,6 @@ def _construct_member_access(node: astroid.Attribute | astroid.AssignAttr) -> Me
             return MemberAccessTarget(_construct_member_access(node.expr), Reference(node.attrname))
         else:
             return MemberAccessTarget(node.expr, Reference(node.attrname))
-
-
-# def _get_name_nodes(code: str) -> tuple[list[astroid.Name | astroid.AssignName], list[astroid.Call]]:
-#     module = astroid.parse(code)
-#     name_node_handler = NameNodeFinder()
-#     walker = ASTWalker(name_node_handler)
-#     name_nodes: list[astroid.Name | astroid.AssignName] = []
-#     function_calls: list[astroid.Call] = []
-#
-#     if isinstance(module, astroid.Module):
-#         for node in module.body:
-#             walker.walk(node)
-#             name_nodes.extend(name_node_handler.names_list)
-#             function_calls = name_node_handler.function_calls
-#             name_node_handler.names_list = []
-#             name_node_handler.function_calls = []
-#
-#     return name_nodes, function_calls
 
 
 def _calc_node_id(
@@ -737,17 +652,6 @@ def _find_references(name_node: astroid.Name,
     * all_name_nodes_list: a list of all name nodes in the module
     * module_data: the data of the module
     """
-    # references = _create_references(all_name_nodes_list, module_data.scope,
-    #                                 module_data.names, module_data.classes)  # contains a list of all referenced symbols for each node in the module
-
-    # for i, ref in enumerate(references):
-    #     references[i] = _get_symbols(ref, ref.scope, module_data.parameters, module_data.globals)
-    #     if isinstance(ref.name or name_node, MemberAccess):
-    #         if ref.name.name == name_node.name:
-    #             return [ref]
-    #     if ref.name == name_node:  # TODO: it would be more efficient to remove the node from the list before creating the references
-    #         return [ref]
-    # 166 calls
 
     for i, ref in enumerate(references):
         if isinstance(ref.name or name_node, MemberAccess):
@@ -755,7 +659,6 @@ def _find_references(name_node: astroid.Name,
                 return [_get_symbols(ref, ref.scope, module_data.parameters, module_data.globals)]
         if ref.name == name_node:
             return [_get_symbols(ref, ref.scope, module_data.parameters, module_data.globals)]
-    # 100 calls
 
 
 def _get_symbols(node: ReferenceNode,
