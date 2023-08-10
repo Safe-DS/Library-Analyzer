@@ -11,19 +11,31 @@ from astroid import Name, FunctionDef, AssignName
 from library_analyzer.processing.api.model import Expression, Reference
 from library_analyzer.utils import ASTWalker
 
-BUILTINS = [name for name, obj in vars(builtins).items() if isinstance(obj, BuiltinFunctionType)]
+BUILTINS = dir(builtins)
 
 
 @dataclass
 class ModuleData:
+    """
+    Contains all data that is collected for a module.
+
+    scope: The module's scope, this contains all child scopes.
+    classes: All classes and their scope.
+    functions: All functions and their scope.
+    globals: All global variables and their scope.
+    names: All names that are defined in the module and their scope.
+    parameters: All parameters of functions and their scope.
+    names_list: All names that are defined in the module.
+    function_calls: All function calls and their scope.
+    """
     scope: Scope | ClassScope
-    names: dict[Name, Scope | ClassScope]
-    parameters: dict[FunctionDef, tuple[Scope | ClassScope, list[AssignName]]]
-    globals: dict[str, Scope | ClassScope]
     classes: dict[str, ClassScope]
     functions: dict[str, Scope | ClassScope]  # classScope should not be possible here: check that
-    names_list: list[astroid.Name | astroid.AssignName | MemberAccess]
-    function_calls: list[tuple[astroid.Call, Scope | ClassScope]]
+    globals: dict[str, Scope | ClassScope]
+    names: dict[Name, Scope | ClassScope]
+    parameters: dict[FunctionDef, tuple[Scope | ClassScope, list[AssignName]]]
+    names_list: list[astroid.Name | astroid.AssignName | MemberAccess]  # TODO: dict[str, tuple [astroid.Name astroid.AssignName | MemberAccess, Scope]]
+    function_calls: list[tuple[astroid.Call, Scope | ClassScope]]  # TODO: dict dict[str, tuple[astroid.Call, Scope | ClassScope]]
 
 
 @dataclass
@@ -115,6 +127,12 @@ class InstanceVariable(Symbol):
 @dataclass
 class Import(Symbol):
     pass
+
+
+@dataclass
+class Builtin(Symbol):
+    def __str__(self):
+        return f"{self.__class__.__name__}.{self.name}"
 
 
 @dataclass
@@ -368,6 +386,7 @@ class ScopeFinder:
             | astroid.Subscript
             | astroid.FormattedValue
             | astroid.Keyword
+            | astroid.Expr
         ):
             self.names_list.append(node)
         if (
@@ -814,16 +833,16 @@ def _get_module_data(code: str) -> ModuleData:
     print(module.repr_tree())
     walker.walk(module)
 
-    scopes = scope_handler.children[0]  # get the children of the root node, which are the scopes of the module
-    names = scope_handler.name_nodes  # get the name nodes of the module
-    parameters = scope_handler.function_parameters  # get the parameters for each function of the module
-    globs = scope_handler.global_variables  # get the global nodes of the module
-    classes = scope_handler.classes  # get the classes of the module
-    functions = scope_handler.functions  # get the functions of the module
-    names_list = scope_handler.names_list
-    function_calls = scope_handler.function_calls
+    scope = scope_handler.children[0]  # get the children of the root node, which are the scopes of the module
 
-    return ModuleData(scopes, names, parameters, globs, classes, functions, names_list, function_calls)
+    return ModuleData(scope=scope,
+                      classes=scope_handler.classes,
+                      functions=scope_handler.functions,
+                      globals=scope_handler.global_variables,
+                      names=scope_handler.name_nodes,
+                      parameters=scope_handler.function_parameters,
+                      names_list=scope_handler.names_list,
+                      function_calls=scope_handler.function_calls)
 
 
 def _find_call_reference(function_calls: list[tuple[astroid.Call, Scope | ClassScope]],
@@ -844,12 +863,17 @@ def _find_call_reference(function_calls: list[tuple[astroid.Call, Scope | ClassS
 
             references_proto.append(ReferenceNode(call[0], scope_node, []))
 
-    for reference in references_proto:
-        if reference.name.func.name in BUILTINS:
-            references_final.append(reference)
+    for i, reference in enumerate(references_proto):
+        func_name = reference.name.func.name
+        if func_name in BUILTINS and func_name not in functions.keys() and func_name not in classes.keys():
+            references_final.append(ReferenceNode(reference.name, reference.scope, [
+                Builtin(reference.scope, NodeID("builtins", func_name, 0, 0),
+                        func_name)]))
         elif isinstance(reference.name, astroid.Call):
             func_def = _get_function_def(reference, functions, classes)
             references_final.append(func_def)
+            if func_name in BUILTINS:
+                references_final[i].referenced_symbols.append(Builtin(reference.scope, NodeID("builtins", func_name, 0, 0), func_name))
 
     return references_final
 
