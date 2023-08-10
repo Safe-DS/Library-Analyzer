@@ -1,5 +1,6 @@
 """Analysis of the API of a Python library."""
 
+from ._extract_called_after_functions import CalledAfterValues, extract_called_after_functions
 from ._extract_dependencies import (
     Action,
     Condition,
@@ -81,4 +82,6 @@ __all__ = [
     "MemberAccess",
     "get_scope",
     "ClassScopeNode",
+    "extract_called_after_functions",
+    "CalledAfterValues",
 ]
