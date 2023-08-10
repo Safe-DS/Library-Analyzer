@@ -1028,7 +1028,7 @@ print(c)
             """
 print("Hello, World!")
             """,  # language=none
-            [ReferenceTestNode("print.line2", "Module.", [])]
+            [ReferenceTestNode("print.line2", "Module.", [])]  #TODO: What do we want here?
         ),
         (  # language=Python
             """
@@ -1192,7 +1192,7 @@ print(s(4))
         "import from multiple",
         "import from as",
         "import from as multiple",
-    ]  # TODO: testcases for calls
+    ]  # TODO: testcases for calls: do we deal with function defs with the same name? (overloading) -no
 )
 def test_resolve_references(code, expected):
     references = resolve_references(code)

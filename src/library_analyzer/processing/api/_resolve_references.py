@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass, field
-from types import NoneType
+from types import BuiltinFunctionType
 
 import astroid
+import builtins
 from astroid import Name, FunctionDef, AssignName
 
 from library_analyzer.processing.api.model import Expression, Reference
 from library_analyzer.utils import ASTWalker
+
+BUILTINS = [name for name, obj in vars(builtins).items() if isinstance(obj, BuiltinFunctionType)]
 
 
 @dataclass
@@ -197,7 +200,7 @@ class ClassScope(Scope):
 
 @dataclass
 class ReferenceNode:
-    name: astroid.Name | astroid.AssignName | MemberAccess | str
+    name: astroid.Name | astroid.AssignName | astroid.Call | MemberAccess | str
     scope: Scope
     referenced_symbols: list[Symbol] = field(default_factory=list)
 
@@ -233,7 +236,7 @@ class ScopeFinder:
     names_list: list[astroid.Name | astroid.AssignName | MemberAccess] = field(default_factory=list)
     function_calls: list[tuple[astroid.Call, Scope | ClassScope]] = field(default_factory=list)
 
-    # TODO: we need to store FunctionDefs as global variable to be able to determine function calls
+    # TODO: restructure this class, to display some kind of tree structure of the scope tree
 
     def get_node_by_name(self, name: str) -> Scope | ClassScope | None:
         """
@@ -612,6 +615,8 @@ def _calc_node_id(
             return NodeID(module, node.names[0][1], node.lineno, node.col_offset)
         case astroid.AssignAttr():
             return NodeID(module, node.attrname, node.lineno, node.col_offset)
+        case astroid.Call():
+            return NodeID(module, node.func.name, node.lineno, node.col_offset)
         case astroid.NodeNG():
             return NodeID(module, node.as_string(), node.lineno, node.col_offset)
         case _:
@@ -713,8 +718,8 @@ def _find_references(name_node: astroid.Name,
     * all_name_nodes_list: a list of all name nodes in the module
     * module_data: the data of the module
     """
-    references = _create_references(all_name_nodes_list, module_data.scope,
-                                    module_data.names, module_data.classes)  # contains a list of all referenced symbols for each node in the module
+    # references = _create_references(all_name_nodes_list, module_data.scope,
+    #                                 module_data.names, module_data.classes)  # contains a list of all referenced symbols for each node in the module
 
     # for i, ref in enumerate(references):
     #     references[i] = _get_symbols(ref, ref.scope, module_data.parameters, module_data.globals)
@@ -820,7 +825,57 @@ def _get_module_data(code: str) -> ModuleData:
 
     return ModuleData(scopes, names, parameters, globs, classes, functions, names_list, function_calls)
 
-    return ModuleData(scopes, names, parameters, globs, classes, functions)
+
+def _find_call_reference(function_calls: list[tuple[astroid.Call, Scope | ClassScope]],
+                         classes: dict[str, ClassScope],
+                         scope: Scope,
+                         functions: dict[str, Scope | ClassScope]) -> list[ReferenceNode]:
+
+    references_proto: list[ReferenceNode] = []
+    references_final: list[ReferenceNode] = []
+    scope_node: Scope | None = field(default_factory=Scope)
+    global BUILTINS
+
+    for call in function_calls:
+        if isinstance(call[0].func, astroid.Name):
+            if call[0].func.name in functions.keys() or call[0].func.name in BUILTINS or call[0].func.name in classes.keys():
+                node_id = _calc_node_id(call[1].node)
+                scope_node = get_scope_node_by_node_id_call(node_id, scope)
+
+            references_proto.append(ReferenceNode(call[0], scope_node, []))
+
+    for reference in references_proto:
+        if reference.name.func.name in BUILTINS:
+            references_final.append(reference)
+        elif isinstance(reference.name, astroid.Call):
+            func_def = _get_function_def(reference, functions, classes)
+            references_final.append(func_def)
+
+    return references_final
+
+
+def _get_function_def(reference: ReferenceNode, functions: dict[str, Scope | ClassScope], classes: dict[str, ClassScope]) -> ReferenceNode:
+    if functions:
+        for func in functions.values():
+            if func.node.name == reference.name.func.name:
+                return ReferenceNode(reference.name, reference.scope, [GlobalVariable(func, func.id, func.node.name)])
+    if classes:
+        for klass in classes.values():
+            if klass.node.name == reference.name.func.name:
+                return ReferenceNode(reference.name, reference.scope, [GlobalVariable(klass, klass.id, klass.node.name)])
+    raise ChildProcessError(f"Function {reference.name.func.name} not found in functions.")
+
+
+def get_scope_node_by_node_id_call(targeted_node_id: NodeID,
+                                   scope: Scope) -> Scope:
+    if scope.id == targeted_node_id:
+        return scope
+    else:
+        for child in scope.children:
+            if child.id == targeted_node_id:
+                return child
+            else:
+                return get_scope_node_by_node_id_call(targeted_node_id, child)
 
 
 def resolve_references(code: str) -> list[ReferenceNode]:
@@ -830,7 +885,9 @@ def resolve_references(code: str) -> list[ReferenceNode]:
     references_unspecified = _create_unspecified_references(module_data.names_list, module_data.scope,
                                                             module_data.names, module_data.classes)
 
-    for name_node in name_nodes_list:
+    references_call = _find_call_reference(module_data.function_calls, module_data.classes, module_data.scope, module_data.functions)
+    references_specified.extend(references_call)
+
     for name_node in module_data.names_list:
         if isinstance(name_node, astroid.Name | MemberAccessValue):
             references_for_name_node = _find_references(name_node, references_unspecified, module_data)
