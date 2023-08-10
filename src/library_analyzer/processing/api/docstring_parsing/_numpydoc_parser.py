@@ -77,9 +77,9 @@ class NumpyDocParser(AbstractDocstringParser):
         last_parameter_numpydoc = matching_parameters_numpydoc[-1]
         type_, default_value = _get_type_and_default_value(last_parameter_numpydoc)
         return ParameterDocstring(
-            type=type_,
-            default_value=default_value,
-            description=last_parameter_numpydoc.description,
+            type=type_ or '',
+            default_value=default_value or '',
+            description=last_parameter_numpydoc.description or '',
         )
 
     def __get_cached_function_numpydoc_string(

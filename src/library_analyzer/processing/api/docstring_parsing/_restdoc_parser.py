@@ -67,7 +67,7 @@ class RestDocParser(AbstractDocstringParser):
         return ParameterDocstring(
             type=last_parameter_docstring_obj.type_name or "",
             default_value=last_parameter_docstring_obj.default or "",
-            description=last_parameter_docstring_obj.description,
+            description=last_parameter_docstring_obj.description or "",
         )
 
     def get_result_documentation(self, function_node: astroid.FunctionDef) -> ResultDocstring:

@@ -100,7 +100,7 @@ class EnumType(AbstractType):
         return EnumType(frozenset(values))
 
     def to_dict(self) -> dict[str, Any]:
-        return {"kind": self.__class__.__name__, "values": set(self.values)}
+        return {"kind": self.__class__.__name__, "values": list(self.values)}
 
 
 @dataclass(frozen=True)
