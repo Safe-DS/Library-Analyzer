@@ -59,6 +59,8 @@ ignore = [
     "FBT002",
     # builtin-attribute-shadowing (not an issue)
     "A003",
+    # logging-f-string (we use f-strings elsewhere for interpolations and don't log enough for it be a performance issue)
+    "G004",
     # implicit-return (can add a return even though all cases are covered)
     "RET503",
     # superfluous-else-return (sometimes it's more readable)
