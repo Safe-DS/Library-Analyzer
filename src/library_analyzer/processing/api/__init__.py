@@ -52,9 +52,9 @@ from ._resolve_references import (
     resolve_references,
     _add_target_references,
     _calc_node_id,
-    _create_references,
+    _create_unspecified_references,
     _find_references,
-    _get_name_nodes,
+    # _get_name_nodes,
     _get_module_data,
 )
 
@@ -99,8 +99,8 @@ __all__ = [
     "MemberAccessTarget",
     "MemberAccessValue",
     "_find_references",
-    "_get_name_nodes",
-    "_create_references",
+    # "_get_name_nodes",
+    "_create_unspecified_references",
     "_add_target_references",
     "_calc_node_id",
     "_get_module_data",

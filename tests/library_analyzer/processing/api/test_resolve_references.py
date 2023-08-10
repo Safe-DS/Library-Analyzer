@@ -12,10 +12,10 @@ from library_analyzer.processing.api import (
     Scope,
     NodeID,
     _calc_node_id,
-    _get_name_nodes,
+    # _get_name_nodes,
     _get_module_data,
     ReferenceNode,
-    _create_references,
+    _create_unspecified_references,
     _find_references,
     resolve_references,
 )
@@ -323,7 +323,7 @@ class SimpleClassScope(SimpleScope):
     ],
 )
 def test_get_name_nodes(code: str, expected: str) -> None:
-    names_list = _get_name_nodes(code)[0]
+    names_list = _get_module_data(code).names_list
 
     assert_names_list(names_list, expected)
 
@@ -527,7 +527,7 @@ def test_calc_node_id(
     ]
 )
 def test_create_references(node: list[astroid.Name | astroid.AssignName], expected) -> None:
-    result = _create_references(node)[0]
+    result = _create_unspecified_references(node)[0]
     assert result == expected
     assert_reference_list_equal(result, expected)
 
