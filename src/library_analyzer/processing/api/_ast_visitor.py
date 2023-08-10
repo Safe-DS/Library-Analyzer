@@ -99,11 +99,8 @@ class _AstVisitor:
 
                         if node is None:
                             logging.warning(
-                                "Could not resolve 'from {modname} import {declaration}",
-                                extra={
-                                    "modname": global_node.modname,
-                                    "declaration": declaration,
-                                },
+                                f"Could not resolve 'from {global_node.modname} import {declaration}",
+
                             )
                             continue
 
