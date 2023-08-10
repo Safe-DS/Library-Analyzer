@@ -63,8 +63,7 @@ class EnumType(AbstractType):
     def from_string(cls, string: str) -> EnumType | None:
         def remove_backslash(e: str) -> str:
             e = e.replace(r"\"", '"')
-            e = e.replace(r"\'", "'")
-            return e
+            return e.replace(r"\'", "'")
 
         enum_match = re.search(r"{(.*?)}", string)
         if enum_match:
