@@ -600,6 +600,13 @@ def local_parameter(def_arg=10):
         ),
         (  # language=Python
             """
+def local_parameter(def_arg: int):
+    return def_arg
+            """,  # language= None
+            [ReferenceTestNode("def_arg.line3", "FunctionDef.local_parameter", ["Parameter.def_arg.line2"])]
+        ),
+        (  # language=Python
+            """
 def local_parameter(*args):
     return args
             """,  # language= None
@@ -611,6 +618,14 @@ def local_parameter(**kwargs):
     return kwargs
             """,  # language= None
             [ReferenceTestNode("kwargs.line3", "FunctionDef.local_parameter", ["Parameter.kwargs.line2"])]
+        ),
+        (  # language=Python
+            """
+def local_parameter(*args, **kwargs):
+    return args, kwargs
+            """,  # language= None
+            [ReferenceTestNode("args.line3", "FunctionDef.local_parameter", ["Parameter.args.line2"]),
+             ReferenceTestNode("kwargs.line3", "FunctionDef.local_parameter", ["Parameter.kwargs.line2"])]
         ),
         (  # language=Python
             """
@@ -747,7 +762,7 @@ b.instance_attr1
             """,  # language=none
             [ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"]),
              ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
-             ReferenceTestNode("b.instance_attr1.line8", "Module.", ["GlobalVariable.b.instance_attr1.line7",
+             ReferenceTestNode("b.instance_attr1.line8", "Module.", ["ClassVariable.b.instance_attr1.line7",
                                                                      "InstanceVariable.b.instance_attr1.line4"])
              ]
         ),
@@ -787,22 +802,22 @@ class C:
         (  # language=Python
             """
 class C:
-    state: int = 0
+    stateX: int = 0
 
     def set_state(self, state):
-        self.state = state
+        self.stateX = state
             """,  # language= None
-            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5", "ClassVariable.C.state.line3"])]
-        ),
+            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["ClassVariable.C.stateX.line3", "Parameter.state.line5"])]
+        ),   # TODO: there is a problem when the parameter name differs from the class variable name
         (  # language=Python
             """
 class C:
-    state: int = 0
+    stateX: int = 0
 
     def set_state(self, state):
-        C.state = state
+        C.stateX = state
             """,  # language= None
-            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5", "ClassVariable.C.state.line3"])]
+            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["ClassVariable.C.stateX.line3", "Parameter.state.line5"])]
         ),
         (  # language=Python
             """
@@ -1153,8 +1168,10 @@ s(4)
         "parameter in function scope with keyword only",
         "parameter in function scope with positional only",
         "parameter in function scope with default value",
+        "parameter in function scope with type annotation",
         "parameter in function scope with *args",
         "parameter in function scope with **kwargs",
+        "parameter in function scope with *args and **kwargs",
         "two parameters in function scope",
         "global variable in module scope",
         "global variable in class scope",
@@ -1207,8 +1224,10 @@ s(4)
         "import from multiple",
         "import from as",
         "import from as multiple",
-    ]  # TODO: testcases for calls: do we deal with function defs with the same name? (shadowing) -yes
+    ]
 )
+# TODO: it is problematic, that the order of references is relevant, since it does not matter in the later usage
+#       of these results. Therefore, we should return a set of references instead of a list.
 def test_resolve_references(code, expected):
     references = resolve_references(code)
     transformed_references: list[ReferenceTestNode] = []

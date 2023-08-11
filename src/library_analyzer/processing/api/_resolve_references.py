@@ -254,7 +254,6 @@ class ScopeFinder:
     names_list: list[astroid.Name | astroid.AssignName | MemberAccess] = field(default_factory=list)
     function_calls: list[tuple[astroid.Call, Scope | ClassScope]] = field(default_factory=list)
 
-
     def get_node_by_name(self, name: str) -> Scope | ClassScope | None:
         """
         Get a ScopeNode by its name.
@@ -365,6 +364,8 @@ class ScopeFinder:
             self.function_parameters[self.current_node_stack[-1].node] = (self.current_node_stack[-1], node.kwonlyargs)
         if node.posonlyargs:
             self.function_parameters[self.current_node_stack[-1].node] = (self.current_node_stack[-1], node.posonlyargs)
+        if node.vararg or node.kwarg:
+            self.handle_arg(node)
 
     def enter_name(self,
                    node: astroid.Name) -> None:
@@ -505,6 +506,20 @@ class ScopeFinder:
                 return self.classes[klass]
         return None
 
+    def handle_arg(self, node: astroid.Arguments) -> None:
+        if node.vararg:
+            arg = node.vararg
+        else:
+            arg = node.kwarg
+
+        constructed_node = astroid.AssignName(name=arg, parent=node, lineno=node.parent.lineno,
+                                              col_offset=node.parent.col_offset)
+        # TODO: col_offset is not correct: it should be the col_offset of the vararg/(kwarg) node which is not collected by astroid
+        self.names_list.append(constructed_node)
+        scope_node = Scope(_node=constructed_node, _id=_calc_node_id(constructed_node), _children=[], _parent=self.current_node_stack[-1])
+        self.children.append(scope_node)
+        self.function_parameters[self.current_node_stack[-1].node] = (self.current_node_stack[-1], [constructed_node])
+
 
 def _construct_member_access(node: astroid.Attribute | astroid.AssignAttr) -> MemberAccess:
     if isinstance(node, astroid.Attribute):
@@ -629,6 +644,11 @@ def _add_target_references(reference: ReferenceNode, reference_list: list[Refere
                                 complete_reference.referenced_symbols.append(
                                     ClassVariable(node=class_scope, id=_calc_node_id(variable),
                                                   name=f"{class_scope.node.name}.{variable.name}"))
+                        for variable in class_scope.instance_variables:
+                            if reference.name.value.name == variable.attrname:
+                                complete_reference.referenced_symbols.append(
+                                    InstanceVariable(node=class_scope, id=_calc_node_id(variable),
+                                                  name=f"{reference.name.expression.name}.{variable.attrname}"))
 
             if isinstance(ref.name, MemberAccessTarget) and isinstance(reference.name, MemberAccessValue):
                 if ref.name.name == reference.name.name:
