@@ -1,5 +1,6 @@
 """Analysis of the API of a Python library."""
 
+from ._extract_called_after_functions import CalledAfterValues, extract_called_after_functions
 from ._extract_dependencies import (
     Action,
     Condition,
@@ -54,7 +55,6 @@ from ._resolve_references import (
     _calc_node_id,
     _create_unspecified_references,
     _find_references,
-    # _get_name_nodes,
     _get_module_data,
 )
 
@@ -99,7 +99,6 @@ __all__ = [
     "MemberAccessTarget",
     "MemberAccessValue",
     "_find_references",
-    # "_get_name_nodes",
     "_create_unspecified_references",
     "_add_target_references",
     "_calc_node_id",
@@ -108,4 +107,7 @@ __all__ = [
     "ClassScope",
     "NodeID",
     "resolve_references",
+    "extract_called_after_functions",
+    "CalledAfterValues",
+
 ]
