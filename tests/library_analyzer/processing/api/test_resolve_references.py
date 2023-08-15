@@ -556,7 +556,6 @@ def assert_reference_list_equal(result: list[ReferenceNode], expected: list[Refe
 
 @dataclass
 class ReferenceTestNode:
-    """ A simple dataclass to store the data for the reference tests"""
     name: str
     scope: str
     referenced_symbols: list[str]

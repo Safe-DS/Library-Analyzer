@@ -178,7 +178,7 @@ class Scope:
         if not isinstance(new_node, (astroid.Module, astroid.FunctionDef, astroid.ClassDef, astroid.Name,
                                      astroid.AssignName, astroid.AssignAttr, astroid.Attribute,
                                      astroid.Import, astroid.ImportFrom, MemberAccess)):
-            raise ValueError("Invalid node type.")
+            raise TypeError("Invalid node type.")
         self._node = new_node
 
     @property
@@ -192,7 +192,7 @@ class Scope:
     @children.setter
     def children(self, new_children) -> None:
         if not isinstance(new_children, list):
-            raise ValueError("Children must be a list.")
+            raise TypeError("Children must be a list.")
         self._children = new_children
 
     @property
@@ -202,7 +202,7 @@ class Scope:
     @parent.setter
     def parent(self, new_parent) -> None:
         if not isinstance(new_parent, (Scope, ClassScope, type(None))):
-            raise ValueError("Invalid parent type.")
+            raise TypeError("Invalid parent type.")
         self._parent = new_parent
 
 
@@ -467,7 +467,6 @@ class ScopeFinder:
     def enter_call(self, node: astroid.Call) -> None:
         if isinstance(node.func, astroid.Name):
             self.function_calls.append((node, self.current_node_stack[-1]))
-        # print(node.func.name)
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
@@ -481,6 +480,8 @@ class ScopeFinder:
 
     def check_if_global(self, name: str, node: astroid.NodeNG) -> bool:
         """
+        Checks if a name is a global variable
+
         Checks if a name is a global variable inside the root of the given node
         Returns True if the name is listed in root.globals dict, False otherwise
         """
@@ -493,7 +494,7 @@ class ScopeFinder:
 
     def find_base_classes(self, node: astroid.ClassDef) -> list[ClassScope]:
         """
-        Returns a list of all base classes of the given class
+        Finds a list of all base classes of the given class
         """
         base_classes = []
         for base in node.bases:
@@ -505,7 +506,7 @@ class ScopeFinder:
 
     def get_class_by_name(self, name: str) -> ClassScope | None:
         """
-        Returns the class with the given name
+        Gets the class with the given name
         """
         for klass in self.classes:
             if klass == name:
