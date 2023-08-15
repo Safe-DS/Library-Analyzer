@@ -98,6 +98,11 @@ class Symbol(ABC):
     def __str__(self):
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
+    def __eq__(self, other):
+        if isinstance(other, Symbol):
+            return self.name == other.name and self.id == other.id
+        return False
+
 
 @dataclass
 class Parameter(Symbol):  # TODO: find correct node type and add fields with further infos for each subclass
@@ -639,21 +644,27 @@ def _add_target_references(reference: ReferenceNode, reference_list: list[Refere
                     for class_scope in classes.values():
                         # print(class_scope)
                         for variable in class_scope.class_variables:
-                            if reference.name.value.name == variable.name:
+                            if isinstance(reference.name, MemberAccessValue) and reference.name.value.name == variable.name:
                                 # print(variable.name)
-                                complete_reference.referenced_symbols.append(
-                                    ClassVariable(node=class_scope, id=_calc_node_id(variable),
-                                                  name=f"{class_scope.node.name}.{variable.name}"))
+                                cv = ClassVariable(node=class_scope, id=_calc_node_id(variable),
+                                                   name=f"{class_scope.node.name}.{variable.name}")
+                                if cv not in complete_reference.referenced_symbols:
+                                    complete_reference.referenced_symbols.append(cv)
+                                # complete_reference.referenced_symbols.append(
+                                #     ClassVariable(node=class_scope, id=_calc_node_id(variable),
+                                #                   name=f"{class_scope.node.name}.{variable.name}"))
                         for variable in class_scope.instance_variables:
-                            if reference.name.value.name == variable.attrname:
-                                complete_reference.referenced_symbols.append(
-                                    InstanceVariable(node=class_scope, id=_calc_node_id(variable),
-                                                  name=f"{reference.name.expression.name}.{variable.attrname}"))
+                            if isinstance(reference.name, MemberAccessValue) and reference.name.value.name == variable.attrname:
+                                iv = InstanceVariable(node=class_scope, id=_calc_node_id(variable),
+                                                      name=f"{reference.name.expression.name}.{variable.attrname}")
+                                if iv not in complete_reference.referenced_symbols:
+                                    complete_reference.referenced_symbols.append(iv)
 
             if isinstance(ref.name, MemberAccessTarget) and isinstance(reference.name, MemberAccessValue):
                 if ref.name.name == reference.name.name:
                     complete_reference.referenced_symbols.append(
                         ClassVariable(node=ref.scope, id=_calc_node_id(ref.name), name=ref.name.name))
+                    print("EEEEEEEEEEEEEEE")
 
             elif isinstance(ref.name, astroid.AssignName) and ref.name.name == reference.name.name:
                 complete_reference.referenced_symbols.append(
