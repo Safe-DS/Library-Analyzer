@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass, field
-from types import BuiltinFunctionType
+from typing import Callable
+
 
 import astroid
 import builtins
-from astroid import Name, FunctionDef, AssignName
 
 from library_analyzer.processing.api.model import Expression, Reference
 from library_analyzer.utils import ASTWalker
@@ -32,8 +32,8 @@ class ModuleData:
     classes: dict[str, ClassScope]
     functions: dict[str, Scope | ClassScope]  # classScope should not be possible here: check that
     globals: dict[str, Scope | ClassScope]
-    names: dict[Name, Scope | ClassScope]
-    parameters: dict[FunctionDef, tuple[Scope | ClassScope, list[AssignName]]]
+    names: dict[astroid.Name, Scope | ClassScope]
+    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]
     names_list: list[astroid.Name | astroid.AssignName | MemberAccess]  # TODO: dict[str, tuple [astroid.Name astroid.AssignName | MemberAccess, Scope]]
     function_calls: list[tuple[astroid.Call, Scope | ClassScope]]  # TODO: dict dict[str, tuple[astroid.Call, Scope | ClassScope]]
 
@@ -51,10 +51,10 @@ class MemberAccess(Expression):
     # def __str__(self):
     #     return f"{self.expression.name}.{self.value.name}"
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(str(self))
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.expression, astroid.Call):
             self.expression = self.expression.func
         self.name = f"{self.expression.name}.{self.value.name}"
@@ -62,13 +62,13 @@ class MemberAccess(Expression):
 
 @dataclass
 class MemberAccessTarget(MemberAccess):
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(str(self))
 
 
 @dataclass
 class MemberAccessValue(MemberAccess):
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(str(self))
 
 
@@ -95,10 +95,10 @@ class Symbol(ABC):
     id: NodeID
     name: str
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, Symbol):
             return self.name == other.name and self.id == other.id
         return False
@@ -136,7 +136,7 @@ class Import(Symbol):
 
 @dataclass
 class Builtin(Symbol):
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
 
 
@@ -161,7 +161,7 @@ class Scope:
     _children: list[Scope | ClassScope] = field(default_factory=list)
     _parent: Scope | ClassScope | None = None
 
-    def __iter__(self):
+    def __iter__(self) -> Scope | ClassScope:
         yield self
 
     def root(self) -> Scope | ClassScope:
@@ -170,11 +170,11 @@ class Scope:
         return self
 
     @property
-    def node(self):
+    def node(self) -> astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | MemberAccess:
         return self._node
 
     @node.setter
-    def node(self, new_node):
+    def node(self, new_node) -> None:
         if not isinstance(new_node, (astroid.Module, astroid.FunctionDef, astroid.ClassDef, astroid.Name,
                                      astroid.AssignName, astroid.AssignAttr, astroid.Attribute,
                                      astroid.Import, astroid.ImportFrom, MemberAccess)):
@@ -182,25 +182,25 @@ class Scope:
         self._node = new_node
 
     @property
-    def id(self):
+    def id(self) -> NodeID:
         return self._id
 
     @property
-    def children(self):
+    def children(self) -> list[Scope | ClassScope]:
         return self._children
 
     @children.setter
-    def children(self, new_children):
+    def children(self, new_children) -> None:
         if not isinstance(new_children, list):
             raise ValueError("Children must be a list.")
         self._children = new_children
 
     @property
-    def parent(self):
+    def parent(self) -> Scope | ClassScope | None:
         return self._parent
 
     @parent.setter
-    def parent(self, new_parent):
+    def parent(self, new_parent) -> None:
         if not isinstance(new_parent, (Scope, ClassScope, type(None))):
             raise ValueError("Invalid parent type.")
         self._parent = new_parent
@@ -227,7 +227,7 @@ class ReferenceNode:
     scope: Scope
     referenced_symbols: list[Symbol] = field(default_factory=list)
 
-    def __contains__(self, item):
+    def __contains__(self, item) -> bool:
         return item in self.referenced_symbols
 
 
@@ -489,6 +489,7 @@ class ScopeFinder:
         else:
             if name in node.globals:
                 return True
+        return False
 
     def find_base_classes(self, node: astroid.ClassDef) -> list[ClassScope]:
         """
@@ -537,11 +538,12 @@ def _construct_member_access(node: astroid.Attribute | astroid.AssignAttr) -> Me
             return MemberAccessTarget(_construct_member_access(node.expr), Reference(node.attrname))
         else:
             return MemberAccessTarget(node.expr, Reference(node.attrname))
+    raise TypeError(f"Unexpected node type {type(node)}")
 
 
 def _calc_node_id(
     node: astroid.NodeNG | astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name | astroid.AssignAttr | astroid.Import | astroid.ImportFrom | MemberAccess
-) -> NodeID | None:
+) -> NodeID:
     if isinstance(node, MemberAccess):
         module = node.expression.root().name
     else:
@@ -580,7 +582,7 @@ def _calc_node_id(
 
 
 def get_scope_node_by_node_id(scope: Scope | list[Scope], targeted_node_id: NodeID,
-                              name_nodes: dict[astroid.Name] | None) -> Scope:
+                              name_nodes: dict[astroid.Name, Scope | ClassScope] | None) -> Scope:
     if name_nodes is None:
         for node in scope:
             if node.id == targeted_node_id:
@@ -599,7 +601,7 @@ def get_scope_node_by_node_id(scope: Scope | list[Scope], targeted_node_id: Node
 
 def _create_unspecified_references(all_names_list: list[astroid.Name | astroid.AssignName | MemberAccess],
                                    scope: Scope,
-                                   name_nodes: dict[astroid.Name],
+                                   name_nodes: dict[astroid.Name, Scope | ClassScope],
                                    classes: dict[str, ClassScope]) -> list[ReferenceNode]:
     """Create a list of references from a list of name nodes.
 
@@ -608,7 +610,7 @@ def _create_unspecified_references(all_names_list: list[astroid.Name | astroid.A
     """
     references_proto: list[ReferenceNode] = []
     references_final: list[ReferenceNode] = []
-    scope_node: Scope | None = field(default_factory=Scope)
+    scope_node: Scope | None = field(default_factory=Callable[[], Scope])
 
     for name in all_names_list:
         node_id = _calc_node_id(name)
@@ -642,10 +644,8 @@ def _add_target_references(reference: ReferenceNode, reference_list: list[Refere
                 root = ref.scope.root()
                 if isinstance(root.node, astroid.Module):
                     for class_scope in classes.values():
-                        # print(class_scope)
                         for variable in class_scope.class_variables:
                             if isinstance(reference.name, MemberAccessValue) and reference.name.value.name == variable.name:
-                                # print(variable.name)
                                 cv = ClassVariable(node=class_scope, id=_calc_node_id(variable),
                                                    name=f"{class_scope.node.name}.{variable.name}")
                                 if cv not in complete_reference.referenced_symbols:
@@ -664,7 +664,6 @@ def _add_target_references(reference: ReferenceNode, reference_list: list[Refere
                 if ref.name.name == reference.name.name:
                     complete_reference.referenced_symbols.append(
                         ClassVariable(node=ref.scope, id=_calc_node_id(ref.name), name=ref.name.name))
-                    print("EEEEEEEEEEEEEEE")
 
             elif isinstance(ref.name, astroid.AssignName) and ref.name.name == reference.name.name:
                 complete_reference.referenced_symbols.append(
@@ -690,6 +689,7 @@ def _find_references(name_node: astroid.Name,
                 return [_get_symbols(ref, ref.scope, module_data.parameters, module_data.globals)]
         if ref.name == name_node:
             return [_get_symbols(ref, ref.scope, module_data.parameters, module_data.globals)]
+    return []
 
 
 def _get_symbols(node: ReferenceNode,
@@ -786,7 +786,7 @@ def _find_call_reference(function_calls: list[tuple[astroid.Call, Scope | ClassS
 
     references_proto: list[ReferenceNode] = []
     references_final: list[ReferenceNode] = []
-    scope_node: Scope | None = field(default_factory=Scope)
+    scope_node: Scope | None = field(default_factory=Callable[[], Scope])
     global BUILTINS
 
     for call in function_calls:
@@ -834,6 +834,7 @@ def get_scope_node_by_node_id_call(targeted_node_id: NodeID,
                 return child
             else:
                 return get_scope_node_by_node_id_call(targeted_node_id, child)
+    raise ChildProcessError(f"Node with id {targeted_node_id} not found in scope.")
 
 
 def resolve_references(code: str) -> list[ReferenceNode]:

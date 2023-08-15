@@ -12,7 +12,6 @@ from library_analyzer.processing.api import (
     Scope,
     NodeID,
     _calc_node_id,
-    # _get_name_nodes,
     _get_module_data,
     ReferenceNode,
     _create_unspecified_references,
@@ -23,9 +22,8 @@ from library_analyzer.processing.api import (
 
 @dataclass
 class SimpleScope:
-    node_name: str
-    children: list[SimpleScope]
-
+    node_name: str | None
+    children: list[SimpleScope] | None
 
 @dataclass
 class SimpleClassScope(SimpleScope):
@@ -530,7 +528,7 @@ def test_calc_node_id(
         "Empty list",
     ]
 )
-def test_create_references(node: list[astroid.Name | astroid.AssignName], expected) -> None:
+def test_create_references(node: list[astroid.Name | astroid.AssignName], expected: list[ReferenceNode]) -> None:
     result = _create_unspecified_references(node)[0]
     assert result == expected
     assert_reference_list_equal(result, expected)
@@ -1291,7 +1289,7 @@ s(4)
 )
 # TODO: it is problematic, that the order of references is relevant, since it does not matter in the later usage
 #       of these results. Therefore, we should return a set of references instead of a list.
-def test_resolve_references(code, expected):
+def test_resolve_references(code: str, expected: list[ReferenceTestNode]) -> None:
     references = resolve_references(code)
     transformed_references: list[ReferenceTestNode] = []
 
@@ -1362,7 +1360,7 @@ glob1
         "new global variable in function scope with outer scope usage",
     ]
 )
-def test_resolve_references_error(code, expected):
+def test_resolve_references_error(code: str, expected: list[ReferenceTestNode]) -> None:
     # with pytest.raises(ValueError):
     #     resolve_references(code)
 
@@ -1388,12 +1386,6 @@ def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
     return ReferenceTestNode(name=f"{node.name.name}.line{node.name.lineno}",
                              scope=f"{node.scope.node.__class__.__name__}.{node.scope.node.name}",
                              referenced_symbols=[str(ref) for ref in node.referenced_symbols])
-
-
-@dataclass
-class SimpleScope:
-    node_name: str | None
-    children: list[SimpleScope] | None
 
 
 @pytest.mark.parametrize(
