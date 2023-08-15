@@ -740,6 +740,19 @@ A.class_attr1
         ),
         (  # language=Python
             """
+class A:
+    class_attr1 = 20
+
+class B:
+    upper_class: A = A
+
+b = B()
+x = b.upper_class.class_attr1
+            """,  # language=none
+            [ReferenceTestNode("A.class_attr1.line5", "Module.", ["ClassVariable.A.class_attr1.line3"])]
+        ),
+        (  # language=Python
+            """
 class B:
     def __init__(self):
         self.instance_attr1 = 10
@@ -797,6 +810,41 @@ x.class_attr
              ReferenceTestNode("name.line6", "FunctionDef.__init__", ["Parameter.name.line5"]),
              ReferenceTestNode("x.name.line9", "Module.", ["InstanceVariable.x.name.line6"]),
              ReferenceTestNode("x.class_attr.line10", "Module.", ["ClassVariable.X.class_attr.line3"])]
+        ),
+        (  # language=Python
+            """
+class A:
+    def __init__(self):
+        self.name = 10
+
+class B:
+    upper_class: A = A
+
+b = B()
+x = b.upper_class.name
+            """,  # language=none
+            [ReferenceTestNode("A.class_attr1.line5", "Module.", ["ClassVariable.A.class_attr1.line3"])]
+        ),
+
+        (  # language=Python
+            """
+class A:
+    def __init__(self):
+        self.b = B()
+
+class B:
+    def __init__(self):
+        self.c = C()
+
+class C:
+    def __init__(self):
+        self.name = "name"
+
+a = A()
+a.b.c.name
+
+            """,  # language=none
+            [ReferenceTestNode("A.class_attr1.line5", "Module.", ["ClassVariable.A.class_attr1.line3"])]
         ),
         (  # language=Python
             """
@@ -1160,6 +1208,85 @@ F()
         ),
         (  # language=Python
             """
+double = lambda x: 2 * x
+
+double(10)
+            """,  # language=none
+            [ReferenceTestNode("F.line5", "Module.", ["GlobalVariable.F.line2"])]
+        ),
+        (  # language=Python
+            """
+def square_generator(limit):
+    for i in range(limit):
+        yield i**2
+
+gen = square_generator(5)
+for value in gen:
+    print(value)
+            """,  # language=none
+            [ReferenceTestNode("F.line5", "Module.", ["GlobalVariable.F.line2"])]
+        ),
+        (  # language=Python
+            """
+from dataclasses import dataclass
+
+@dataclass
+class State:
+    pass
+
+State()
+            """,  # language=none
+            [ReferenceTestNode("State.line5", "Module.", ["GlobalVariable.State.line2"])]
+        ),
+        (  # language=Python
+            """
+from dataclasses import dataclass
+
+@dataclass
+class State:
+    state: int = 0
+
+State().state
+            """,  # language=none
+            [ReferenceTestNode("State.line5", "Module.", ["GlobalVariable.State.line2"]),
+             ReferenceTestNode("state.line5", "Module.", ["ClassVariable.State.state.line3"])]
+        ),
+        (  # language=Python
+            """
+from dataclasses import dataclass
+
+@dataclass
+class State:
+    state: int
+
+State(0).state
+            """,  # language=none
+            [ReferenceTestNode("State.line5", "Module.", ["GlobalVariable.State.line2"]),
+             ReferenceTestNode("state.line5", "Module.", ["ClassVariable.State.state.line3"])]
+        ),
+        (  # language=Python
+            """
+from dataclasses import dataclass
+
+@dataclass
+class State:
+    _state: int
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, value):
+        self._state = value
+
+State(10).state
+            """,  # language=none
+            [ReferenceTestNode("State.line5", "Module.", ["GlobalVariable.State.line2"]),
+             ReferenceTestNode("state.line5", "Module.", ["ClassVariable.State.state.line3"])]
+        ),
+        (  # language=Python
+            """
 import math
 
 math.pi
@@ -1240,10 +1367,13 @@ s(4)
         "two globals in class scope",
         "class attribute value",
         "class attribute target",
+        "chained class attribute",
         "instance attribute value",
         "instance attribute target",
         "instance attribute with parameter",
         "instance attribute with parameter and class attribute",
+        "chained class attribute and instance attribute",
+        "chained instance attributes",
         "two classes with same signature",
         "getter function with self",
         "getter function with classname",
@@ -1277,6 +1407,12 @@ s(4)
         "function call with parameter",
         "function call with keyword parameter",
         "class instantiation",
+        "lambda function",
+        "generator function",
+        "dataclass",
+        "dataclass with default attribute",
+        "dataclass without default attribute",
+        "dataclass with property and setter",
         "import",
         "import multiple",
         "import as",
