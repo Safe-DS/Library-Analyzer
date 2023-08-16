@@ -374,6 +374,8 @@ class ScopeFinder:
 
     def enter_name(self,
                    node: astroid.Name) -> None:
+        if isinstance(node.parent, astroid.Decorators):
+            return
         self.name_nodes[node] = self.current_node_stack[-1]  # TODO: this could be more efficient if unnecessary nodes are not added to the dict
 
         if isinstance(
@@ -454,6 +456,8 @@ class ScopeFinder:
         self.names_list.append(member_access)
 
     def enter_attribute(self, node: astroid.Attribute) -> None:
+        if isinstance(node.parent, astroid.Decorators):
+            return
         member_access = _construct_member_access(node)
         self.name_nodes[member_access] = self.current_node_stack[-1]
 
@@ -467,6 +471,9 @@ class ScopeFinder:
     def enter_call(self, node: astroid.Call) -> None:
         if isinstance(node.func, astroid.Name):
             self.function_calls.append((node, self.current_node_stack[-1]))
+
+    def enter_lambda(self, node: astroid.Lambda) -> None:
+        print(node.as_string())
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]

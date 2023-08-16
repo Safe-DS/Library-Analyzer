@@ -898,9 +898,8 @@ class C:
     def set_state(self, state):
         self.state = state
             """,  # language= None
-            [ReferenceTestNode("state.line6", "FunctionDef.set_state",
-                               ["ClassVariable.C.state.line3", "Parameter.state.line5"])]
-        ),
+            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5"])]
+        ),  # TODO: what do we do with self.state?
         (  # language=Python
             """
 class C:
@@ -909,9 +908,8 @@ class C:
     def set_state(self, state):
         self.stateX = state
             """,  # language= None
-            [ReferenceTestNode("state.line6", "FunctionDef.set_state",
-                               ["ClassVariable.C.stateX.line3", "Parameter.state.line5"])]
-        ),  # TODO: there is a problem when the parameter name differs from the class variable name
+            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5"])]
+        ),  # TODO: what do we do with self.stateX?
         (  # language=Python
             """
 class C:
@@ -920,9 +918,8 @@ class C:
     def set_state(self, state):
         C.stateX = state
             """,  # language= None
-            [ReferenceTestNode("state.line6", "FunctionDef.set_state",
-                               ["ClassVariable.C.stateX.line3", "Parameter.state.line5"])]
-        ),
+            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5"])]
+        ),  # TODO: what do we do with C.stateX?
         (  # language=Python
             """
 var1 = 10
@@ -1054,6 +1051,23 @@ dictionary = {"key1": 1, "key2": 2}
 dictionary["key1"] = 0
             """,  # language=none
             [ReferenceTestNode("dictionary.line3", "Module.", ["GlobalVariable.dictionary.line2"])]
+        ),
+        (  # language=Python
+            """
+numbers = [1, 2, 3, 4, 5]
+
+def square(x):
+    return x ** 2
+
+squares = list(map(square, numbers))   # TODO: there is a problem when functions are passed as arguments
+squares
+            """,  # language=none
+            [ReferenceTestNode("list.line7", "Module.", ["Builtin.list"]),
+             ReferenceTestNode("map.line7", "Module.", ["Builtin.map"]),
+             ReferenceTestNode("x.line5", "FunctionDef.square", ["Parameter.x.line4"]),
+             ReferenceTestNode("square.line7", "Module.", ["GlobalVariable.square.line5"]),  # TODO
+             ReferenceTestNode("numbers.line7", "Module.", ["GlobalVariable.numbers.line2"]),
+             ReferenceTestNode("squares.line8", "Module.", ["GlobalVariable.squares.line7"])]
         ),
         (  # language=Python
             """
@@ -1199,6 +1213,41 @@ f(value=x)
         ),
         (  # language=Python
             """
+def f(a):
+    return a
+
+x = f(10)
+            """,  # language=none
+            [ReferenceTestNode("f.line5", "Module.", ["GlobalVariable.f.line2"]),
+             ReferenceTestNode("a.line3", "FunctionDef.f", ["Parameter.a.line2"])]
+        ),
+        (  # language=Python
+            """
+def f(a):
+    return a * 2
+
+f(f(f(10)))
+            """,  # language=none
+            [ReferenceTestNode("f.line5", "Module.", ["GlobalVariable.f.line2"]),
+             ReferenceTestNode("f.line5", "Module.", ["GlobalVariable.f.line2"]),
+             ReferenceTestNode("f.line5", "Module.", ["GlobalVariable.f.line2"]),
+             ReferenceTestNode("a.line3", "FunctionDef.f", ["Parameter.a.line2"])]
+        ),
+        (  # language=Python
+            """
+def f(a):
+    return a * 2
+
+x = 10
+f(f(x))
+            """,  # language=none
+            [ReferenceTestNode("f.line6", "Module.", ["GlobalVariable.f.line2"]),
+             ReferenceTestNode("f.line6", "Module.", ["GlobalVariable.f.line2"]),
+             ReferenceTestNode("a.line3", "FunctionDef.f", ["Parameter.a.line2"]),
+             ReferenceTestNode("x.line6", "Module.", ["GlobalVariable.x.line5"])]
+        ),
+        (  # language=Python
+            """
 class F:
     pass
 
@@ -1208,11 +1257,29 @@ F()
         ),
         (  # language=Python
             """
+(lambda x, y: x + y)(10, 20)
+            """,  # language=none
+            [""]  # TODO: do we want an extra scope for lambda - since it is not a function and its variables are local?
+        ),
+        (  # language=Python
+            """
 double = lambda x: 2 * x
 
 double(10)
             """,  # language=none
-            [ReferenceTestNode("F.line5", "Module.", ["GlobalVariable.F.line2"])]
+            [""]
+            # TODO: do we want an extra scope for lambda - since it is not a function and its variables are local?
+            #       how do we handle the assignment? since it is not a variable declaration neither a real function definition
+        ),
+
+        (  # language=Python
+            """
+names = ["a", "abc", "ab", "abcd"]
+
+sort = sorted(names, key=lambda x: len(x))
+sort
+            """,  # language=none
+            [""]  # TODO: do we want an extra scope for lambda - since it is not a function and its variables are local?
         ),
         (  # language=Python
             """
@@ -1222,68 +1289,14 @@ def square_generator(limit):
 
 gen = square_generator(5)
 for value in gen:
-    print(value)
+    value
             """,  # language=none
-            [ReferenceTestNode("F.line5", "Module.", ["GlobalVariable.F.line2"])]
-        ),
-        (  # language=Python
-            """
-from dataclasses import dataclass
-
-@dataclass
-class State:
-    pass
-
-State()
-            """,  # language=none
-            [ReferenceTestNode("State.line5", "Module.", ["GlobalVariable.State.line2"])]
-        ),
-        (  # language=Python
-            """
-from dataclasses import dataclass
-
-@dataclass
-class State:
-    state: int = 0
-
-State().state
-            """,  # language=none
-            [ReferenceTestNode("State.line5", "Module.", ["GlobalVariable.State.line2"]),
-             ReferenceTestNode("state.line5", "Module.", ["ClassVariable.State.state.line3"])]
-        ),
-        (  # language=Python
-            """
-from dataclasses import dataclass
-
-@dataclass
-class State:
-    state: int
-
-State(0).state
-            """,  # language=none
-            [ReferenceTestNode("State.line5", "Module.", ["GlobalVariable.State.line2"]),
-             ReferenceTestNode("state.line5", "Module.", ["ClassVariable.State.state.line3"])]
-        ),
-        (  # language=Python
-            """
-from dataclasses import dataclass
-
-@dataclass
-class State:
-    _state: int
-
-    @property
-    def state(self):
-        return self._state
-
-    @state.setter
-    def state(self, value):
-        self._state = value
-
-State(10).state
-            """,  # language=none
-            [ReferenceTestNode("State.line5", "Module.", ["GlobalVariable.State.line2"]),
-             ReferenceTestNode("state.line5", "Module.", ["ClassVariable.State.state.line3"])]
+            [ReferenceTestNode("range.line3", "FunctionDef.square_generator", ["Builtin.range"]),
+             ReferenceTestNode("square_generator.line6", "Module.", ["GlobalVariable.square_generator.line2"]),
+             ReferenceTestNode("limit.line3", "FunctionDef.square_generator", ["Parameter.limit.line2"]),
+             ReferenceTestNode("i.line4", "FunctionDef.square_generator", ["LocalVariable.i.line3"]),
+             ReferenceTestNode("gen.line7", "Module.", ["GlobalVariable.gen.line6"]),
+             ReferenceTestNode("value.line8", "Module.", ["GlobalVariable.value.line7"])]
         ),
         (  # language=Python
             """
@@ -1344,7 +1357,67 @@ s(4)
             """,  # language=none
             [""]  # TODO
         ),
+        (  # language=Python
+            """
+from dataclasses import dataclass
 
+@dataclass
+class State:
+    pass
+
+State()
+            """,  # language=none
+            [ReferenceTestNode("State.line8", "Module.", ["GlobalVariable.State.line5"])]
+        ),
+        (  # language=Python
+            """
+from dataclasses import dataclass
+
+@dataclass
+class State:
+    state: int = 0
+
+State().state
+            """,  # language=none
+            [ReferenceTestNode("State.line8", "Module.", ["GlobalVariable.State.line5"]),
+             ReferenceTestNode("State.state.line8", "Module.", ["ClassVariable.State.state.line6"])]
+        ),
+        (  # language=Python
+            """
+from dataclasses import dataclass
+
+@dataclass
+class State:
+    state: int
+
+State(0).state
+            """,  # language=none
+            [ReferenceTestNode("State.line8", "Module.", ["GlobalVariable.State.line5"]),
+             ReferenceTestNode("State.state.line8", "Module.", ["ClassVariable.State.state.line6"])]
+        ),
+        (  # language=Python
+            """
+from dataclasses import dataclass
+
+@dataclass
+class State:
+    _state: int
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, value):
+        self._state = value # TODO: what do we do with self._state?
+
+State(10).state
+            """,  # language=none
+            [ReferenceTestNode("State.line16", "Module.", ["GlobalVariable.State.line5"]),
+             ReferenceTestNode("self._state.line10", "FunctionDef.state", ["ClassVariable.State._state.line6"]),
+             ReferenceTestNode("value.line14", "FunctionDef.state", ["Parameter.value.line13"]),
+             ReferenceTestNode("State.state.line16", "Module.", ["ClassVariable.State._state.line6"])]
+        ),
     ],
     ids=[
         "local variable in function scope",
@@ -1392,6 +1465,7 @@ s(4)
         "try except statement global scope",
         "array and indexed array global scope",
         "dictionary global scope",
+        "map function global scope",
         "two variables",
         "double return",
         "reassignment",
@@ -1406,13 +1480,14 @@ s(4)
         "function call",
         "function call with parameter",
         "function call with keyword parameter",
+        "function call as value",
+        "nested function call",
+        "nested function call with parameter",
         "class instantiation",
         "lambda function",
+        "lambda function used as normal function",
+        "lambda function as key",
         "generator function",
-        "dataclass",
-        "dataclass with default attribute",
-        "dataclass without default attribute",
-        "dataclass with property and setter",
         "import",
         "import multiple",
         "import as",
@@ -1420,7 +1495,11 @@ s(4)
         "import from multiple",
         "import from as",
         "import from as multiple",
-    ]
+        "dataclass",
+        "dataclass with default attribute",
+        "dataclass with attribute",
+        "dataclass with @property and @setter",
+    ]  # TODO: other decorators
 )
 # TODO: it is problematic, that the order of references is relevant, since it does not matter in the later usage
 #       of these results. Therefore, we should return a set of references instead of a list.
