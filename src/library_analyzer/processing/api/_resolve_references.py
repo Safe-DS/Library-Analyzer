@@ -396,6 +396,7 @@ class ScopeFinder:
             | astroid.FormattedValue
             | astroid.Keyword
             | astroid.Expr
+            | astroid.Comprehension
         ):
             self.names_list.append(node)
         if (
@@ -573,8 +574,9 @@ def _calc_node_id(
             return NodeID(module, node.name, node.lineno, node.col_offset)
         case MemberAccess():
             # TODO: check if the MemberAccess is nested
-            return NodeID(module, f"{node.expression.name}.{node.value.name}", node.expression.lineno,
-                          node.expression.col_offset)
+            expression = get_base_expression(node)
+            return NodeID(module, f"{expression.name}.{node.value.name}", expression.lineno,
+                          expression.col_offset)
         case astroid.Import():  # TODO: we need a special treatment for imports and import from
             return NodeID(module, node.names[0][0], node.lineno, node.col_offset)
         case astroid.ImportFrom():
@@ -589,6 +591,13 @@ def _calc_node_id(
             raise ValueError(f"Node type {node.__class__.__name__} is not supported yet.")
 
     # TODO: add fitting default case and merge same types of cases together
+
+
+def get_base_expression(node: MemberAccess) -> astroid.NodeNG:
+    if isinstance(node.expression, MemberAccess):
+        return get_base_expression(node.expression)
+    else:
+        return node.expression
 
 
 def get_scope_node_by_node_id(scope: Scope | list[Scope], targeted_node_id: NodeID,

@@ -56,6 +56,7 @@ from ._resolve_references import (
     _create_unspecified_references,
     _find_references,
     _get_module_data,
+    get_base_expression
 )
 
 __all__ = [
@@ -107,6 +108,7 @@ __all__ = [
     "ClassScope",
     "NodeID",
     "resolve_references",
+    "get_base_expression",
     "extract_called_after_functions",
     "CalledAfterValues",
 
