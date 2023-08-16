@@ -538,7 +538,9 @@ def test_create_references(node: list[astroid.Name | astroid.AssignName], expect
 
 
 def assert_reference_list_equal(result: list[ReferenceNode], expected: list[ReferenceNode]) -> None:
-    """ The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
+    """ Assert reference list equality.
+
+    The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
     The real results name and scope are objects and not strings"""
     result = [
         ReferenceNode(name.name.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in

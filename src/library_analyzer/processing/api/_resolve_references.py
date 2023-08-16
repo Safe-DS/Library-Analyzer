@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass, field
+from types import NoneType
 from typing import Callable
 
 
@@ -10,8 +11,6 @@ import builtins
 
 from library_analyzer.processing.api.model import Expression, Reference
 from library_analyzer.utils import ASTWalker
-
-BUILTINS = dir(builtins)
 
 
 @dataclass
@@ -98,7 +97,7 @@ class Symbol(ABC):
     def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Symbol) -> bool:
         if isinstance(other, Symbol):
             return self.name == other.name and self.id == other.id
         return False
@@ -164,6 +163,9 @@ class Scope:
     def __iter__(self) -> Scope | ClassScope:
         yield self
 
+    def __next__(self):
+        return self
+
     def root(self) -> Scope | ClassScope:
         if self.parent:
             return self.parent.root()
@@ -174,7 +176,7 @@ class Scope:
         return self._node
 
     @node.setter
-    def node(self, new_node) -> None:
+    def node(self, new_node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | MemberAccess) -> None:
         if not isinstance(new_node, (astroid.Module, astroid.FunctionDef, astroid.ClassDef, astroid.Name,
                                      astroid.AssignName, astroid.AssignAttr, astroid.Attribute,
                                      astroid.Import, astroid.ImportFrom, MemberAccess)):
@@ -190,7 +192,7 @@ class Scope:
         return self._children
 
     @children.setter
-    def children(self, new_children) -> None:
+    def children(self, new_children: list[Scope | ClassScope]) -> None:
         if not isinstance(new_children, list):
             raise TypeError("Children must be a list.")
         self._children = new_children
@@ -200,8 +202,8 @@ class Scope:
         return self._parent
 
     @parent.setter
-    def parent(self, new_parent) -> None:
-        if not isinstance(new_parent, (Scope, ClassScope, type(None))):
+    def parent(self, new_parent: Scope | ClassScope | NoneType) -> None:
+        if not isinstance(new_parent, (Scope, ClassScope, NoneType)):
             raise TypeError("Invalid parent type.")
         self._parent = new_parent
 
@@ -487,7 +489,7 @@ class ScopeFinder:
 
     def check_if_global(self, name: str, node: astroid.NodeNG) -> bool:
         """
-        Checks if a name is a global variable
+        Check if a name is a global variable
 
         Checks if a name is a global variable inside the root of the given node
         Returns True if the name is listed in root.globals dict, False otherwise
@@ -501,7 +503,7 @@ class ScopeFinder:
 
     def find_base_classes(self, node: astroid.ClassDef) -> list[ClassScope]:
         """
-        Finds a list of all base classes of the given class
+        Find a list of all base classes of the given class
         """
         base_classes = []
         for base in node.bases:
@@ -513,7 +515,7 @@ class ScopeFinder:
 
     def get_class_by_name(self, name: str) -> ClassScope | None:
         """
-        Gets the class with the given name
+        Get the class with the given name
         """
         for klass in self.classes:
             if klass == name:
@@ -590,7 +592,7 @@ def _calc_node_id(
 
 
 def get_scope_node_by_node_id(scope: Scope | list[Scope], targeted_node_id: NodeID,
-                              name_nodes: dict[astroid.Name, Scope | ClassScope] | None) -> Scope:
+                              name_nodes: dict[astroid.Name, Scope | ClassScope] | None) -> Scope | ClassScope:
     if name_nodes is None:
         for node in scope:
             if node.id == targeted_node_id:
@@ -701,7 +703,7 @@ def _find_references(name_node: astroid.Name,
 
 
 def _get_symbols(node: ReferenceNode,
-                 current_scope: Scope | ClassScope,
+                 current_scope: Scope | ClassScope | None,
                  function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
                  global_variables: dict[str, Scope | ClassScope]) -> ReferenceNode:
     try:
@@ -734,7 +736,7 @@ def _get_symbols(node: ReferenceNode,
         raise ChildProcessError(f"Parent node {node.scope.node.name} of {node.name.name} does not have any (detected) children.")
 
 
-def specify_symbols(parent_node: Scope | ClassScope,
+def specify_symbols(parent_node: Scope | ClassScope | None,
                     symbol: Symbol,
                     function_parameters: dict[
                         astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]) -> Symbol:
@@ -795,11 +797,11 @@ def _find_call_reference(function_calls: list[tuple[astroid.Call, Scope | ClassS
     references_proto: list[ReferenceNode] = []
     references_final: list[ReferenceNode] = []
     scope_node: Scope | None = field(default_factory=Callable[[], Scope])
-    global BUILTINS
+    python_builtins = dir(builtins)
 
     for call in function_calls:
         if isinstance(call[0].func, astroid.Name):
-            if call[0].func.name in functions.keys() or call[0].func.name in BUILTINS or call[0].func.name in classes.keys():
+            if call[0].func.name in functions.keys() or call[0].func.name in python_builtins or call[0].func.name in classes.keys():
                 node_id = _calc_node_id(call[1].node)
                 scope_node = get_scope_node_by_node_id_call(node_id, scope)
 
@@ -807,14 +809,14 @@ def _find_call_reference(function_calls: list[tuple[astroid.Call, Scope | ClassS
 
     for i, reference in enumerate(references_proto):
         func_name = reference.name.func.name
-        if func_name in BUILTINS and func_name not in functions.keys() and func_name not in classes.keys():
+        if func_name in python_builtins and func_name not in functions.keys() and func_name not in classes.keys():
             references_final.append(ReferenceNode(reference.name, reference.scope, [
                 Builtin(reference.scope, NodeID("builtins", func_name, 0, 0),
                         func_name)]))
         elif isinstance(reference.name, astroid.Call):
             func_def = _get_function_def(reference, functions, classes)
             references_final.append(func_def)
-            if func_name in BUILTINS:
+            if func_name in python_builtins:
                 references_final[i].referenced_symbols.append(Builtin(reference.scope, NodeID("builtins", func_name, 0, 0), func_name))
 
     return references_final
