@@ -1254,6 +1254,24 @@ f(f(x))
              ReferenceTestNode("a.line3", "FunctionDef.f", ["Parameter.a.line2"]),
              ReferenceTestNode("x.line6", "Module.", ["GlobalVariable.x.line5"])]
         ),
+        (  # language=Python "recursive function call",
+            """
+def f(a):
+    print(a)
+    if a > 0:
+        f(a - 1)
+
+x = 10
+f(x)
+            """,  # language=none
+            [ReferenceTestNode("print.line3", "FunctionDef.f", ["Builtin.print"]),
+             ReferenceTestNode("f.line5", "FunctionDef.f", ["GlobalVariable.f.line2"]),
+             ReferenceTestNode("f.line8", "Module.", ["GlobalVariable.f.line2"]),
+             ReferenceTestNode("a.line3", "FunctionDef.f", ["Parameter.a.line2"]),
+             ReferenceTestNode("a.line4", "FunctionDef.f", ["Parameter.a.line2"]),
+             ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line2"]),
+             ReferenceTestNode("x.line8", "Module.", ["GlobalVariable.x.line7"])]
+        ),
         (  # language=Python "class instantiation"
             """
 class F:
@@ -1491,6 +1509,7 @@ State(10).state
         "function call as value",
         "nested function call",
         "nested function call with parameter",
+        "recursive function call",
         "class instantiation",
         "lambda function",
         "lambda function used as normal function",

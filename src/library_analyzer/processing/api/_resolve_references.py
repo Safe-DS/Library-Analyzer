@@ -531,7 +531,8 @@ class ScopeFinder:
 
         constructed_node = astroid.AssignName(name=arg, parent=node, lineno=node.parent.lineno,
                                               col_offset=node.parent.col_offset)
-        # TODO: col_offset is not correct: it should be the col_offset of the vararg/(kwarg) node which is not collected by astroid
+        # TODO: col_offset is not correct: it should be the col_offset of the vararg/(kwarg) node which is not
+        #  collected by astroid
         self.names_list.append(constructed_node)
         scope_node = Scope(_node=constructed_node, _id=_calc_node_id(constructed_node), _children=[], _parent=self.current_node_stack[-1])
         self.children.append(scope_node)
@@ -573,7 +574,6 @@ def _calc_node_id(
         case astroid.Name():
             return NodeID(module, node.name, node.lineno, node.col_offset)
         case MemberAccess():
-            # TODO: check if the MemberAccess is nested
             expression = get_base_expression(node)
             return NodeID(module, f"{expression.name}.{node.value.name}", expression.lineno,
                           expression.col_offset)
