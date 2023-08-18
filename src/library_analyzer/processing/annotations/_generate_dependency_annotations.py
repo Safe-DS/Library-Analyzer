@@ -60,7 +60,7 @@ def _add_dependency_parameter(param_id: str | None, target_list: list[str]) -> N
         The passed parameter ID will be added to this list.
 
     """
-    if param_id is not None:
+    if param_id is not None and (param_id not in target_list):
         target_list.append(param_id)
 
 
@@ -291,6 +291,7 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
                                 is_depending_on=is_depending_on,
                             )
                             annotations.add_annotation(annotation)
+                            dependency_targets.append(param.id)
 
                             _add_depending_on_dependencies(param.id, dependency_targets, is_depending_on, annotations)
 
