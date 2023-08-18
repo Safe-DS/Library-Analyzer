@@ -765,7 +765,7 @@ b = B()
 var1 = b.instance_attr1
             """,  # language=none
             [ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"]),
-             # ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
+             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
              ReferenceTestNode("b.instance_attr1.line7", "Module.", ["InstanceVariable.b.instance_attr1.line4"])]
         ),
         (  # language=Python "instance attribute target"
@@ -779,7 +779,7 @@ b.instance_attr1 = 1
 b.instance_attr1
             """,  # language=none
             [ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"]),
-             # ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
+             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
              ReferenceTestNode("b.instance_attr1.line8", "Module.", ["ClassVariable.b.instance_attr1.line7",
                                                                      "InstanceVariable.b.instance_attr1.line4"])
              ]
@@ -795,7 +795,7 @@ b.name
             """,  # language=none
             [ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"]),
              ReferenceTestNode("name.line4", "FunctionDef.__init__", ["Parameter.name.line3"]),
-             # ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
+             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
              ReferenceTestNode("b.name.line7", "Module.", ["InstanceVariable.b.name.line4"])]
         ),
         (  # language=Python "instance attribute with parameter and class attribute"
@@ -812,7 +812,9 @@ x.class_attr
             """,  # language=none
             [ReferenceTestNode("X.line8", "Module.", ["GlobalVariable.X.line2"]),
              ReferenceTestNode("name.line6", "FunctionDef.__init__", ["Parameter.name.line5"]),
+             ReferenceTestNode("x.line9", "Module.", ["GlobalVariable.x.line8"]),
              ReferenceTestNode("x.name.line9", "Module.", ["InstanceVariable.x.name.line6"]),
+             ReferenceTestNode("x.line10", "Module.", ["GlobalVariable.x.line8"]),
              ReferenceTestNode("x.class_attr.line10", "Module.", ["ClassVariable.X.class_attr.line3"])]
         ),
         (  # language=Python "chained class attribute and instance attribute"
@@ -870,8 +872,8 @@ b.name
              ReferenceTestNode("name.line4", "FunctionDef.__init__", ["Parameter.name.line3"]),
              ReferenceTestNode("name.line8", "FunctionDef.__init__", ["Parameter.name.line7"]),
              ReferenceTestNode("a.name.line12", "Module.", ["InstanceVariable.a.name.line4",  # class A
-                                                            "InstanceVariable.a.name.line8"]),  # class B
-             ReferenceTestNode("b.name.line13", "Module.", ["InstanceVariable.b.name.line4",  # class A
+                                                            "InstanceVariable.b.name.line8"]),  # class B
+             ReferenceTestNode("b.name.line13", "Module.", ["InstanceVariable.a.name.line4",  # class A
                                                             "InstanceVariable.b.name.line8"])]  # class B
         ),
         (  # language=Python "getter function with self"
@@ -1073,7 +1075,7 @@ squares
             [ReferenceTestNode("list.line7", "Module.", ["Builtin.list"]),
              ReferenceTestNode("map.line7", "Module.", ["Builtin.map"]),
              ReferenceTestNode("x.line5", "FunctionDef.square", ["Parameter.x.line4"]),
-             ReferenceTestNode("square.line7", "Module.", ["GlobalVariable.square.line5"]),
+             ReferenceTestNode("square.line7", "Module.", ["GlobalVariable.square.line4"]),
              ReferenceTestNode("numbers.line7", "Module.", ["GlobalVariable.numbers.line2"]),
              ReferenceTestNode("squares.line8", "Module.", ["GlobalVariable.squares.line7"])]
         ),
@@ -1285,7 +1287,8 @@ F()
             """
 (lambda x, y: x + y)(10, 20)
             """,  # language=none
-            [""]  # TODO: do we want an extra scope for lambda - since it is not a function and its variables are local?
+            [ReferenceTestNode("x.line2", "Lambda", ["LocalVariable.x.line2"]),
+             ReferenceTestNode("y.line2", "Lambda", ["LocalVariable.y.line2"])]
         ),
         (  # language=Python "lambda function used as normal function"
             """
@@ -1293,11 +1296,12 @@ double = lambda x: 2 * x
 
 double(10)
             """,  # language=none
-            [""]
+            [ReferenceTestNode("x.line2", "Lambda", ["LocalVariable.x.line2"]),
+             ReferenceTestNode("double.line4", "Module.", ["GlobalVariable.double.line2"])]
             # TODO: do we want an extra scope for lambda - since it is not a function and its variables are local?
             #       how do we handle the assignment? since it is not a variable declaration neither a real function definition
+            # handle the case where lambda is assigned to a variable as a function def
         ),
-
         (  # language=Python "lambda function as key"
             """
 names = ["a", "abc", "ab", "abcd"]
@@ -1305,7 +1309,11 @@ names = ["a", "abc", "ab", "abcd"]
 sort = sorted(names, key=lambda x: len(x))
 sort
             """,  # language=none
-            [""]  # TODO: do we want an extra scope for lambda - since it is not a function and its variables are local?
+            [ReferenceTestNode("sorted.line4", "Module.", ["Builtin.sorted"]),
+             ReferenceTestNode("len.line4", "Lambda", ["Builtin.len"]),
+             ReferenceTestNode("names.line4", "Module.", ["GlobalVariable.names.line2"]),
+             ReferenceTestNode("x.line4", "Lambda", ["LocalVariable.x.line2"]),
+             ReferenceTestNode("sort.line5", "Module.", ["GlobalVariable.sort.line4"])]
         ),
         (  # language=Python "generator function"
             """
@@ -1530,6 +1538,7 @@ State(10).state
 )
 # TODO: it is problematic, that the order of references is relevant, since it does not matter in the later usage
 #       of these results. Therefore, we should return a set of references instead of a list.
+#       For now convert the result to a set for testing purposes
 def test_resolve_references(code: str, expected: list[ReferenceTestNode]) -> None:
     references = resolve_references(code)
     transformed_references: list[ReferenceTestNode] = []
