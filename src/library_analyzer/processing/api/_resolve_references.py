@@ -475,9 +475,6 @@ class ScopeFinder:
         if isinstance(node.func, astroid.Name):
             self.function_calls.append((node, self.current_node_stack[-1]))
 
-    def enter_lambda(self, node: astroid.Lambda) -> None:
-        print(node.as_string())
-
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
         scope_node = Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=parent)
@@ -621,7 +618,8 @@ def get_scope_node_by_node_id(scope: Scope | list[Scope], targeted_node_id: Node
 def _create_unspecified_references(all_names_list: list[astroid.Name | astroid.AssignName | MemberAccess],
                                    scope: Scope,
                                    name_nodes: dict[astroid.Name, Scope | ClassScope],
-                                   classes: dict[str, ClassScope]) -> list[ReferenceNode]:
+                                   classes: dict[str, ClassScope],
+                                   functions: dict[str, Scope | ClassScope]) -> list[ReferenceNode]:
     """Create a list of references from a list of name nodes.
 
     Returns:
@@ -644,13 +642,15 @@ def _create_unspecified_references(all_names_list: list[astroid.Name | astroid.A
 
     for reference in references_proto:
         if isinstance(reference.name, astroid.Name | MemberAccessValue):
-            target_ref = _add_target_references(reference, references_proto, classes)
+            target_ref = _add_target_references(reference, references_proto, classes, functions)
             references_final.append(target_ref)
 
     return references_final
 
 
-def _add_target_references(reference: ReferenceNode, reference_list: list[ReferenceNode], classes: dict[str, ClassScope]) -> ReferenceNode:
+def _add_target_references(reference: ReferenceNode, reference_list: list[ReferenceNode],
+                           classes: dict[str, ClassScope],
+                           functions: dict[str, Scope | ClassScope]) -> ReferenceNode:
     """Add all target references to a reference.
 
     A target reference is a reference where the name is used as a target.
@@ -684,9 +684,14 @@ def _add_target_references(reference: ReferenceNode, reference_list: list[Refere
                     complete_reference.referenced_symbols.append(
                         ClassVariable(node=ref.scope, id=_calc_node_id(ref.name), name=ref.name.name))
 
-            elif isinstance(ref.name, astroid.AssignName) and ref.name.name == reference.name.name:
+            if isinstance(ref.name, astroid.AssignName) and ref.name.name == reference.name.name:
                 complete_reference.referenced_symbols.append(
                     Symbol(node=ref.scope, id=_calc_node_id(ref.name), name=ref.name.name))
+
+            # this detects functions that are passed as arguments to other functions (and therefor are not called)
+            elif ref.name.name in functions.keys() and ref.name.name == reference.name.name:
+                complete_reference.referenced_symbols.append(
+                    GlobalVariable(node=functions[ref.name.name], id=_calc_node_id(functions[ref.name.name].node), name=ref.name.name))
 
     return complete_reference
 
@@ -861,7 +866,7 @@ def resolve_references(code: str) -> list[ReferenceNode]:
     references_specified: list[ReferenceNode] = []
 
     references_unspecified = _create_unspecified_references(module_data.names_list, module_data.scope,
-                                                            module_data.names, module_data.classes)
+                                                            module_data.names, module_data.classes, module_data.functions)
 
     references_call = _find_call_reference(module_data.function_calls, module_data.classes, module_data.scope, module_data.functions)
     references_specified.extend(references_call)
