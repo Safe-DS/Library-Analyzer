@@ -155,7 +155,7 @@ class Scope:
         _parent      is the parent node in the scope tree, is None if the node is the root node.
     """
 
-    _node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | MemberAccess
+    _node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | astroid.Lambda | MemberAccess
     _id: NodeID
     _children: list[Scope | ClassScope] = field(default_factory=list)
     _parent: Scope | ClassScope | None = None
@@ -362,6 +362,15 @@ class ScopeFinder:
             self._analyze_constructor(node)
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
+        self._detect_scope(node)
+
+    def enter_lambda(self, node: astroid.Lambda) -> None:
+        print(node.as_string())
+        self.current_node_stack.append(
+            Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=self.current_node_stack[-1]),
+        )
+
+    def leave_lambda(self, node: astroid.Lambda) -> None:
         self._detect_scope(node)
 
     def enter_arguments(self, node: astroid.Arguments) -> None:
@@ -582,6 +591,8 @@ def _calc_node_id(
             return NodeID(module, node.attrname, node.lineno, node.col_offset)
         case astroid.Call():
             return NodeID(module, node.func.name, node.lineno, node.col_offset)
+        case astroid.Lambda():
+            return NodeID(module, "LAMBDA", node.lineno, node.col_offset)
         case astroid.NodeNG():
             return NodeID(module, node.as_string(), node.lineno, node.col_offset)
         case _:
@@ -659,6 +670,7 @@ def _add_target_references(reference: ReferenceNode, reference_list: list[Refere
     complete_reference = reference
     if reference in reference_list:
         for ref in reference_list:
+            # for ref in reference_list[:reference_list.index(reference)]:
             if isinstance(ref.name, MemberAccessValue):
                 root = ref.scope.root()
                 if isinstance(root.node, astroid.Module):

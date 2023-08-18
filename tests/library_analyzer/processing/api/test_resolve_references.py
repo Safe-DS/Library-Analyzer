@@ -1285,6 +1285,13 @@ F()
         ),
         (  # language=Python "lambda function"
             """
+lambda x, y: x + y
+            """,  # language=none
+            [ReferenceTestNode("x.line2", "Lambda", ["LocalVariable.x.line2"]),
+             ReferenceTestNode("y.line2", "Lambda", ["LocalVariable.y.line2"])]
+        ),
+        (  # language=Python "lambda function call"
+            """
 (lambda x, y: x + y)(10, 20)
             """,  # language=none
             [ReferenceTestNode("x.line2", "Lambda", ["LocalVariable.x.line2"]),
@@ -1520,6 +1527,7 @@ State(10).state
         "recursive function call",
         "class instantiation",
         "lambda function",
+        "lambda function call",
         "lambda function used as normal function",
         "lambda function as key",
         "generator function",
