@@ -304,6 +304,8 @@ class ScopeFinder:
             self.classes[node.name] = self.current_node_stack[-1]
         if isinstance(node, astroid.FunctionDef):
             self.functions[node.name] = self.current_node_stack[-1]
+        if isinstance(node, astroid.Lambda) and isinstance(node.parent, astroid.Assign):
+            self.functions[node.parent.targets[0].name] = self.current_node_stack[-1]
         self.current_node_stack.pop()  # remove the current node from the stack
 
     def _analyze_constructor(self, node: astroid.FunctionDef) -> None:
@@ -365,7 +367,6 @@ class ScopeFinder:
         self._detect_scope(node)
 
     def enter_lambda(self, node: astroid.Lambda) -> None:
-        print(node.as_string())
         self.current_node_stack.append(
             Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=self.current_node_stack[-1]),
         )
@@ -610,6 +611,7 @@ def get_base_expression(node: MemberAccess) -> astroid.NodeNG:
 
 def get_scope_node_by_node_id(scope: Scope | list[Scope], targeted_node_id: NodeID,
                               name_nodes: dict[astroid.Name, Scope | ClassScope] | None) -> Scope | ClassScope:
+    # TODO: implement a dfs search for the node (or an other quicker search algorithm)
     if name_nodes is None:
         for node in scope:
             if node.id == targeted_node_id:
@@ -786,6 +788,8 @@ def specify_symbols(parent_node: Scope | ClassScope | None,
             return GlobalVariable(symbol.node, symbol.id, symbol.name)
 
         return LocalVariable(symbol.node, symbol.id, symbol.name)
+    elif isinstance(parent_node.node, astroid.Lambda):
+        return LocalVariable(symbol.node, symbol.id, symbol.name)
     else:
         return symbol
 
@@ -853,6 +857,10 @@ def _get_function_def(reference: ReferenceNode, functions: dict[str, Scope | Cla
         for func in functions.values():
             if func.node.name == reference.name.func.name:
                 return ReferenceNode(reference.name, reference.scope, [GlobalVariable(func, func.id, func.node.name)])
+            elif isinstance(func.node, astroid.Lambda) and reference.name.func.name in functions.keys():
+                for key in functions.keys():
+                    if key == reference.name.func.name:
+                        return ReferenceNode(reference.name, reference.scope, [GlobalVariable(func, func.id, reference.name.func.name)])
     if classes:
         for klass in classes.values():
             if klass.node.name == reference.name.func.name:
@@ -862,14 +870,17 @@ def _get_function_def(reference: ReferenceNode, functions: dict[str, Scope | Cla
 
 def get_scope_node_by_node_id_call(targeted_node_id: NodeID,
                                    scope: Scope) -> Scope:
+    # TODO: implement a dfs search for the node (or an other quicker search algorithm)
     if scope.id == targeted_node_id:
         return scope
     else:
-        for child in scope.children:
-            if child.id == targeted_node_id:
-                return child
-            else:
-                return get_scope_node_by_node_id_call(targeted_node_id, child)
+        if scope.children:
+            for child in scope.children:
+                print(child.id)
+                if child.id == targeted_node_id:
+                    return child
+        # else:
+        #     return get_scope_node_by_node_id_call(targeted_node_id, child)
     raise ChildProcessError(f"Node with id {targeted_node_id} not found in scope.")
 
 

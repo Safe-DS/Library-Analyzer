@@ -1303,11 +1303,8 @@ double = lambda x: 2 * x
 
 double(10)
             """,  # language=none
-            [ReferenceTestNode("x.line2", "Lambda", ["LocalVariable.x.line2"]),
-             ReferenceTestNode("double.line4", "Module.", ["GlobalVariable.double.line2"])]
-            # TODO: do we want an extra scope for lambda - since it is not a function and its variables are local?
-            #       how do we handle the assignment? since it is not a variable declaration neither a real function definition
-            # handle the case where lambda is assigned to a variable as a function def
+            [ReferenceTestNode("double.line4", "Module.", ["GlobalVariable.double.line2"]),
+             ReferenceTestNode("x.line2", "Lambda", ["LocalVariable.x.line2"])]
         ),
         (  # language=Python "lambda function as key"
             """
@@ -1319,7 +1316,7 @@ sort
             [ReferenceTestNode("sorted.line4", "Module.", ["Builtin.sorted"]),
              ReferenceTestNode("len.line4", "Lambda", ["Builtin.len"]),
              ReferenceTestNode("names.line4", "Module.", ["GlobalVariable.names.line2"]),
-             ReferenceTestNode("x.line4", "Lambda", ["LocalVariable.x.line2"]),
+             ReferenceTestNode("x.line4", "Lambda", ["LocalVariable.x.line4"]),
              ReferenceTestNode("sort.line5", "Module.", ["GlobalVariable.sort.line4"])]
         ),
         (  # language=Python "generator function"
@@ -1542,7 +1539,7 @@ State(10).state
         "dataclass with default attribute",
         "dataclass with attribute",
         "dataclass with @property and @setter",
-    ]  # TODO: other decorators
+    ]
 )
 # TODO: it is problematic, that the order of references is relevant, since it does not matter in the later usage
 #       of these results. Therefore, we should return a set of references instead of a list.
@@ -1637,6 +1634,15 @@ def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
         expression = get_base_expression(node.name)
         return ReferenceTestNode(name=f"{node.name.name}.line{expression.lineno}",
                                  scope=f"{node.scope.node.__class__.__name__}.{node.scope.node.name}",
+                                 referenced_symbols=[str(ref) for ref in node.referenced_symbols])
+    if isinstance(node.scope.node, astroid.Lambda) and not isinstance(node.scope.node, astroid.FunctionDef):
+        # TODO: potential astroid bug: isinstance(node.scope.node, astroid.Lambda) is True for astroid.FunctionDef instances
+        if isinstance(node.name, astroid.Call):
+            return ReferenceTestNode(name=f"{node.name.func.name}.line{node.name.func.lineno}",
+                                     scope=f"{node.scope.node.__class__.__name__}",
+                                     referenced_symbols=[str(ref) for ref in node.referenced_symbols])
+        return ReferenceTestNode(name=f"{node.name.name}.line{node.name.lineno}",
+                                 scope=f"{node.scope.node.__class__.__name__}",
                                  referenced_symbols=[str(ref) for ref in node.referenced_symbols])
     if isinstance(node.name, astroid.Call):
         return ReferenceTestNode(name=f"{node.name.func.name}.line{node.name.func.lineno}",
