@@ -753,7 +753,9 @@ b = B()
 x = b.upper_class.class_attr1
             """,  # language=none
             [ReferenceTestNode("B.line8", "Module.", ["GlobalVariable.B.line5"]),
-             ]  # TODO
+             ReferenceTestNode("b.upper_class.class_attr1.line9", "Module.", ["ClassVariable.A.class_attr1.line3"]),
+             ReferenceTestNode("b.upper_class.line9", "Module.", ["ClassVariable.B.upper_class.line6"]),
+             ReferenceTestNode("b.line9", "Module.", ["GlobalVariable.b.line8"])]
         ),
         (  # language=Python "instance attribute value"
             """
@@ -824,13 +826,17 @@ class A:
         self.name = 10
 
 class B:
-    upper_class: A = A
+    upper_class: A = A()
 
 b = B()
 x = b.upper_class.name
             """,  # language=none
-            [ReferenceTestNode("B.line9", "Module.", ["GlobalVariable.B.line6"]),
-             ]  # TODO
+            [ReferenceTestNode("A.line7", "ClassDef.B", ["GlobalVariable.A.line2"]),
+             ReferenceTestNode("B.line9", "Module.", ["GlobalVariable.B.line6"]),
+             ReferenceTestNode("b.upper_class.name.line10", "Module.", ["InstanceVariable.upper_class.name.line4"]),
+             ReferenceTestNode("b.upper_class.line10", "Module.", ["ClassVariable.B.upper_class.line7"]),
+             ReferenceTestNode("b.line10", "Module.", ["GlobalVariable.b.line9"])
+             ]
         ),
         (  # language=Python "chained instance attributes"
             """
@@ -849,8 +855,13 @@ class C:
 a = A()
 a.b.c.name
             """,  # language=none
-            [ReferenceTestNode("A.line14", "Module.", ["GlobalVariable.A.line2"]),
-            ]  # TODO
+            [ReferenceTestNode("B.line4", "ClassDef.A", ["GlobalVariable.A.line2"]),
+             ReferenceTestNode("C.line8", "ClassDef.B", ["GlobalVariable.B.line6"]),
+             ReferenceTestNode("A.line12", "Module.", ["GlobalVariable.A.line2"]),
+             ReferenceTestNode("a.b.c.name.line13", "Module.", ["InstanceVariable.c.name.line11"]),
+             ReferenceTestNode("a.b.c.line13", "Module.", ["InstanceVariable.b.c.line8"]),
+             ReferenceTestNode("a.b.line13", "Module.", ["InstanceVariable.a.b.line4"]),
+             ReferenceTestNode("a.line13", "Module.", ["GlobalVariable.a.line12"])]
         ),
         (  # language=Python "two classes with same signature"
             """
@@ -963,6 +974,15 @@ else:
              ReferenceTestNode("var1.line6", "Module.", ["GlobalVariable.var1.line2"]),
              ReferenceTestNode("var1.line8", "Module.", ["GlobalVariable.var1.line2"])]
         ),
+        (  # language=Python "if in statement global scope"
+            """
+var1 = [1, 2, 3]
+if 1 in var1:
+    var1
+        """,  # language=none
+            [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var1.line4", "Module.", ["GlobalVariable.var1.line2"])]
+        ),
         (  # language=Python "for loop with global runtime variable global scope"
             """
 var1 = 10
@@ -981,7 +1001,6 @@ def func1():
         i
         """,  # language=none
             [ReferenceTestNode("range.line4", "FunctionDef.func1", ["Builtin.range"]),
-             # TODO: no scope is detected for range
              ReferenceTestNode("var1.line4", "FunctionDef.func1", ["GlobalVariable.var1.line2"]),
              ReferenceTestNode("i.line5", "FunctionDef.func1", ["LocalVariable.i.line4"])]
         ),
@@ -1069,7 +1088,7 @@ numbers = [1, 2, 3, 4, 5]
 def square(x):
     return x ** 2
 
-squares = list(map(square, numbers))   # TODO: there is a problem when functions are passed as arguments
+squares = list(map(square, numbers))
 squares
             """,  # language=none
             [ReferenceTestNode("list.line7", "Module.", ["Builtin.list"]),
@@ -1340,6 +1359,14 @@ for value in gen:
             """
 import math
 
+math
+            """,  # language=none
+            [""]  # TODO
+        ),
+        (  # language=Python "import with use"
+            """
+import math
+
 math.pi
             """,  # language=none
             [""]  # TODO
@@ -1456,6 +1483,18 @@ State(10).state
              ReferenceTestNode("value.line14", "FunctionDef.state", ["Parameter.value.line13"]),
              ReferenceTestNode("State.state.line16", "Module.", ["ClassVariable.State._state.line6"])]
         ),
+#         (  # language=Python "regex global scope"
+#             """
+# import re
+#
+# regex = re.compile(r"^\s*#")
+# string = "    # comment"
+#
+# if regex.match(string) is None:
+#     print(string, end="")
+#             """,  # language=none
+#             []
+#         ),
     ],
     ids=[
         "local variable in function scope",
@@ -1494,6 +1533,7 @@ State(10).state
         "if statement global scope",
         "if else statement global scope",
         "if elif else statement global scope",
+        "if in statement global scope",
         "for loop with global runtime variable global scope",
         "for loop wih local runtime variable local scope",
         "for loop with local runtime variable global scope",
@@ -1529,6 +1569,7 @@ State(10).state
         "lambda function as key",
         "generator function",
         "import",
+        "import with use",
         "import multiple",
         "import as",
         "import from",
