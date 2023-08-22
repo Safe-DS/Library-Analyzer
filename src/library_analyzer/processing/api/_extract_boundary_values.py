@@ -113,7 +113,13 @@ _boundary_non_positive = [
 
 _boundary_negative = [{"LOWER": "strictly", "OP": "?"}, {"LOWER": "negative"}]
 
-_boundary_between = [{"LOWER": "between"}, {"LIKE_NUM": True}, {"LOWER": "and"}, {"LIKE_NUM": True}]
+_boundary_between = [
+    {"LOWER": "strictly", "OP": "?"},
+    {"LOWER": "between"},
+    {"LIKE_NUM": True},
+    {"LOWER": "and"},
+    {"LIKE_NUM": True}
+]
 
 
 _boundary_gtlt_gtlt = [
@@ -318,7 +324,7 @@ _matcher.add("BOUNDARY_POSITIVE", [_boundary_positive], on_match=_check_positive
 _matcher.add("BOUNDARY_NON_NEGATIVE", [_boundary_non_negative])
 _matcher.add("BOUNDARY_NEGATIVE", [_boundary_negative], on_match=_check_negative_pattern)
 _matcher.add("BOUNDARY_NON_POSITIVE", [_boundary_non_positive])
-_matcher.add("BOUNDARY_BETWEEN", [_boundary_between])
+_matcher.add("BOUNDARY_BETWEEN", [_boundary_between], greedy="LONGEST")
 _matcher.add("BOUNDARY_INTERVAL_RELATIONAL", relational_patterns, on_match=_check_interval_relational_pattern)
 _matcher.add("BOUNDARY_TYPE", [_boundary_type])
 _matcher.add("BOUNDARY_TYPE_REL_VAL", [_boundary_type_gtlt_val, _boundary_type_geqleq_val])
@@ -473,10 +479,15 @@ def _create_between_boundary(match_string: Span, type_: str) -> BoundaryType:
 
     """
     values = []
+    min_incl = True
+    max_incl = True
     for token in match_string:
+        if token.text == "strictly":
+            min_incl = False
+            max_incl = False
         if token.like_num:
             values.append(_get_type_value(type_, token.text))
-    return BoundaryType(type_, min=min(values), max=max(values), min_inclusive=True, max_inclusive=True)
+    return BoundaryType(type_, min=min(values), max=max(values), min_inclusive=min_incl, max_inclusive=max_incl)
 
 
 def _create_at_least_boundary(match_string: Span, type_: str) -> BoundaryType:
@@ -708,6 +719,27 @@ def _analyze_matches(matches: list[tuple[str, Span]], boundaries: BoundaryList) 
                 boundaries.add_boundary(match_label, type_, match_string)
 
 
+def _preprocess_docstring(docstring: str) -> str:
+    """
+    Preprocess docstring to make it easier to parse.
+
+    1. Remove back ticks
+    2. Transform multiple whitespaces to one
+
+    Parameters
+    ----------
+    docstring
+        The docstring to be processed.
+
+    Returns
+    -------
+        str
+            The processed docstring.
+    """
+    docstring = re.sub(r"`", "", docstring)
+    return re.sub(r"\s+", " ", docstring)
+
+
 def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
     """Extract valid BoundaryTypes.
 
@@ -732,7 +764,9 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
     type_matches = _matcher(type_doc)
     type_matches = [(_nlp.vocab.strings[match_id], type_doc[start:end]) for match_id, start, end in type_matches]
 
-    description_doc = _nlp(description)
+    description_preprocessed = _preprocess_docstring(description)
+    description_doc = _nlp(description_preprocessed)
+
     desc_matches = _matcher(description_doc)
     desc_matches = [(_nlp.vocab.strings[match_id], description_doc[start:end]) for match_id, start, end in desc_matches]
 
@@ -763,9 +797,16 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
             # Checking the description for boundaries if no restriction was found in the type string
             elif len(desc_matches) > 0:
                 match_label, match_string = desc_matches[0]
+                for m_label, m_string in desc_matches:
+                    if m_label == "BOUNDARY_INTERVAL":
+                        match_label = m_label
+                        match_string = m_string
+                        break
+
                 if match_label == "BOUNDARY_TYPE" and len(desc_matches) > 1:
                     type_text = match_string.text
                     match_label, match_string = desc_matches[1]
+
 
             boundaries.add_boundary(match_label, type_text, match_string)
 
