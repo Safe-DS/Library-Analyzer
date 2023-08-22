@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import re
+
 from dataclasses import dataclass, field
 from typing import Any, TypeAlias
 
@@ -7,7 +11,7 @@ from spacy.tokens import Doc, Span
 
 from library_analyzer.utils import load_language
 
-from .model import BoundaryType
+from library_analyzer.processing.api.model import BoundaryType
 
 _Numeric: TypeAlias = int | float
 
@@ -42,7 +46,9 @@ class BoundaryList:
             case "BOUNDARY_BETWEEN":
                 self._boundaries.add(_create_between_boundary(match_string, type_))
             case "BOUNDARY_INTERVAL":
-                self._boundaries.add(_create_interval_boundary(match_string, type_))
+                boundary = _create_interval_boundary(match_string, type_)
+                if boundary is not None:
+                    self._boundaries.add(boundary)
             case "BOUNDARY_AT_LEAST":
                 self._boundaries.add(_create_at_least_boundary(match_string, type_))
             case "BOUNDARY_INTERVAL_RELATIONAL":
@@ -334,7 +340,22 @@ def _get_type_value(type_: str, value: _Numeric | str) -> _Numeric:
     Numeric
         Transformed value.
     """
-    return type_funcs[type_](value)
+    numbers = {
+        "zero": 0,
+        "one": 1,
+        "two": 2,
+        "three": 3,
+        "four": 4,
+        "five": 5,
+        "six": 6,
+        "seven": 7,
+        "eight": 8,
+        "nine": 9
+    }
+    if isinstance(value, str) and value.lower() in numbers:
+        value = numbers[value]
+
+    return type_funcs[type_.lower()](value)
 
 
 def _create_non_positive_boundary(type_: str) -> BoundaryType:
@@ -499,6 +520,7 @@ def _create_interval_boundary(match_string: Span, type_: str) -> BoundaryType:
     BoundaryType
 
     """
+    scientific_notation = r"[+\-]?\d+[eE][+\-]?\d+"
     values = []
     brackets = []
     for token in match_string:
@@ -511,8 +533,14 @@ def _create_interval_boundary(match_string: Span, type_: str) -> BoundaryType:
             values.append(inf)
         elif token.text in ["negative inf", "negative infty", "negative infinity"]:
             values.append(-inf)
+        elif re.match(scientific_notation, token.text) is not None:
+            values.append(float(token.text))
+
+    if len(values) != 2:
+        return None
 
     type_func = type_funcs[type_]
+
     if -inf in values:
         minimum = BoundaryType.NEGATIVE_INFINITY
         min_incl = False
@@ -735,7 +763,7 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
             # Checking the description for boundaries if no restriction was found in the type string
             elif len(desc_matches) > 0:
                 match_label, match_string = desc_matches[0]
-                if match_label == "BOUNDARY_TYPE":
+                if match_label == "BOUNDARY_TYPE" and len(desc_matches) > 1:
                     type_text = match_string.text
                     match_label, match_string = desc_matches[1]
 

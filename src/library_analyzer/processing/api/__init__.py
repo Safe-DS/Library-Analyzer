@@ -15,6 +15,10 @@ from ._extract_dependencies import (
     ParameterWillBeSetTo,
     extract_param_dependencies,
 )
+
+from ._extract_valid_values import extract_valid_literals
+from ._extract_boundary_values import extract_boundary, BoundaryType, BoundaryList
+
 from ._get_api import get_api
 from ._get_instance_attributes import get_instance_attributes
 from ._get_parameter_list import get_parameter_list
@@ -84,4 +88,8 @@ __all__ = [
     "ClassScopeNode",
     "extract_called_after_functions",
     "CalledAfterValues",
+    "extract_valid_literals",
+    "extract_boundary",
+    "BoundaryList",
+    "BoundaryType"
 ]
