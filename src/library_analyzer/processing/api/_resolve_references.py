@@ -431,6 +431,7 @@ class ScopeFinder:
             | astroid.For
             | astroid.Tuple
             | astroid.NamedExpr
+            | astroid.Starred
         ):
             self.names_list.append(node)
 
@@ -448,6 +449,7 @@ class ScopeFinder:
             | astroid.Tuple
             | astroid.For
             | astroid.NamedExpr
+            | astroid.Starred
         ):
             parent = self.current_node_stack[-1]
             scope_node = Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=parent)
@@ -857,7 +859,7 @@ def _get_function_def(reference: ReferenceNode, functions: dict[str, Scope | Cla
         for func in functions.values():
             if func.node.name == reference.name.func.name:
                 return ReferenceNode(reference.name, reference.scope, [GlobalVariable(func, func.id, func.node.name)])
-            elif isinstance(func.node, astroid.Lambda) and reference.name.func.name in functions.keys():
+            elif isinstance(func.node, astroid.Lambda) and not isinstance(func.node, astroid.FunctionDef) and reference.name.func.name in functions.keys():
                 for key in functions.keys():
                     if key == reference.name.func.name:
                         return ReferenceNode(reference.name, reference.scope, [GlobalVariable(func, func.id, reference.name.func.name)])
