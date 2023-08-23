@@ -1138,6 +1138,15 @@ x, y
             [ReferenceTestNode("x.line4", "Module.", ["GlobalVariable.x.line2"]),
              ReferenceTestNode("y.line4", "Module.", ["GlobalVariable.y.line3"])]
         ),
+        (  # language=Python "vars with extended iterable unpacking"
+            """
+a, *b, c = [1, 2, 3, 4, 5]
+a, b, c
+            """,  # language=none
+            [ReferenceTestNode("a.line3", "Module.", ["GlobalVariable.a.line2"]),
+             ReferenceTestNode("b.line3", "Module.", ["GlobalVariable.b.line2"]),
+             ReferenceTestNode("c.line3", "Module.", ["GlobalVariable.c.line2"])]
+        ),
         (  # language=Python "f-string"
             """
 x = 10
@@ -1262,18 +1271,57 @@ f(f(f(10)))
              ReferenceTestNode("f.line5", "Module.", ["GlobalVariable.f.line2"]),
              ReferenceTestNode("a.line3", "FunctionDef.f", ["Parameter.a.line2"])]
         ),
-        (  # language=Python "nested function call with parameter"
+        (  # language=Python "two functions"
             """
-def f(a):
-    return a * 2
+def fun1():
+    return "Function 1"
 
-x = 10
-f(f(x))
+def fun2():
+    return "Function 2"
+
+fun1()
+fun2()
             """,  # language=none
-            [ReferenceTestNode("f.line6", "Module.", ["GlobalVariable.f.line2"]),
-             ReferenceTestNode("f.line6", "Module.", ["GlobalVariable.f.line2"]),
-             ReferenceTestNode("a.line3", "FunctionDef.f", ["Parameter.a.line2"]),
-             ReferenceTestNode("x.line6", "Module.", ["GlobalVariable.x.line5"])]
+            [ReferenceTestNode("fun1.line8", "Module.", ["GlobalVariable.fun1.line2"]),
+             ReferenceTestNode("fun2.line9", "Module.", ["GlobalVariable.fun2.line5"])]
+        ),
+        (  # language=Python "functon with function as parameter"
+            """
+def fun1():
+    return "Function 1"
+
+def fun2():
+    return "Function 2"
+
+def call_function(f):
+    return f()  # TODO: Problem: f is never defined
+
+call_function(fun1)
+call_function(fun2)
+            """,  # language=none
+            []
+        ),
+        (  # language=Python "functon conditional with branching"
+            """
+def fun1():
+    return "Function 1"
+
+def fun2():
+    return "Function 2"
+
+def call_function(a):
+    if a == 1:
+        return fun1()
+    else:
+        return fun2()
+
+call_function(1)
+            """,  # language=none
+            [
+             ReferenceTestNode("fun1.line10", "FunctionDef.call_function", ["GlobalVariable.fun1.line2"]),
+             ReferenceTestNode("fun2.line12", "FunctionDef.call_function", ["GlobalVariable.fun2.line5"]),
+             ReferenceTestNode("call_function.line14", "Module.", ["GlobalVariable.call_function.line8"]),
+             ReferenceTestNode("a.line9", "FunctionDef.call_function", ["Parameter.a.line8"])]
         ),
         (  # language=Python "recursive function call",
             """
@@ -1548,6 +1596,7 @@ State(10).state
         "double return",
         "reassignment",
         "vars with comma",
+        "vars with extended iterable unpacking",
         "f-string",
         "multiple references in one line",
         "walrus operator",
@@ -1560,7 +1609,9 @@ State(10).state
         "function call with keyword parameter",
         "function call as value",
         "nested function call",
-        "nested function call with parameter",
+        "two functions",
+        "functon with function as parameter",
+        "function with conditional branching",
         "recursive function call",
         "class instantiation",
         "lambda function",
