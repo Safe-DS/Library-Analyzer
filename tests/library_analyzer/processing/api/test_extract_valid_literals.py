@@ -8,14 +8,14 @@ from library_analyzer.processing.api._extract_valid_values import extract_valid_
         (
             "str",
             (
-                'If "mean", then replace missing values using the mean along each column '
+                'If "mean", then replace missing values using the mean along each column. '
                 'If "median", then replace missing values using the median along each column. '
                 'If "most_frequent", then replace missing using the most frequent value along each column. '
                 'If "constant", then replace missing values with fill_value.'
             ),
             ['"mean"', '"median"', '"most_frequent"', '"constant"'],
         ),
-        ("str or bool", "Valid values are [False, None, 'allow-nan']", ['"True"', '"False"', '"None"', '"allow-nan"']),
+        ("str or bool", "Valid values are [False, None, 'allow-nan']", ["True", "False", "None", '"allow-nan"']),
         (
             "str",
             (
@@ -73,7 +73,7 @@ from library_analyzer.processing.api._extract_valid_values import extract_valid_
                 " random. To obtain a deterministic behaviour during fitting, random_state has to be fixed to an"
                 " integer. See :term:Glossary <random_state> for details."
             ),
-            [],
+            ["None"],
         ),
         ("float", "Independent term in kernel function. It is only significant in 'poly' and 'sigmoid'.", []),
         (
