@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from library_analyzer.processing.annotations._constants import autogen_author
 from library_analyzer.processing.annotations.model import AnnotationStore, DependencyAnnotation, EnumReviewResult
 from library_analyzer.processing.api import (
@@ -304,3 +307,13 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
                                 is_depending_on,
                             )
                             _add_depending_on_dependencies(param.id, dependency_targets, is_depending_on, annotations)
+
+if __name__ == '__main__':
+    api = API.from_json_file(Path("/home/nils/PycharmProjects/Library-Analyzer/src/library_analyzer/processing/api/example_api.json"))
+    print(api.to_dict())
+    a_store = AnnotationStore()
+
+    _generate_dependency_annotations(api, a_store)
+
+    with open("/home/nils/Schreibtisch/Test.json", "w") as f:
+        f.write(json.dumps(a_store.to_dict(), indent=4))

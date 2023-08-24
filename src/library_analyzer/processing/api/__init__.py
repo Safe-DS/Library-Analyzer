@@ -42,6 +42,9 @@ from ._package_metadata import (
 )
 from ._resolve_references import ClassScopeNode, MemberAccess, ScopeNode, get_scope
 
+from ._extract_valid_values import extract_valid_literals
+from ._extract_boundary_values import extract_boundary
+
 __all__ = [
     "DefinitelyImpure",
     "DefinitelyPure",
@@ -81,4 +84,6 @@ __all__ = [
     "MemberAccess",
     "get_scope",
     "ClassScopeNode",
+    "extract_valid_literals",
+    "extract_boundary"
 ]

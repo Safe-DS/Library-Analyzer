@@ -404,10 +404,12 @@ def _shorten_and_check_string(dependee: str, doc: Doc, passive: bool = False) ->
     change = False
 
     for token in doc:
+        # print(f"+++++++++++++++++++++++  Current token: {token.text} ++++++++++++++++++++++++++++++++++++")
         if token.pos_ == "SCONJ":
+            # print("SCONJ")
             sconj_idx = token.i + 1
 
-        elif token.text in ["and", "or"]:
+        elif token.text in ["and", "or"] and token.nbor(-1).text.lower() not in ["(", "[", "{", "if"]:
             if len(doc) > token.i + 3 and token.nbor(2).text == "by":
                 change = False
             else:
@@ -436,6 +438,9 @@ def _shorten_and_check_string(dependee: str, doc: Doc, passive: bool = False) ->
 
     if change:
         shortened_string = doc[:sconj_idx].text + " " + doc[and_or_idx:].text
+        # print("SHORTEN AND CHECK STRING")
+        # print(f"vorher: {doc.text}")
+        # print(f"nachher: {shortened_string}")
         shortened_doc = _nlp(shortened_string)
         _dep_matcher(shortened_doc)
 
@@ -511,6 +516,10 @@ def _add_condition(dependee: str, value: str, cond_str: str, passive: bool = Fal
         cond.check_dependee = passive
 
     if _combined_condition:
+        if _condition_list[-1].combined_with:
+            for comb_cond in _condition_list[-1].combined_with:
+                cond.combined_with.append(Condition.from_dict(comb_cond.to_dict()))
+            _condition_list[-1].combined_with = []
         cond.combined_with.append(Condition.from_dict(_condition_list[-1].to_dict()))
         _condition_list.pop()
         _action_list.pop()
@@ -1018,8 +1027,11 @@ def extract_param_dependencies(
 
     description_preprocessed = _preprocess_docstring(description)
     description_doc = _nlp(description_preprocessed)
+    print(f":::::::::::::: {param_qname} ::::::::::::::")
+    for sent in description_doc.sents:
+        _dep_matcher(sent)
 
-    _dep_matcher(description_doc)
+    # _dep_matcher(description_doc)
 
     for idx, cond in enumerate(_condition_list):
         dependency_tuples.append((param_qname, cond, _action_list[idx]))
@@ -1267,3 +1279,12 @@ _matcher.add("COND_VALUE_ASSIGNMENT", [_pattern_cond_value_assignment], greedy="
 
 # Insert merger after Tagger into the pipeline
 _nlp.add_pipe("merger", after="tagger")
+
+
+if __name__ == '__main__':
+    qname = "test"
+    # descr= "- If `axis=0`, boolean and integer array-like, integer slice, and scalar integer are supported.\n - If `axis=1`:\n - to select a single column, `indices` can be of `int` type for all `X` types and `str` only for dataframe. The selected subset will be 1D, unless `X` is a sparse matrix in which case it will be 2D.\n - to select multiples columns, `indices` can be one of the following: `list`, `array`, `slice`. The type used in these containers can be one of the following: `int`, 'bool' and `str`. However, `str` is only supported when `X` is a dataframe. The selected subset will be 2D."
+    # descr = "Scientific notation is used only for numbers outside the range 10\ :sup:`m` to 10\ :sup:`n` (and only if the formatter is configured to use scientific notation at all).  Use (0, 0) to include all numbers.  Use (m, m) where m != 0 to fix the order of magnitude to 10\ :sup:`m`. The formatter default is :rc:`axes.formatter.limits`."
+    descr = "If and only if the concrete backend is written such that `option_scale_image` returns ``True``, an affine transformation (i.e., an `.Affine2DBase`) *may* be passed to `draw_image`.  The translation vector of the transformation is given in physical units (i.e., dots or pixels). Note that the transformation does not override *x* and *y*, and has to be applied *before* translating the result by *x* and *y* (this can be accomplished by adding *x* and *y* to the translation vector defined by *transform*)."
+    l = extract_param_dependencies(qname, descr)
+    print(l)
