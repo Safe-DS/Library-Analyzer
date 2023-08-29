@@ -43,6 +43,9 @@ from ._package_metadata import (
 )
 from ._resolve_references import ClassScopeNode, MemberAccess, ScopeNode, get_scope
 
+from library_analyzer.processing.api._extract_valid_values import extract_valid_literals
+from library_analyzer.processing.api._extract_boundary_values import extract_boundary
+
 __all__ = [
     "DefinitelyImpure",
     "DefinitelyPure",
@@ -84,4 +87,6 @@ __all__ = [
     "ClassScopeNode",
     "extract_called_after_functions",
     "CalledAfterValues",
+    "extract_valid_literals",
+    "extract_boundary"
 ]

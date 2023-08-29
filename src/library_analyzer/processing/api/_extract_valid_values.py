@@ -10,6 +10,10 @@ from spacy.tokens import Doc, Span
 from library_analyzer.utils import load_language
 
 
+_quotes = {"ORTH": {"IN": ["'", '"', "`"]}}
+_quotes_without_backticks = {"ORTH": {"IN": ["'", '"']}}
+_quotes_at_least_one = {"ORTH": {"IN": ["'", '"', "`"]}, "OP": "+"}
+_quotes_optional = {"ORTH": {"IN": ["'", '"', "`"]}, "OP": "?"}
 
 _enum_valid_values_are = [{"LOWER": {"IN": ["valid", "possible", "accepted"]}}, {"LOWER": "values"}, {"LOWER": "are"}]
 
@@ -17,33 +21,69 @@ _enum_when_set_to = [{"LOWER": "when"}, {"LOWER": "set"}, {"LOWER": "to"}]
 
 _enum_if_listing = [
     {"ORTH": "If"},
-    {"ORTH": {"IN": ["'", '"', "`"]}, "OP": "?"},
+    _quotes_at_least_one,
+    {"OP": "{1,1}"},
+    # {},
+    _quotes_at_least_one,
+    {"ORTH": {"IN": [",", ":"]}}
+]
+
+_enum_if_special_vals = [
+    {"ORTH": "If"},
+    _quotes_optional,
+    {"LOWER": {"IN": ["false", "true", "none"]}},
+    _quotes_optional
+]
+
+_enum_hyphened_single_val = [
+    {"ORTH": "-"},
+    _quotes_at_least_one,
     {},
-    {"ORTH": {"IN": ["'", '"', "`"]}, "OP": "?"},
+    _quotes_at_least_one,
     {"ORTH": {"IN": [",", ":"]}, "OP": "?"}
+]
+
+_enum_hyphened_special_vals = [
+    {"ORTH": "-"},
+    _quotes_optional,
+    {"LOWER": {"IN": ["false", "true", "none"]}},
+    _quotes_optional
 ]
 
 _enum_type_curly = [{"ORTH": "{"}, {"OP": "+"}, {"ORTH": "}"}]
 
-_enum_str = [{"LOWER": "str"}]
+_enum_str = [{"LOWER": "of", "OP": "?"}, {"LOWER": "str"}]
 _enum_bool = [{"LOWER": {"IN": ["bool", "false", "true"]}}]
 
 _enum_single_val_bool_none = [{"ORTH": {"IN": ["True", "False", "None"]}}, {"ORTH": ":", "OP": "?"}]
 
-_enum_single_val_quoted = [{"ORTH": {"IN": ["'", '"']}}, {"OP": "+"}, {"ORTH": {"IN": ["'", '"']}}, {"ORTH": ":"}]
-
-_enum_type_single_val = [
-    {"ORTH": {"IN": ["'", "`", '"']}},
-    {},
-    {"ORTH": {"IN": ["'", "`", '"']}}
+_enum_single_val_quoted = [
+    _quotes_without_backticks,
+    {"ORTH": {"NOT_IN": ["'", "`", '"']}, "OP": "+"},
+    _quotes_without_backticks
 ]
+
+_enum_string_inputs_supported = [
+    {"LOWER": "string"},
+    {"LOWER": "inputs"},
+    {"ORTH": ","},
+    {"OP": "+"},
+    {"LOWER": "are"},
+    {"LOWER": "supported"}
+]
+
+_enum_single_val_respective = [
+    {"LOWER": {"IN": ["resp.", "respective"]}},
+]
+
 
 
 
 @dataclass
 class MatcherConfiguration:
     _nlp: Language = None
-    _matcher: Matcher = None
+    _descr_matcher: Matcher = None
+    _type_matcher: Matcher = None
 
     # Rules to be checked
     single_val_type_string: bool = True
@@ -52,45 +92,58 @@ class MatcherConfiguration:
     type_curly: bool = True
     if_listings: bool = True
     single_vals: bool = True
+    string_inputs: bool = True
+    hyphened_single: bool = True
 
     def __post_init__(self) -> None:
         self._nlp = load_language("en_core_web_sm")
-        self._matcher = Matcher(self._nlp.vocab)
+        self._descr_matcher = Matcher(self._nlp.vocab)
+        self._type_matcher = Matcher(self._nlp.vocab)
 
-        self._matcher.add("ENUM_STR", [_enum_str])
-        self._matcher.add("ENUM_BOOL", [_enum_bool])
+        self._type_matcher.add("ENUM_STR", [_enum_str], greedy="LONGEST")
+        self._type_matcher.add("ENUM_BOOL", [_enum_bool])
 
-        if self.single_val_type_string:
-            self._matcher.add("ENUM_TYPE_SINGLE_VAL", [_enum_type_single_val], greedy="LONGEST")
         if self.when_set_to:
-            self._matcher.add("ENUM_SINGLE_VAL_WHEN", [_enum_when_set_to], on_match=_extract_single_value)
+            self._descr_matcher.add("ENUM_SINGLE_VAL_WHEN", [_enum_when_set_to], on_match=_extract_single_value)
         if self.if_listings:
-            self._matcher.add(
+            self._descr_matcher.add(
                 "ENUM_SINGLE_VAL_IF",
-                [_enum_if_listing],
+                [_enum_if_listing, _enum_if_special_vals],
                 on_match=_extract_single_value,
                 greedy="FIRST"
             )
         if self.valid_values_are:
-            self._matcher.add("ENUM_VALID_VALUES_ARE", [_enum_valid_values_are], on_match=_extract_list)
+            self._descr_matcher.add("ENUM_VALID_VALUES_ARE", [_enum_valid_values_are], on_match=_extract_list)
         if self.type_curly:
-            self._matcher.add("ENUM_TYPE_CURLY", [_enum_type_curly], on_match=_extract_list)
+            self._type_matcher.add("ENUM_TYPE_CURLY", [_enum_type_curly], on_match=_extract_list)
         if self.single_vals:
-            self._matcher.add(
-                "ENUM_SINGLE_VALS",
+            self._type_matcher.add(
+                "ENUM_TYPE_SINGLE_VALS",
                 [_enum_single_val_quoted, _enum_single_val_bool_none],
                 on_match=_extract_indented_single_value,
-                greedy="LONGEST"
+                greedy="FIRST"
+            )
+        if self.string_inputs:
+            self._descr_matcher.add("ENUM_STRING_INPUTS", [_enum_string_inputs_supported], on_match=_extract_list)
+        if self.hyphened_single:
+            self._descr_matcher.add(
+                "ENUM_HYPHENED_SINGLE",
+                [_enum_hyphened_special_vals, _enum_hyphened_single_val],
+                on_match=_extract_single_value,
+                greedy="FIRST"
             )
 
-    def get_matcher(self) -> Matcher:
-        return self._matcher
+    def get_descr_matcher(self) -> Matcher:
+        return self._descr_matcher
+
+    def get_type_matcher(self) -> Matcher:
+        return self._type_matcher
 
     def get_nlp(self) -> Language:
         return self._nlp
 
 
-_extracted = []
+_extracted: list[str] = []
 
 
 def _merge_with_last_value_in_list(value_list: list[str], merge_value: str) -> None:
@@ -104,6 +157,7 @@ def _merge_with_last_value_in_list(value_list: list[str], merge_value: str) -> N
         value to be merged
 
     """
+    print(value_list)
     if merge_value in ["-", "_"] or value_list[-1][-1] in ["-", "_"]:
         value_list[-1] += merge_value
     else:
@@ -143,9 +197,16 @@ def _extract_list(
 
     match_ = nlp_matches[i]
     end = match_[2]
+    start = match_[1]
+
+    label = MATCHER_CONFIG.get_nlp().vocab.strings[match_[0]]
+
+    if label == "ENUM_STRING_INPUTS":
+        end = start + 2
+    elif label == "ENUM_TYPE_CURLY":
+        end = start
 
     for token in doc[end:]:
-        print(token.text)
         if token.text in ["[", "{"]:
             found_list = True
             continue
@@ -156,15 +217,18 @@ def _extract_list(
             if token.text in ["True", "False", "bool"]:
                 ex.append("True")
                 ex.append("False")
+            elif token.text == "None":
+                ex.append("None")
             else:
-
-                if token.nbor(-1).text in quotes and token.nbor(-2).text not in seperators_opener:
+                print(token.text, ex)
+                if token.nbor(-1).text in quotes and token.nbor(-2).text not in seperators_opener and ex:
                     _merge_with_last_value_in_list(ex, token.text)
-                elif token.nbor(-1).text not in seperators_opener and token.nbor(-1).text not in quotes:
+                elif token.nbor(-1).text not in seperators_opener and token.nbor(-1).text not in quotes and ex:
                     _merge_with_last_value_in_list(ex, token.text)
-                else:
+                elif token.nbor(-1).text in quotes or token.nbor(1).text in quotes:
                     ex.append(token.text)
-        else:
+
+        elif not found_list:
 
             if token.text in ["or", "and"]:
                 last_token = True
@@ -219,13 +283,19 @@ def _extract_single_value(
 
     """
     text = ""
-    _, start, end = nlp_matches[i]
+    match_id, start, end = nlp_matches[i]
 
-    match_label = MATCHER_CONFIG.get_nlp().vocab.strings[nlp_matches[i][0]]
-    if match_label == "ENUM_SINGLE_VAL_IF":
+    match_label = MATCHER_CONFIG.get_nlp().vocab.strings[match_id]
+    if match_label in ["ENUM_SINGLE_VAL_IF", "ENUM_HYPHENED_SINGLE"]:
         next_token_idx = start + 1
-        end = next_token_idx
         next_token = doc[next_token_idx]
+        quotes = ["'", '"', "`"]
+
+        if next_token.text in quotes and next_token.nbor(1).text in quotes:
+            end = next_token_idx + 1
+        else:
+            end = next_token_idx
+
     else:
         next_token = doc[end]
 
@@ -235,12 +305,26 @@ def _extract_single_value(
     elif next_token.text == "None":
         _extracted.append("None")
     elif next_token.text in ["'", '"', "`"]:
-        for token in doc[end + 1 :]:
+        for token in doc[end + 1:]:
             if token.text in ["'", '"', "`"]:
+
+                if match_label == "ENUM_SINGLE_VAL_IF" and len(doc) > token.i + 3:
+                    for i in range(1, 4):
+                        if token.nbor(i).text == "callable":
+                            return None
                 break
             else:
                 text += token.text
-        _extracted.append('"' + text + '"')
+
+        if text == "None":
+            _extracted.append("None")
+        elif text in ["False", "True"]:
+            _extracted.append("False")
+            _extracted.append("True")
+        elif text in ["int", "float"]:
+            return None
+        elif text != "":
+            _extracted.append('"' + text + '"')
 
     return None
 
@@ -275,8 +359,10 @@ def _extract_indented_single_value(
 
     value = value.text
 
-    if value[0] in ["'", '"']:
-        value = value.replace("'", '"')
+    if value[0] in ["'", "`", '"']:
+        value = re.sub(r"['`]", '"', value)
+        if value[-1] != '"':
+            value = value + '"'
 
     _extracted.append(value)
 
@@ -333,7 +419,9 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
     _extracted.clear()
 
     nlp = MATCHER_CONFIG.get_nlp()
-    matcher = MATCHER_CONFIG.get_matcher()
+    descr_matcher = MATCHER_CONFIG.get_descr_matcher()
+    type_matcher = MATCHER_CONFIG.get_type_matcher()
+
     type_match_labels = []
 
     none_and_bool = {"False", "None", "True"}
@@ -344,36 +432,49 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
     type_string = _preprocess_docstring(type_string, True)
     type_doc = nlp.make_doc(type_string)
 
-    matches = matcher(desc_doc)
-    print([nlp.vocab.strings[m[0]] for m in matches])
+    matches = descr_matcher(desc_doc)
+    print("DESCR_MATCHES: ", [(nlp.vocab.strings[m[0]], desc_doc[m[1]:m[2]].text ) for m in matches])
 
-    type_matches = matcher(type_doc)
+    type_matches = type_matcher(type_doc)
     type_matches = _nlp_matches_to_readable_matches(type_matches, nlp, type_doc)
+    if type_matches:
+        print("TYPE_MATCHES: ", type_matches)
 
     if type_matches:
         type_match_labels = [match_label for match_label, _ in type_matches]
 
-        for match_label, match_span in type_matches:
-            if match_label == "ENUM_TYPE_SINGLE_VAL":
-                if "ENUM_SINGLE_VALS" not in type_match_labels and "ENUM_TYPE_CURLY" not in type_match_labels:
-                    substituted_string = re.sub(r"['`]+", '"', match_span.text)
-                    _extracted.append(substituted_string)
+        if "ENUM_BOOL" in type_match_labels:
+            _extracted.append("True")
+            _extracted.append("False")
 
-    print(type_match_labels)
+        for match_label, match_span in type_matches:
+            if match_label == "ENUM_SINGLE_VALS" and "ENUM_TYPE_CURLY" not in type_match_labels:
+                # if "ENUM_SINGLE_VALS" not in type_match_labels and "ENUM_TYPE_CURLY" not in type_match_labels:
+                substituted_string = re.sub(r"['`]+", '"', match_span.text)
+                _extracted.append(substituted_string)
 
     for val in _extracted:
         if val in ["True", "False"] and "ENUM_BOOL" not in type_match_labels:
             _extracted.remove(val)
+        if val[0] == '"' and not val[1:-1].isalpha():
+            for c in val[1:-1]:
+                if c in ["!", "§", "$", "%", "&", "/", "=", "?", "*", "~"]:
+                    _extracted.remove(val)
+                    break
 
     extracted_set = set(_extracted)
 
     is_enum_str = False
     for label, match_span in type_matches:
-        if label == "ENUM_STR" and len(type_doc) > 1 and match_span[0].nbor(-1).text != "of":
-            is_enum_str = True
+        if label == "ENUM_STR":
+            if len(type_doc) == 1:
+                is_enum_str = True
+            elif match_span[0].i > 0 and match_span[0].nbor(-1).text != "of":
+                is_enum_str = True
 
     if is_enum_str and not extracted_set.difference(none_and_bool):
         extracted_set.add("unlistable_str")
+
 
     return extracted_set
 
@@ -381,14 +482,10 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
 MATCHER_CONFIG = MatcherConfiguration()
 
 if __name__ == '__main__':
-
-    # descr = "The default error message is, \"This %(name)s instance is not fitted\nyet. Call 'fit' with appropriate arguments before using this\nestimator.\"\n\nFor custom messages if \"%(name)s\" is present in the message string,\nit is substituted for the estimator name.\n\nEg. : \"Estimator, %(name)s, must be fitted before sparsifying\"."
-    # descr = "Learning rate schedule for weight updates.\n\n- 'constant' is a constant learning rate given by\n  'learning_rate_init'.\n\n- 'invscaling' gradually decreases the learning rate at each\n  time step 't' using an inverse scaling exponent of 'power_t'.\n  effective_learning_rate = learning_rate_init / pow(t, power_t)\n\n- 'adaptive' keeps the learning rate constant to\n  'learning_rate_init' as long as training loss keeps decreasing.\n  Each time two consecutive epochs fail to decrease training loss by at\n  least tol, or fail to increase validation score by at least tol if\n  'early_stopping' is on, the current learning rate is divided by 5.\n\nOnly used when ``solver='sgd'``."
-    # type_ = "{'constant', 'invscaling', 'adaptive'}"
-
-    descr = "If bool, bla bla la."
-    type_ = "bool"
-
-    # print(descr)
+    type_ = "str or bool"
+    descr = "Valid values are [False, None, 'allow-nan']"
     s = extract_valid_literals(descr, type_)
     print(s)
+
+
+    print("\n\n", descr)
