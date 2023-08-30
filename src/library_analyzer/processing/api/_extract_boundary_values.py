@@ -275,7 +275,6 @@ def _check_interval(
     return None
 
 
-
 _matcher.add("BOUNDARY_AT_LEAST", [_boundary_at_least, _boundary_min])
 _matcher.add("BOUNDARY_INTERVAL", [_boundary_interval, _boundary_value_in], on_match=_check_interval)
 _matcher.add("BOUNDARY_POSITIVE", [_boundary_positive], on_match=_check_positive_pattern)
@@ -621,9 +620,6 @@ def _create_type_rel_val_boundary(match_string: Span, type_: str) -> BoundaryTyp
                 case "GEQ$":
                     rel_op = ">="
 
-        # if token.text in [">", "<", "="]:
-        #     rel_op += token.text
-
     # type (< | <=) val
     if rel_op in ["<", "<="]:
         min_ = BoundaryType.NEGATIVE_INFINITY
@@ -663,7 +659,6 @@ def _analyze_matches(matches: list[tuple[str, Span]], boundaries: BoundaryList) 
     other_id = 0
     processed_matches = []
     found_type = False
-    print(matches)
     # Assignment of the found boundaries to the corresponding data type
     for match_label, match_string in matches:
         if match_label == "BOUNDARY_TYPE":
@@ -701,8 +696,9 @@ def _preprocess_docstring(docstring: str) -> str:
     """
     Preprocess docstring to make it easier to parse.
 
-    1. Remove back ticks
-    2. Transform multiple whitespaces to one
+    1. Encode relational operators
+    2. Remove back ticks
+    3. Transform multiple whitespaces to one
 
     Parameters
     ----------
@@ -745,20 +741,19 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
 
     type_string = _preprocess_docstring(type_string)
     type_doc = _nlp(type_string)
+
     type_matches = _matcher(type_doc)
     type_matches = [(_nlp.vocab.strings[match_id], type_doc[start:end]) for match_id, start, end in type_matches]
-    print(type_matches)
 
     description_preprocessed = _preprocess_docstring(description)
     description_doc = _nlp(description_preprocessed)
+
     desc_matches = []
     for sent in description_doc.sents:
 
         d_matches = _matcher(sent)
         d_matches = [(_nlp.vocab.strings[match_id], sent[start:end]) for match_id, start, end in d_matches]
         desc_matches.extend(d_matches)
-
-    # desc_matches = [(_nlp.vocab.strings[match_id], description_doc[start:end]) for match_id, start, end in desc_matches]
 
     if type_matches:
         type_list = []  # Possible numeric data types that may be used with the parameter to be examined.
@@ -797,7 +792,6 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
                     type_text = match_string.text
                     match_label, match_string = desc_matches[1]
 
-
             boundaries.add_boundary(match_label, type_text, match_string)
 
         elif type_length > 1:
@@ -809,16 +803,3 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
                 _analyze_matches(desc_matches, boundaries)
 
     return boundaries.get_boundaries()
-
-if __name__ == '__main__':
-
-    descr = "Minimum number of samples in an OPTICS cluster, expressed as an absolute number or a fraction of the "\
-                "number of samples (rounded to be at least 2). If None, the value of min_samples is used instead. Used "\
-                "only when cluster_method='xi'."
-
-    type_ = "int > 1 or float between 0 and 1"
-
-    b = extract_boundary(descr, type_)
-
-    print(b)
-
