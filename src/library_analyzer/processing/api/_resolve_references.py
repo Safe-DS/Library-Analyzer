@@ -828,7 +828,8 @@ def _get_module_data(code: str) -> ModuleData:
 def _find_call_reference(function_calls: list[tuple[astroid.Call, Scope | ClassScope]],
                          classes: dict[str, ClassScope],
                          scope: Scope,
-                         functions: dict[str, Scope | ClassScope]) -> list[ReferenceNode]:
+                         functions: dict[str, Scope | ClassScope],
+                         parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]) -> list[ReferenceNode]:
 
     references_proto: list[ReferenceNode] = []
     references_final: list[ReferenceNode] = []
@@ -840,6 +841,11 @@ def _find_call_reference(function_calls: list[tuple[astroid.Call, Scope | ClassS
             if call[0].func.name in functions.keys() or call[0].func.name in python_builtins or call[0].func.name in classes.keys():
                 node_id = _calc_node_id(call[1].node)
                 scope_node = get_scope_node_by_node_id_call(node_id, scope)
+            else:  # the call is a variable that is passed to a function as an argument
+                for param in parameters.values():
+                    for name in param[1]:
+                        if call[0].func.name in name.name:
+                            scope_node = param[0]
 
             references_proto.append(ReferenceNode(call[0], scope_node, []))
 
@@ -850,7 +856,7 @@ def _find_call_reference(function_calls: list[tuple[astroid.Call, Scope | ClassS
                 Builtin(reference.scope, NodeID("builtins", func_name, 0, 0),
                         func_name)]))
         elif isinstance(reference.name, astroid.Call):
-            func_def = _get_function_def(reference, functions, classes)
+            func_def = _get_function_def(reference, functions, classes, parameters)
             references_final.append(func_def)
             if func_name in python_builtins:
                 references_final[i].referenced_symbols.append(Builtin(reference.scope, NodeID("builtins", func_name, 0, 0), func_name))
@@ -858,19 +864,28 @@ def _find_call_reference(function_calls: list[tuple[astroid.Call, Scope | ClassS
     return references_final
 
 
-def _get_function_def(reference: ReferenceNode, functions: dict[str, Scope | ClassScope], classes: dict[str, ClassScope]) -> ReferenceNode:
+def _get_function_def(reference: ReferenceNode,
+                      functions: dict[str, Scope | ClassScope],
+                      classes: dict[str, ClassScope],
+                      parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]) -> ReferenceNode:
     if functions:
         for func in functions.values():
             if func.node.name == reference.name.func.name:
                 return ReferenceNode(reference.name, reference.scope, [GlobalVariable(func, func.id, func.node.name)])
             elif isinstance(func.node, astroid.Lambda) and not isinstance(func.node, astroid.FunctionDef) and reference.name.func.name in functions.keys():
-                for key in functions.keys():
-                    if key == reference.name.func.name:
+                for funtion_name in functions.keys():
+                    if funtion_name == reference.name.func.name:
                         return ReferenceNode(reference.name, reference.scope, [GlobalVariable(func, func.id, reference.name.func.name)])
     if classes:
         for klass in classes.values():
             if klass.node.name == reference.name.func.name:
                 return ReferenceNode(reference.name, reference.scope, [GlobalVariable(klass, klass.id, klass.node.name)])
+    if parameters:
+        for funtion_def in parameters.keys():
+            for param in parameters[funtion_def][1]:
+                if param.name == reference.name.func.name:
+                    return ReferenceNode(reference.name, reference.scope, [Parameter(parameters[funtion_def][0], _calc_node_id(param), param.name)])
+
     raise ChildProcessError(f"Function {reference.name.func.name} not found in functions.")
 
 
@@ -897,7 +912,7 @@ def resolve_references(code: str) -> list[ReferenceNode]:
     references_unspecified = _create_unspecified_references(module_data.names_list, module_data.scope,
                                                             module_data.names, module_data.classes, module_data.functions)
 
-    references_call = _find_call_reference(module_data.function_calls, module_data.classes, module_data.scope, module_data.functions)
+    references_call = _find_call_reference(module_data.function_calls, module_data.classes, module_data.scope, module_data.functions, module_data.parameters)
     references_specified.extend(references_call)
 
     for name_node in module_data.names_list:
