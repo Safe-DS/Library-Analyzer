@@ -77,8 +77,6 @@ _enum_single_val_respective = [
 ]
 
 
-
-
 @dataclass
 class MatcherConfiguration:
     _nlp: Language = None
@@ -475,17 +473,7 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
     if is_enum_str and not extracted_set.difference(none_and_bool):
         extracted_set.add("unlistable_str")
 
-
     return extracted_set
 
 
 MATCHER_CONFIG = MatcherConfiguration()
-
-if __name__ == '__main__':
-    type_ = "str or bool"
-    descr = "Valid values are [False, None, 'allow-nan']"
-    s = extract_valid_literals(descr, type_)
-    print(s)
-
-
-    print("\n\n", descr)
