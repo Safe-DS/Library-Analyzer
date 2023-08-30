@@ -386,7 +386,7 @@ class ScopeFinder:
 
     def enter_name(self,
                    node: astroid.Name) -> None:
-        if isinstance(node.parent, astroid.Decorators):
+        if isinstance(node.parent, astroid.Decorators) or isinstance(node.parent.parent, astroid.Decorators):
             return
         self.name_nodes[node] = self.current_node_stack[-1]  # TODO: this could be more efficient if unnecessary nodes are not added to the dict
 
@@ -407,7 +407,10 @@ class ScopeFinder:
             | astroid.Keyword
             | astroid.Expr
             | astroid.Comprehension
+            | astroid.Attribute
         ):
+            if node.name == "self":
+                return
             self.names_list.append(node)
         if (
             isinstance(node.parent, astroid.Call)
@@ -663,7 +666,8 @@ def _create_unspecified_references(all_names_list: list[astroid.Name | astroid.A
     return references_final
 
 
-def _add_target_references(reference: ReferenceNode, reference_list: list[ReferenceNode],
+def _add_target_references(reference: ReferenceNode,
+                           reference_list: list[ReferenceNode],
                            classes: dict[str, ClassScope],
                            functions: dict[str, Scope | ClassScope]) -> ReferenceNode:
     """Add all target references to a reference.

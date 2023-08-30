@@ -727,8 +727,10 @@ class A:
     class_attr1 = 20
 
 A.class_attr1
+A
             """,  # language=none
-            [ReferenceTestNode("A.class_attr1.line5", "Module.", ["ClassVariable.A.class_attr1.line3"])]
+            [ReferenceTestNode("A.class_attr1.line5", "Module.", ["ClassVariable.A.class_attr1.line3"]),
+             ReferenceTestNode("A.line5", "Module.", ["GlobalVariable.A.line2"])],
         ),
         (  # language=Python "class attribute target"
             """
@@ -739,7 +741,8 @@ A.class_attr1 = 30
 A.class_attr1
             """,  # language=none
             [ReferenceTestNode("A.class_attr1.line6", "Module.", ["ClassVariable.A.class_attr1.line5",
-                                                                  "ClassVariable.A.class_attr1.line3"])]
+                                                                  "ClassVariable.A.class_attr1.line3"]),
+             ReferenceTestNode("A.line6", "Module.", ["GlobalVariable.A.line2"])],
         ),
         (  # language=Python "chained class attribute"
             """
@@ -767,8 +770,8 @@ b = B()
 var1 = b.instance_attr1
             """,  # language=none
             [ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"]),
-             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
-             ReferenceTestNode("b.instance_attr1.line7", "Module.", ["InstanceVariable.b.instance_attr1.line4"])]
+             ReferenceTestNode("b.instance_attr1.line7", "Module.", ["InstanceVariable.b.instance_attr1.line4"]),
+             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"])]
         ),
         (  # language=Python "instance attribute target"
             """
@@ -781,10 +784,9 @@ b.instance_attr1 = 1
 b.instance_attr1
             """,  # language=none
             [ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"]),
-             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
              ReferenceTestNode("b.instance_attr1.line8", "Module.", ["ClassVariable.b.instance_attr1.line7",
-                                                                     "InstanceVariable.b.instance_attr1.line4"])
-             ]
+                                                                     "InstanceVariable.b.instance_attr1.line4"],),
+             ReferenceTestNode("b.line8", "Module.", ["GlobalVariable.b.line6"])]
         ),
         (  # language=Python "instance attribute with parameter"
             """
@@ -797,8 +799,8 @@ b.name
             """,  # language=none
             [ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"]),
              ReferenceTestNode("name.line4", "FunctionDef.__init__", ["Parameter.name.line3"]),
-             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
-             ReferenceTestNode("b.name.line7", "Module.", ["InstanceVariable.b.name.line4"])]
+             ReferenceTestNode("b.name.line7", "Module.", ["InstanceVariable.b.name.line4"]),
+             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"])]
         ),
         (  # language=Python "instance attribute with parameter and class attribute"
             """
@@ -814,10 +816,10 @@ x.class_attr
             """,  # language=none
             [ReferenceTestNode("X.line8", "Module.", ["GlobalVariable.X.line2"]),
              ReferenceTestNode("name.line6", "FunctionDef.__init__", ["Parameter.name.line5"]),
-             ReferenceTestNode("x.line9", "Module.", ["GlobalVariable.x.line8"]),
              ReferenceTestNode("x.name.line9", "Module.", ["InstanceVariable.x.name.line6"]),
-             ReferenceTestNode("x.line10", "Module.", ["GlobalVariable.x.line8"]),
-             ReferenceTestNode("x.class_attr.line10", "Module.", ["ClassVariable.X.class_attr.line3"])]
+             ReferenceTestNode("x.line9", "Module.", ["GlobalVariable.x.line8"]),
+             ReferenceTestNode("x.class_attr.line10", "Module.", ["ClassVariable.X.class_attr.line3"]),
+             ReferenceTestNode("x.line10", "Module.", ["GlobalVariable.x.line8"])]
         ),
         (  # language=Python "chained class attribute and instance attribute"
             """
@@ -833,7 +835,7 @@ x = b.upper_class.name
             """,  # language=none
             [ReferenceTestNode("A.line7", "ClassDef.B", ["GlobalVariable.A.line2"]),
              ReferenceTestNode("B.line9", "Module.", ["GlobalVariable.B.line6"]),
-             ReferenceTestNode("b.upper_class.name.line10", "Module.", ["InstanceVariable.upper_class.name.line4"]),
+             ReferenceTestNode("b.upper_class.name.line10", "Module.", ["InstanceVariable.A.name.line4"]),  # TODO:
              ReferenceTestNode("b.upper_class.line10", "Module.", ["ClassVariable.B.upper_class.line7"]),
              ReferenceTestNode("b.line10", "Module.", ["GlobalVariable.b.line9"])
              ]
@@ -882,10 +884,12 @@ b.name
              ReferenceTestNode("B.line11", "Module.", ["GlobalVariable.B.line6"]),
              ReferenceTestNode("name.line4", "FunctionDef.__init__", ["Parameter.name.line3"]),
              ReferenceTestNode("name.line8", "FunctionDef.__init__", ["Parameter.name.line7"]),
-             ReferenceTestNode("a.name.line12", "Module.", ["InstanceVariable.a.name.line4",  # class A
-                                                            "InstanceVariable.b.name.line8"]),  # class B
-             ReferenceTestNode("b.name.line13", "Module.", ["InstanceVariable.a.name.line4",  # class A
-                                                            "InstanceVariable.b.name.line8"])]  # class B
+             ReferenceTestNode("a.name.line12", "Module.", ["InstanceVariable.A.name.line4",  # class A
+                                                            "InstanceVariable.B.name.line8"]),  # class B
+             ReferenceTestNode("a.line12", "Module.", ["GlobalVariable.a.line10"]),
+             ReferenceTestNode("b.name.line13", "Module.", ["InstanceVariable.A.name.line4",  # class A
+                                                            "InstanceVariable.B.name.line8"]),
+             ReferenceTestNode("b.line13", "Module.", ["GlobalVariable.b.line11"])]  # class B
         ),
         (  # language=Python "getter function with self"
             """
@@ -913,16 +917,18 @@ class C:
     state: int = 0
 
     def set_state(self, state):
-        self.state = state
+        self.state = state  # TODO: Problem: the parameter "state" has the same name as the class variable "state"
             """,  # language= None
-            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5"])]
+            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5"]),
+             ReferenceTestNode("self.line6", "FunctionDef.set_state", ["Parameter.self.line5"]),
+             ReferenceTestNode("self.state.line6", "FunctionDef.set_state", ["ClassVariable.C.state.line3"])]
         ),  # TODO: what do we do with self.state?
         (  # language=Python "setter function with self different name"
             """
 class C:
     stateX: int = 0
 
-    def set_state(self, state):
+    def set_state(self, state):  # TODO: find the name of the first parameter
         self.stateX = state
             """,  # language= None
             [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5"])]
@@ -937,6 +943,30 @@ class C:
             """,  # language= None
             [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5"])]
         ),  # TODO: what do we do with C.stateX?
+        (  # language=Python "setter function as @staticmethod"
+            """
+class C:
+    state: int = 0
+
+    @staticmethod
+    def set_state(self, state):
+        self.state = state  # TODO: Problem: the parameter "state" has the same name as the class variable "state"
+            """,  # language= None
+            []
+        ),
+        (  # language=Python "setter function as @classmethod"
+            """
+class C:
+    state: int = 0
+
+    @classmethod
+    def set_state(cls, state):
+        cls.state = state  # TODO: Problem: the parameter "state" has the same name as the class variable "state"
+            """,  # language= None
+            []
+        ),
+        # TODO: is_instance_methode: check if decorator
+        #       if not check first parameter (usually self)
         (  # language=Python "if statement global scope"
             """
 var1 = 10
@@ -1294,7 +1324,7 @@ def fun2():
     return "Function 2"
 
 def call_function(f):
-    return f()  # TODO: Problem: f is never defined
+    return f()  # TODO: Problem: f is a parameter (and a function call)
 
 call_function(fun1)
 call_function(fun2)
@@ -1578,6 +1608,8 @@ State(10).state
         "setter function with self",
         "setter function with self different name",
         "setter function with classname different name",
+        "setter function as @staticmethod",
+        "setter function as @classmethod",
         "if statement global scope",
         "if else statement global scope",
         "if elif else statement global scope",
@@ -1728,7 +1760,6 @@ def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
                                  scope=f"{node.scope.node.__class__.__name__}.{node.scope.node.name}",
                                  referenced_symbols=[str(ref) for ref in node.referenced_symbols])
     if isinstance(node.scope.node, astroid.Lambda) and not isinstance(node.scope.node, astroid.FunctionDef):
-        # TODO: potential astroid bug: isinstance(node.scope.node, astroid.Lambda) is True for astroid.FunctionDef instances
         if isinstance(node.name, astroid.Call):
             return ReferenceTestNode(name=f"{node.name.func.name}.line{node.name.func.lineno}",
                                      scope=f"{node.scope.node.__class__.__name__}",
