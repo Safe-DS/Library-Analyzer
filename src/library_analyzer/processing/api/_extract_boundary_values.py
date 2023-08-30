@@ -56,7 +56,9 @@ class BoundaryList:
             case "BOUNDARY_TYPE_REL_VAL":
                 self._boundaries.add(_create_type_rel_val_boundary(match_string, type_))
             case "BOUNDARY_INTERVAL_IN_BRACKETS":
-                self._boundaries.add(_create_interval_in_brackets_boundary(match_string, type_))
+                boundary = _create_interval_in_brackets_boundary(match_string, type_)
+                if boundary is not None:
+                    self._boundaries.add(boundary)
 
     def get_boundaries(self) -> set[BoundaryType]:
         return self._boundaries
@@ -67,7 +69,27 @@ type_funcs = {"float": float, "int": int}
 _nlp = load_language("en_core_web_sm")
 _matcher = Matcher(_nlp.vocab)
 
-_geq_leq_op = [{"ORTH": {"IN": ["<", ">"]}}, {"ORTH": "="}]
+_rel_ops = {"ORTH": {"IN": ["GT$", "LT$", "GEQ$", "LEQ$"]}}
+
+_boundary_type = {"LOWER": {"IN": ["float", "int"]}}
+
+_boundary_type_rel_val = [_boundary_type, _rel_ops, {"LIKE_NUM": True}]
+
+_boundary_rel_interval = [
+    {"LIKE_NUM": True},
+    _rel_ops,
+    {},
+    _rel_ops,
+    {"LIKE_NUM": True}
+]
+
+_boundary_and_rel_interval = [
+    _rel_ops,
+    {"LIKE_NUM": True},
+    {"ORTH": {"IN": ["and", "or"]}},
+    _rel_ops,
+    {"LIKE_NUM": True}
+]
 
 _boundary_at_least = [{"LOWER": "at"}, {"LOWER": "least"}, {"LIKE_NUM": True}]
 
@@ -121,62 +143,8 @@ _boundary_between = [
     {"LIKE_NUM": True}
 ]
 
-
-_boundary_gtlt_gtlt = [
-    {"LIKE_NUM": True},
-    {"ORTH": {"IN": ["<", ">"]}},
-    {},
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"LIKE_NUM": True},
-]
-
-
-_boundary_geqleq_geqleq = [{"LIKE_NUM": True}, *_geq_leq_op, {}, *_geq_leq_op, {"LIKE_NUM": True}]
-
-_boundary_gtlt_geqleq = [{"LIKE_NUM": True}, {"ORTH": {"IN": ["<", ">"]}}, {}, *_geq_leq_op, {"LIKE_NUM": True}]
-
-_boundary_geqleq_gtlt = [{"LIKE_NUM": True}, *_geq_leq_op, {}, {"ORTH": {"IN": ["<", ">"]}}, {"LIKE_NUM": True}]
-
-_boundary_and_gtlt_gtlt = [
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"LIKE_NUM": True},
-    {"ORTH": {"IN": ["and", "or"]}},
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"LIKE_NUM": True},
-]
-
-_boundary_and_geqleq_geqleq = [
-    *_geq_leq_op,
-    {"LIKE_NUM": True},
-    {"ORTH": {"IN": ["and", "or"]}},
-    *_geq_leq_op,
-    {"LIKE_NUM": True},
-]
-
-_boundary_and_gtlt_geqleq = [
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"LIKE_NUM": True},
-    {"ORTH": {"IN": ["and", "or"]}},
-    *_geq_leq_op,
-    {"LIKE_NUM": True},
-]
-
-_boundary_and_geqleq_gtlt = [
-    *_geq_leq_op,
-    {"LIKE_NUM": True},
-    {"ORTH": {"IN": ["and", "or"]}},
-    {"ORTH": {"IN": ["<", ">"]}},
-    {"LIKE_NUM": True},
-]
-
-_boundary_type = [{"LOWER": {"IN": ["float", "int"]}}]
-
-_boundary_type_gtlt_val = [*_boundary_type, {"ORTH": {"IN": ["<", ">"]}}, {"LIKE_NUM": True}]
-
-_boundary_type_geqleq_val = [*_boundary_type, *_geq_leq_op, {"LIKE_NUM": True}]
-
 _boundary_interval_in_brackets = [
-    *_boundary_type,
+    _boundary_type,
     {"ORTH": "("},
     {"ORTH": {"IN": ["(", "["]}},
     {},
@@ -307,16 +275,6 @@ def _check_interval(
     return None
 
 
-relational_patterns = [
-    _boundary_gtlt_gtlt,
-    _boundary_geqleq_geqleq,
-    _boundary_geqleq_gtlt,
-    _boundary_gtlt_geqleq,
-    _boundary_and_gtlt_gtlt,
-    _boundary_and_geqleq_geqleq,
-    _boundary_and_geqleq_gtlt,
-    _boundary_and_gtlt_geqleq,
-]
 
 _matcher.add("BOUNDARY_AT_LEAST", [_boundary_at_least, _boundary_min])
 _matcher.add("BOUNDARY_INTERVAL", [_boundary_interval, _boundary_value_in], on_match=_check_interval)
@@ -325,9 +283,9 @@ _matcher.add("BOUNDARY_NON_NEGATIVE", [_boundary_non_negative])
 _matcher.add("BOUNDARY_NEGATIVE", [_boundary_negative], on_match=_check_negative_pattern)
 _matcher.add("BOUNDARY_NON_POSITIVE", [_boundary_non_positive])
 _matcher.add("BOUNDARY_BETWEEN", [_boundary_between], greedy="LONGEST")
-_matcher.add("BOUNDARY_INTERVAL_RELATIONAL", relational_patterns, on_match=_check_interval_relational_pattern)
-_matcher.add("BOUNDARY_TYPE", [_boundary_type])
-_matcher.add("BOUNDARY_TYPE_REL_VAL", [_boundary_type_gtlt_val, _boundary_type_geqleq_val])
+_matcher.add("BOUNDARY_INTERVAL_RELATIONAL", [_boundary_rel_interval, _boundary_and_rel_interval], on_match=_check_interval_relational_pattern)
+_matcher.add("BOUNDARY_TYPE", [[_boundary_type]])
+_matcher.add("BOUNDARY_TYPE_REL_VAL", [_boundary_type_rel_val])
 _matcher.add("BOUNDARY_INTERVAL_IN_BRACKETS", [_boundary_interval_in_brackets])
 
 
@@ -514,7 +472,7 @@ def _create_at_least_boundary(match_string: Span, type_: str) -> BoundaryType:
     return BoundaryType(type_, min=value, max=BoundaryType.INFINITY, min_inclusive=True, max_inclusive=False)
 
 
-def _create_interval_boundary(match_string: Span, type_: str) -> BoundaryType:
+def _create_interval_boundary(match_string: Span, type_: str) -> BoundaryType | None:
     """Create a BoundaryType with individual extrema.
 
     Create a BoundaryType whose extrema are extracted from the passed match string.
@@ -591,14 +549,22 @@ def _create_interval_relational_boundary(match_string: Span, type_: str) -> Boun
     and_or_found = False
 
     for token in match_string:
-        if token.text in ["<", ">"]:
-            relational_ops.append(token.text)
-        elif token.text == "=":
-            relational_ops[len(relational_ops) - 1] += token.text
-        elif token.like_num:
+
+        if token.like_num:
             values.append(token.text)
-        elif token.text in ["and", "or"]:
-            and_or_found = True
+        else:
+            match token.text:
+                case "LT$":
+                    relational_ops.append("<")
+                case "GT$":
+                    relational_ops.append(">")
+                case "LEQ$":
+                    relational_ops.append("<=")
+                case "GEQ$":
+                    relational_ops.append(">=")
+                case "and" | "or":
+                    and_or_found = True
+
     type_func = type_funcs[type_]
 
     minimum = type_func(min(values))
@@ -641,10 +607,22 @@ def _create_type_rel_val_boundary(match_string: Span, type_: str) -> BoundaryTyp
     max_incl = False
 
     for token in match_string:
+
         if token.like_num:
             val = type_func(token.text)
-        if token.text in [">", "<", "="]:
-            rel_op += token.text
+        else:
+            match token.text:
+                case "LT$":
+                    rel_op = "<"
+                case "GT$":
+                    rel_op = ">"
+                case "LEQ$":
+                    rel_op = "<="
+                case "GEQ$":
+                    rel_op = ">="
+
+        # if token.text in [">", "<", "="]:
+        #     rel_op += token.text
 
     # type (< | <=) val
     if rel_op in ["<", "<="]:
@@ -685,7 +663,7 @@ def _analyze_matches(matches: list[tuple[str, Span]], boundaries: BoundaryList) 
     other_id = 0
     processed_matches = []
     found_type = False
-
+    print(matches)
     # Assignment of the found boundaries to the corresponding data type
     for match_label, match_string in matches:
         if match_label == "BOUNDARY_TYPE":
@@ -736,6 +714,11 @@ def _preprocess_docstring(docstring: str) -> str:
         str
             The processed docstring.
     """
+    docstring = re.sub(r">=", "GEQ$", docstring)
+    docstring = re.sub(r"<=", "LEQ$", docstring)
+    docstring = re.sub(r"<", "LT$", docstring)
+    docstring = re.sub(r">", "GT$", docstring)
+
     docstring = re.sub(r"`", "", docstring)
     return re.sub(r"\s+", " ", docstring)
 
@@ -760,15 +743,22 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
     """
     boundaries = BoundaryList()
 
+    type_string = _preprocess_docstring(type_string)
     type_doc = _nlp(type_string)
     type_matches = _matcher(type_doc)
     type_matches = [(_nlp.vocab.strings[match_id], type_doc[start:end]) for match_id, start, end in type_matches]
+    print(type_matches)
 
     description_preprocessed = _preprocess_docstring(description)
     description_doc = _nlp(description_preprocessed)
+    desc_matches = []
+    for sent in description_doc.sents:
 
-    desc_matches = _matcher(description_doc)
-    desc_matches = [(_nlp.vocab.strings[match_id], description_doc[start:end]) for match_id, start, end in desc_matches]
+        d_matches = _matcher(sent)
+        d_matches = [(_nlp.vocab.strings[match_id], sent[start:end]) for match_id, start, end in d_matches]
+        desc_matches.extend(d_matches)
+
+    # desc_matches = [(_nlp.vocab.strings[match_id], description_doc[start:end]) for match_id, start, end in desc_matches]
 
     if type_matches:
         type_list = []  # Possible numeric data types that may be used with the parameter to be examined.
@@ -819,3 +809,16 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
                 _analyze_matches(desc_matches, boundaries)
 
     return boundaries.get_boundaries()
+
+if __name__ == '__main__':
+
+    descr = "Minimum number of samples in an OPTICS cluster, expressed as an absolute number or a fraction of the "\
+                "number of samples (rounded to be at least 2). If None, the value of min_samples is used instead. Used "\
+                "only when cluster_method='xi'."
+
+    type_ = "int > 1 or float between 0 and 1"
+
+    b = extract_boundary(descr, type_)
+
+    print(b)
+
