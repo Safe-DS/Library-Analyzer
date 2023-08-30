@@ -567,14 +567,6 @@ class ReferenceTestNode:
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        (  # language=Python "local variable in function scope"
-            """
-def local_var():
-    var1 = 1
-    return var1
-            """,  # language= None
-            [ReferenceTestNode("var1.line4", "FunctionDef.local_var", ["LocalVariable.var1.line3"])]
-        ),
         (  # language=Python "parameter in function scope"
             """
 def local_parameter(pos_arg):
@@ -638,6 +630,40 @@ def local_double_parameter(a, b):
             """,  # language= None
             [ReferenceTestNode("a.line3", "FunctionDef.local_double_parameter", ["Parameter.a.line2"]),
              ReferenceTestNode("b.line3", "FunctionDef.local_double_parameter", ["Parameter.b.line2"])]
+        )
+    ],ids=[
+        "local variable in function scope",
+        "parameter in function scope",
+        "parameter in function scope with keyword only",
+        "parameter in function scope with positional only",
+        "parameter in function scope with default value",
+        "parameter in function scope with type annotation",
+        "parameter in function scope with *args",
+        "parameter in function scope with **kwargs",
+        "parameter in function scope with *args and **kwargs"
+    ]
+)
+def test_resolve_references_parameters(code: str, expected: list[ReferenceTestNode]) -> None:
+    references = resolve_references(code)
+    transformed_references: list[ReferenceTestNode] = []
+
+    for node in references:
+        transformed_references.append(transform_reference_node(node))
+
+    # assert references == expected
+    assert transformed_references == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "local variable in function scope"
+        """
+def local_var():
+    var1 = 1
+    return var1
+        """,  # language= None
+        [ReferenceTestNode("var1.line4", "FunctionDef.local_var", ["LocalVariable.var1.line3"])]
         ),
         (  # language=Python "global variable in module scope"
             """
@@ -721,6 +747,90 @@ class A:
             [ReferenceTestNode("glob1.line6", "ClassDef.A", ["GlobalVariable.glob1.line2"]),
              ReferenceTestNode("glob2.line6", "ClassDef.A", ["GlobalVariable.glob2.line3"])]
         ),
+        (  # language=Python new global variable in class scope
+            """
+class A:
+    global glob1
+    glob1 = 10
+    glob1
+            """,  # language= None
+            [ReferenceTestNode("glob1.line5", "ClassDef.A", ["ClassVariable.glob1.line4"])]
+            # glob1 is not detected as a global variable since it is defined in the class scope - this is intended
+        ),
+        (  # language=Python new global variable in function scope
+            """
+def local_global():
+    global glob1
+
+    return glob1
+            """,  # language= None
+            [ReferenceTestNode("glob1.line5", "FunctionDef.local_global", [])]
+            # glob1 is not detected as a global variable since it is defined in the function scope - this is intended
+        ),
+(  # language=Python
+            """
+class A:
+    global glob1
+    value = glob1
+
+a = A().value
+glob1 = 10
+b = A().value
+a, b
+            """,  # language= None
+            [ReferenceTestNode("A.line6", "Module.", ["GlobalVariable.A.line2"]),
+             ReferenceTestNode("A.line8", "Module.", ["GlobalVariable.A.line2"]),
+             ReferenceTestNode("glob1.line4", "ClassDef.A", ["GlobalVariable.glob1.line7"]),
+             ReferenceTestNode("A.value.line6", "Module.", ["ClassVariable.A.value.line4"]),
+             ReferenceTestNode("A.value.line8", "Module.", ["ClassVariable.A.value.line4"]),
+             ReferenceTestNode("a.line9", "Module.", ["GlobalVariable.a.line6"]),
+             ReferenceTestNode("b.line9", "Module.", ["GlobalVariable.b.line8"])]
+        ),
+        (  # language=Python
+            """
+def local_global():
+    global glob1
+    return glob1
+
+lg = local_global()
+glob1 = 10
+            """,  # language= None
+            [ReferenceTestNode("local_global.line6", "Module.", ["GlobalVariable.local_global.line2"]),
+             ReferenceTestNode("glob1.line4", "FunctionDef.local_global", ["GlobalVariable.glob1.line7"])]
+        )  # Problem: we can not check weather a function is called before the global variable is declared since
+        # this would need a context-sensitive approach
+        # For now we just check if the global variable is declared in the module scope at the cost of loosing precision.
+    ],
+    ids=[
+        "local variable in function scope",
+        "global variable in module scope",
+        "global variable in class scope",
+        "global variable in function scope",
+        "global variable in function scope but after definition",
+        "global variable in class scope and function scope",
+        "access of global variable without global keyword",
+        "local variable in function scope shadowing global variable without global keyword",
+        "two globals in class scope",
+        "new global variable in class scope",
+        "new global variable in function scope",
+        "new global variable in class scope with outer scope usage",
+        "new global variable in function scope with outer scope usage",
+    ]
+)
+def test_resolve_references_local_global(code: str, expected: list[ReferenceTestNode]) -> None:
+    references = resolve_references(code)
+    transformed_references: list[ReferenceTestNode] = []
+
+    for node in references:
+        transformed_references.append(transform_reference_node(node))
+
+    # assert references == expected
+    assert transformed_references == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
         (  # language=Python "class attribute value"
             """
 class A:
@@ -967,6 +1077,50 @@ class C:
         ),
         # TODO: is_instance_methode: check if decorator
         #       if not check first parameter (usually self)
+    ],
+    ids=[
+        "class attribute value",
+        "class attribute target",
+        "chained class attribute",
+        "instance attribute value",
+        "instance attribute target",
+        "instance attribute with parameter",
+        "instance attribute with parameter and class attribute",
+        "chained class attribute and instance attribute",
+        "chained instance attributes",
+        "two classes with same signature",
+        "getter function with self",
+        "getter function with classname",
+        "setter function with self",
+        "setter function with self different name",
+        "setter function with classname different name",
+        "setter function as @staticmethod",
+        "setter function as @classmethod",
+    ]
+)
+def test_resolve_references_member_access(code: str, expected: list[ReferenceTestNode]) -> None:
+    references = resolve_references(code)
+    transformed_references: list[ReferenceTestNode] = []
+
+    for node in references:
+        transformed_references.append(transform_reference_node(node))
+
+    # assert references == expected
+    assert transformed_references == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "if in statement global scope"
+            """
+var1 = [1, 2, 3]
+if 1 in var1:
+    var1
+        """,  # language=none
+            [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var1.line4", "Module.", ["GlobalVariable.var1.line2"])]
+        ),
         (  # language=Python "if statement global scope"
             """
 var1 = 10
@@ -1004,65 +1158,6 @@ else:
              ReferenceTestNode("var1.line6", "Module.", ["GlobalVariable.var1.line2"]),
              ReferenceTestNode("var1.line8", "Module.", ["GlobalVariable.var1.line2"])]
         ),
-        (  # language=Python "if in statement global scope"
-            """
-var1 = [1, 2, 3]
-if 1 in var1:
-    var1
-        """,  # language=none
-            [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
-             ReferenceTestNode("var1.line4", "Module.", ["GlobalVariable.var1.line2"])]
-        ),
-        (  # language=Python "for loop with global runtime variable global scope"
-            """
-var1 = 10
-for i in range(var1):
-    i
-        """,  # language=none
-            [ReferenceTestNode("range.line3", "Module.", ["Builtin.range"]),
-             ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
-             ReferenceTestNode("i.line4", "Module.", ["GlobalVariable.i.line3"])]
-        ),
-        (  # language=Python "for loop wih local runtime variable local scope"
-            """
-var1 = 10
-def func1():
-    for i in range(var1):
-        i
-        """,  # language=none
-            [ReferenceTestNode("range.line4", "FunctionDef.func1", ["Builtin.range"]),
-             ReferenceTestNode("var1.line4", "FunctionDef.func1", ["GlobalVariable.var1.line2"]),
-             ReferenceTestNode("i.line5", "FunctionDef.func1", ["LocalVariable.i.line4"])]
-        ),
-        (  # language=Python "for loop with local runtime variable global scope"
-            """
-nums = ["one", "two", "three"]
-for num in nums:
-    num
-        """,  # language=none
-            [ReferenceTestNode("nums.line3", "Module.", ["GlobalVariable.nums.line2"]),
-             ReferenceTestNode("num.line4", "Module.", ["GlobalVariable.num.line3"])]
-        ),
-        (  # language=Python "for loop in list comprehension global scope"
-            """
-nums = ["one", "two", "three"]
-lengths = [len(num) for num in nums]  # TODO: list comprehension should get its own scope (LATER: for further improvement)
-lengths
-        """,  # language=none
-            [ReferenceTestNode("len.line3", "Module.", ["Builtin.len"]),
-             ReferenceTestNode("num.line3", "List.", ["LocalVariable.num.line3"]),
-             ReferenceTestNode("nums.line3", "Module.", ["GlobalVariable.nums.line2"]),
-             ReferenceTestNode("lengths.line4", "Module.", ["GlobalVariable.lengths.line3"])]
-        ),
-        (  # language=Python "while loop global scope"
-            """
-var1 = 10
-while var1 > 0:
-    var1
-        """,  # language=none
-            [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
-             ReferenceTestNode("var1.line4", "Module.", ["GlobalVariable.var1.line2"])]
-        ),
         (  # language=Python "match statement global scope"
             """
 var1 = 10
@@ -1093,6 +1188,104 @@ except ZeroDivisionError as zde:   # TODO: zde is not detected as a global varia
              ReferenceTestNode("result.line6", "Module.", ["GlobalVariable.result.line5"]),
              ReferenceTestNode("zde.line8", "Module.", ["GlobalVariable.zde.line7"])]
         ),
+    ],
+    ids=[
+        "if statement global scope",
+        "if else statement global scope",
+        "if elif else statement global scope",
+        "if in statement global scope",
+        "match statement global scope",
+        "try except statement global scope",
+    ]
+)
+def test_resolve_references_conditional_statements(code: str, expected: list[ReferenceTestNode]) -> None:
+    references = resolve_references(code)
+    transformed_references: list[ReferenceTestNode] = []
+
+    for node in references:
+        transformed_references.append(transform_reference_node(node))
+
+    # assert references == expected
+    assert transformed_references == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "for loop with global runtime variable global scope"
+            """
+var1 = 10
+for i in range(var1):
+    i
+        """,  # language=none
+            [ReferenceTestNode("range.line3", "Module.", ["Builtin.range"]),
+             ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("i.line4", "Module.", ["GlobalVariable.i.line3"])]
+        ),
+        (  # language=Python "for loop wih local runtime variable local scope"
+            """
+var1 = 10
+def func1():
+    for i in range(var1):
+        i
+        """,  # language=none
+            [ReferenceTestNode("range.line4", "FunctionDef.func1", ["Builtin.range"]),
+             ReferenceTestNode("var1.line4", "FunctionDef.func1", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("i.line5", "FunctionDef.func1", ["LocalVariable.i.line4"])]
+        ),
+
+        (  # language=Python "for loop with local runtime variable global scope"
+            """
+nums = ["one", "two", "three"]
+for num in nums:
+    num
+        """,  # language=none
+            [ReferenceTestNode("nums.line3", "Module.", ["GlobalVariable.nums.line2"]),
+             ReferenceTestNode("num.line4", "Module.", ["GlobalVariable.num.line3"])]
+        ),
+        (  # language=Python "for loop in list comprehension global scope"
+            """
+nums = ["one", "two", "three"]
+lengths = [len(num) for num in nums]  # TODO: list comprehension should get its own scope (LATER: for further improvement)
+lengths
+        """,  # language=none
+            [ReferenceTestNode("len.line3", "Module.", ["Builtin.len"]),
+             ReferenceTestNode("num.line3", "List.", ["LocalVariable.num.line3"]),
+             ReferenceTestNode("nums.line3", "Module.", ["GlobalVariable.nums.line2"]),
+             ReferenceTestNode("lengths.line4", "Module.", ["GlobalVariable.lengths.line3"])]
+        ),
+        (  # language=Python "while loop global scope"
+            """
+var1 = 10
+while var1 > 0:
+    var1
+        """,  # language=none
+            [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var1.line4", "Module.", ["GlobalVariable.var1.line2"])]
+        ),
+    ],
+    ids=[
+        "for loop with global runtime variable global scope",
+        "for loop wih local runtime variable local scope",
+        "for loop with local runtime variable global scope",
+        "for loop in list comprehension global scope",
+        "while loop global scope",
+    ]
+)
+def test_resolve_references_loops(code: str, expected: list[ReferenceTestNode]) -> None:
+    references = resolve_references(code)
+    transformed_references: list[ReferenceTestNode] = []
+
+    for node in references:
+        transformed_references.append(transform_reference_node(node))
+
+    # assert references == expected
+    assert transformed_references == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
         (  # language=Python "array and indexed array global scope"
             """
 arr = [1, 2, 3]
@@ -1228,6 +1421,50 @@ c
              ReferenceTestNode("b.line4", "Module.", ["GlobalVariable.b.line3"]),
              ReferenceTestNode("c.line5", "Module.", ["GlobalVariable.c.line4"])]
         ),
+#         (  # language=Python "regex"
+#             """
+# import re
+#
+# regex = re.compile(r"^\s*#")
+# string = "    # comment"
+#
+# if regex.match(string) is None:
+#     print(string, end="")
+#             """,  # language=none
+#             []
+#         ),
+    ],
+    ids=[
+        "array and indexed array global scope",
+        "dictionary global scope",
+        "map function global scope",
+        "two variables",
+        "double return",
+        "reassignment",
+        "vars with comma",
+        "vars with extended iterable unpacking",
+        "f-string",
+        "multiple references in one line",
+        "walrus operator",
+        "variable swap",
+        "aliases",
+        # "regex"
+    ]
+)
+def test_resolve_references_miscellaneous(code: str, expected: list[ReferenceTestNode]) -> None:
+    references = resolve_references(code)
+    transformed_references: list[ReferenceTestNode] = []
+
+    for node in references:
+        transformed_references.append(transform_reference_node(node))
+
+    # assert references == expected
+    assert transformed_references == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
         (  # language=Python "builtin function call"
             """
 print("Hello, World!")
@@ -1433,6 +1670,41 @@ for value in gen:
              ReferenceTestNode("gen.line7", "Module.", ["GlobalVariable.gen.line6"]),
              ReferenceTestNode("value.line8", "Module.", ["GlobalVariable.value.line7"])]
         ),
+    ],
+    ids=[
+        "builtin function call",
+        "function call shadowing builtin function",
+        "function call",
+        "function call with parameter",
+        "function call with keyword parameter",
+        "function call as value",
+        "nested function call",
+        "two functions",
+        "functon with function as parameter",
+        "function with conditional branching",
+        "recursive function call",
+        "class instantiation",
+        "lambda function",
+        "lambda function call",
+        "lambda function used as normal function",
+        "lambda function as key",
+        "generator function",
+    ]
+)
+def test_resolve_references_calls(code: str, expected: list[ReferenceTestNode]) -> None:
+    references = resolve_references(code)
+    transformed_references: list[ReferenceTestNode] = []
+
+    for node in references:
+        transformed_references.append(transform_reference_node(node))
+
+    # assert references == expected
+    assert transformed_references == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
         (  # language=Python "import"
             """
 import math
@@ -1500,6 +1772,32 @@ s(4)
             """,  # language=none
             [""]  # TODO
         ),
+    ],
+    ids=[
+        "import",
+        "import with use",
+        "import multiple",
+        "import as",
+        "import from",
+        "import from multiple",
+        "import from as",
+        "import from as multiple",
+    ]
+)
+def test_resolve_references_imports(code: str, expected: list[ReferenceTestNode]) -> None:
+    references = resolve_references(code)
+    transformed_references: list[ReferenceTestNode] = []
+
+    for node in references:
+        transformed_references.append(transform_reference_node(node))
+
+    # assert references == expected
+    assert transformed_references == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
         (  # language=Python "dataclass"
             """
 from dataclasses import dataclass
@@ -1561,104 +1859,8 @@ State(10).state
              ReferenceTestNode("value.line14", "FunctionDef.state", ["Parameter.value.line13"]),
              ReferenceTestNode("State.state.line16", "Module.", ["ClassVariable.State._state.line6"])]
         ),
-#         (  # language=Python "regex global scope"
-#             """
-# import re
-#
-# regex = re.compile(r"^\s*#")
-# string = "    # comment"
-#
-# if regex.match(string) is None:
-#     print(string, end="")
-#             """,  # language=none
-#             []
-#         ),
     ],
     ids=[
-        "local variable in function scope",
-        "parameter in function scope",
-        "parameter in function scope with keyword only",
-        "parameter in function scope with positional only",
-        "parameter in function scope with default value",
-        "parameter in function scope with type annotation",
-        "parameter in function scope with *args",
-        "parameter in function scope with **kwargs",
-        "parameter in function scope with *args and **kwargs",
-        "two parameters in function scope",
-        "global variable in module scope",
-        "global variable in class scope",
-        "global variable in function scope",
-        "global variable in function scope but after definition",
-        "global variable in class scope and function scope",
-        "access of global variable without global keyword",
-        "local variable in function scope shadowing global variable without global keyword",
-        "two globals in class scope",
-        "class attribute value",
-        "class attribute target",
-        "chained class attribute",
-        "instance attribute value",
-        "instance attribute target",
-        "instance attribute with parameter",
-        "instance attribute with parameter and class attribute",
-        "chained class attribute and instance attribute",
-        "chained instance attributes",
-        "two classes with same signature",
-        "getter function with self",
-        "getter function with classname",
-        "setter function with self",
-        "setter function with self different name",
-        "setter function with classname different name",
-        "setter function as @staticmethod",
-        "setter function as @classmethod",
-        "if statement global scope",
-        "if else statement global scope",
-        "if elif else statement global scope",
-        "if in statement global scope",
-        "for loop with global runtime variable global scope",
-        "for loop wih local runtime variable local scope",
-        "for loop with local runtime variable global scope",
-        "for loop in list comprehension global scope",
-        "while loop global scope",
-        "match statement global scope",
-        "try except statement global scope",
-        "array and indexed array global scope",
-        "dictionary global scope",
-        "map function global scope",
-        "two variables",
-        "double return",
-        "reassignment",
-        "vars with comma",
-        "vars with extended iterable unpacking",
-        "f-string",
-        "multiple references in one line",
-        "walrus operator",
-        "variable swap",
-        "aliases",
-        "builtin function call",
-        "function call shadowing builtin function",
-        "function call",
-        "function call with parameter",
-        "function call with keyword parameter",
-        "function call as value",
-        "nested function call",
-        "two functions",
-        "functon with function as parameter",
-        "function with conditional branching",
-        "recursive function call",
-        "class instantiation",
-        "lambda function",
-        "lambda function call",
-        "lambda function used as normal function",
-        "lambda function as key",
-        "generator function",
-        "import",
-        "import with use",
-        "import multiple",
-        "import as",
-        "import from",
-        "import from multiple",
-        "import from as",
-        "import from as multiple",
         "dataclass",
         "dataclass with default attribute",
         "dataclass with attribute",
@@ -1668,81 +1870,7 @@ State(10).state
 # TODO: it is problematic, that the order of references is relevant, since it does not matter in the later usage
 #       of these results. Therefore, we should return a set of references instead of a list.
 #       For now convert the result to a set for testing purposes
-def test_resolve_references(code: str, expected: list[ReferenceTestNode]) -> None:
-    references = resolve_references(code)
-    transformed_references: list[ReferenceTestNode] = []
-
-    for node in references:
-        transformed_references.append(transform_reference_node(node))
-
-    # assert references == expected
-    assert transformed_references == expected
-
-
-@pytest.mark.parametrize(
-    ("code", "expected"),
-    [
-        (  # language=Python
-            """
-class A:
-    global glob1
-    glob1 = 10
-    glob1
-            """,  # language= None
-            [ReferenceTestNode("glob1.line5", "ClassDef.A", ["ClassVariable.glob1.line4"])]
-        ),
-        (  # language=Python
-            """
-def local_global():
-    global glob1
-
-    return glob1
-            """,  # language= None
-            [ReferenceTestNode("glob1.line5", "FunctionDef.local_global", [])]
-        ),
-        (  # language=Python
-            """
-class A:
-    global glob1
-    value = glob1
-
-a = A().value
-glob1 = 10
-b = A().value
-a, b
-            """,  # language= None
-            [ReferenceTestNode("glob1.line4", "ClassDef.A", [""]),
-             ReferenceTestNode("a.line9", "Module.", ["GlobalVariable.a.line6"]),
-             ReferenceTestNode("b.line9", "Module.", ["GlobalVariable.b.line8"])]
-        ),
-        (  # language=Python
-            """
-def local_global():
-    global glob1
-
-    return glob1
-
-lg = local_global()
-glob1 = 10
-glob1
-            """,  # language= None
-            ValueError  # TODO: error message
-        )  # Problem: we can not check weather a function is called before the global variable is declared since
-        # this would need a context-sensitive approach
-        # I would suggest to just check if the global variable is declared in the module scope at the cost of loosing precision
-        # for now we check if the global variable is declared in the module scope, if it isn't we simply ignore it
-    ],
-    ids=[
-        "new global variable in class scope",
-        "new global variable in function scope",
-        "new global variable in class scope with outer scope usage",
-        "new global variable in function scope with outer scope usage",
-    ]
-)
-def test_resolve_references_error(code: str, expected: list[ReferenceTestNode]) -> None:
-    # with pytest.raises(ValueError):
-    #     resolve_references(code)
-
+def test_resolve_references_dataclasses(code: str, expected: list[ReferenceTestNode]) -> None:
     references = resolve_references(code)
     transformed_references: list[ReferenceTestNode] = []
 
