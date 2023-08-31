@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import re
-
 from dataclasses import dataclass, field
-from typing import Any, TypeAlias
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 from numpy import inf
 from spacy.matcher import Matcher
-from spacy.tokens import Doc, Span
-
-from library_analyzer.utils import load_language
 
 from library_analyzer.processing.api.model import BoundaryType
+from library_analyzer.utils import load_language
+
+if TYPE_CHECKING:
+    from spacy.tokens import Doc, Span
 
 _Numeric: TypeAlias = int | float
 
@@ -75,20 +75,14 @@ _boundary_type = {"LOWER": {"IN": ["float", "int"]}}
 
 _boundary_type_rel_val = [_boundary_type, _rel_ops, {"LIKE_NUM": True}]
 
-_boundary_rel_interval = [
-    {"LIKE_NUM": True},
-    _rel_ops,
-    {},
-    _rel_ops,
-    {"LIKE_NUM": True}
-]
+_boundary_rel_interval = [{"LIKE_NUM": True}, _rel_ops, {}, _rel_ops, {"LIKE_NUM": True}]
 
 _boundary_and_rel_interval = [
     _rel_ops,
     {"LIKE_NUM": True},
     {"ORTH": {"IN": ["and", "or"]}},
     _rel_ops,
-    {"LIKE_NUM": True}
+    {"LIKE_NUM": True},
 ]
 
 _boundary_at_least = [{"LOWER": "at"}, {"LOWER": "least"}, {"LIKE_NUM": True}]
@@ -140,7 +134,7 @@ _boundary_between = [
     {"LOWER": "between"},
     {"LIKE_NUM": True},
     {"LOWER": "and"},
-    {"LIKE_NUM": True}
+    {"LIKE_NUM": True},
 ]
 
 _boundary_interval_in_brackets = [
@@ -282,7 +276,11 @@ _matcher.add("BOUNDARY_NON_NEGATIVE", [_boundary_non_negative])
 _matcher.add("BOUNDARY_NEGATIVE", [_boundary_negative], on_match=_check_negative_pattern)
 _matcher.add("BOUNDARY_NON_POSITIVE", [_boundary_non_positive])
 _matcher.add("BOUNDARY_BETWEEN", [_boundary_between], greedy="LONGEST")
-_matcher.add("BOUNDARY_INTERVAL_RELATIONAL", [_boundary_rel_interval, _boundary_and_rel_interval], on_match=_check_interval_relational_pattern)
+_matcher.add(
+    "BOUNDARY_INTERVAL_RELATIONAL",
+    [_boundary_rel_interval, _boundary_and_rel_interval],
+    on_match=_check_interval_relational_pattern,
+)
 _matcher.add("BOUNDARY_TYPE", [[_boundary_type]])
 _matcher.add("BOUNDARY_TYPE_REL_VAL", [_boundary_type_rel_val])
 _matcher.add("BOUNDARY_INTERVAL_IN_BRACKETS", [_boundary_interval_in_brackets])
@@ -313,7 +311,7 @@ def _get_type_value(type_: str, value: _Numeric | str) -> _Numeric:
         "six": 6,
         "seven": 7,
         "eight": 8,
-        "nine": 9
+        "nine": 9,
     }
     if isinstance(value, str) and value.lower() in numbers:
         value = numbers[value]
@@ -548,7 +546,6 @@ def _create_interval_relational_boundary(match_string: Span, type_: str) -> Boun
     and_or_found = False
 
     for token in match_string:
-
         if token.like_num:
             values.append(token.text)
         else:
@@ -606,7 +603,6 @@ def _create_type_rel_val_boundary(match_string: Span, type_: str) -> BoundaryTyp
     max_incl = False
 
     for token in match_string:
-
         if token.like_num:
             val = type_func(token.text)
         else:
@@ -750,7 +746,6 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
 
     desc_matches = []
     for sent in description_doc.sents:
-
         d_matches = _matcher(sent)
         d_matches = [(_nlp.vocab.strings[match_id], sent[start:end]) for match_id, start, end in d_matches]
         desc_matches.extend(d_matches)
