@@ -9,7 +9,6 @@ from spacy.tokens import Doc, Span
 
 from library_analyzer.utils import load_language
 
-
 _quotes = {"ORTH": {"IN": ["'", '"', "`"]}}
 _quotes_without_backticks = {"ORTH": {"IN": ["'", '"']}}
 _quotes_at_least_one = {"ORTH": {"IN": ["'", '"', "`"]}, "OP": "+"}
@@ -210,18 +209,21 @@ def _extract_list(
             break
 
         if found_list and token.text not in seperators_opener and token.text not in quotes:
+            first_left_nbor = token.nbor(-1).text
+            second_left_nbor = token.nbor(-2).text
             if token.text in ["True", "False", "bool"]:
                 ex.append("True")
                 ex.append("False")
             elif token.text == "None":
                 ex.append("None")
-            else:
-                if token.nbor(-1).text in quotes and token.nbor(-2).text not in seperators_opener and ex:
-                    _merge_with_last_value_in_list(ex, token.text)
-                elif token.nbor(-1).text not in seperators_opener and token.nbor(-1).text not in quotes and ex:
-                    _merge_with_last_value_in_list(ex, token.text)
-                elif token.nbor(-1).text in quotes or token.nbor(1).text in quotes:
-                    ex.append(token.text)
+
+            elif (first_left_nbor in quotes and second_left_nbor not in seperators_opener) \
+                or (first_left_nbor not in seperators_opener and first_left_nbor not in quotes) \
+                    and ex:
+                _merge_with_last_value_in_list(ex, token.text)
+
+            elif token.nbor(-1).text in quotes or token.nbor(1).text in quotes:
+                ex.append(token.text)
 
         elif not found_list:
 
@@ -440,7 +442,7 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
     description = _preprocess_docstring(description)
     desc_doc = nlp.make_doc(" ".join(description.split()))
 
-    type_string = _preprocess_docstring(type_string, True)
+    type_string = _preprocess_docstring(type_string, is_type_string=True)
     type_doc = nlp.make_doc(type_string)
 
     descr_matcher(desc_doc)
@@ -457,7 +459,6 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
 
         for match_label, match_span in type_matches:
             if match_label == "ENUM_SINGLE_VALS" and "ENUM_TYPE_CURLY" not in type_match_labels:
-                # if "ENUM_SINGLE_VALS" not in type_match_labels and "ENUM_TYPE_CURLY" not in type_match_labels:
                 substituted_string = re.sub(r"['`]+", '"', match_span.text)
                 _extracted.append(substituted_string)
 
@@ -475,9 +476,7 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
     is_enum_str = False
     for label, match_span in type_matches:
         if label == "ENUM_STR":
-            if len(type_doc) == 1:
-                is_enum_str = True
-            elif match_span[0].i > 0 and match_span[0].nbor(-1).text != "of":
+            if (len(type_doc) == 1) or (match_span[0].i > 0 and match_span[0].nbor(-1).text != "of"):
                 is_enum_str = True
 
     if is_enum_str and not extracted_set.difference(none_and_bool):
