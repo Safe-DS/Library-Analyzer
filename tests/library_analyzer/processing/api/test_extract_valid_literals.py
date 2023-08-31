@@ -22,6 +22,9 @@ from library_analyzer.processing.api._extract_valid_values import extract_valid_
         ("str or bool", "If `'alpha'` is a callable, the estimator will use it to calculate the value.", ["unlistable_str","True", "False"]),
         ("str or bool", "If False, the estimator will only use the default calculation.", ["unlistable_str","True", "False"]),
         ("str, float", "If float, the value must be between 0 and 1.", ["unlistable_str"]),
+        ("str, float", "If False, the value must be between 0 and 1.", ["unlistable_str"]),
+        ("str, float", "If '123*mean', the value must be between 0 and 1.", ["unlistable_str"]),
+        ("'auto' or float", "If float, the value must be between 0 and 1.", ['"auto"']),
         (
             "str",
             (

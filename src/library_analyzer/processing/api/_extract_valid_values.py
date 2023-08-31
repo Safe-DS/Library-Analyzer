@@ -457,15 +457,19 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
             if match_label == "ENUM_SINGLE_VALS" and "ENUM_TYPE_CURLY" not in type_match_labels:
                 substituted_string = re.sub(r"['`]+", '"', match_span.text)
                 _extracted.append(substituted_string)
-
+    values_to_be_removed = []
     for val in _extracted:
+        print(val)
         if val in ["True", "False"] and "ENUM_BOOL" not in type_match_labels:
-            _extracted.remove(val)
+            values_to_be_removed.append(val)
         if val[0] == '"' and not val[1:-1].isalpha():
             for c in val[1:-1]:
                 if c in ["!", "§", "$", "%", "&", "/", "=", "?", "*", "~"]:
                     _extracted.remove(val)
                     break
+
+    for val in values_to_be_removed:
+        _extracted.remove(val)
 
     extracted_set = set(_extracted)
 
