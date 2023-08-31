@@ -30,17 +30,19 @@ class ModuleData:
     scope: Scope | ClassScope
     classes: dict[str, ClassScope]
     functions: dict[str, Scope | ClassScope]  # classScope should not be possible here: check that
+    # members: dict[str, list[Symbol]]  # this contains all names of function names and attribute names and their declaratioon
     globals: dict[str, Scope | ClassScope]
     names: dict[astroid.Name, Scope | ClassScope]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]
     names_list: list[astroid.Name | astroid.AssignName | MemberAccess]  # TODO: dict[str, tuple [astroid.Name astroid.AssignName | MemberAccess, Scope]]
     function_calls: list[tuple[astroid.Call, Scope | ClassScope]]  # TODO: dict dict[str, tuple[astroid.Call, Scope | ClassScope]]
+# TODO: export scope detection to separate module
 
 
 @dataclass
 class MemberAccess(Expression):
-    expression: astroid.NodeNG
-    value: MemberAccess | Reference
+    expression: astroid.NodeNG  # TODO receiver: Memberaccess | NODE  <- Expression
+    value: MemberAccess | Reference  # TODO: member: NODE
     parent: astroid.NodeNG | None = field(default=None)
     name: str = field(init=False)
 
@@ -83,14 +85,10 @@ class NodeID:
 
 
 @dataclass
-class Variables:
-    class_variables: list[astroid.AssignName] | None
-    instance_variables: list[astroid.NodeNG] | None
-
-
-@dataclass
 class Symbol(ABC):
     node: Scope | ClassScope
+    # node: astroid.NodeNG
+    # scope: Scope | ClassScope
     id: NodeID
     name: str
 
@@ -233,9 +231,6 @@ class ReferenceNode:
         return item in self.referenced_symbols
 
 
-# TODO: how to deal with astroid.Lambda and astroid.GeneratorExp in scope?
-
-
 @dataclass
 class ScopeFinder:
     """
@@ -357,6 +352,7 @@ class ScopeFinder:
         self._detect_scope(node)
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
+        # symbol = GETSYMBOL(node, parent) -> GlobalVariable, LocalVariable, Parameter, ClassVariable, InstanceVariable, Builtin, Import
         self.current_node_stack.append(
             Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=self.current_node_stack[-1]),
         )
@@ -746,6 +742,7 @@ def _get_symbols(node: ReferenceNode,
                  current_scope: Scope | ClassScope | None,
                  function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
                  global_variables: dict[str, Scope | ClassScope]) -> ReferenceNode:
+    # wir können die Symbole bereits beim Erstellen des Scopes spezifizieren
     try:
         for i, symbol in enumerate(node.referenced_symbols):
             if current_scope.children:

@@ -988,8 +988,8 @@ a.b.c.name
 # TODO: the problem here is that the functions are stored in a dict, therefore we can not store more than one function with the same name.
 #  for functions this must be changed, but what about classes? - do we want to deal with redeclaration of classes?
             """,  # language=none
-            [ReferenceTestNode("B.line4", "ClassDef.A", ["GlobalVariable.A.line2"]),
-             ReferenceTestNode("C.line8", "ClassDef.B", ["GlobalVariable.B.line6"]),
+            [ReferenceTestNode("B.line4", "ClassDef.A", ["GlobalVariable.B.line6"]),
+             ReferenceTestNode("C.line8", "ClassDef.B", ["GlobalVariable.C.line8"]),
              ReferenceTestNode("A.line12", "Module.", ["GlobalVariable.A.line2"]),
              ReferenceTestNode("a.b.c.name.line13", "Module.", ["InstanceVariable.c.name.line11"]),
              ReferenceTestNode("a.b.c.line13", "Module.", ["InstanceVariable.b.c.line8"]),
