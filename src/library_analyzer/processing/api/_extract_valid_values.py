@@ -481,11 +481,3 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
 
 
 MATCHER_CONFIG = MatcherConfiguration()
-
-
-if __name__ == '__main__':
-    descr = "If float, the value must be between 0 and 1."
-    type_ = "str, float"
-
-    s = extract_valid_literals(descr, type_)
-    print(s)
