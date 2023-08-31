@@ -660,11 +660,11 @@ def test_resolve_references_parameters(code: str, expected: list[ReferenceTestNo
     ("code", "expected"),
     [
         (  # language=Python "local variable in function scope"
-        """
+            """
 def local_var():
     var1 = 1
     return var1
-        """,  # language= None
+            """,  # language= None
         [ReferenceTestNode("var1.line4", "FunctionDef.local_var", ["LocalVariable.var1.line3"])]
         ),
         (  # language=Python "global variable in module scope"
@@ -985,6 +985,8 @@ class C:
 
 a = A()
 a.b.c.name
+# TODO: the problem here is that the functions are stored in a dict, therefore we can not store more than one function with the same name.
+#  for functions this must be changed, but what about classes? - do we want to deal with redeclaration of classes?
             """,  # language=none
             [ReferenceTestNode("B.line4", "ClassDef.A", ["GlobalVariable.A.line2"]),
              ReferenceTestNode("C.line8", "ClassDef.B", ["GlobalVariable.B.line6"]),
@@ -1040,7 +1042,7 @@ class C:
         return C.state
             """,  # language= None
             [ReferenceTestNode("C.state.line6", "FunctionDef.get_state", ["ClassVariable.C.state.line3"]),
-             ReferenceTestNode("C.line6", "FunctionDef.get_state", ["ClassVariable.C.line2"])]
+             ReferenceTestNode("C.line6", "FunctionDef.get_state", ["GlobalVariable.C.line2"])]
         ),
         (  # language=Python "setter function with self"
             """

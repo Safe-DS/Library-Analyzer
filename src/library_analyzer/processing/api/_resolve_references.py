@@ -699,12 +699,12 @@ def _add_target_references(reference: ReferenceNode,
                                 if iv not in complete_reference.referenced_symbols:
                                     complete_reference.referenced_symbols.append(iv)
 
-            if isinstance(ref.name, MemberAccessTarget) and isinstance(reference.name, MemberAccessValue):
+            elif isinstance(ref.name, MemberAccessTarget) and isinstance(reference.name, MemberAccessValue):
                 if ref.name.name == reference.name.name:
                     complete_reference.referenced_symbols.append(
                         ClassVariable(node=ref.scope, id=_calc_node_id(ref.name), name=ref.name.name))
 
-            if isinstance(ref.name, astroid.AssignName) and ref.name.name == reference.name.name:
+            elif isinstance(ref.name, astroid.AssignName) and ref.name.name == reference.name.name:
                 complete_reference.referenced_symbols.append(
                     Symbol(node=ref.scope, id=_calc_node_id(ref.name), name=ref.name.name))
 
@@ -712,6 +712,13 @@ def _add_target_references(reference: ReferenceNode,
             elif ref.name.name in functions.keys() and ref.name.name == reference.name.name:
                 complete_reference.referenced_symbols.append(
                     GlobalVariable(node=functions[ref.name.name], id=_calc_node_id(functions[ref.name.name].node), name=ref.name.name))
+                    GlobalVariable(node=functions[ref.name], id=_calc_node_id(functions[ref.name].node), name=ref.name.name))
+
+            elif isinstance(ref.name, astroid.Name) and isinstance(reference.name, astroid.Name):
+                if ref.name.name in classes.keys() and ref.name.name == reference.name.name:
+                    gv = GlobalVariable(node=classes[ref.name.name], id=_calc_node_id(classes[ref.name.name].node), name=ref.name.name)
+                    if gv not in complete_reference.referenced_symbols:
+                        complete_reference.referenced_symbols.append(gv)
 
     return complete_reference
 
@@ -912,8 +919,9 @@ def resolve_references(code: str) -> list[ReferenceNode]:
     references_unspecified = _create_unspecified_references(module_data.names_list, module_data.scope,
                                                             module_data.names, module_data.classes, module_data.functions)
 
-    references_call = _find_call_reference(module_data.function_calls, module_data.classes, module_data.scope, module_data.functions, module_data.parameters)
-    references_specified.extend(references_call)
+    if module_data.function_calls:
+        references_call = _find_call_reference(module_data.function_calls, module_data.classes, module_data.scope, module_data.functions, module_data.parameters)
+        references_specified.extend(references_call)
 
     for name_node in module_data.names_list:
         if isinstance(name_node, astroid.Name | MemberAccessValue):
