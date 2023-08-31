@@ -1,5 +1,4 @@
 import re
-
 from dataclasses import dataclass
 from typing import Any
 
@@ -23,14 +22,14 @@ _enum_if_listing = [
     _quotes_at_least_one,
     {"OP": "{1,1}"},
     _quotes_at_least_one,
-    {"ORTH": {"IN": [",", ":"]}}
+    {"ORTH": {"IN": [",", ":"]}},
 ]
 
 _enum_if_special_vals = [
     {"ORTH": "If"},
     _quotes_optional,
     {"LOWER": {"IN": ["false", "true", "none"]}},
-    _quotes_optional
+    _quotes_optional,
 ]
 
 _enum_hyphened_single_val = [
@@ -38,14 +37,14 @@ _enum_hyphened_single_val = [
     _quotes_at_least_one,
     {},
     _quotes_at_least_one,
-    {"ORTH": {"IN": [",", ":"]}, "OP": "?"}
+    {"ORTH": {"IN": [",", ":"]}, "OP": "?"},
 ]
 
 _enum_hyphened_special_vals = [
     {"ORTH": "-"},
     _quotes_optional,
     {"LOWER": {"IN": ["false", "true", "none"]}},
-    _quotes_optional
+    _quotes_optional,
 ]
 
 _enum_type_curly = [{"ORTH": "{"}, {"OP": "+"}, {"ORTH": "}"}]
@@ -58,7 +57,7 @@ _enum_single_val_bool_none = [{"ORTH": {"IN": ["True", "False", "None"]}}, {"ORT
 _enum_single_val_quoted = [
     _quotes_without_backticks,
     {"ORTH": {"NOT_IN": ["'", "`", '"']}, "OP": "+"},
-    _quotes_without_backticks
+    _quotes_without_backticks,
 ]
 
 _enum_string_inputs_supported = [
@@ -67,7 +66,7 @@ _enum_string_inputs_supported = [
     {"ORTH": ","},
     {"OP": "+"},
     {"LOWER": "are"},
-    {"LOWER": "supported"}
+    {"LOWER": "supported"},
 ]
 
 _enum_single_val_respective = [
@@ -106,7 +105,7 @@ class MatcherConfiguration:
                 "ENUM_SINGLE_VAL_IF",
                 [_enum_if_listing, _enum_if_special_vals],
                 on_match=_extract_single_value,
-                greedy="FIRST"
+                greedy="FIRST",
             )
         if self.valid_values_are:
             self._descr_matcher.add("ENUM_VALID_VALUES_ARE", [_enum_valid_values_are], on_match=_extract_list)
@@ -117,7 +116,7 @@ class MatcherConfiguration:
                 "ENUM_TYPE_SINGLE_VALS",
                 [_enum_single_val_quoted, _enum_single_val_bool_none],
                 on_match=_extract_indented_single_value,
-                greedy="FIRST"
+                greedy="FIRST",
             )
         if self.string_inputs:
             self._descr_matcher.add("ENUM_STRING_INPUTS", [_enum_string_inputs_supported], on_match=_extract_list)
@@ -126,7 +125,7 @@ class MatcherConfiguration:
                 "ENUM_HYPHENED_SINGLE",
                 [_enum_hyphened_special_vals, _enum_hyphened_single_val],
                 on_match=_extract_single_value,
-                greedy="FIRST"
+                greedy="FIRST",
             )
 
     def get_descr_matcher(self) -> Matcher:
@@ -162,8 +161,8 @@ def _merge_with_last_value_in_list(value_list: list[str], merge_value: str) -> N
 def _extract_list(
     nlp_matcher: Matcher,  # noqa: ARG001
     doc: Doc,
-    i: int,  # noqa: ARG001
-    nlp_matches: list[tuple[Any, ...]],  # noqa: ARG001
+    i: int,
+    nlp_matches: list[tuple[Any, ...]],
 ) -> Any | None:
     """on-match function for the spaCy Matcher.
 
@@ -181,7 +180,6 @@ def _extract_list(
         List of matches found by the matcher
 
     """
-
     found_list = False
     quotes = ["'", "`", '"']
     seperators_opener = [",", "[", "{", "or", "and"]
@@ -217,21 +215,21 @@ def _extract_list(
             elif token.text == "None":
                 ex.append("None")
 
-            elif (first_left_nbor in quotes and second_left_nbor not in seperators_opener) \
-                or (first_left_nbor not in seperators_opener and first_left_nbor not in quotes) \
-                and ex:
+            elif (
+                (first_left_nbor in quotes and second_left_nbor not in seperators_opener)
+                or (first_left_nbor not in seperators_opener and first_left_nbor not in quotes)
+                and ex
+            ):
                 _merge_with_last_value_in_list(ex, token.text)
 
             elif token.nbor(-1).text in quotes or token.nbor(1).text in quotes:
                 ex.append(token.text)
 
         elif not found_list:
-
             if token.text in ["or", "and"]:
                 last_token = True
 
             if token.text in quotes:
-
                 if quote_start:
                     ex.append(value)
                     value = ""
@@ -302,9 +300,8 @@ def _extract_single_value(
     elif next_token.text == "None":
         _extracted.append("None")
     elif next_token.text in ["'", '"', "`"]:
-        for token in doc[end + 1:]:
+        for token in doc[end + 1 :]:
             if token.text in ["'", '"', "`"]:
-
                 if match_label == "ENUM_SINGLE_VAL_IF" and len(doc) > token.i + 3:
                     for i in range(1, 4):
                         if token.nbor(i).text == "callable":
@@ -352,7 +349,7 @@ def _extract_indented_single_value(
     if end - start == 1:
         value = doc[start:end]
     else:
-        value = doc[start: end - 1]
+        value = doc[start : end - 1]
 
     value = value.text
 
@@ -403,7 +400,6 @@ def _preprocess_docstring(docstring: str, is_type_string: bool = False) -> str:
         str
             The processed docstring.
     """
-
     docstring = re.sub(r"`+", "`", docstring)
 
     if is_type_string:
@@ -475,8 +471,9 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
 
     is_enum_str = False
     for label, match_span in type_matches:
-        if (label == "ENUM_STR"
-                and ((len(type_doc) == 1) or (match_span[0].i > 0 and match_span[0].nbor(-1).text != "of"))):
+        if label == "ENUM_STR" and (
+            (len(type_doc) == 1) or (match_span[0].i > 0 and match_span[0].nbor(-1).text != "of")
+        ):
             is_enum_str = True
 
     if is_enum_str and not extracted_set.difference(none_and_bool):
