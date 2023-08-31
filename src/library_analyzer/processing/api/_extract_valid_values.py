@@ -219,7 +219,7 @@ def _extract_list(
 
             elif (first_left_nbor in quotes and second_left_nbor not in seperators_opener) \
                 or (first_left_nbor not in seperators_opener and first_left_nbor not in quotes) \
-                    and ex:
+                and ex:
                 _merge_with_last_value_in_list(ex, token.text)
 
             elif token.nbor(-1).text in quotes or token.nbor(1).text in quotes:
@@ -475,9 +475,9 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
 
     is_enum_str = False
     for label, match_span in type_matches:
-        if label == "ENUM_STR":
-            if (len(type_doc) == 1) or (match_span[0].i > 0 and match_span[0].nbor(-1).text != "of"):
-                is_enum_str = True
+        if (label == "ENUM_STR"
+                and ((len(type_doc) == 1) or (match_span[0].i > 0 and match_span[0].nbor(-1).text != "of"))):
+            is_enum_str = True
 
     if is_enum_str and not extracted_set.difference(none_and_bool):
         extracted_set.add("unlistable_str")
