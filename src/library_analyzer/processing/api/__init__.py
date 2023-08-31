@@ -42,20 +42,18 @@ from ._package_metadata import (
     package_root,
 )
 from ._resolve_references import (
-    ClassScope,
-    NodeID,
-    MemberAccess,
-    MemberAccessTarget,
-    MemberAccessValue,
     ReferenceNode,
-    Scope,
     resolve_references,
     _add_target_references,
-    _calc_node_id,
     _create_unspecified_references,
     _find_references,
+)
+
+from ._get_module_data import (
+    ScopeFinder,
     _get_module_data,
-    get_base_expression
+    get_base_expression,
+    _calc_node_id,
 )
 
 __all__ = [
@@ -94,17 +92,11 @@ __all__ = [
     "ParameterHasType",
     "ParametersInRelation",
     "ReferenceNode",
-    "Scope",
-    "MemberAccess",
-    "MemberAccessTarget",
-    "MemberAccessValue",
     "_find_references",
     "_create_unspecified_references",
     "_add_target_references",
     "_calc_node_id",
     "_get_module_data",
-    "ClassScope",
-    "NodeID",
     "resolve_references",
     "get_base_expression",
     "extract_called_after_functions",

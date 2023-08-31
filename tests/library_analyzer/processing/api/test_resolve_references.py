@@ -5,12 +5,6 @@ from dataclasses import dataclass, field
 import astroid
 import pytest
 from library_analyzer.processing.api import (
-    ClassScope,
-    MemberAccess,
-    MemberAccessTarget,
-    MemberAccessValue,
-    Scope,
-    NodeID,
     _calc_node_id,
     _get_module_data,
     ReferenceNode,
@@ -19,12 +13,21 @@ from library_analyzer.processing.api import (
     get_base_expression,
     resolve_references,
 )
+from library_analyzer.processing.api.model import (
+    ClassScope,
+    MemberAccess,
+    MemberAccessTarget,
+    MemberAccessValue,
+    Scope,
+    NodeID,
+)
 
 
 @dataclass
 class SimpleScope:
     node_name: str | None
     children: list[SimpleScope] | None
+
 
 @dataclass
 class SimpleClassScope(SimpleScope):

@@ -50,6 +50,24 @@ from ._types import (
     create_type,
 )
 
+from ._scope import (
+    ModuleData,
+    Scope,
+    ClassScope,
+    MemberAccess,
+    MemberAccessTarget,
+    MemberAccessValue,
+    NodeID,
+    Symbol,
+    Parameter,
+    LocalVariable,
+    GlobalVariable,
+    ClassVariable,
+    InstanceVariable,
+    Import,
+    Builtin,
+)
+
 __all__ = [
     "API",
     "API_SCHEMA_VERSION",
@@ -92,4 +110,19 @@ __all__ = [
     "VariableRead",
     "VariableWrite",
     "create_type",
+    "ModuleData",
+    "Scope",
+    "ClassScope",
+    "MemberAccess",
+    "MemberAccessTarget",
+    "MemberAccessValue",
+    "NodeID",
+    "Symbol",
+    "Parameter",
+    "LocalVariable",
+    "GlobalVariable",
+    "ClassVariable",
+    "InstanceVariable",
+    "Import",
+    "Builtin",
 ]
