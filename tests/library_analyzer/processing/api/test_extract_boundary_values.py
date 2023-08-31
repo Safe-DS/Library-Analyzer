@@ -174,8 +174,42 @@ BoundaryValueType = tuple[str, tuple[_Numeric | str, bool], tuple[_Numeric | str
             ),
             [("int", (1, False), ("Infinity", False)), ("float", (0.0, True), (1.0, True))],
         ),
+        (
+            "float < 0.5",
+            "Minimum number of samples in an OPTICS cluster, expressed as an absolute number or a fraction of the "
+            "number of samples (rounded to be at least 2). If None, the value of min_samples is used instead. Used "
+            "only when cluster_method='xi'.",
+            [("float", ("NegativeInfinity", False), (0.5, False))]
+
+        ),
+        (
+            "int >= 1",
+            "Minimum number of samples in an OPTICS cluster, expressed as an absolute number or a fraction of the "
+            "number of samples (rounded to be at least 2). If None, the value of min_samples is used instead. Used "
+            "only when cluster_method='xi'.",
+            [("int", (1, True), ("Infinity", False))]
+
+        ),
+        (
+            "int <= 10",
+            "Minimum number of samples in an OPTICS cluster, expressed as an absolute number or a fraction of the "
+            "number of samples (rounded to be at least 2). If None, the value of min_samples is used instead. Used "
+            "only when cluster_method='xi'.",
+            [("int", ("NegativeInfinity", False), (10, True))]
+
+        ),
         ("float ([0, 1])", "abc", [("float", (0.0, True), (1.0, True))]),
-        ("bool", "Whether to allow array.ndim > 2", []),
+        (
+            "float",
+            "The quantile that the model tries to predict. It must be strictly\nbetween 0 and 1."
+            " If 0.5 (default), the model predicts the 50%\nquantile, i.e. the median.",
+            [("float", (0.0, False), (1.0, False))]
+        ),
+        (
+            "float",
+            "The quantile that the model tries to predict. It must be in [1e-2, 0.0].",
+            [("float", (0.0, True), (0.01, True))]
+        ),
         (
             'dict, list of dicts, "balanced", or None',
             (
