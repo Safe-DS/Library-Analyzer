@@ -712,7 +712,6 @@ def _add_target_references(reference: ReferenceNode,
             elif ref.name.name in functions.keys() and ref.name.name == reference.name.name:
                 complete_reference.referenced_symbols.append(
                     GlobalVariable(node=functions[ref.name.name], id=_calc_node_id(functions[ref.name.name].node), name=ref.name.name))
-                    GlobalVariable(node=functions[ref.name], id=_calc_node_id(functions[ref.name].node), name=ref.name.name))
 
             elif isinstance(ref.name, astroid.Name) and isinstance(reference.name, astroid.Name):
                 if ref.name.name in classes.keys() and ref.name.name == reference.name.name:
