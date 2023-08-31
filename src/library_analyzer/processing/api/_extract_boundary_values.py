@@ -637,7 +637,7 @@ def _create_type_rel_val_boundary(match_string: Span, type_: str) -> BoundaryTyp
     return BoundaryType(type_, min=min_, max=max_, min_inclusive=min_incl, max_inclusive=max_incl)
 
 
-def _create_interval_in_brackets_boundary(match_string: Span, type_: str) -> BoundaryType:
+def _create_interval_in_brackets_boundary(match_string: Span, type_: str) -> BoundaryType | None:
     span_ = match_string[2:-1]
 
     return _create_interval_boundary(span_, type_)
