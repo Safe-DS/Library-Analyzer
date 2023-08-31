@@ -23,7 +23,6 @@ _enum_if_listing = [
     {"ORTH": "If"},
     _quotes_at_least_one,
     {"OP": "{1,1}"},
-    # {},
     _quotes_at_least_one,
     {"ORTH": {"IN": [",", ":"]}}
 ]
@@ -155,7 +154,6 @@ def _merge_with_last_value_in_list(value_list: list[str], merge_value: str) -> N
         value to be merged
 
     """
-    print(value_list)
     if merge_value in ["-", "_"] or value_list[-1][-1] in ["-", "_"]:
         value_list[-1] += merge_value
     else:
@@ -218,7 +216,6 @@ def _extract_list(
             elif token.text == "None":
                 ex.append("None")
             else:
-                print(token.text, ex)
                 if token.nbor(-1).text in quotes and token.nbor(-2).text not in seperators_opener and ex:
                     _merge_with_last_value_in_list(ex, token.text)
                 elif token.nbor(-1).text not in seperators_opener and token.nbor(-1).text not in quotes and ex:
@@ -353,7 +350,7 @@ def _extract_indented_single_value(
     if end - start == 1:
         value = doc[start:end]
     else:
-        value = doc[start : end - 1]
+        value = doc[start: end - 1]
 
     value = value.text
 
@@ -388,6 +385,22 @@ def _nlp_matches_to_readable_matches(
 
 
 def _preprocess_docstring(docstring: str, is_type_string: bool = False) -> str:
+    """
+    Preprocess docstring to make it easier to parse.
+
+    Transform multiple back ticks to one back tick and replace multiple whitespaces with one whitespace if the
+    docstrng to be processed is a type string.
+
+    Parameters
+    ----------
+    docstring
+        The docstring to be processed.
+
+    Returns
+    -------
+        str
+            The processed docstring.
+    """
 
     docstring = re.sub(r"`+", "`", docstring)
 
@@ -430,13 +443,10 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
     type_string = _preprocess_docstring(type_string, True)
     type_doc = nlp.make_doc(type_string)
 
-    matches = descr_matcher(desc_doc)
-    print("DESCR_MATCHES: ", [(nlp.vocab.strings[m[0]], desc_doc[m[1]:m[2]].text ) for m in matches])
+    descr_matcher(desc_doc)
 
     type_matches = type_matcher(type_doc)
     type_matches = _nlp_matches_to_readable_matches(type_matches, nlp, type_doc)
-    if type_matches:
-        print("TYPE_MATCHES: ", type_matches)
 
     if type_matches:
         type_match_labels = [match_label for match_label, _ in type_matches]
