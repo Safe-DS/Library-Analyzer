@@ -1958,26 +1958,26 @@ def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope("AssignName.glob", []),
+                        SimpleScope("GlobalVariable.AssignName.glob", []),
                         SimpleClassScope(
-                            "ClassDef.A",
+                            "GlobalVariable.ClassDef.A",
                             [
                                 SimpleScope(
-                                    "FunctionDef.__init__",
+                                    "LocalVariable.FunctionDef.__init__",
                                     [
-                                        SimpleScope("MemberAccess.self.value", []),
-                                        SimpleScope("MemberAccess.self.test", []),
+                                        SimpleScope("InstanceVariable.MemberAccess.self.value", []),
+                                        SimpleScope("InstanceVariable.MemberAccess.self.test", []),
                                     ],
                                 ),
                                 SimpleScope(
-                                    "FunctionDef.f",
-                                    [SimpleScope("AssignName.var1", [])],
+                                    "LocalVariable.FunctionDef.f",
+                                    [SimpleScope("LocalVariable.AssignName.var1", [])],
                                 ),
                             ],
                             [],
                             ["value", "test"],
                         ),
-                        SimpleScope("FunctionDef.g", [SimpleScope("AssignName.var2", [])]),
+                        SimpleScope("GlobalVariable.FunctionDef.g", [SimpleScope("LocalVariable.AssignName.var2", [])]),
                     ],
                 ),
             ],
@@ -2583,15 +2583,15 @@ def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope
     if node.children is not None:
         if isinstance(node, ClassScope):
             return SimpleClassScope(
-                to_string(node.node),
+                to_string(node.node.node),
                 [transform_result(child) for child in node.children],
                 [to_string_class(child) for child in node.class_variables],
                 [to_string_class(child) for child in node.instance_variables],
                 [to_string_class(child) for child in node.super_classes],
             )
-        return SimpleScope(to_string(node.node), [transform_result(child) for child in node.children])
+        return SimpleScope(to_string(node.node.node), [transform_result(child) for child in node.children])
     else:
-        return SimpleScope(to_string(node.node), [])
+        return SimpleScope(to_string(node.node.node), [])
 
 
 def to_string(node: astroid.NodeNG) -> str:

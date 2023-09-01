@@ -81,8 +81,7 @@ class NodeID:
 
 @dataclass
 class Symbol(ABC):
-    node: Scope | ClassScope
-    # node: astroid.NodeNG
+    node: astroid.NodeNG | MemberAccess
     # scope: Scope | ClassScope
     id: NodeID
     name: str
@@ -95,41 +94,53 @@ class Symbol(ABC):
             return self.name == other.name and self.id == other.id
         return False
 
+    def __hash__(self) -> int:
+        return hash(str(self))
+
 
 @dataclass
 class Parameter(Symbol):  # TODO: find correct node type and add fields with further infos for each subclass
-    pass
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 @dataclass
 class LocalVariable(Symbol):
-    pass
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 @dataclass
 class GlobalVariable(Symbol):
-    pass
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 @dataclass
 class ClassVariable(Symbol):
-    pass
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 @dataclass
 class InstanceVariable(Symbol):
-    pass
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 @dataclass
 class Import(Symbol):
-    pass
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 @dataclass
 class Builtin(Symbol):
     def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 @dataclass
@@ -148,8 +159,8 @@ class Scope:
         _parent      is the parent node in the scope tree, is None if the node is the root node.
     """
 
-    _node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | astroid.Lambda | MemberAccess
-    _id: NodeID
+    _symbol: Symbol
+    # _id: NodeID
     _children: list[Scope | ClassScope] = field(default_factory=list)
     _parent: Scope | ClassScope | None = None
 
@@ -166,7 +177,7 @@ class Scope:
 
     @property
     def node(self) -> astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | MemberAccess:
-        return self._node
+        return self._symbol
 
     @node.setter
     def node(self, new_node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | MemberAccess) -> None:
@@ -174,7 +185,7 @@ class Scope:
                                      astroid.AssignName, astroid.AssignAttr, astroid.Attribute,
                                      astroid.Import, astroid.ImportFrom, MemberAccess)):
             raise TypeError("Invalid node type.")
-        self._node = new_node
+        self._symbol = new_node
 
     @property
     def id(self) -> NodeID:

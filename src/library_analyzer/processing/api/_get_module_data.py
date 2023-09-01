@@ -13,7 +13,15 @@ from library_analyzer.processing.api.model import (
     NodeID,
     MemberAccessTarget,
     MemberAccessValue,
-    Reference
+    Reference,
+    Symbol,
+    GlobalVariable,
+    LocalVariable,
+    ClassVariable,
+    Parameter,
+    InstanceVariable,
+    Import,
+    Builtin
 )
 
 
@@ -72,7 +80,7 @@ class ScopeFinder:
         inner_scope_children: list[Scope | ClassScope] = []
         for child in self.children:
             if (
-                child.parent is not None and child.parent.node != current_scope
+                child.parent is not None and child.parent.node.node != current_scope
             ):  # check if the child is in the scope of the current node
                 outer_scope_children.append(child)  # add the child to the outer scope
             else:
@@ -115,17 +123,17 @@ class ScopeFinder:
         The module node is also the first node that is visited, so the current_node_stack is empty before entering the module node.
         """
         self.current_node_stack.append(
-            Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=None),
+            Scope(_symbol=self.get_symbol(node, None), _children=[], _parent=None),
         )
 
     def leave_module(self, node: astroid.Module) -> None:
         self._detect_scope(node)
 
     def enter_classdef(self, node: astroid.ClassDef) -> None:
+
         self.current_node_stack.append(
             ClassScope(
-                _node=node,
-                _id=_calc_node_id(node),
+                _symbol=self.get_symbol(node, self.current_node_stack[-1]),
                 _children=[],
                 _parent=self.current_node_stack[-1],
                 instance_variables=[],
@@ -140,7 +148,7 @@ class ScopeFinder:
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
         # symbol = GETSYMBOL(node, parent) -> GlobalVariable, LocalVariable, Parameter, ClassVariable, InstanceVariable, Builtin, Import
         self.current_node_stack.append(
-            Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=self.current_node_stack[-1]),
+            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1]), _children=[], _parent=self.current_node_stack[-1]),
         )
         if node.name == "__init__":
             self._analyze_constructor(node)
@@ -148,9 +156,17 @@ class ScopeFinder:
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
         self._detect_scope(node)
 
+    @staticmethod  # maybe just pass the node of the scope as current_scope parameter
+    def get_symbol(node: astroid.NodeNG, current_scope: Scope | ClassScope | None) -> Symbol:
+        if current_scope is None or isinstance(node, astroid.Module):
+            return GlobalVariable(node=node, id=_calc_node_id(node), name=node.name)
+        if isinstance(node, astroid.FunctionDef):
+            return Parameter(node=node, id=_calc_node_id(node), name=node.name)
+        return Symbol(node=node, id=_calc_node_id(node), name=node.name)
+
     def enter_lambda(self, node: astroid.Lambda) -> None:
         self.current_node_stack.append(
-            Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=self.current_node_stack[-1]),
+            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1]), _children=[], _parent=self.current_node_stack[-1]),
         )
 
     def leave_lambda(self, node: astroid.Lambda) -> None:
@@ -237,7 +253,7 @@ class ScopeFinder:
             | astroid.Starred
         ):
             parent = self.current_node_stack[-1]
-            scope_node = Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=parent)
+            scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1]), _children=[], _parent=parent)
             self.children.append(scope_node)
 
         # add class variables to the class_variables list of the class
@@ -249,7 +265,7 @@ class ScopeFinder:
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
         member_access = _construct_member_access(node)
-        scope_node = Scope(_node=member_access, _id=_calc_node_id(node), _children=[], _parent=parent)
+        scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1]), _children=[], _parent=parent)
         self.children.append(scope_node)
         self.name_nodes[member_access] = self.current_node_stack[-1]
 
@@ -274,12 +290,12 @@ class ScopeFinder:
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
-        scope_node = Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=parent)
+        scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1]), _children=[], _parent=parent)
         self.children.append(scope_node)
 
     def enter_importfrom(self, node: astroid.ImportFrom) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
-        scope_node = Scope(_node=node, _id=_calc_node_id(node), _children=[], _parent=parent)
+        scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1]), _children=[], _parent=parent)
         self.children.append(scope_node)
 
     def check_if_global(self, name: str, node: astroid.NodeNG) -> bool:
@@ -328,7 +344,7 @@ class ScopeFinder:
         # TODO: col_offset is not correct: it should be the col_offset of the vararg/(kwarg) node which is not
         #  collected by astroid
         self.names_list.append(constructed_node)
-        scope_node = Scope(_node=constructed_node, _id=_calc_node_id(constructed_node), _children=[], _parent=self.current_node_stack[-1])
+        scope_node = Scope(_symbol=constructed_node, _id=_calc_node_id(constructed_node), _children=[], _parent=self.current_node_stack[-1])
         self.children.append(scope_node)
         self.function_parameters[self.current_node_stack[-1].node] = (self.current_node_stack[-1], [constructed_node])
 
