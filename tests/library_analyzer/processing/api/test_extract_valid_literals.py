@@ -45,6 +45,7 @@ from library_analyzer.processing.api._extract_valid_values import extract_valid_
         ("str, float", "If `False`, the value must be between 0 and 1.", ["unlistable_str"]),
         ("str, float", "If '123*mean', the value must be between 0 and 1.", ["unlistable_str"]),
         ("'auto' or float", "If float, the value must be between 0 and 1.", ['"auto"']),
+        ("str or bool", "Valid values are 'auto', 'allow-nan', False.", ['"auto"', '"allow-nan"', "False", "True"]),
         (
             "str, callable",
             (
