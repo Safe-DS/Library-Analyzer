@@ -41,10 +41,18 @@ from library_analyzer.processing.api._extract_valid_values import extract_valid_
             "If False, the estimator will only use the default calculation.",
             ["unlistable_str", "True", "False"],
         ),
-        ("str, float", "If float, the value must be between 0 and 1.", ["unlistable_str"]),
-        ("str, float", "If False, the value must be between 0 and 1.", ["unlistable_str"]),
+        ("str, float", "If `float`, the value must be between 0 and 1.", ["unlistable_str"]),
+        ("str, float", "If `False`, the value must be between 0 and 1.", ["unlistable_str"]),
         ("str, float", "If '123*mean', the value must be between 0 and 1.", ["unlistable_str"]),
         ("'auto' or float", "If float, the value must be between 0 and 1.", ['"auto"']),
+        (
+            "str, callable",
+            "String inputs, 'absolute_error' and 'squared_error' are supported which\nfind the absolute error and "
+            "squared error per sample respectively.\n\nIf ``loss`` is a callable, then it should be a function that "
+            "takes\ntwo arrays as inputs, the true and predicted value and returns a 1-D\narray with the i-th value "
+            "of the array corresponding to the loss\non ``X[i]``.",
+            ['"absolute_error"', '"squared_error"']
+        ),
         (
             "str",
             (

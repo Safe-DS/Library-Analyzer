@@ -302,10 +302,6 @@ def _extract_single_value(
     elif next_token.text in ["'", '"', "`"]:
         for token in doc[end + 1 :]:
             if token.text in ["'", '"', "`"]:
-                if match_label == "ENUM_SINGLE_VAL_IF" and len(doc) > token.i + 3:
-                    for i in range(1, 4):
-                        if token.nbor(i).text == "callable":
-                            return None
                 break
             else:
                 text += token.text
@@ -441,7 +437,7 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
     type_string = _preprocess_docstring(type_string, is_type_string=True)
     type_doc = nlp.make_doc(type_string)
 
-    descr_matcher(desc_doc)
+    matches = descr_matcher(desc_doc)
 
     type_matches = type_matcher(type_doc)
     type_matches = _nlp_matches_to_readable_matches(type_matches, nlp, type_doc)
@@ -454,12 +450,11 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
             _extracted.append("False")
 
         for match_label, match_span in type_matches:
-            if match_label == "ENUM_SINGLE_VALS" and "ENUM_TYPE_CURLY" not in type_match_labels:
+            if match_label == "ENUM_TYPE_SINGLE_VALS" and "ENUM_TYPE_CURLY" not in type_match_labels:
                 substituted_string = re.sub(r"['`]+", '"', match_span.text)
                 _extracted.append(substituted_string)
     values_to_be_removed = []
     for val in _extracted:
-        print(val)
         if val in ["True", "False"] and "ENUM_BOOL" not in type_match_labels:
             values_to_be_removed.append(val)
         if val[0] == '"' and not val[1:-1].isalpha():
