@@ -437,7 +437,7 @@ def extract_valid_literals(description: str, type_string: str) -> set[str]:
     type_string = _preprocess_docstring(type_string, is_type_string=True)
     type_doc = nlp.make_doc(type_string)
 
-    matches = descr_matcher(desc_doc)
+    descr_matcher(desc_doc)
 
     type_matches = type_matcher(type_doc)
     type_matches = _nlp_matches_to_readable_matches(type_matches, nlp, type_doc)
