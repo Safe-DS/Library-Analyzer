@@ -14,6 +14,7 @@ from library_analyzer.processing.api.model import (
 
 from library_analyzer.processing.api import (
     _get_module_data,
+    _construct_member_access,
 )
 
 from tests.library_analyzer.processing.api import (
@@ -719,3 +720,17 @@ def to_string_class(node: astroid.NodeNG) -> str:
     elif isinstance(node, ClassScope):
         return f"{node.symbol.node.__class__.__name__}.{node.symbol.node.name}"
     raise NotImplementedError(f"Unknown node type: {node.__class__.__name__}")
+#
+#
+# @pytest.mark.parametrize(
+#     ("node", "expected"),
+#     [
+#         (
+#             astroid.AssignAttr(attrname="member", expr=astroid.Name(name="self")),
+#             "self.member"
+#         )
+#     ]
+# )
+# def test_construct_member_access(node: astroid.AssignAttr | astroid.Attribute, expected: str) -> None:
+#     result = _construct_member_access(node)
+#     assert result == expected

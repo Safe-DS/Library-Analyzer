@@ -36,8 +36,10 @@ class ModuleData:
 
 @dataclass
 class MemberAccess(Expression):
-    expression: astroid.NodeNG  # TODO receiver: Memberaccess | NODE  <- Expression
-    value: MemberAccess | Reference  # TODO: member: NODE
+    # expression: astroid.NodeNG
+    receiver: MemberAccess | astroid.NodeNG
+    # value: MemberAccess | Reference
+    member: astroid.NodeNG
     parent: astroid.NodeNG | None = field(default=None)
     name: str = field(init=False)
 
@@ -51,9 +53,12 @@ class MemberAccess(Expression):
         return hash(str(self))
 
     def __post_init__(self) -> None:
-        if isinstance(self.expression, astroid.Call):
-            self.expression = self.expression.func
-        self.name = f"{self.expression.name}.{self.value.name}"
+        if isinstance(self.receiver, astroid.Call):
+            self.expression = self.receiver.func
+        if isinstance(self.member, astroid.AssignAttr | astroid.Attribute):
+            self.name = f"{self.receiver.name}.{self.member.attrname}"
+        else:
+            self.name = f"{self.receiver.name}.{self.member.name}"
 
 
 @dataclass
@@ -81,8 +86,16 @@ class NodeID:
 
 @dataclass
 class Symbol(ABC):
+    """Represents a node in the scope tree.
+
+    Attributes
+    ----------
+        node    is the node which defines the symbol.
+        id      is the id of the node.
+        name    is the name of the symbol.
+
+    """
     node: astroid.NodeNG | MemberAccess
-    # scope: Scope | ClassScope
     id: NodeID
     name: str
 
@@ -153,14 +166,12 @@ class Scope:
 
     Attributes
     ----------
-        _node        is the node in the AST that defines the scope of the node.
-        _id          is the id of the node.
+        _symbol      is the symbol that defines the scope of the node.
         _children    is a list of Scope or ClassScope instances that are defined in the scope of the node, is None if the node is a leaf node.
         _parent      is the parent node in the scope tree, is None if the node is the root node.
     """
 
-    _symbol: Symbol
-    # _id: NodeID
+    _symbol: Symbol = field(default_factory=Symbol)
     _children: list[Scope | ClassScope] = field(default_factory=list)
     _parent: Scope | ClassScope | None = None
 
@@ -214,6 +225,7 @@ class ClassScope(Scope):
     ----------
         class_variables     is a list of AssignName nodes that define class variables
         instance_variables  is a list of AssignAttr nodes that define instance variables
+        super_classes       is a list of ClassScope instances that represent the super classes of the class
     """
 
     class_variables: list[astroid.AssignName] = field(default_factory=list)

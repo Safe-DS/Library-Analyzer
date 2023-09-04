@@ -340,8 +340,11 @@ def transform_member_access(member_access: MemberAccess) -> str:
     attribute_names = []
 
     while isinstance(member_access, MemberAccess):
-        attribute_names.append(member_access.value.name)
-        member_access = member_access.expression
+        if isinstance(member_access.member, astroid.AssignAttr | astroid.Attribute):
+            attribute_names.append(member_access.member.attrname)
+        else:
+            attribute_names.append(member_access.member.name)
+        member_access = member_access.receiver
     if isinstance(member_access, astroid.Name):
         attribute_names.append(member_access.name)
 

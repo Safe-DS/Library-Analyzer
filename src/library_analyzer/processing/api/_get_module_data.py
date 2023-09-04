@@ -287,7 +287,7 @@ class ScopeFinder:
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
-        member_access = _construct_member_access(node)
+        member_access = _construct_member_access(node.expr, node)
         scope_node = Scope(_symbol=self.get_symbol(member_access, self.current_node_stack[-1].symbol.node),
                            _children=[],
                            _parent=parent)
@@ -299,7 +299,7 @@ class ScopeFinder:
     def enter_attribute(self, node: astroid.Attribute) -> None:
         if isinstance(node.parent, astroid.Decorators):
             return
-        member_access = _construct_member_access(node)
+        member_access = _construct_member_access(node.expr, node)
         self.name_nodes[member_access] = self.current_node_stack[-1]
 
         self.names_list.append(member_access)
@@ -382,7 +382,7 @@ def _calc_node_id(
     node: astroid.NodeNG | astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name | astroid.AssignAttr | astroid.Import | astroid.ImportFrom | MemberAccess
 ) -> NodeID:
     if isinstance(node, MemberAccess):
-        module = node.expression.root().name
+        module = node.receiver.root().name
     else:
         module = node.root().name
         # TODO: check if this is correct when working with a real module
@@ -400,8 +400,7 @@ def _calc_node_id(
             return NodeID(module, node.name, node.lineno, node.col_offset)
         case MemberAccess():
             expression = get_base_expression(node)
-            return NodeID(module, f"{expression.name}.{node.value.name}", expression.lineno,
-                          expression.col_offset)
+            return NodeID(module, node.name, expression.lineno, expression.col_offset)
         case astroid.Import():  # TODO: we need a special treatment for imports and import from
             return NodeID(module, node.names[0][0], node.lineno, node.col_offset)
         case astroid.ImportFrom():
@@ -420,25 +419,32 @@ def _calc_node_id(
     # TODO: add fitting default case and merge same types of cases together
 
 
-def _construct_member_access(node: astroid.Attribute | astroid.AssignAttr) -> MemberAccess:
-    if isinstance(node, astroid.Attribute):
-        if isinstance(node.expr, astroid.Attribute | astroid.AssignAttr):
-            return MemberAccessValue(_construct_member_access(node.expr), Reference(node.attrname))
+def _construct_member_access(receiver: astroid.Name | astroid.Attribute | astroid.Call, member: astroid.Attribute | astroid.AssignAttr) -> MemberAccess:
+    if isinstance(member, astroid.AssignAttr):
+        if isinstance(receiver, astroid.Name):
+            return MemberAccessTarget(receiver=receiver, member=member)
+        elif isinstance(receiver, astroid.Call):
+            return MemberAccessTarget(receiver=receiver.func, member=member)
         else:
-            return MemberAccessValue(node.expr, Reference(node.attrname))
-    elif isinstance(node, astroid.AssignAttr):
-        if isinstance(node.expr, astroid.Attribute | astroid.AssignAttr):
-            return MemberAccessTarget(_construct_member_access(node.expr), Reference(node.attrname))
+            return MemberAccessTarget(receiver=_construct_member_access(receiver.expr, receiver),
+                                      member=member)
+    elif isinstance(member, astroid.Attribute):
+        if isinstance(receiver, astroid.Name):
+            return MemberAccessValue(receiver=receiver, member=member)
+        elif isinstance(receiver, astroid.Call):
+            return MemberAccessValue(receiver=receiver.func, member=member)
         else:
-            return MemberAccessTarget(node.expr, Reference(node.attrname))
-    raise TypeError(f"Unexpected node type {type(node)}")
+            return MemberAccessValue(receiver=_construct_member_access(receiver.expr, receiver),
+                                     member=member)
+
+    raise TypeError(f"Unexpected node type {type(member)}")
 
 
 def get_base_expression(node: MemberAccess) -> astroid.NodeNG:
-    if isinstance(node.expression, MemberAccess):
-        return get_base_expression(node.expression)
+    if isinstance(node.receiver, MemberAccess):
+        return get_base_expression(node.receiver)
     else:
-        return node.expression
+        return node.receiver
 
 
 def _get_module_data(code: str) -> ModuleData:
@@ -455,6 +461,8 @@ def _get_module_data(code: str) -> ModuleData:
     walker.walk(module)
 
     scope = scope_handler.children[0]  # get the children of the root node, which are the scopes of the module
+
+    print(module.repr_tree())
 
     return ModuleData(scope=scope,
                       classes=scope_handler.classes,
