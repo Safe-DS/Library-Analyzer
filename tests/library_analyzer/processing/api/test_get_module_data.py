@@ -390,7 +390,7 @@ class SimpleClassScope(SimpleScope):
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope("GlobalVariable.Import.math", []),
+                        SimpleScope("Import.Import.math", []),
                         SimpleClassScope(
                             "GlobalVariable.ClassDef.A",
                             [SimpleScope("ClassVariable.AssignName.value", [])],
@@ -428,7 +428,7 @@ class SimpleClassScope(SimpleScope):
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope("GlobalVariable.ImportFrom.math.pi", []),
+                        SimpleScope("Import.ImportFrom.math.pi", []),
                         SimpleClassScope("GlobalVariable.ClassDef.B",
                                          [SimpleScope("ClassVariable.AssignName.value", [])],
                                          ["value"],
@@ -482,7 +482,7 @@ class SimpleClassScope(SimpleScope):
                                         SimpleClassScope(
                                             "LocalVariable.ClassDef.local_class_scope",
                                             [
-                                                SimpleScope("LocalVariable.AssignName.var3", []),
+                                                SimpleScope("ClassVariable.AssignName.var3", []),
                                                 SimpleScope(
                                                     "LocalVariable.FunctionDef.local_class_function_scope",
                                                     [
@@ -567,62 +567,62 @@ class SimpleClassScope(SimpleScope):
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope("ImportFrom.collections.abc.Callable", []),
-                        SimpleScope("ImportFrom.typing.Any", []),
-                        SimpleScope("Import.astroid", []),
-                        SimpleScope("AssignName._EnterAndLeaveFunctions", []),
+                        SimpleScope("Import.ImportFrom.collections.abc.Callable", []),
+                        SimpleScope("Import.ImportFrom.typing.Any", []),
+                        SimpleScope("Import.Import.astroid", []),
+                        SimpleScope("GlobalVariable.AssignName._EnterAndLeaveFunctions", []),
                         SimpleClassScope(
-                            "ClassDef.ASTWalker",
+                            "GlobalVariable.ClassDef.ASTWalker",
                             [
-                                SimpleScope("AssignName.additional_locals", []),
+                                SimpleScope("ClassVariable.AssignName.additional_locals", []),
                                 SimpleScope(
-                                    "FunctionDef.__init__",
+                                    "LocalVariable.FunctionDef.__init__",
                                     [
-                                        SimpleScope("AssignName.handler", []),
-                                        SimpleScope("MemberAccess.self._handler", []),
-                                        SimpleScope("MemberAccess.self._cache", []),
+                                        SimpleScope("Parameter.AssignName.handler", []),
+                                        SimpleScope("InstanceVariable.MemberAccess.self._handler", []),
+                                        SimpleScope("InstanceVariable.MemberAccess.self._cache", []),
                                     ],
                                 ),
                                 SimpleScope(
-                                    "FunctionDef.walk",
+                                    "LocalVariable.FunctionDef.walk",
                                     [
-                                        SimpleScope("AssignName.node", []),
+                                        SimpleScope("Parameter.AssignName.node", []),
                                     ],
                                 ),
                                 SimpleScope(
-                                    "FunctionDef.__walk",
+                                    "LocalVariable.FunctionDef.__walk",
                                     [
-                                        SimpleScope("AssignName.node", []),
-                                        SimpleScope("AssignName.visited_nodes", []),
-                                        SimpleScope("AssignName.child_node", []),
+                                        SimpleScope("Parameter.AssignName.node", []),
+                                        SimpleScope("Parameter.AssignName.visited_nodes", []),
+                                        SimpleScope("LocalVariable.AssignName.child_node", []),
                                     ],
                                 ),
                                 SimpleScope(
-                                    "FunctionDef.__enter",
+                                    "LocalVariable.FunctionDef.__enter",
                                     [
-                                        SimpleScope("AssignName.node", []),
-                                        SimpleScope("AssignName.method", []),
+                                        SimpleScope("Parameter.AssignName.node", []),
+                                        SimpleScope("LocalVariable.AssignName.method", []),
                                     ],
                                 ),
                                 SimpleScope(
-                                    "FunctionDef.__leave",
+                                    "LocalVariable.FunctionDef.__leave",
                                     [
-                                        SimpleScope("AssignName.node", []),
-                                        SimpleScope("AssignName.method", []),
+                                        SimpleScope("Parameter.AssignName.node", []),
+                                        SimpleScope("LocalVariable.AssignName.method", []),
                                     ],
                                 ),
                                 SimpleScope(
-                                    "FunctionDef.__get_callbacks",
+                                    "LocalVariable.FunctionDef.__get_callbacks",
                                     [
-                                        SimpleScope("AssignName.node", []),
-                                        SimpleScope("AssignName.klass", []),
-                                        SimpleScope("AssignName.methods", []),
-                                        SimpleScope("AssignName.handler", []),
-                                        SimpleScope("AssignName.class_name", []),
-                                        SimpleScope("AssignName.enter_method", []),
-                                        SimpleScope("AssignName.leave_method", []),
-                                        SimpleScope("AssignName.enter_method", []),
-                                        SimpleScope("AssignName.leave_method", []),
+                                        SimpleScope("Parameter.AssignName.node", []),
+                                        SimpleScope("LocalVariable.AssignName.klass", []),
+                                        SimpleScope("LocalVariable.AssignName.methods", []),
+                                        SimpleScope("LocalVariable.AssignName.handler", []),
+                                        SimpleScope("LocalVariable.AssignName.class_name", []),
+                                        SimpleScope("LocalVariable.AssignName.enter_method", []),
+                                        SimpleScope("LocalVariable.AssignName.leave_method", []),
+                                        SimpleScope("LocalVariable.AssignName.enter_method", []),
+                                        SimpleScope("LocalVariable.AssignName.leave_method", []),
                                     ],
                                 ),
                             ],
@@ -699,8 +699,8 @@ def to_string(symbol: Symbol) -> str:
         return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.name}"
     elif isinstance(symbol.node, astroid.AssignAttr):
         return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.attrname}"
-    elif isinstance(symbol, MemberAccess):
-        result = transform_member_access(symbol)
+    elif isinstance(symbol.node, MemberAccess):
+        result = transform_member_access(symbol.node)
         return f"{symbol.__class__.__name__}.MemberAccess.{result}"
     elif isinstance(symbol.node, astroid.Import):
         return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.names[0][0]}"  # TODO: handle multiple imports and aliases
@@ -717,5 +717,5 @@ def to_string_class(node: astroid.NodeNG) -> str:
     elif isinstance(node, astroid.AssignName):
         return f"{node.name}"
     elif isinstance(node, ClassScope):
-        return f"{node.node.__class__.__name__}.{node.node.name}"
+        return f"{node.symbol.node.__class__.__name__}.{node.symbol.node.name}"
     raise NotImplementedError(f"Unknown node type: {node.__class__.__name__}")

@@ -163,6 +163,10 @@ class ScopeFinder:
     def get_symbol(self, node: astroid.NodeNG, current_scope: astroid.NodeNG | None) -> Symbol:
         match current_scope:
             case astroid.Module() | None:
+                if isinstance(node, astroid.Import):
+                    return Import(node=node, id=_calc_node_id(node), name=node.names[0][0])  # TODO: this needs fixing when multiple imports are handled
+                if isinstance(node, astroid.ImportFrom):
+                    return Import(node=node, id=_calc_node_id(node), name=node.names[0][1])  # TODO: this needs fixing when multiple imports are handled
                 return GlobalVariable(node=node, id=_calc_node_id(node), name=node.name)
             case astroid.ClassDef():
                 if isinstance(node, astroid.FunctionDef):
@@ -171,8 +175,8 @@ class ScopeFinder:
             case astroid.FunctionDef():
                 if isinstance(current_scope, astroid.FunctionDef):
                     if current_scope.name == "__init__":
-                        if isinstance(node, astroid.AssignAttr):
-                            return InstanceVariable(node=node, id=_calc_node_id(node), name=node.attrname)
+                        if isinstance(node, MemberAccessTarget):
+                            return InstanceVariable(node=node, id=_calc_node_id(node), name=node.name)
                 if isinstance(node, astroid.AssignName) and self.function_parameters:
                     if current_scope in self.function_parameters and self.function_parameters[current_scope][1].__contains__(node):
                         return Parameter(node=node, id=_calc_node_id(node), name=node.name)
@@ -284,7 +288,7 @@ class ScopeFinder:
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
         member_access = _construct_member_access(node)
-        scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+        scope_node = Scope(_symbol=self.get_symbol(member_access, self.current_node_stack[-1].symbol.node),
                            _children=[],
                            _parent=parent)
         self.children.append(scope_node)
