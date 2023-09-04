@@ -9,6 +9,7 @@ from library_analyzer.processing.api.model import (
     Scope,
     ClassScope,
     MemberAccess,
+    Symbol,
 )
 
 from library_analyzer.processing.api import (
@@ -31,6 +32,8 @@ class SimpleClassScope(SimpleScope):
     class_variables: list[str]
     instance_variables: list[str]
     super_class: list[str] = field(default_factory=list)
+
+
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
@@ -85,8 +88,8 @@ class SimpleClassScope(SimpleScope):
                     "Module",
                     [
                         SimpleScope(
-                            "FunctionDef.function_scope",
-                            [SimpleScope("AssignName.res", [])],
+                            "GlobalVariable.FunctionDef.function_scope",
+                            [SimpleScope("LocalVariable.AssignName.res", [])],
                         ),
                     ],
                 ),
@@ -103,10 +106,10 @@ class SimpleClassScope(SimpleScope):
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope("AssignName.var1", []),
+                        SimpleScope("GlobalVariable.AssignName.var1", []),
                         SimpleScope(
-                            "FunctionDef.function_scope",
-                            [SimpleScope("AssignName.res", [])],
+                            "GlobalVariable.FunctionDef.function_scope",
+                            [SimpleScope("LocalVariable.AssignName.res", [])],
                         ),
                     ],
                 ),
@@ -124,10 +127,10 @@ class SimpleClassScope(SimpleScope):
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope("AssignName.var1", []),
+                        SimpleScope("GlobalVariable.AssignName.var1", []),
                         SimpleScope(
-                            "FunctionDef.function_scope",
-                            [SimpleScope("AssignName.res", [])],
+                            "GlobalVariable.FunctionDef.function_scope",
+                            [SimpleScope("LocalVariable.AssignName.res", [])],
                         ),
                     ],
                 ),
@@ -144,10 +147,10 @@ class SimpleClassScope(SimpleScope):
                     "Module",
                     [
                         SimpleScope(
-                            "FunctionDef.function_scope",
+                            "GlobalVariable.FunctionDef.function_scope",
                             [
-                                SimpleScope("AssignName.parameter", []),
-                                SimpleScope("AssignName.res", []),
+                                SimpleScope("Parameter.AssignName.parameter", []),
+                                SimpleScope("LocalVariable.AssignName.res", []),
                             ],
                         ),
                     ],
@@ -168,12 +171,12 @@ class SimpleClassScope(SimpleScope):
                     "Module",
                     [
                         SimpleClassScope(
-                            "ClassDef.A",
+                            "GlobalVariable.ClassDef.A",
                             [
-                                SimpleScope("AssignName.class_attr1", []),
+                                SimpleScope("ClassVariable.AssignName.class_attr1", []),
                                 SimpleScope(
-                                    "FunctionDef.local_class_attr",
-                                    [SimpleScope("AssignName.var1", [])],
+                                    "LocalVariable.FunctionDef.local_class_attr",
+                                    [SimpleScope("LocalVariable.AssignName.var1", [])],
                                 ),
                             ],
                             ["class_attr1"],
@@ -201,17 +204,17 @@ class SimpleClassScope(SimpleScope):
                     "Module",
                     [
                         SimpleClassScope(
-                            "ClassDef.B",
+                            "GlobalVariable.ClassDef.B",
                             [
-                                SimpleScope("AssignName.local_class_attr1", []),
-                                SimpleScope("AssignName.local_class_attr2", []),
+                                SimpleScope("ClassVariable.AssignName.local_class_attr1", []),
+                                SimpleScope("ClassVariable.AssignName.local_class_attr2", []),
                                 SimpleScope(
-                                    "FunctionDef.__init__",
-                                    [SimpleScope("MemberAccess.self.instance_attr1", [])],
+                                    "LocalVariable.FunctionDef.__init__",
+                                    [SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", [])],
                                 ),
                                 SimpleScope(
-                                    "FunctionDef.local_instance_attr",
-                                    [SimpleScope("AssignName.var1", [])],
+                                    "LocalVariable.FunctionDef.local_instance_attr",
+                                    [SimpleScope("LocalVariable.AssignName.var1", [])],
                                 ),
                             ],
                             ["local_class_attr1", "local_class_attr2"],
@@ -236,19 +239,19 @@ class SimpleClassScope(SimpleScope):
                     "Module",
                     [
                         SimpleClassScope(
-                            "ClassDef.B",
+                            "GlobalVariable.ClassDef.B",
                             [
                                 SimpleScope(
-                                    "FunctionDef.__init__",
-                                    [SimpleScope("MemberAccess.self.instance_attr1", [])],
+                                    "LocalVariable.FunctionDef.__init__",
+                                    [SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", [])],
                                 ),
                             ],
                             [],
                             ["instance_attr1"],
                         ),
                         SimpleScope(
-                            "FunctionDef.local_instance_attr",
-                            [SimpleScope("AssignName.var1", [])],
+                            "GlobalVariable.FunctionDef.local_instance_attr",
+                            [SimpleScope("LocalVariable.AssignName.var1", [])],
                         ),
                     ],
                 ),
@@ -267,12 +270,12 @@ class SimpleClassScope(SimpleScope):
                     "Module",
                     [
                         SimpleClassScope(
-                            "ClassDef.A",
+                            "GlobalVariable.ClassDef.A",
                             [
-                                SimpleScope("AssignName.var1", []),
+                                SimpleScope("ClassVariable.AssignName.var1", []),
                                 SimpleClassScope(
-                                    "ClassDef.B",
-                                    [SimpleScope("AssignName.var2", [])],
+                                    "LocalVariable.ClassDef.B",
+                                    [SimpleScope("ClassVariable.AssignName.var2", [])],
                                     ["var2"],
                                     [],
                                 ),
@@ -300,20 +303,20 @@ class SimpleClassScope(SimpleScope):
                     "Module",
                     [
                         SimpleClassScope(
-                            "ClassDef.A",
-                            [SimpleScope("AssignName.var1", [])],
+                            "GlobalVariable.ClassDef.A",
+                            [SimpleScope("ClassVariable.AssignName.var1", [])],
                             ["var1"],
                             []
                         ),
                         SimpleClassScope(
-                            "ClassDef.X",
-                            [SimpleScope("AssignName.var3", [])],
+                            "GlobalVariable.ClassDef.X",
+                            [SimpleScope("ClassVariable.AssignName.var3", [])],
                             ["var3"],
                             []
                         ),
                         SimpleClassScope(
-                            "ClassDef.B",
-                            [SimpleScope("AssignName.var2", [])],
+                            "GlobalVariable.ClassDef.B",
+                            [SimpleScope("ClassVariable.AssignName.var2", [])],
                             ["var2"],
                             [],
                             ["ClassDef.A", "ClassDef.X"]
@@ -335,12 +338,12 @@ class SimpleClassScope(SimpleScope):
                     "Module",
                     [
                         SimpleScope(
-                            "FunctionDef.function_scope",
+                            "GlobalVariable.FunctionDef.function_scope",
                             [
-                                SimpleScope("AssignName.var1", []),
+                                SimpleScope("LocalVariable.AssignName.var1", []),
                                 SimpleClassScope(
-                                    "ClassDef.B",
-                                    [SimpleScope("AssignName.var2", [])],
+                                    "LocalVariable.ClassDef.B",
+                                    [SimpleScope("ClassVariable.AssignName.var2", [])],
                                     ["var2"],
                                     [],
                                 ),
@@ -363,12 +366,12 @@ class SimpleClassScope(SimpleScope):
                     "Module",
                     [
                         SimpleScope(
-                            "FunctionDef.function_scope",
+                            "GlobalVariable.FunctionDef.function_scope",
                             [
-                                SimpleScope("AssignName.var1", []),
+                                SimpleScope("LocalVariable.AssignName.var1", []),
                                 SimpleScope(
-                                    "FunctionDef.local_function_scope",
-                                    [SimpleScope("AssignName.var2", [])],
+                                    "LocalVariable.FunctionDef.local_function_scope",
+                                    [SimpleScope("LocalVariable.AssignName.var2", [])],
                                 ),
                             ],
                         ),
@@ -387,10 +390,10 @@ class SimpleClassScope(SimpleScope):
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope("Import.math", []),
+                        SimpleScope("GlobalVariable.Import.math", []),
                         SimpleClassScope(
-                            "ClassDef.A",
-                            [SimpleScope("AssignName.value", [])],
+                            "GlobalVariable.ClassDef.A",
+                            [SimpleScope("ClassVariable.AssignName.value", [])],
                             ["value"],
                             [],
                         ),
@@ -425,8 +428,11 @@ class SimpleClassScope(SimpleScope):
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope("ImportFrom.math.pi", []),
-                        SimpleClassScope("ClassDef.B", [SimpleScope("AssignName.value", [])], ["value"], []),
+                        SimpleScope("GlobalVariable.ImportFrom.math.pi", []),
+                        SimpleClassScope("GlobalVariable.ClassDef.B",
+                                         [SimpleScope("ClassVariable.AssignName.value", [])],
+                                         ["value"],
+                                         []),
                     ],
                 ),
             ],
@@ -466,22 +472,22 @@ class SimpleClassScope(SimpleScope):
                     "Module",
                     [
                         SimpleScope(
-                            "FunctionDef.function_scope",
+                            "GlobalVariable.FunctionDef.function_scope",
                             [
-                                SimpleScope("AssignName.var1", []),
+                                SimpleScope("LocalVariable.AssignName.var1", []),
                                 SimpleScope(
-                                    "FunctionDef.local_function_scope",
+                                    "LocalVariable.FunctionDef.local_function_scope",
                                     [
-                                        SimpleScope("AssignName.var2", []),
+                                        SimpleScope("LocalVariable.AssignName.var2", []),
                                         SimpleClassScope(
-                                            "ClassDef.local_class_scope",
+                                            "LocalVariable.ClassDef.local_class_scope",
                                             [
-                                                SimpleScope("AssignName.var3", []),
+                                                SimpleScope("LocalVariable.AssignName.var3", []),
                                                 SimpleScope(
-                                                    "FunctionDef.local_class_function_scope",
+                                                    "LocalVariable.FunctionDef.local_class_function_scope",
                                                     [
                                                         SimpleScope(
-                                                            "AssignName.var4",
+                                                            "LocalVariable.AssignName.var4",
                                                             [],
                                                         ),
                                                     ],
@@ -629,9 +635,9 @@ class SimpleClassScope(SimpleScope):
         ),
         (
             """
-                a = b
+                a = "a"
             """,
-            [SimpleScope("Module", [SimpleScope("AssignName.a", [])])],
+            [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.a", [])])],
         )
     ],
     ids=[
@@ -675,34 +681,34 @@ def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope
     if node.children is not None:
         if isinstance(node, ClassScope):
             return SimpleClassScope(
-                to_string(node.node.node),
+                to_string(node.symbol),
                 [transform_result(child) for child in node.children],
                 [to_string_class(child) for child in node.class_variables],
                 [to_string_class(child) for child in node.instance_variables],
                 [to_string_class(child) for child in node.super_classes],
             )
-        return SimpleScope(to_string(node.node.node), [transform_result(child) for child in node.children])
+        return SimpleScope(to_string(node.symbol), [transform_result(child) for child in node.children])
     else:
-        return SimpleScope(to_string(node.node.node), [])
+        return SimpleScope(to_string(node.symbol), [])
 
 
-def to_string(node: astroid.NodeNG) -> str:
-    if isinstance(node, astroid.Module):
+def to_string(symbol: Symbol) -> str:
+    if isinstance(symbol.node, astroid.Module):
         return "Module"
-    elif isinstance(node, astroid.ClassDef | astroid.FunctionDef | astroid.AssignName):
-        return f"{node.__class__.__name__}.{node.name}"
-    elif isinstance(node, astroid.AssignAttr):
-        return f"{node.__class__.__name__}.{node.attrname}"
-    elif isinstance(node, MemberAccess):
-        result = transform_member_access(node)
-        return f"MemberAccess.{result}"
-    elif isinstance(node, astroid.Import):
-        return f"{node.__class__.__name__}.{node.names[0][0]}"  # TODO: handle multiple imports and aliases
-    elif isinstance(node, astroid.ImportFrom):
-        return f"{node.__class__.__name__}.{node.modname}.{node.names[0][0]}"  # TODO: handle multiple imports and aliases
-    elif isinstance(node, astroid.Name):
-        return f"{node.__class__.__name__}.{node.name}"
-    raise NotImplementedError(f"Unknown node type: {node.__class__.__name__}")
+    elif isinstance(symbol.node, astroid.ClassDef | astroid.FunctionDef | astroid.AssignName):
+        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.name}"
+    elif isinstance(symbol.node, astroid.AssignAttr):
+        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.attrname}"
+    elif isinstance(symbol, MemberAccess):
+        result = transform_member_access(symbol)
+        return f"{symbol.__class__.__name__}.MemberAccess.{result}"
+    elif isinstance(symbol.node, astroid.Import):
+        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.names[0][0]}"  # TODO: handle multiple imports and aliases
+    elif isinstance(symbol.node, astroid.ImportFrom):
+        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.modname}.{symbol.node.names[0][0]}"  # TODO: handle multiple imports and aliases
+    elif isinstance(symbol.node, astroid.Name):
+        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.name}"
+    raise NotImplementedError(f"Unknown node type: {symbol.node.__class__.__name__}")
 
 
 def to_string_class(node: astroid.NodeNG) -> str:

@@ -176,20 +176,14 @@ class Scope:
         return self
 
     @property
-    def node(self) -> astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | MemberAccess:
+    def symbol(self) -> Symbol:
         return self._symbol
 
-    @node.setter
-    def node(self, new_node: astroid.Module | astroid.FunctionDef | astroid.ClassDef | astroid.Name | astroid.AssignName | astroid.AssignAttr | astroid.Attribute | astroid.Import | astroid.ImportFrom | MemberAccess) -> None:
-        if not isinstance(new_node, (astroid.Module, astroid.FunctionDef, astroid.ClassDef, astroid.Name,
-                                     astroid.AssignName, astroid.AssignAttr, astroid.Attribute,
-                                     astroid.Import, astroid.ImportFrom, MemberAccess)):
+    @symbol.setter
+    def symbol(self, new_symbol: Symbol) -> None:
+        if not isinstance(new_symbol, Symbol):
             raise TypeError("Invalid node type.")
-        self._symbol = new_node
-
-    @property
-    def id(self) -> NodeID:
-        return self._id
+        self._symbol = new_symbol
 
     @property
     def children(self) -> list[Scope | ClassScope]:

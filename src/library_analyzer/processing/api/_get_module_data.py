@@ -63,7 +63,7 @@ class ScopeFinder:
             The ScopeNode with the given name, or None if no node with the given name was found.
         """
         for node in self.current_node_stack:
-            if node.node.name == name:
+            if node.symbol.node.name == name:
                 return node
         return None
         # TODO: this is inefficient, instead use a dict to store the nodes
@@ -80,7 +80,7 @@ class ScopeFinder:
         inner_scope_children: list[Scope | ClassScope] = []
         for child in self.children:
             if (
-                child.parent is not None and child.parent.node.node != current_scope
+                child.parent is not None and child.parent.symbol.node != current_scope
             ):  # check if the child is in the scope of the current node
                 outer_scope_children.append(child)  # add the child to the outer scope
             else:
@@ -123,7 +123,9 @@ class ScopeFinder:
         The module node is also the first node that is visited, so the current_node_stack is empty before entering the module node.
         """
         self.current_node_stack.append(
-            Scope(_symbol=self.get_symbol(node, None), _children=[], _parent=None),
+            Scope(_symbol=self.get_symbol(node, None),
+                  _children=[],
+                  _parent=None),
         )
 
     def leave_module(self, node: astroid.Module) -> None:
@@ -133,7 +135,7 @@ class ScopeFinder:
 
         self.current_node_stack.append(
             ClassScope(
-                _symbol=self.get_symbol(node, self.current_node_stack[-1]),
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
                 _children=[],
                 _parent=self.current_node_stack[-1],
                 instance_variables=[],
@@ -148,7 +150,9 @@ class ScopeFinder:
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
         # symbol = GETSYMBOL(node, parent) -> GlobalVariable, LocalVariable, Parameter, ClassVariable, InstanceVariable, Builtin, Import
         self.current_node_stack.append(
-            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1]), _children=[], _parent=self.current_node_stack[-1]),
+            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                  _children=[],
+                  _parent=self.current_node_stack[-1]),
         )
         if node.name == "__init__":
             self._analyze_constructor(node)
@@ -156,17 +160,30 @@ class ScopeFinder:
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
         self._detect_scope(node)
 
-    @staticmethod  # maybe just pass the node of the scope as current_scope parameter
-    def get_symbol(node: astroid.NodeNG, current_scope: Scope | ClassScope | None) -> Symbol:
-        if current_scope is None or isinstance(node, astroid.Module):
-            return GlobalVariable(node=node, id=_calc_node_id(node), name=node.name)
-        if isinstance(node, astroid.FunctionDef):
-            return Parameter(node=node, id=_calc_node_id(node), name=node.name)
+    def get_symbol(self, node: astroid.NodeNG, current_scope: astroid.NodeNG | None) -> Symbol:
+        match current_scope:
+            case astroid.Module() | None:
+                return GlobalVariable(node=node, id=_calc_node_id(node), name=node.name)
+            case astroid.ClassDef():
+                if isinstance(node, astroid.FunctionDef):
+                    return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
+                return ClassVariable(node=node, id=_calc_node_id(node), name=node.name)
+            case astroid.FunctionDef():
+                if isinstance(current_scope, astroid.FunctionDef):
+                    if current_scope.name == "__init__":
+                        if isinstance(node, astroid.AssignAttr):
+                            return InstanceVariable(node=node, id=_calc_node_id(node), name=node.attrname)
+                if isinstance(node, astroid.AssignName) and self.function_parameters:
+                    if current_scope in self.function_parameters and self.function_parameters[current_scope][1].__contains__(node):
+                        return Parameter(node=node, id=_calc_node_id(node), name=node.name)
+                return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
         return Symbol(node=node, id=_calc_node_id(node), name=node.name)
 
     def enter_lambda(self, node: astroid.Lambda) -> None:
         self.current_node_stack.append(
-            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1]), _children=[], _parent=self.current_node_stack[-1]),
+            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                  _children=[],
+                  _parent=self.current_node_stack[-1]),
         )
 
     def leave_lambda(self, node: astroid.Lambda) -> None:
@@ -174,13 +191,13 @@ class ScopeFinder:
 
     def enter_arguments(self, node: astroid.Arguments) -> None:
         if node.args:
-            self.function_parameters[self.current_node_stack[-1].node] = (self.current_node_stack[-1], node.args)
+            self.function_parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], node.args)
         if node.kwonlyargs:
-            self.function_parameters[self.current_node_stack[-1].node] = (self.current_node_stack[-1], node.kwonlyargs)
+            self.function_parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], node.kwonlyargs)
         if node.posonlyargs:
-            self.function_parameters[self.current_node_stack[-1].node] = (self.current_node_stack[-1], node.posonlyargs)
+            self.function_parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], node.posonlyargs)
         if node.vararg or node.kwarg:
-            self.handle_arg(node)
+            self.handle_arg(node)  # TODO: fix this again
 
     def enter_name(self,
                    node: astroid.Name) -> None:
@@ -253,7 +270,9 @@ class ScopeFinder:
             | astroid.Starred
         ):
             parent = self.current_node_stack[-1]
-            scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1]), _children=[], _parent=parent)
+            scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                               _children=[],
+                               _parent=parent)
             self.children.append(scope_node)
 
         # add class variables to the class_variables list of the class
@@ -265,7 +284,9 @@ class ScopeFinder:
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
         member_access = _construct_member_access(node)
-        scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1]), _children=[], _parent=parent)
+        scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                           _children=[],
+                           _parent=parent)
         self.children.append(scope_node)
         self.name_nodes[member_access] = self.current_node_stack[-1]
 
@@ -290,12 +311,16 @@ class ScopeFinder:
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
-        scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1]), _children=[], _parent=parent)
+        scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                           _children=[],
+                           _parent=parent)
         self.children.append(scope_node)
 
     def enter_importfrom(self, node: astroid.ImportFrom) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
-        scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1]), _children=[], _parent=parent)
+        scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                           _children=[],
+                           _parent=parent)
         self.children.append(scope_node)
 
     def check_if_global(self, name: str, node: astroid.NodeNG) -> bool:
