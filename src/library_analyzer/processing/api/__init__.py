@@ -42,7 +42,6 @@ from ._package_metadata import (
     package_root,
 )
 from ._resolve_references import (
-    ReferenceNode,
     resolve_references,
     _add_target_references,
     _create_unspecified_references,
@@ -92,7 +91,6 @@ __all__ = [
     "ParameterIsIllegal",
     "ParameterHasType",
     "ParametersInRelation",
-    "ReferenceNode",
     "_find_references",
     "_create_unspecified_references",
     "_add_target_references",

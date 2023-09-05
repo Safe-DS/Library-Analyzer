@@ -68,6 +68,8 @@ from ._scope import (
     Builtin,
 )
 
+from ._reference import ReferenceNode
+
 __all__ = [
     "API",
     "API_SCHEMA_VERSION",
@@ -125,4 +127,5 @@ __all__ = [
     "InstanceVariable",
     "Import",
     "Builtin",
+    "ReferenceNode",
 ]

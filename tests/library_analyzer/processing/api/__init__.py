@@ -1,4 +1,4 @@
-from tests.library_analyzer.processing.api.test_resolve_references import(
+from tests.library_analyzer.processing.api.test_get_module_data import(
     transform_member_access
 )
 

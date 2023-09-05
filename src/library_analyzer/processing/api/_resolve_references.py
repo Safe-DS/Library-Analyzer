@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import field
 from typing import Callable
 
 
@@ -22,18 +22,9 @@ from library_analyzer.processing.api.model import (
     Parameter,
     LocalVariable,
     Builtin,
-    ModuleData
+    ModuleData,
+    ReferenceNode,
 )
-
-
-@dataclass
-class ReferenceNode:
-    name: astroid.Name | astroid.AssignName | astroid.Call | MemberAccess | str
-    scope: Scope
-    referenced_symbols: list[Symbol] = field(default_factory=list)
-
-    def __contains__(self, item) -> bool:
-        return item in self.referenced_symbols
 
 
 def get_scope_node_by_node_id(scope: Scope | list[Scope], targeted_node_id: NodeID,
