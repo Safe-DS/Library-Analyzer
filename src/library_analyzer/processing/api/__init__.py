@@ -53,7 +53,8 @@ from ._get_module_data import (
     _get_module_data,
     get_base_expression,
     _calc_node_id,
-    _construct_member_access,
+    _construct_member_access_value,
+    _construct_member_access_target,
 )
 
 __all__ = [
@@ -96,7 +97,8 @@ __all__ = [
     "_add_target_references",
     "_calc_node_id",
     "_get_module_data",
-    "_construct_member_access",
+    "_construct_member_access_value",
+    "_construct_member_access_target",
     "resolve_references",
     "get_base_expression",
     "extract_called_after_functions",

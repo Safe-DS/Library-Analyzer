@@ -28,10 +28,11 @@ class ModuleData:
     functions: dict[str, Scope | ClassScope]  # classScope should not be possible here: check that
     # members: dict[str, list[Symbol]]  # this contains all names of function names and attribute names and their declaratioon
     globals: dict[str, Scope | ClassScope]
-    names: dict[astroid.Name, Scope | ClassScope]
+    value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
+    target_nodes: dict[astroid.AssignName | MemberAccessTarget, Scope | ClassScope]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]
-    names_list: list[astroid.Name | astroid.AssignName | MemberAccess]  # TODO: dict[str, tuple [astroid.Name astroid.AssignName | MemberAccess, Scope]]
-    function_calls: list[tuple[astroid.Call, Scope | ClassScope]]  # TODO: dict dict[str, tuple[astroid.Call, Scope | ClassScope]]
+    # names_list: list[astroid.Name | astroid.AssignName | MemberAccess]  # TODO: dict[str, tuple [astroid.Name astroid.AssignName | MemberAccess, Scope]]
+    function_calls: dict[str, tuple[astroid.Call, Scope | ClassScope]]
 
 
 @dataclass

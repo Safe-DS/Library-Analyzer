@@ -43,12 +43,13 @@ class ScopeFinder:
     children: list[Scope | ClassScope] = field(default_factory=list)
     classes: dict[str, ClassScope] = field(default_factory=dict)
     functions: dict[str, Scope | ClassScope] = field(default_factory=dict)
-    name_nodes: dict[astroid.Name | MemberAccess, Scope | ClassScope] = field(default_factory=dict)
+    value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope] = field(default_factory=dict)
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope] = field(default_factory=dict)
     global_variables: dict[str, Scope | ClassScope] = field(default_factory=dict)
-    function_parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]] = field(
+    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]] = field(
         default_factory=dict)
     names_list: list[astroid.Name | astroid.AssignName | MemberAccess] = field(default_factory=list)
-    function_calls: list[tuple[astroid.Call, Scope | ClassScope]] = field(default_factory=list)
+    function_calls: dict[str, tuple[astroid.Call, Scope | ClassScope]] = field(default_factory=dict)
 
     def get_node_by_name(self, name: str) -> Scope | ClassScope | None:
         """
@@ -177,8 +178,8 @@ class ScopeFinder:
                     if current_scope.name == "__init__":
                         if isinstance(node, MemberAccessTarget):
                             return InstanceVariable(node=node, id=_calc_node_id(node), name=node.name)
-                if isinstance(node, astroid.AssignName) and self.function_parameters:
-                    if current_scope in self.function_parameters and self.function_parameters[current_scope][1].__contains__(node):
+                if isinstance(node, astroid.AssignName) and self.parameters:
+                    if current_scope in self.parameters and self.parameters[current_scope][1].__contains__(node):
                         return Parameter(node=node, id=_calc_node_id(node), name=node.name)
                 return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
         return Symbol(node=node, id=_calc_node_id(node), name=node.name)
@@ -195,11 +196,11 @@ class ScopeFinder:
 
     def enter_arguments(self, node: astroid.Arguments) -> None:
         if node.args:
-            self.function_parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], node.args)
+            self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], node.args)
         if node.kwonlyargs:
-            self.function_parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], node.kwonlyargs)
+            self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], node.kwonlyargs)
         if node.posonlyargs:
-            self.function_parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], node.posonlyargs)
+            self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], node.posonlyargs)
         if node.vararg or node.kwarg:
             self.handle_arg(node)  # TODO: fix this again
 
@@ -207,7 +208,7 @@ class ScopeFinder:
                    node: astroid.Name) -> None:
         if isinstance(node.parent, astroid.Decorators) or isinstance(node.parent.parent, astroid.Decorators):
             return
-        self.name_nodes[node] = self.current_node_stack[-1]  # TODO: this could be more efficient if unnecessary nodes are not added to the dict
+        # self.value_nodes[node] = self.current_node_stack[-1]  # TODO: this could be more efficient if unnecessary nodes are not added to the dict
 
         if isinstance(
             node.parent,
@@ -230,14 +231,26 @@ class ScopeFinder:
         ):
             if node.name == "self":
                 return
-            self.names_list.append(node)
+            # self.names_list.append(node)
+            # the following if statement is necessary to avoid adding the same node to
+            # both the target_nodes and the value_nodes dict since there is a case where a name node is used as a
+            # target we need to check if the node is already in the target_nodes dict this is only the case if the
+            # name node is the receiver of a MemberAccessTarget node it is made sure that in this case the node is
+            # definitely in the target_nodes dict because the MemberAccessTarget node is added to the dict before the
+            # name node
+            if node not in self.target_nodes:
+                self.value_nodes[node] = self.current_node_stack[-1]
+
+        elif isinstance(node.parent, astroid.AssignAttr):
+            self.target_nodes[node] = self.current_node_stack[-1]
         if (
             isinstance(node.parent, astroid.Call)
             and isinstance(node.parent.func, astroid.Name)
             and node.parent.func.name != node.name
         ):
             # append a node only then when it is not the name node of the function
-            self.names_list.append(node)
+            # self.names_list.append(node)
+            self.value_nodes[node] = self.current_node_stack[-1]
 
     def enter_assignname(self, node: astroid.AssignName) -> None:
         if isinstance(
@@ -255,7 +268,8 @@ class ScopeFinder:
             | astroid.NamedExpr
             | astroid.Starred
         ):
-            self.names_list.append(node)
+            # self.names_list.append(node)
+            self.target_nodes[node] = self.current_node_stack[-1]
 
         if isinstance(node.parent, astroid.Arguments) and node.name == "self":
             pass  # TODO: Special treatment for self parameter
@@ -287,22 +301,48 @@ class ScopeFinder:
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
-        member_access = _construct_member_access(node.expr, node)
+        member_access = _construct_member_access_target(node.expr, node)
         scope_node = Scope(_symbol=self.get_symbol(member_access, self.current_node_stack[-1].symbol.node),
                            _children=[],
                            _parent=parent)
         self.children.append(scope_node)
-        self.name_nodes[member_access] = self.current_node_stack[-1]
+        if isinstance(member_access, MemberAccessTarget):
+            self.target_nodes[member_access] = self.current_node_stack[-1]
+        if isinstance(member_access, MemberAccessValue):
+            self.value_nodes[member_access] = self.current_node_stack[-1]
 
-        self.names_list.append(member_access)
+        # self.names_list.append(member_access)
 
     def enter_attribute(self, node: astroid.Attribute) -> None:
         if isinstance(node.parent, astroid.Decorators):
             return
-        member_access = _construct_member_access(node.expr, node)
-        self.name_nodes[member_access] = self.current_node_stack[-1]
 
-        self.names_list.append(member_access)
+        member_access = _construct_member_access_value(node.expr, node)
+        # Astroid generates an Attribute node for every attribute access.
+        # We therefore need to check if the attribute access is a target or a value.
+        if isinstance(node.parent, astroid.AssignAttr) or self.has_assignattr_parent(node):
+            member_access = _construct_member_access_target(node.expr, node)
+            if isinstance(node.expr, astroid.Name):
+                if node.expr.name == "self":
+                    return
+                self.target_nodes[node.expr] = self.current_node_stack[-1]
+
+        if isinstance(member_access, MemberAccessTarget):
+            self.target_nodes[member_access] = self.current_node_stack[-1]
+        elif isinstance(member_access, MemberAccessValue):
+            self.value_nodes[member_access] = self.current_node_stack[-1]
+
+        # self.names_list.append(member_access)
+
+    @staticmethod
+    def has_assignattr_parent(node) -> bool:
+        """Checks if any parent of the given node is an AssignAttr node."""
+        current_node = node
+        while current_node is not None:
+            if isinstance(current_node, astroid.AssignAttr):
+                return True
+            current_node = current_node.parent
+        return False
 
     def enter_global(self, node: astroid.Global) -> None:
         for name in node.names:
@@ -311,7 +351,7 @@ class ScopeFinder:
 
     def enter_call(self, node: astroid.Call) -> None:
         if isinstance(node.func, astroid.Name):
-            self.function_calls.append((node, self.current_node_stack[-1]))
+            self.function_calls[node.func.name] = (node, self.current_node_stack[-1])
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
@@ -372,10 +412,10 @@ class ScopeFinder:
                                               col_offset=node.parent.col_offset)
         # TODO: col_offset is not correct: it should be the col_offset of the vararg/(kwarg) node which is not
         #  collected by astroid
-        self.names_list.append(constructed_node)
-        scope_node = Scope(_symbol=constructed_node, _id=_calc_node_id(constructed_node), _children=[], _parent=self.current_node_stack[-1])
+        self.target_nodes[constructed_node] = self.current_node_stack[-1]
+        scope_node = Scope(_symbol=Parameter(constructed_node, _calc_node_id(constructed_node), constructed_node.name), _children=[], _parent=self.current_node_stack[-1])
         self.children.append(scope_node)
-        self.function_parameters[self.current_node_stack[-1].node] = (self.current_node_stack[-1], [constructed_node])
+        self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], [constructed_node])
 
 
 def _calc_node_id(
@@ -419,25 +459,30 @@ def _calc_node_id(
     # TODO: add fitting default case and merge same types of cases together
 
 
-def _construct_member_access(receiver: astroid.Name | astroid.Attribute | astroid.Call, member: astroid.Attribute | astroid.AssignAttr) -> MemberAccess:
-    if isinstance(member, astroid.AssignAttr):
+def _construct_member_access_target(receiver: astroid.Name | astroid.Attribute | astroid.Call, member: astroid.AssignAttr | astroid.Attribute) -> MemberAccessTarget:
+    try:
         if isinstance(receiver, astroid.Name):
             return MemberAccessTarget(receiver=receiver, member=member)
         elif isinstance(receiver, astroid.Call):
             return MemberAccessTarget(receiver=receiver.func, member=member)
         else:
-            return MemberAccessTarget(receiver=_construct_member_access(receiver.expr, receiver),
+            return MemberAccessTarget(receiver=_construct_member_access_target(receiver.expr, receiver),
                                       member=member)
-    elif isinstance(member, astroid.Attribute):
+    except TypeError:
+        raise TypeError(f"Unexpected node type {type(member)}")
+
+
+def _construct_member_access_value(receiver: astroid.Name | astroid.Attribute | astroid.Call, member: astroid.Attribute) -> MemberAccessValue:
+    try:
         if isinstance(receiver, astroid.Name):
             return MemberAccessValue(receiver=receiver, member=member)
         elif isinstance(receiver, astroid.Call):
             return MemberAccessValue(receiver=receiver.func, member=member)
         else:
-            return MemberAccessValue(receiver=_construct_member_access(receiver.expr, receiver),
+            return MemberAccessValue(receiver=_construct_member_access_value(receiver.expr, receiver),
                                      member=member)
-
-    raise TypeError(f"Unexpected node type {type(member)}")
+    except TypeError:
+        raise TypeError(f"Unexpected node type {type(member)}")
 
 
 def get_base_expression(node: MemberAccess) -> astroid.NodeNG:
@@ -468,7 +513,7 @@ def _get_module_data(code: str) -> ModuleData:
                       classes=scope_handler.classes,
                       functions=scope_handler.functions,
                       globals=scope_handler.global_variables,
-                      names=scope_handler.name_nodes,
-                      parameters=scope_handler.function_parameters,
-                      names_list=scope_handler.names_list,
+                      value_nodes=scope_handler.value_nodes,
+                      target_nodes=scope_handler.target_nodes,
+                      parameters=scope_handler.parameters,
                       function_calls=scope_handler.function_calls)

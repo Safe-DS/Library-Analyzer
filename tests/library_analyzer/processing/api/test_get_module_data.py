@@ -10,11 +10,14 @@ from library_analyzer.processing.api.model import (
     ClassScope,
     MemberAccess,
     Symbol,
+    MemberAccessValue,
+    MemberAccessTarget,
 )
 
 from library_analyzer.processing.api import (
     _get_module_data,
-    _construct_member_access,
+    _construct_member_access_value,
+    _construct_member_access_target,
     _calc_node_id,
 )
 
@@ -873,17 +876,6 @@ def test_get_module_data_globals(code: str, expected: str) -> None:
     [
     ]
 )
-def test_get_module_data_names(code: str, expected: str) -> None:
-    names = _get_module_data(code).classes
-    raise NotImplementedError("TODO: implement test")
-    assert names == expected
-
-
-@pytest.mark.parametrize(
-    ("code", "expected"),
-    [
-    ]
-)
 def test_get_module_data_parameters(code: str, expected: str) -> None:
     parameters = _get_module_data(code).classes
     raise NotImplementedError("TODO: implement test")
@@ -891,124 +883,136 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("code", "expected"),
+    ("code", "expected"),  # expected is a tuple of (value_nodes, target_nodes)
     [
-        (
+        (  # Assign
             """
                 def variable():
                     var1 = 20
             """,
-            ["AssignName.var1"],
+            ({},
+             {"var1": "AssignName.var1"}),
         ),
-        (
+        (  # Assign Parameter
             """
                 def parameter(a):
                     var1 = a
             """,
-            ["AssignName.a", "AssignName.var1", "Name.a"],
+            ({"a": "Name.a"},
+             {"var1": "AssignName.var1",
+              "a": "AssignName.a"}),
         ),
-        (
+        (  # Global unused
             """
                 def glob():
                     global glob1
             """,
-            [],
+            ({}, {}),
         ),
-        (
+        (  # Global and Assign
             """
                 def glob():
                     global glob1
                     var1 = glob1
             """,
-            ["AssignName.var1", "Name.glob1"],
+            ({"glob1": "Name.glob1"},
+             {"var1": "AssignName.var1"}),
         ),
-        (
+        (  # Assign Class Attribute
             """
                 def class_attr():
                     var1 = A.class_attr
             """,
-            ["AssignName.var1", "MemberAccess.A.class_attr", "Name.A"],
+            ({"A": "Name.A",
+              "A.class_attr": "MemberAccessValue.A.class_attr"},
+             {"var1": "AssignName.var1"}),
         ),
-        (
+        (  # Assign Instance Attribute
             """
                 def instance_attr():
                     b = B()
                     var1 = b.instance_attr
             """,
-            ["AssignName.b", "AssignName.var1", "MemberAccess.b.instance_attr", "Name.b"],
+            ({"b": "Name.b",
+              "b.instance_attr": "MemberAccessValue.b.instance_attr"},
+             {"b": "AssignName.b",
+              "var1": "AssignName.var1"}),
         ),
-        (
+        (  # Assign MemberAccessValue
             """
                 def chain():
                     var1 = test.instance_attr.field.next_field
             """,
-            [
-                "AssignName.var1",
-                "MemberAccess.test.instance_attr.field.next_field",
-                "MemberAccess.test.instance_attr.field",
-                "MemberAccess.test.instance_attr",
-                "Name.test",
-            ],
+            ({"test": "Name.test",
+              "test.instance_attr": "MemberAccessValue.test.instance_attr",
+              "test.instance_attr.field": "MemberAccessValue.test.instance_attr.field",
+              "test.instance_attr.field.next_field": "MemberAccessValue.test.instance_attr.field.next_field"},
+             {"var1": "AssignName.var1"}),
         ),
-        (
+        (  # Assign MemberAccessTarget
             """
                 def chain_reversed():
                     test.instance_attr.field.next_field = var1
             """,
-            [
-                "MemberAccess.test.instance_attr.field.next_field",
-                "MemberAccess.test.instance_attr.field",
-                "MemberAccess.test.instance_attr",
-                "Name.test",
-                "Name.var1",
-            ],
+            ({"var1": "Name.var1"},
+             {"test": "Name.test",
+              "test.instance_attr": "MemberAccessTarget.test.instance_attr",
+              "test.instance_attr.field": "MemberAccessTarget.test.instance_attr.field",
+              "test.instance_attr.field.next_field": "MemberAccessTarget.test.instance_attr.field.next_field"})
         ),
-        (
+        (  # AssignAttr
             """
                 def assign_attr():
                     a.res = 1
             """,
-            ["MemberAccess.a.res"],
+            ({},
+             {"a": "Name.a",
+              "a.res": "MemberAccessTarget.a.res"}),
         ),
-        (
+        (  # AugAssign
             """
                 def aug_assign():
                     var1 += 1
             """,
-            ["AssignName.var1"],
+            ({},
+             {"var1": "AssignName.var1"}),
         ),
-        (
+        (  # Return
             """
                 def assign_return():
                     return var1
             """,
-            ["Name.var1"],
+            ({"var1": "Name.var1"},
+             {})
         ),
-        (
+        (  # While
             """
                 def while_loop():
                     while var1 > 0:
                         do_something()
             """,
-            ["Name.var1"],
+            ({"var1": "Name.var1"},
+             {})
         ),
-        (
+        (  # For
             """
                 def for_loop():
                     for var1 in range(10):
                         do_something()
             """,
-            ["AssignName.var1"],
+            ({},
+             {"var1": "AssignName.var1"})
         ),
-        (
+        (  # If
             """
                 def if_state():
                     if var1 > 0:
                         do_something()
             """,
-            ["Name.var1"],
+            ({"var1": "Name.var1"},
+             {})
         ),
-        (
+        (  # If Else
             """
                 def if_else_state():
                     if var1 > 0:
@@ -1016,9 +1020,10 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     else:
                         do_something_else()
             """,
-            ["Name.var1"],
+            ({"var1": "Name.var1"},
+             {})
         ),
-        (
+        (  # If Elif
             """
                 def if_elif_state():
                     if var1 & True:
@@ -1026,44 +1031,54 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     elif var1 | var2:
                         do_something_else()
             """,
-            ["Name.var1", "Name.var1", "Name.var2"],
+            ({"var1": "Name.var1",
+              "var1": "Name.var1",
+              "var2": "Name.var2"},
+             {})
         ),
-        (
+        (  # AnnAssign
             """
                 def ann_assign():
                     var1: int = 10
             """,
-            ["AssignName.var1"],
+            ({},
+             {"var1": "AssignName.var1"})
         ),
-        (
+        (  # FuncCall
             """
                 def func_call():
                     var1 = func(var2)
             """,
-            ["AssignName.var1", "Name.var2"],
+            ({"var2": "Name.var2"},
+             {"var1": "AssignName.var1"})
         ),
-        (
+        (  # FuncCall Parameter
             """
                 def func_call_par(param):
                     var1 = param + func(param)
             """,
-            ["AssignName.param", "AssignName.var1", "Name.param", "Name.param"],
+            ({"param": "Name.param",
+              "param": "Name.param"},
+             {"param": "AssignName.param",
+              "var1": "AssignName.var1"})
         ),
-        (
+        (  # BinOp
             """
                 def bin_op():
                     var1 = 20 + var2
             """,
-            ["AssignName.var1", "Name.var2"],
+            ({"var2": "Name.var2"},
+             {"var1": "AssignName.var1"})
         ),
-        (
+        (  # BoolOp
             """
                 def bool_op():
                     var1 = True and var2
             """,
-            ["AssignName.var1", "Name.var2"],
+            ({"var2": "Name.var2"},
+             {"var1": "AssignName.var1"})
         ),
-        (
+        (  # Import
             """
                 import math
 
@@ -1071,9 +1086,9 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     var1 = math.pi
                     return var1
             """,
-            ["Import.math", "AssignName.var1", "MemberAccess.math.pi", "Name.var1"]
+            ("Import.math", "AssignName.var1", "MemberAccess.math.pi", "Name.var1")  # TODO: adapt test when import is implemented
         ),
-        (
+        (  # Import From
             """
                 from math import pi
 
@@ -1081,9 +1096,9 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     var1 = pi
                     return var1
             """,
-            ["ImportFrom.math.pi", "AssignName.var1", "Name.test", "Name.var1"]
+            ("ImportFrom.math.pi", "AssignName.var1", "Name.test", "Name.var1")  # TODO: adapt test when import is implemented
         ),
-        (
+        (  # Import From As
             """
                 from math import pi as test
 
@@ -1091,9 +1106,9 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     var1 = test
                     return var1
             """,
-            ["ImportFrom.math.pi.test", "AssignName.var1", "Name.test", "Name.var1"]
+            ("ImportFrom.math.pi.test", "AssignName.var1", "Name.test", "Name.var1")  # TODO: adapt test when import is implemented
         ),
-        (
+        (  # ASTWalker
             """
                 from collections.abc import Callable
                 from typing import Any
@@ -1149,7 +1164,7 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
 
                         return enter_method, leave_method
 
-            """, [""]
+            """, ("")
         ),
     ],
     ids=[
@@ -1159,8 +1174,8 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
         "Global and Assign",
         "Assign Class Attribute",
         "Assign Instance Attribute",
-        "Assign MemberAccess as value",
-        "Assign MemberAccess as target",
+        "Assign MemberAccessValue",
+        "Assign MemberAccessTarget",
         "AssignAttr",
         "AugAssign",
         "Return",
@@ -1180,27 +1195,51 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
         "ASTWalker"
     ],
 )
-def test_get_module_data_names_list(code: str, expected: str) -> None:
-    names_list = _get_module_data(code).names_list
+def test_get_module_data_value_and_target_nodes(code: str, expected: str) -> None:
+    module_data = _get_module_data(code)
+    value_nodes = module_data.value_nodes
+    target_nodes = module_data.target_nodes
 
-    assert_names_list(names_list, expected)
-
-
-def assert_names_list(names_list: list[astroid.Name], expected: str) -> None:
-    names_list = transform_names_list(names_list)
-    assert names_list == expected
+    # assert (value_nodes, target_nodes) == expected
+    assert_names_list(value_nodes, target_nodes, expected)
 
 
-def transform_names_list(names_list: list[astroid.Name]) -> list[str]:
-    names_list_transformed = []
-    for name in names_list:
-        if isinstance(name, astroid.Name | astroid.AssignName):
-            names_list_transformed.append(f"{name.__class__.__name__}.{name.name}")
-        elif isinstance(name, MemberAccess):
-            result = transform_member_access(name)
-            names_list_transformed.append(f"MemberAccess.{result}")
+def assert_names_list(value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope],
+                      target_nodes: dict[astroid.AssignName | MemberAccessTarget, Scope | ClassScope],
+                      expected: str) -> None:
+    value_nodes_transformed = transform_value_nodes(value_nodes)
+    target_nodes_transformed = transform_target_nodes(target_nodes)
+    assert (value_nodes_transformed, target_nodes_transformed) == expected
 
-    return names_list_transformed
+
+def transform_value_nodes(value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]) -> dict[str, str]:
+    value_nodes_transformed = {}
+    for node in value_nodes:
+        if isinstance(node, astroid.Name):
+            value_nodes_transformed.update({node.name: f"{node.__class__.__name__}.{node.name}"})
+        elif isinstance(node, MemberAccessValue):
+            result = transform_member_access(node)
+            value_nodes_transformed.update({result: f"{node.__class__.__name__}.{result}"})
+
+    return value_nodes_transformed
+
+
+def transform_target_nodes(target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]) -> dict[str, str]:
+    target_nodes_transformed = {}
+    for node in target_nodes:
+        if isinstance(node, astroid.AssignName | astroid.Name):
+            target_nodes_transformed.update({node.name: f"{node.__class__.__name__}.{node.name}"})
+        elif isinstance(node, MemberAccessTarget):
+            result = transform_member_access(node)
+            target_nodes_transformed.update({result: f"{node.__class__.__name__}.{result}"})
+
+    return target_nodes_transformed
+
+
+# def get_symbol(node, scope: Scope | ClassScope) -> str:
+#     for child in scope.children:
+#         if child.symbol.node == node:
+#             return child.symbol.__class__.__name__
 
 
 def transform_member_access(member_access: MemberAccess) -> str:
