@@ -1267,6 +1267,60 @@ for value in gen:
              ReferenceTestNode("gen.line7", "Module.", ["GlobalVariable.gen.line6"]),
              ReferenceTestNode("value.line8", "Module.", ["GlobalVariable.value.line7"])]
         ),
+        (  # language=Python "functions with same name but different classes"
+            """
+class A:
+    @staticmethod
+    def add(a, b):
+        return a + b
+
+class B:
+    @staticmethod
+    def add(a, b):
+        return a + 2 * b
+
+A.add(1, 2)
+B.add(1, 2)
+            """,  # language=none
+            []
+        ),
+        (  # language=Python "functions with same name but different signature"
+            """
+
+def add(a, b):
+    return a + b
+
+def add(a, b, c):
+    return a + b + c
+
+add(1, 2)
+add(1, 2, 3)
+            """,  # language=none
+            []
+        ),
+        (  # language=Python "class function call"
+            """
+class A:
+    def fun_a(self):
+        return
+
+a = A()
+a.fun_a()
+            """,  # language=none
+            [
+             ]
+        ),
+        (  # language=Python "class function call, direct call"
+            """
+class A:
+    def fun_a(self):
+        return
+
+A().fun_a()
+            """,  # language=none
+            [
+             ]
+        ),
     ],
     ids=[
         "builtin function call",
@@ -1286,6 +1340,10 @@ for value in gen:
         "lambda function used as normal function",
         "lambda function as key",
         "generator function",
+        "functions with same name but different classes",
+        "functions with same name but different signature",
+        "class function call",
+        "class function call, direct call",
     ]
 )
 def test_resolve_references_calls(code: str, expected: list[ReferenceTestNode]) -> None:
