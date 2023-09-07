@@ -52,7 +52,6 @@ class ModuleDataBuilder:
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope] = field(default_factory=dict)
     global_variables: dict[str, Scope | ClassScope] = field(default_factory=dict)
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]] = field(default_factory=dict)
-    # names_list: list[astroid.Name | astroid.AssignName | MemberAccess] = field(default_factory=list)
     function_calls: dict[astroid.Call, Scope | ClassScope] = field(default_factory=dict)
 
     def get_node_by_name(self, name: str) -> Scope | ClassScope | None:
@@ -153,7 +152,6 @@ class ModuleDataBuilder:
         self._detect_scope(node)
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
-        # symbol = GETSYMBOL(node, parent) -> GlobalVariable, LocalVariable, Parameter, ClassVariable, InstanceVariable, Builtin, Import
         self.current_node_stack.append(
             Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
                   _children=[],
@@ -223,7 +221,6 @@ class ModuleDataBuilder:
                    node: astroid.Name) -> None:
         if isinstance(node.parent, astroid.Decorators) or isinstance(node.parent.parent, astroid.Decorators):
             return
-        # self.value_nodes[node] = self.current_node_stack[-1]  # TODO: this could be more efficient if unnecessary nodes are not added to the dict
 
         if isinstance(
             node.parent,
@@ -246,7 +243,6 @@ class ModuleDataBuilder:
         ):
             if node.name == "self":
                 return
-            # self.names_list.append(node)
             # the following if statement is necessary to avoid adding the same node to
             # both the target_nodes and the value_nodes dict since there is a case where a name node is used as a
             # target we need to check if the node is already in the target_nodes dict this is only the case if the
@@ -264,7 +260,6 @@ class ModuleDataBuilder:
             and node.parent.func.name != node.name
         ):
             # append a node only then when it is not the name node of the function
-            # self.names_list.append(node)
             self.value_nodes[node] = self.current_node_stack[-1]
 
     def enter_assignname(self, node: astroid.AssignName) -> None:
@@ -283,7 +278,6 @@ class ModuleDataBuilder:
             | astroid.NamedExpr
             | astroid.Starred
         ):
-            # self.names_list.append(node)
             self.target_nodes[node] = self.current_node_stack[-1]
 
         if isinstance(node.parent, astroid.Arguments) and node.name == "self":
@@ -347,8 +341,6 @@ class ModuleDataBuilder:
             self.target_nodes[member_access] = self.current_node_stack[-1]
         elif isinstance(member_access, MemberAccessValue):
             self.value_nodes[member_access] = self.current_node_stack[-1]
-
-        # self.names_list.append(member_access)
 
     @staticmethod
     def has_assignattr_parent(node) -> bool:

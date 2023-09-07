@@ -30,7 +30,6 @@ class ModuleData:
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
-    # names_list: list[astroid.Name | astroid.AssignName | MemberAccess]
     function_calls: dict[astroid.Call, Scope | ClassScope]
 
 
