@@ -379,7 +379,7 @@ def test_calc_node_id(
                             [
                                 SimpleScope("ClassVariable.AssignName.var1", []),
                                 SimpleClassScope(
-                                    "LocalVariable.ClassDef.B",
+                                    "ClassVariable.ClassDef.B",
                                     [SimpleScope("ClassVariable.AssignName.var2", [])],
                                     ["var2"],
                                     [],
@@ -495,7 +495,7 @@ def test_calc_node_id(
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope("Import.Import.math", []),
+                        SimpleScope("GlobalVariable.Import.math", []),
                         SimpleClassScope(
                             "GlobalVariable.ClassDef.A",
                             [SimpleScope("ClassVariable.AssignName.value", [])],
@@ -512,7 +512,10 @@ def test_calc_node_id(
 
                 a = math.pi + datetime.today()
             """,
-            []
+            [SimpleScope("Module",
+                         [SimpleScope("GlobalVariable.Import.math", []),
+                          SimpleScope("GlobalVariable.Import.datetime", []),
+                          SimpleScope("GlobalVariable.AssignName.a", [])])],
         ),
         (
             """
@@ -520,7 +523,15 @@ def test_calc_node_id(
 
                 a = m.pi
             """,
-            []
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope("GlobalVariable.Import.m", []),
+                        SimpleScope("GlobalVariable.AssignName.a", []),
+                    ],
+                ),
+            ],
         ),
         (
             """
@@ -533,7 +544,7 @@ def test_calc_node_id(
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope("Import.ImportFrom.math.pi", []),
+                        SimpleScope("GlobalVariable.ImportFrom.math.pi", []),
                         SimpleClassScope("GlobalVariable.ClassDef.B",
                                          [SimpleScope("ClassVariable.AssignName.value", [])],
                                          ["value"],
@@ -548,7 +559,12 @@ def test_calc_node_id(
 
                 a = pi + e
             """,
-            []
+            [
+                SimpleScope("Module",
+                            [SimpleScope("GlobalVariable.ImportFrom.math.pi", []),
+                             SimpleScope("GlobalVariable.ImportFrom.math.e", []),
+                             SimpleScope("GlobalVariable.AssignName.a", [])])
+            ]
         ),
         (
             """
@@ -556,7 +572,13 @@ def test_calc_node_id(
 
                 a = pi_value
             """,
-            []
+            [
+                SimpleScope(
+                    "Module",
+                    [SimpleScope("GlobalVariable.ImportFrom.math.pi_value", []),
+                     SimpleScope("GlobalVariable.AssignName.a", [])]
+                )
+            ]
         ),
         (
             """

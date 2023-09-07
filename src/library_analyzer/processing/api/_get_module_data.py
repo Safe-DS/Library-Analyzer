@@ -13,7 +13,6 @@ from library_analyzer.processing.api.model import (
     NodeID,
     MemberAccessTarget,
     MemberAccessValue,
-    Reference,
     Symbol,
     GlobalVariable,
     LocalVariable,
@@ -21,12 +20,11 @@ from library_analyzer.processing.api.model import (
     Parameter,
     InstanceVariable,
     Import,
-    Builtin
 )
 
 
 @dataclass
-class ScopeFinder:
+class ModuleDataBuilder:
     """
     A ScopeFinder instance is used to find the scope of a reference.
 
@@ -35,8 +33,15 @@ class ScopeFinder:
 
     Attributes
     ----------
-        current_node_stack      stack of nodes that are currently visited by the ASTWalker .
+        current_node_stack      stack of nodes that are currently visited by the ASTWalker.
         children:               All found children nodes are stored in children until their scope is determined.
+        classes:                dict of all classes in the module and their corresponding ClassScope instance.
+        functions:              dict of all functions in the module and their corresponding Scope or ClassScope instance.
+        value_nodes:            dict of all nodes that are used as a value and their corresponding Scope or ClassScope instance.
+        target_nodes:           dict of all nodes that are used as a target and their corresponding Scope or ClassScope instance.
+        global_variables:       dict of all global variables and their corresponding Scope or ClassScope instance.
+        parameters:             dict of all parameters and their corresponding Scope or ClassScope instance.
+        function_calls:         dict of all function calls and their corresponding Scope or ClassScope instance.
     """
 
     current_node_stack: list[Scope | ClassScope] = field(default_factory=list)
@@ -46,10 +51,9 @@ class ScopeFinder:
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope] = field(default_factory=dict)
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope] = field(default_factory=dict)
     global_variables: dict[str, Scope | ClassScope] = field(default_factory=dict)
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]] = field(
-        default_factory=dict)
-    names_list: list[astroid.Name | astroid.AssignName | MemberAccess] = field(default_factory=list)
-    function_calls: dict[str, tuple[astroid.Call, Scope | ClassScope]] = field(default_factory=dict)
+    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]] = field(default_factory=dict)
+    # names_list: list[astroid.Name | astroid.AssignName | MemberAccess] = field(default_factory=list)
+    function_calls: dict[astroid.Call, Scope | ClassScope] = field(default_factory=dict)
 
     def get_node_by_name(self, name: str) -> Scope | ClassScope | None:
         """
@@ -172,16 +176,19 @@ class ScopeFinder:
             case astroid.ClassDef():
                 if isinstance(node, astroid.FunctionDef):
                     return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
-                return ClassVariable(node=node, id=_calc_node_id(node), name=node.name)
+                return ClassVariable(node=node, id=_calc_node_id(node), name=node.name, klass=current_scope)
             case astroid.FunctionDef():
                 if isinstance(current_scope, astroid.FunctionDef):
                     if current_scope.name == "__init__":
                         if isinstance(node, MemberAccessTarget):
-                            return InstanceVariable(node=node, id=_calc_node_id(node), name=node.name)
+                            return InstanceVariable(node=node, id=_calc_node_id(node), name=node.member.attrname, klass=current_scope.parent)
                 if isinstance(node, astroid.AssignName) and self.parameters:
                     if current_scope in self.parameters and self.parameters[current_scope][1].__contains__(node):
                         return Parameter(node=node, id=_calc_node_id(node), name=node.name)
                 return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
+            case astroid.Lambda():
+                return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
+
         return Symbol(node=node, id=_calc_node_id(node), name=node.name)
 
     def enter_lambda(self, node: astroid.Lambda) -> None:
@@ -196,13 +203,21 @@ class ScopeFinder:
 
     def enter_arguments(self, node: astroid.Arguments) -> None:
         if node.args:
-            self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], node.args)
+            self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], set(node.args))
         if node.kwonlyargs:
-            self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], node.kwonlyargs)
+            self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], set(node.kwonlyargs))
         if node.posonlyargs:
-            self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], node.posonlyargs)
-        if node.vararg or node.kwarg:
-            self.handle_arg(node)  # TODO: fix this again
+            self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], set(node.posonlyargs))
+        if node.vararg:
+            constructed_node = astroid.AssignName(name=node.vararg, parent=node, lineno=node.parent.lineno,
+                                                  col_offset=node.parent.col_offset)
+            # TODO: col_offset is not correct: it should be the col_offset of the vararg/(kwarg) node which is not
+            #  collected by astroid
+            self.handle_arg(constructed_node)
+        if node.kwarg:
+            constructed_node = astroid.AssignName(name=node.kwarg, parent=node, lineno=node.parent.lineno,
+                                                  col_offset=node.parent.col_offset)
+            self.handle_arg(constructed_node)
 
     def enter_name(self,
                    node: astroid.Name) -> None:
@@ -306,6 +321,7 @@ class ScopeFinder:
                            _children=[],
                            _parent=parent)
         self.children.append(scope_node)
+
         if isinstance(member_access, MemberAccessTarget):
             self.target_nodes[member_access] = self.current_node_stack[-1]
         if isinstance(member_access, MemberAccessValue):
@@ -351,7 +367,7 @@ class ScopeFinder:
 
     def enter_call(self, node: astroid.Call) -> None:
         if isinstance(node.func, astroid.Name):
-            self.function_calls[node.func.name] = (node, self.current_node_stack[-1])
+            self.function_calls[node] = self.current_node_stack[-1]
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
@@ -402,20 +418,11 @@ class ScopeFinder:
                 return self.classes[klass]
         return None
 
-    def handle_arg(self, node: astroid.Arguments) -> None:
-        if node.vararg:
-            arg = node.vararg
-        else:
-            arg = node.kwarg
-
-        constructed_node = astroid.AssignName(name=arg, parent=node, lineno=node.parent.lineno,
-                                              col_offset=node.parent.col_offset)
-        # TODO: col_offset is not correct: it should be the col_offset of the vararg/(kwarg) node which is not
-        #  collected by astroid
+    def handle_arg(self, constructed_node: astroid.AssignName) -> None:
         self.target_nodes[constructed_node] = self.current_node_stack[-1]
         scope_node = Scope(_symbol=Parameter(constructed_node, _calc_node_id(constructed_node), constructed_node.name), _children=[], _parent=self.current_node_stack[-1])
         self.children.append(scope_node)
-        self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], [constructed_node])
+        self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], {constructed_node})
 
 
 def _calc_node_id(
@@ -499,15 +506,13 @@ def _get_module_data(code: str) -> ModuleData:
     The ASTWalker detects the scope of each node and builds a scope tree by using an instance of ScopeFinder.
     The ScopeFinder also collects all name nodes, parameters, global variables, classes and functions of the module.
     """
-    scope_handler = ScopeFinder()
+    scope_handler = ModuleDataBuilder()
     walker = ASTWalker(scope_handler)
     module = astroid.parse(code)
     print(module.repr_tree())
     walker.walk(module)
 
     scope = scope_handler.children[0]  # get the children of the root node, which are the scopes of the module
-
-    print(module.repr_tree())
 
     return ModuleData(scope=scope,
                       classes=scope_handler.classes,

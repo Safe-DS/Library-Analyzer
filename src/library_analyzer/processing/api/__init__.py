@@ -43,13 +43,12 @@ from ._package_metadata import (
 )
 from ._resolve_references import (
     resolve_references,
-    _add_target_references,
-    _create_unspecified_references,
     _find_references,
+    _create_unspecified_references,
 )
 
 from ._get_module_data import (
-    ScopeFinder,
+    ModuleDataBuilder,
     _get_module_data,
     get_base_expression,
     _calc_node_id,

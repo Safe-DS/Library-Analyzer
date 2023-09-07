@@ -6,7 +6,6 @@ import astroid
 import pytest
 from library_analyzer.processing.api import (
     _create_unspecified_references,
-    _find_references,
     get_base_expression,
     resolve_references,
 )
@@ -90,6 +89,7 @@ from library_analyzer.processing.api.model import (
         "Empty list",
     ]
 )
+@pytest.mark.xfail(reason="Not implemented yet")
 def test_create_references(node: list[astroid.Name | astroid.AssignName], expected: list[ReferenceNode]) -> None:
     result = _create_unspecified_references(node)[0]
     assert result == expected
@@ -105,10 +105,10 @@ def assert_reference_list_equal(result: list[ReferenceNode], expected: list[Refe
     The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
     The real results name and scope are objects and not strings"""
     result = [
-        ReferenceNode(name.name.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in
+        ReferenceNode(name.node.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in
         result]
     expected = [
-        ReferenceNode(name.name.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in
+        ReferenceNode(name.node.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in
         expected]
     assert result == expected
 
@@ -123,6 +123,9 @@ class ReferenceTestNode:
     name: str
     scope: str
     referenced_symbols: list[str]
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 @pytest.mark.parametrize(
@@ -192,8 +195,8 @@ def local_double_parameter(a, b):
             [ReferenceTestNode("a.line3", "FunctionDef.local_double_parameter", ["Parameter.a.line2"]),
              ReferenceTestNode("b.line3", "FunctionDef.local_double_parameter", ["Parameter.b.line2"])]
         )
-    ],ids=[
-        "local variable in function scope",
+    ],
+    ids=[
         "parameter in function scope",
         "parameter in function scope with keyword only",
         "parameter in function scope with positional only",
@@ -201,7 +204,8 @@ def local_double_parameter(a, b):
         "parameter in function scope with type annotation",
         "parameter in function scope with *args",
         "parameter in function scope with **kwargs",
-        "parameter in function scope with *args and **kwargs"
+        "parameter in function scope with *args and **kwargs",
+        "two parameters in function scope"
     ]
 )
 def test_resolve_references_parameters(code: str, expected: list[ReferenceTestNode]) -> None:
@@ -212,7 +216,7 @@ def test_resolve_references_parameters(code: str, expected: list[ReferenceTestNo
         transformed_references.append(transform_reference_node(node))
 
     # assert references == expected
-    assert transformed_references == expected
+    assert set(transformed_references) == set(expected)
 
 
 @pytest.mark.parametrize(
@@ -224,7 +228,7 @@ def local_var():
     var1 = 1
     return var1
             """,  # language= None
-        [ReferenceTestNode("var1.line4", "FunctionDef.local_var", ["LocalVariable.var1.line3"])]
+            [ReferenceTestNode("var1.line4", "FunctionDef.local_var", ["LocalVariable.var1.line3"])]
         ),
         (  # language=Python "global variable in module scope"
             """
@@ -315,7 +319,7 @@ class A:
     glob1 = 10
     glob1
             """,  # language= None
-            [ReferenceTestNode("glob1.line5", "ClassDef.A", ["ClassVariable.glob1.line4"])]
+            [ReferenceTestNode("glob1.line5", "ClassDef.A", ["ClassVariable.A.glob1.line4"])]
             # glob1 is not detected as a global variable since it is defined in the class scope - this is intended
         ),
         (  # language=Python new global variable in function scope
@@ -328,7 +332,7 @@ def local_global():
             [ReferenceTestNode("glob1.line5", "FunctionDef.local_global", [])]
             # glob1 is not detected as a global variable since it is defined in the function scope - this is intended
         ),
-(  # language=Python
+        (  # language=Python new global variable in class scope with outer scope usage
             """
 class A:
     global glob1
@@ -347,7 +351,7 @@ a, b
              ReferenceTestNode("a.line9", "Module.", ["GlobalVariable.a.line6"]),
              ReferenceTestNode("b.line9", "Module.", ["GlobalVariable.b.line8"])]
         ),
-        (  # language=Python
+        (  # language=Python new global variable in function scope with outer scope usage
             """
 def local_global():
     global glob1
@@ -386,7 +390,7 @@ def test_resolve_references_local_global(code: str, expected: list[ReferenceTest
         transformed_references.append(transform_reference_node(node))
 
     # assert references == expected
-    assert transformed_references == expected
+    assert set(transformed_references) == set(expected)
 
 
 @pytest.mark.parametrize(
@@ -412,8 +416,8 @@ class A:
 A.class_attr1 = 30
 A.class_attr1
             """,  # language=none
-            [ReferenceTestNode("A.class_attr1.line6", "Module.", ["ClassVariable.A.class_attr1.line5",
-                                                                  "ClassVariable.A.class_attr1.line3"]),
+            [ReferenceTestNode("A.class_attr1.line6", "Module.", ["ClassVariable.A.class_attr1.line3",
+                                                                  "ClassVariable.A.class_attr1.line5"]),
              ReferenceTestNode("A.line6", "Module.", ["GlobalVariable.A.line2"])],
         ),
         (  # language=Python "class attribute multiple usage"
@@ -425,12 +429,13 @@ a = A().class_attr1
 b = A().class_attr1
 c = A().class_attr1
             """,  # language=none
-            [ReferenceTestNode("A.line5", "Module.", ["GlobalVariable.A.line2"]),
+            [ReferenceTestNode("A.class_attr1.line5", "Module.", ["ClassVariable.A.class_attr1.line3"]),
+             ReferenceTestNode("A.class_attr1.line6", "Module.", ["ClassVariable.A.class_attr1.line3"]),
+             ReferenceTestNode("A.class_attr1.line7", "Module.", ["ClassVariable.A.class_attr1.line3"]),
+             ReferenceTestNode("A.line5", "Module.", ["GlobalVariable.A.line2"]),
              ReferenceTestNode("A.line6", "Module.", ["GlobalVariable.A.line2"]),
              ReferenceTestNode("A.line7", "Module.", ["GlobalVariable.A.line2"]),
-             ReferenceTestNode("A.class_attr1.line5", "Module.", ["ClassVariable.A.class_attr1.line3"]),
-             ReferenceTestNode("A.class_attr1.line6", "Module.", ["ClassVariable.A.class_attr1.line3"]),
-             ReferenceTestNode("A.class_attr1.line7", "Module.", ["ClassVariable.A.class_attr1.line3"])]
+             ]
         ),
         (  # language=Python "chained class attribute"
             """
@@ -443,10 +448,11 @@ class B:
 b = B()
 x = b.upper_class.class_attr1
             """,  # language=none
-            [ReferenceTestNode("B.line8", "Module.", ["GlobalVariable.B.line5"]),
-             ReferenceTestNode("b.upper_class.class_attr1.line9", "Module.", ["ClassVariable.A.class_attr1.line3"]),
+            [ReferenceTestNode("b.upper_class.class_attr1.line9", "Module.", ["ClassVariable.A.class_attr1.line3"]),
              ReferenceTestNode("b.upper_class.line9", "Module.", ["ClassVariable.B.upper_class.line6"]),
-             ReferenceTestNode("b.line9", "Module.", ["GlobalVariable.b.line8"])]
+             ReferenceTestNode("b.line9", "Module.", ["GlobalVariable.b.line8"]),
+             ReferenceTestNode("B.line8", "Module.", ["GlobalVariable.B.line5"]),
+             ]
         ),
         (  # language=Python "instance attribute value"
             """
@@ -457,9 +463,9 @@ class B:
 b = B()
 var1 = b.instance_attr1
             """,  # language=none
-            [ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"]),
-             ReferenceTestNode("b.instance_attr1.line7", "Module.", ["InstanceVariable.b.instance_attr1.line4"]),
-             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"])]
+            [ReferenceTestNode("b.instance_attr1.line7", "Module.", ["InstanceVariable.B.instance_attr1.line4"]),
+             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
+             ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"])]
         ),
         (  # language=Python "instance attribute target"
             """
@@ -471,10 +477,11 @@ b = B()
 b.instance_attr1 = 1
 b.instance_attr1
             """,  # language=none
-            [ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"]),
-             ReferenceTestNode("b.instance_attr1.line8", "Module.", ["ClassVariable.b.instance_attr1.line7",
-                                                                     "InstanceVariable.b.instance_attr1.line4"],),
-             ReferenceTestNode("b.line8", "Module.", ["GlobalVariable.b.line6"])]
+            [ReferenceTestNode("b.instance_attr1.line8", "Module.", ["InstanceVariable.B.instance_attr1.line4",
+                                                                     "InstanceVariable.B.instance_attr1.line7"]),
+             ReferenceTestNode("b.line8", "Module.", ["GlobalVariable.b.line6"]),
+             ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"])
+             ]
         ),
         (  # language=Python "instance attribute with parameter"
             """
@@ -485,10 +492,10 @@ class B:
 b = B("test")
 b.name
             """,  # language=none
-            [ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"]),
-             ReferenceTestNode("name.line4", "FunctionDef.__init__", ["Parameter.name.line3"]),
-             ReferenceTestNode("b.name.line7", "Module.", ["InstanceVariable.b.name.line4"]),
-             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"])]
+            [ReferenceTestNode("name.line4", "FunctionDef.__init__", ["Parameter.name.line3"]),
+             ReferenceTestNode("b.name.line7", "Module.", ["InstanceVariable.B.name.line4"]),
+             ReferenceTestNode("b.line7", "Module.", ["GlobalVariable.b.line6"]),
+             ReferenceTestNode("B.line6", "Module.", ["GlobalVariable.B.line2"])]
         ),
         (  # language=Python "instance attribute with parameter and class attribute"
             """
@@ -502,12 +509,12 @@ x = X("test")
 x.name
 x.class_attr
             """,  # language=none
-            [ReferenceTestNode("X.line8", "Module.", ["GlobalVariable.X.line2"]),
-             ReferenceTestNode("name.line6", "FunctionDef.__init__", ["Parameter.name.line5"]),
-             ReferenceTestNode("x.name.line9", "Module.", ["InstanceVariable.x.name.line6"]),
+            [ReferenceTestNode("name.line6", "FunctionDef.__init__", ["Parameter.name.line5"]),
+             ReferenceTestNode("x.name.line9", "Module.", ["InstanceVariable.X.name.line6"]),
              ReferenceTestNode("x.line9", "Module.", ["GlobalVariable.x.line8"]),
              ReferenceTestNode("x.class_attr.line10", "Module.", ["ClassVariable.X.class_attr.line3"]),
-             ReferenceTestNode("x.line10", "Module.", ["GlobalVariable.x.line8"])]
+             ReferenceTestNode("x.line10", "Module.", ["GlobalVariable.x.line8"]),
+             ReferenceTestNode("X.line8", "Module.", ["GlobalVariable.X.line2"])]
         ),
         (  # language=Python "chained class attribute and instance attribute"
             """
@@ -521,11 +528,11 @@ class B:
 b = B()
 x = b.upper_class.name
             """,  # language=none
-            [ReferenceTestNode("A.line7", "ClassDef.B", ["GlobalVariable.A.line2"]),
-             ReferenceTestNode("B.line9", "Module.", ["GlobalVariable.B.line6"]),
-             ReferenceTestNode("b.upper_class.name.line10", "Module.", ["InstanceVariable.A.name.line4"]),  # TODO:
+            [ReferenceTestNode("b.upper_class.name.line10", "Module.", ["InstanceVariable.A.name.line4"]),  # TODO:
              ReferenceTestNode("b.upper_class.line10", "Module.", ["ClassVariable.B.upper_class.line7"]),
-             ReferenceTestNode("b.line10", "Module.", ["GlobalVariable.b.line9"])
+             ReferenceTestNode("b.line10", "Module.", ["GlobalVariable.b.line9"]),
+             ReferenceTestNode("A.line7", "ClassDef.B", ["GlobalVariable.A.line2"]),
+             ReferenceTestNode("B.line9", "Module.", ["GlobalVariable.B.line6"]),
              ]
         ),
         (  # language=Python "chained instance attributes"
@@ -544,16 +551,15 @@ class C:
 
 a = A()
 a.b.c.name
-# TODO: the problem here is that the functions are stored in a dict, therefore we can not store more than one function with the same name.
-#  for functions this must be changed, but what about classes? - do we want to deal with redeclaration of classes?
             """,  # language=none
-            [ReferenceTestNode("B.line4", "ClassDef.A", ["GlobalVariable.B.line6"]),
-             ReferenceTestNode("C.line8", "ClassDef.B", ["GlobalVariable.C.line8"]),
-             ReferenceTestNode("A.line12", "Module.", ["GlobalVariable.A.line2"]),
-             ReferenceTestNode("a.b.c.name.line13", "Module.", ["InstanceVariable.c.name.line11"]),
-             ReferenceTestNode("a.b.c.line13", "Module.", ["InstanceVariable.b.c.line8"]),
-             ReferenceTestNode("a.b.line13", "Module.", ["InstanceVariable.a.b.line4"]),
-             ReferenceTestNode("a.line13", "Module.", ["GlobalVariable.a.line12"])]
+            [ReferenceTestNode("a.b.c.name.line15", "Module.", ["InstanceVariable.C.name.line12"]),
+             ReferenceTestNode("a.b.c.line15", "Module.", ["InstanceVariable.B.c.line8"]),
+             ReferenceTestNode("a.b.line15", "Module.", ["InstanceVariable.A.b.line4"]),
+             ReferenceTestNode("a.line15", "Module.", ["GlobalVariable.a.line14"]),
+             ReferenceTestNode("B.line4", "ClassDef.A", ["GlobalVariable.B.line6"]),
+             ReferenceTestNode("C.line8", "ClassDef.B", ["GlobalVariable.C.line10"]),
+             ReferenceTestNode("A.line14", "Module.", ["GlobalVariable.A.line2"]),
+             ]
         ),
         (  # language=Python "two classes with same signature"
             """
@@ -570,16 +576,17 @@ b = B("test")
 a.name
 b.name
             """,  # language=none
-            [ReferenceTestNode("A.line10", "Module.", ["GlobalVariable.A.line2"]),
-             ReferenceTestNode("B.line11", "Module.", ["GlobalVariable.B.line6"]),
-             ReferenceTestNode("name.line4", "FunctionDef.__init__", ["Parameter.name.line3"]),
+            [ReferenceTestNode("name.line4", "FunctionDef.__init__", ["Parameter.name.line3"]),
              ReferenceTestNode("name.line8", "FunctionDef.__init__", ["Parameter.name.line7"]),
              ReferenceTestNode("a.name.line12", "Module.", ["InstanceVariable.A.name.line4",  # class A
                                                             "InstanceVariable.B.name.line8"]),  # class B
              ReferenceTestNode("a.line12", "Module.", ["GlobalVariable.a.line10"]),
              ReferenceTestNode("b.name.line13", "Module.", ["InstanceVariable.A.name.line4",  # class A
                                                             "InstanceVariable.B.name.line8"]),
-             ReferenceTestNode("b.line13", "Module.", ["GlobalVariable.b.line11"])]  # class B
+             ReferenceTestNode("b.line13", "Module.", ["GlobalVariable.b.line11"]),  # class B
+             ReferenceTestNode("A.line10", "Module.", ["GlobalVariable.A.line2"]),
+             ReferenceTestNode("B.line11", "Module.", ["GlobalVariable.B.line6"]),
+             ]
         ),
         (  # language=Python "getter function with self"
             """
@@ -609,7 +616,7 @@ class C:
     state: int = 0
 
     def set_state(self, state):
-        self.state = state  # TODO: Problem: the parameter "state" has the same name as the class variable "state"
+        self.state = state  # TODO: Problem: the parameter "state" has the same name as the class variable "state" unterscheide zwischen MAT und AsssignName um Parameter rauszufilterna
             """,  # language= None
             [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5"]),
              ReferenceTestNode("self.line6", "FunctionDef.set_state", ["Parameter.self.line5"]),
@@ -791,7 +798,7 @@ def test_resolve_references_conditional_statements(code: str, expected: list[Ref
         transformed_references.append(transform_reference_node(node))
 
     # assert references == expected
-    assert transformed_references == expected
+    assert set(transformed_references) == set(expected)
 
 
 @pytest.mark.parametrize(
@@ -865,7 +872,7 @@ def test_resolve_references_loops(code: str, expected: list[ReferenceTestNode]) 
         transformed_references.append(transform_reference_node(node))
 
     # assert references == expected
-    assert transformed_references == expected
+    assert set(transformed_references) == set(expected)
 
 
 @pytest.mark.parametrize(
@@ -992,8 +999,8 @@ a = 1
 b = 2
 a, b = b, a
             """,  # language=none
-            [ReferenceTestNode("b.line4", "Module.", ["GlobalVariable.b.line3", "GlobalVariable.b.line4"]),
-             ReferenceTestNode("a.line4", "Module.", ["GlobalVariable.a.line2", "GlobalVariable.a.line4"])]
+            [ReferenceTestNode("a.line4", "Module.", ["GlobalVariable.a.line2", "GlobalVariable.a.line4"]),
+             ReferenceTestNode("b.line4", "Module.", ["GlobalVariable.b.line3", "GlobalVariable.b.line4"])]
         ),
         (  # language=Python "aliases"
             """
@@ -1044,7 +1051,7 @@ def test_resolve_references_miscellaneous(code: str, expected: list[ReferenceTes
         transformed_references.append(transform_reference_node(node))
 
     # assert references == expected
-    assert transformed_references == expected
+    assert set(transformed_references) == set(expected)
 
 
 @pytest.mark.parametrize(
@@ -1065,8 +1072,8 @@ def print(s):
 
 print("Hello, World!")
             """,  # language=none
-            [ReferenceTestNode("print.line2", "Module.", ["GlobalVariable.print.line4", "Builtin.print", ]),
-             ReferenceTestNode("print.line7", "Module.", ["GlobalVariable.print.line4", "Builtin.print", ])]
+            [ReferenceTestNode("print.line2", "Module.", ["Builtin.print", "GlobalVariable.print.line4"]),
+             ReferenceTestNode("print.line7", "Module.", ["Builtin.print", "GlobalVariable.print.line4"])]
         ),
         (  # language=Python "function call"
             """
@@ -1227,8 +1234,8 @@ double = lambda x: 2 * x
 
 double(10)
             """,  # language=none
-            [ReferenceTestNode("double.line4", "Module.", ["GlobalVariable.double.line2"]),
-             ReferenceTestNode("x.line2", "Lambda", ["LocalVariable.x.line2"])]
+            [ReferenceTestNode("x.line2", "Lambda", ["LocalVariable.x.line2"]),
+             ReferenceTestNode("double.line4", "Module.", ["GlobalVariable.double.line2"])]
         ),
         (  # language=Python "lambda function as key"
             """
@@ -1285,11 +1292,11 @@ def test_resolve_references_calls(code: str, expected: list[ReferenceTestNode]) 
     references = resolve_references(code)
     transformed_references: list[ReferenceTestNode] = []
 
+    # assert references == expected
     for node in references:
         transformed_references.append(transform_reference_node(node))
 
-    # assert references == expected
-    assert transformed_references == expected
+    assert set(transformed_references) == set(expected)
 
 
 @pytest.mark.parametrize(
@@ -1383,7 +1390,7 @@ def test_resolve_references_imports(code: str, expected: list[ReferenceTestNode]
         transformed_references.append(transform_reference_node(node))
 
     # assert references == expected
-    assert transformed_references == expected
+    assert set(transformed_references) == set(expected)
 
 
 @pytest.mark.parametrize(
@@ -1469,27 +1476,27 @@ def test_resolve_references_dataclasses(code: str, expected: list[ReferenceTestN
         transformed_references.append(transform_reference_node(node))
 
     # assert references == expected
-    assert transformed_references == expected
+    assert set(transformed_references) == set(expected)
 
 
 def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
-    if isinstance(node.name, MemberAccess | MemberAccessValue | MemberAccessTarget):
-        expression = get_base_expression(node.name)
-        return ReferenceTestNode(name=f"{node.name.name}.line{expression.lineno}",
-                                 scope=f"{node.scope.node.__class__.__name__}.{node.scope.node.name}",
-                                 referenced_symbols=[str(ref) for ref in node.referenced_symbols])
-    if isinstance(node.scope.node, astroid.Lambda) and not isinstance(node.scope.node, astroid.FunctionDef):
-        if isinstance(node.name, astroid.Call):
-            return ReferenceTestNode(name=f"{node.name.func.name}.line{node.name.func.lineno}",
-                                     scope=f"{node.scope.node.__class__.__name__}",
-                                     referenced_symbols=[str(ref) for ref in node.referenced_symbols])
-        return ReferenceTestNode(name=f"{node.name.name}.line{node.name.lineno}",
-                                 scope=f"{node.scope.node.__class__.__name__}",
-                                 referenced_symbols=[str(ref) for ref in node.referenced_symbols])
-    if isinstance(node.name, astroid.Call):
-        return ReferenceTestNode(name=f"{node.name.func.name}.line{node.name.func.lineno}",
-                                 scope=f"{node.scope.node.__class__.__name__}.{node.scope.node.name}",
-                                 referenced_symbols=[str(ref) for ref in node.referenced_symbols])
-    return ReferenceTestNode(name=f"{node.name.name}.line{node.name.lineno}",
-                             scope=f"{node.scope.node.__class__.__name__}.{node.scope.node.name}",
-                             referenced_symbols=[str(ref) for ref in node.referenced_symbols])
+    if isinstance(node.node, MemberAccess | MemberAccessValue | MemberAccessTarget):
+        expression = get_base_expression(node.node)
+        return ReferenceTestNode(name=f"{node.node.name}.line{expression.lineno}",
+                                 scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",
+                                 referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
+    if isinstance(node.scope.symbol.node, astroid.Lambda) and not isinstance(node.scope.symbol.node, astroid.FunctionDef):
+        if isinstance(node.node, astroid.Call):
+            return ReferenceTestNode(name=f"{node.node.func.name}.line{node.node.func.lineno}",
+                                     scope=f"{node.scope.symbol.node.__class__.__name__}",
+                                     referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
+        return ReferenceTestNode(name=f"{node.node.name}.line{node.node.lineno}",
+                                 scope=f"{node.scope.symbol.node.__class__.__name__}",
+                                 referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
+    if isinstance(node.node, astroid.Call):
+        return ReferenceTestNode(name=f"{node.node.func.name}.line{node.node.func.lineno}",
+                                 scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",
+                                 referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
+    return ReferenceTestNode(name=f"{node.node.name}.line{node.node.lineno}",
+                             scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",
+                             referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))

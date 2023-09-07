@@ -13,7 +13,6 @@ from library_analyzer.processing.api.model import Expression, Reference
 class ModuleData:
     """
     Contains all data that is collected for a module.
-
     scope: The module's scope, this contains all child scopes.
     classes: All classes and their scope.
     functions: All functions and their scope.
@@ -29,17 +28,15 @@ class ModuleData:
     # members: dict[str, list[Symbol]]  # this contains all names of function names and attribute names and their declaratioon
     globals: dict[str, Scope | ClassScope]
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
-    target_nodes: dict[astroid.AssignName | MemberAccessTarget, Scope | ClassScope]
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]
-    # names_list: list[astroid.Name | astroid.AssignName | MemberAccess]  # TODO: dict[str, tuple [astroid.Name astroid.AssignName | MemberAccess, Scope]]
-    function_calls: dict[str, tuple[astroid.Call, Scope | ClassScope]]
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]
+    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
+    # names_list: list[astroid.Name | astroid.AssignName | MemberAccess]
+    function_calls: dict[astroid.Call, Scope | ClassScope]
 
 
 @dataclass
 class MemberAccess(Expression):
-    # expression: astroid.NodeNG
     receiver: MemberAccess | astroid.NodeNG
-    # value: MemberAccess | Reference
     member: astroid.NodeNG
     parent: astroid.NodeNG | None = field(default=None)
     name: str = field(init=False)
@@ -132,14 +129,24 @@ class GlobalVariable(Symbol):
 
 @dataclass
 class ClassVariable(Symbol):
+    klass: astroid.ClassDef | None = field(default=None)
+
     def __hash__(self) -> int:
         return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}.{self.klass.name}.{self.name}.line{self.id.line}"
 
 
 @dataclass
 class InstanceVariable(Symbol):
+    klass: astroid.ClassDef | None = field(default=None)
+
     def __hash__(self) -> int:
         return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}.{self.klass.name}.{self.name}.line{self.id.line}"
 
 
 @dataclass
