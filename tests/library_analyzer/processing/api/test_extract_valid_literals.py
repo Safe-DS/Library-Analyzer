@@ -8,14 +8,54 @@ from library_analyzer.processing.api._extract_valid_values import extract_valid_
         (
             "str",
             (
-                'If "mean", then replace missing values using the mean along each column '
+                'If "mean", then replace missing values using the mean along each column. '
                 'If "median", then replace missing values using the median along each column. '
                 'If "most_frequent", then replace missing using the most frequent value along each column. '
                 'If "constant", then replace missing values with fill_value.'
             ),
             ['"mean"', '"median"', '"most_frequent"', '"constant"'],
         ),
-        ("str or bool", "Valid values are [False, None, 'allow-nan']", ['"True"', '"False"', '"None"', '"allow-nan"']),
+        ("str or bool", "Valid values are [False, None, 'allow-nan']", ["True", "False", "None", '"allow-nan"']),
+        (
+            "str or bool",
+            "Valid values are [False, None, 'sparse matrix']",
+            ["True", "False", "None", '"sparse matrix"'],
+        ),
+        (
+            "str or bool",
+            "Valid values are 'allow-nan', 'lbfgs', None and 'False'.",
+            ["None", "True", "False", '"lbfgs"', '"allow-nan"'],
+        ),
+        (
+            "str or bool",
+            "If `'None'`, this parameter will use the default value.",
+            ["unlistable_str", "None", "True", "False"],
+        ),
+        (
+            "str or bool",
+            "If `'alpha'` is a callable, the estimator will use it to calculate the value.",
+            ["unlistable_str", "True", "False"],
+        ),
+        (
+            "str or bool",
+            "If False, the estimator will only use the default calculation.",
+            ["unlistable_str", "True", "False"],
+        ),
+        ("str, float", "If `float`, the value must be between 0 and 1.", ["unlistable_str"]),
+        ("str, float", "If `False`, the value must be between 0 and 1.", ["unlistable_str"]),
+        ("str, float", "If '123*mean', the value must be between 0 and 1.", ["unlistable_str"]),
+        ("'auto' or float", "If float, the value must be between 0 and 1.", ['"auto"']),
+        ("str or bool", "Valid values are 'auto', 'allow-nan', False.", ['"auto"', '"allow-nan"', "False", "True"]),
+        (
+            "str, callable",
+            (
+                "String inputs, 'absolute_error' and 'squared_error' are supported which\nfind the absolute error and"
+                " squared error per sample respectively.\n\nIf ``loss`` is a callable, then it should be a function"
+                " that takes\ntwo arrays as inputs, the true and predicted value and returns a 1-D\narray with the i-th"
+                " value of the array corresponding to the loss\non ``X[i]``."
+            ),
+            ['"absolute_error"', '"squared_error"'],
+        ),
         (
             "str",
             (
@@ -73,7 +113,7 @@ from library_analyzer.processing.api._extract_valid_values import extract_valid_
                 " random. To obtain a deterministic behaviour during fitting, random_state has to be fixed to an"
                 " integer. See :term:Glossary <random_state> for details."
             ),
-            [],
+            ["None"],
         ),
         ("float", "Independent term in kernel function. It is only significant in 'poly' and 'sigmoid'.", []),
         (
