@@ -88,4 +88,5 @@ __all__ = [
     "extract_called_after_functions",
     "CalledAfterValues",
     "extract_boundary",
+    "extract_valid_literals"
 ]
