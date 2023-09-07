@@ -21,6 +21,37 @@ _merger_matcher = Matcher(_nlp.vocab)
 _matcher = Matcher(_nlp.vocab)
 _dep_matcher = DependencyMatcher(_nlp.vocab)
 
+_encoded_rel_ops = {
+    "$GT$": ">",
+    "$LT$": "<",
+    "$GEQ$": ">=",
+    "$LEQ$": "<="
+}
+
+has_value_phrases = [
+    "equals",
+    "$GT$",
+    "$LT$",
+    "$GEQ$",
+    "$LEQ$",
+]
+
+passive_has_value_phrases = [
+    "used"
+]
+
+special_values = [
+    "none",
+    "true",
+    "false"
+]
+
+types = [
+    "string",
+    "int",
+    "float",
+    "array_like"
+]
 
 @dataclass
 class Condition:
@@ -373,17 +404,22 @@ def _preprocess_docstring(docstring: str) -> str:
     docstring = re.sub(r"<", "$LT$", docstring)
     docstring = re.sub(r">", "$GT$", docstring)
 
+    docstring = re.sub(r"is greater than or equal to", "$GEQ$", docstring)
+    docstring = re.sub(r"is less than or equal to", "$LEQ$", docstring)
+    docstring = re.sub(r"is greater than", "$GT$", docstring)
+    docstring = re.sub(r"is less than", "$LT$", docstring)
+
     docstring = re.sub(r"!=", " does not equal ", docstring)
     docstring = re.sub(r"==?", " equals ", docstring)
     docstring = re.sub(r"\s+", " ", docstring)
 
     docstring = re.sub(r"none", "None", docstring)
-    return re.sub(r"is set to", "is", docstring)
+
+    return re.sub(r"is set to", "equals", docstring)
 
 
-def _shorten_and_check_string(dependee: str, doc: Doc, passive: bool = False) -> None:
-    """Shorten and recheck the passed Doc object if there is a multiple condition.
-
+def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) -> None:
+    """
     The Doc-Object is checked for multiple conditions, which are linked with an 'and' or 'or'.
     The first condition found is removed and the new truncated Doc object is passed back to the dependency matcher.
 
@@ -392,57 +428,76 @@ def _shorten_and_check_string(dependee: str, doc: Doc, passive: bool = False) ->
     dependee
         First found dependee
 
+    action_token_index
+        Token index of the action token of the dependee found first
+
     doc
         Doc object to be checked for multiple conditions.
 
-    passive
-        True if the action verb is in passive form.
-
     """
-    sconj_idx = 0
-    and_or_idx = 0
-    change = False
+    start_phrase: str = ""
+    end_phrase: str = ""
+    seperator_idxs = []
+    has_value_idxs = []
+    special_value_idxs = []
+    type_idxs = []
+    if_when_idx = -1
+    left_bracket_idx = -1
+    right_bracket_idx = -1
 
     for token in doc:
-        # print(f"+++++++++++++++++++++++  Current token: {token.text} ++++++++++++++++++++++++++++++++++++")
-        if token.pos_ == "SCONJ":
-            # print("SCONJ")
-            sconj_idx = token.i + 1
-
-        elif token.text in ["and", "or"] and token.nbor(-1).text.lower() not in ["(", "[", "{", "if"]:
-            if len(doc) > token.i + 3 and token.nbor(2).text == "by":
-                change = False
-            else:
-                change = True
-
-            if token.text == "and":
+        token_text = token.text.lower()
+        if token_text in ["if", "when"]:
+            if_when_idx = token.i
+        elif token_text in has_value_phrases:
+            has_value_idxs.append(token.i)
+        elif token_text in passive_has_value_phrases and token.i > 0 and token.nbor(-1).text in ["is", "are"]:
+            has_value_idxs.append(token.i)
+        elif token_text in special_values and token.nbor(-1).text in ["is", "are", "not"]:
+            special_value_idxs.append(token.i)
+        elif token_text in ["and", "or", ","] and token.nbor(1).text not in ["and", "or"]:
+            if token_text == "and":
                 _combined_condition.append(dependee)
+            seperator_idxs.append(token.i)
+        elif token_text in types:
+            type_idxs.append(token.i)
+        elif token_text == "(":
+            left_bracket_idx = token.i
+        elif token_text == ")":
+            right_bracket_idx = token.i
 
-            and_or_idx = token.i + 1
-            first_dep_val = doc[and_or_idx - 2]
+    value_idxs_cnt = len(has_value_idxs) + len(special_value_idxs)
 
-            for child in first_dep_val.children:
-                if (
-                    (0 < child.i < len(doc) - 2)
-                    and child.nbor(-1).text in ["and", "or"]
-                    and child.nbor(1).pos_ not in ["AUX", "VERB"]
-                ):
-                    if passive:
-                        and_or_idx += 1
-                        sconj_idx = and_or_idx - 2
-                    else:
-                        sconj_idx += 2
+    if seperator_idxs and left_bracket_idx != -1 and right_bracket_idx != -1:
+        seperator_idxs = list(filter(lambda idx: left_bracket_idx < idx < right_bracket_idx, seperator_idxs))
 
-            if not passive:
-                break
+    if seperator_idxs:
+        # <start_phrase>...<param_with_val>, <param_with_val>, <and | or> <param_with_val> <end_phrase>
+        if len(seperator_idxs) == value_idxs_cnt - 1:
+            if has_value_idxs:
+                seperator_idx = seperator_idxs[0]
+                start_phrase = doc[:if_when_idx + 1].text
+                end_phrase = doc[seperator_idx + 1:].text
 
-    if change:
-        shortened_string = doc[:sconj_idx].text + " " + doc[and_or_idx:].text
-        # print("SHORTEN AND CHECK STRING")
-        # print(f"vorher: {doc.text}")
-        # print(f"nachher: {shortened_string}")
-        shortened_doc = _nlp(shortened_string)
-        _dep_matcher(shortened_doc)
+        # <start_phrase> ... <param>, <param>, <and | or> <param> <end_phrase_with_val>
+        elif action_token_index > max(seperator_idxs):
+            seperator_idx = seperator_idxs[-1]
+            end_phrase = doc[seperator_idx + 2:].text
+            if doc[seperator_idx].text in ["and", "or"] and doc[seperator_idx - 1].text == ",":
+                start_phrase = doc[:seperator_idx - 1].text
+            else:
+                start_phrase = doc[:seperator_idx].text
+
+        # <start_phrase with param> ... <val>, <val>, <and | or> <val> <end_phrase>
+        elif action_token_index < min(seperator_idxs):
+            seperator_idx = seperator_idxs[0]
+            end_phrase = doc[seperator_idx + 1:].text
+            start_phrase = doc[:action_token_index + 1].text
+
+    shortened_sent = start_phrase + " " + end_phrase
+    shortened_doc = _nlp(shortened_sent)
+
+    _dep_matcher(shortened_doc)
 
 
 def _extract_dependee_value(action_token: Token, passive: bool = False) -> tuple[str, str]:
@@ -606,14 +661,36 @@ def _extract_only_condition_action(
     condition_string = doc[start:end].text
 
     dependee, value = _extract_dependee_value(action_token)
+    print(f"++++++++++\nAction_token: {action_token.text}, {action_token.i}\n++++++++++++++")
+    if action_token.nbor(1).text in _encoded_rel_ops:
+        left_dependee_token = action_token
+        rel_op_token = action_token.nbor(1)
+        right_dependee_token = action_token.nbor(2)
 
-    if len(value.split()) == 2:
-        condition_string += " " + doc[end].text
+        cond_str = (
+            doc[:left_dependee_token.i + 1].text +
+            f" {_encoded_rel_ops[rel_op_token.text]} " +
+            doc[right_dependee_token.i].text
+        )
 
-    _add_condition(dependee, value, condition_string)
+        _condition_list.append(
+            ParametersInRelation(
+                cond_str,
+                left_dependee_token.text,
+                right_dependee_token.text,
+                _encoded_rel_ops[rel_op_token.text])
+        )
+
+    else:
+
+        if len(value.split()) == 2:
+            condition_string += " " + doc[end].text
+
+        _add_condition(dependee, value, condition_string)
+
     _action_list.append(ParameterIsIgnored("not ignored"))
 
-    _shorten_and_check_string(dependee, doc)
+    _shorten_and_check_string(dependee, action_token.i, doc)
 
     return None
 
@@ -647,7 +724,7 @@ def _extract_only_passive_condition_action(
     _add_condition(dependee, value, condition_string, passive=True)
     _action_list.append(ParameterIsIgnored("not ignored"))
 
-    _shorten_and_check_string(dependee, doc, passive=True)
+    _shorten_and_check_string(dependee, action_token.i, doc)
 
     return None
 
@@ -779,7 +856,7 @@ def _extract_used_condition_action(
     _add_condition(dependee, value, condition_string, passive)
     _action_list.append(ParameterIsIgnored("not ignored"))
 
-    _shorten_and_check_string(dependee, doc, passive)
+    _shorten_and_check_string(dependee, action_token.i, doc)
 
     return None
 
@@ -809,6 +886,11 @@ def _extract_relational_condition(
 
     """
     match_ = matches[i]
+
+    if match_[1][0] != min(match_[1]):
+        matches.pop(i)
+        return None
+
     action_token = doc[match_[1][0]]
     cond_token = doc[match_[1][2]]
     left_dependee = cond_token.nbor(-1).text
@@ -816,17 +898,7 @@ def _extract_relational_condition(
 
     depender, value = _extract_dependee_value(action_token)
 
-    rel_op = ""
-
-    match cond_token.text:
-        case "$GT$":
-            rel_op = " > "
-        case "$LT$":
-            rel_op = " < "
-        case "$GEQ$":
-            rel_op = " >= "
-        case "$LEQ$":
-            rel_op = " <= "
+    rel_op = " " + _encoded_rel_ops[cond_token.text] + " "
 
     condition_string = doc[match_[1][1] : cond_token.i].text + rel_op + doc[cond_token.i + 1].text
     action_string = doc[: match_[1][1]].text
@@ -1029,9 +1101,9 @@ def extract_param_dependencies(
     description_doc = _nlp(description_preprocessed)
     print(f":::::::::::::: {param_qname} ::::::::::::::")
     for sent in description_doc.sents:
-        _dep_matcher(sent)
+        matches = _dep_matcher(sent)
+        print([_nlp.vocab.strings[m[0]] for m in matches])
 
-    # _dep_matcher(description_doc)
 
     for idx, cond in enumerate(_condition_list):
         dependency_tuples.append((param_qname, cond, _action_list[idx]))
@@ -1189,6 +1261,8 @@ _dep_cond_relational = [
         "RIGHT_ATTRS": {"POS": "SYM", "ORTH": {"IN": ["$LT$", "$GT$", "$GEQ$", "$LEQ$"]}},
     },
 ]
+
+
 # Raises <ERROR>...<if | when | ...>
 _dep_cond_raise_error_start = [
     {"RIGHT_ID": "error", "RIGHT_ATTRS": {"ORTH": {"REGEX": r".*Error"}}},
@@ -1279,12 +1353,3 @@ _matcher.add("COND_VALUE_ASSIGNMENT", [_pattern_cond_value_assignment], greedy="
 
 # Insert merger after Tagger into the pipeline
 _nlp.add_pipe("merger", after="tagger")
-
-
-if __name__ == '__main__':
-    qname = "test"
-    # descr= "- If `axis=0`, boolean and integer array-like, integer slice, and scalar integer are supported.\n - If `axis=1`:\n - to select a single column, `indices` can be of `int` type for all `X` types and `str` only for dataframe. The selected subset will be 1D, unless `X` is a sparse matrix in which case it will be 2D.\n - to select multiples columns, `indices` can be one of the following: `list`, `array`, `slice`. The type used in these containers can be one of the following: `int`, 'bool' and `str`. However, `str` is only supported when `X` is a dataframe. The selected subset will be 2D."
-    # descr = "Scientific notation is used only for numbers outside the range 10\ :sup:`m` to 10\ :sup:`n` (and only if the formatter is configured to use scientific notation at all).  Use (0, 0) to include all numbers.  Use (m, m) where m != 0 to fix the order of magnitude to 10\ :sup:`m`. The formatter default is :rc:`axes.formatter.limits`."
-    descr = "If and only if the concrete backend is written such that `option_scale_image` returns ``True``, an affine transformation (i.e., an `.Affine2DBase`) *may* be passed to `draw_image`.  The translation vector of the transformation is given in physical units (i.e., dots or pixels). Note that the transformation does not override *x* and *y*, and has to be applied *before* translating the result by *x* and *y* (this can be accomplished by adding *x* and *y* to the translation vector defined by *transform*)."
-    l = extract_param_dependencies(qname, descr)
-    print(l)

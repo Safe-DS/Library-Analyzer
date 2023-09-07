@@ -52,7 +52,7 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
             [
                 (
                     "penalty",
-                    ParameterHasValue("Only used when solver is lbfgs", "solver", "lbfgs"),
+                    ParameterHasValue("Only used when solver equals lbfgs", "solver", "lbfgs"),
                     ParameterIsIgnored("not ignored"),
                 ),
             ],
@@ -88,7 +88,7 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
             [
                 (
                     "validation_fraction",
-                    ParameterHasType("Only used if n_iter_no_change is an integer", "n_iter_no_change", "integer"),
+                    ParameterHasType("Only used if n_iter_no_change equals an integer", "n_iter_no_change", "integer"),
                     ParameterIsIgnored("not ignored"),
                 ),
             ],
@@ -101,7 +101,7 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 (
                     "intercept_scaling",
                     ParameterHasValue(
-                        "only when self.fit_intercept is True",
+                        "only when self.fit_intercept equals True",
                         "self.fit_intercept",
                         "True",
                         [
@@ -156,7 +156,7 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
             [
                 (
                     "n_jobs",
-                    ParameterHasValue("ignored when the solver is liblinear", "solver", "liblinear"),
+                    ParameterHasValue("ignored when the solver equals liblinear", "solver", "liblinear"),
                     ParameterIsIgnored("ignored"),
                 ),
             ],
@@ -180,7 +180,7 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
             [
                 (
                     "random_state",
-                    ParameterHasValue("Used for shuffling the data, when shuffle is True", "shuffle", "True"),
+                    ParameterHasValue("Used for shuffling the data, when shuffle equals True", "shuffle", "True"),
                     ParameterIsIgnored("not ignored"),
                 ),
             ],
