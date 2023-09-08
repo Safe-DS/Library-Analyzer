@@ -124,8 +124,11 @@ class ReferenceTestNode:
     scope: str
     referenced_symbols: list[str]
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.name}.{self.scope}"
 
 
 @pytest.mark.parametrize(
@@ -1237,6 +1240,48 @@ double(10)
             [ReferenceTestNode("x.line2", "Lambda", ["LocalVariable.x.line2"]),
              ReferenceTestNode("double.line4", "Module.", ["GlobalVariable.double.line2"])]
         ),
+        (  # language=Python "two lambda function used as normal function with same name"
+            """
+class A:
+    double = lambda x: 2 * x
+
+class B:
+    double = lambda x: 2 * x
+
+A.double(10)
+B.double(10)
+            """,  # language=none
+            [ReferenceTestNode("x.line3", "Lambda", ["LocalVariable.x.line3"]),
+             ReferenceTestNode("A.line8", "Module.", ["GlobalVariable.A.line2"]),
+             ReferenceTestNode("A.double.line8", "Module.", ["ClassVariable.A.double.line3",
+                                                             "ClassVariable.B.double.line6"]),
+             ReferenceTestNode("x.line6", "Lambda", ["LocalVariable.x.line6"]),
+             ReferenceTestNode("B.line9", "Module.", ["GlobalVariable.B.line5"]),
+             ReferenceTestNode("B.double.line9", "Module.", ["ClassVariable.A.double.line3",
+                                                             "ClassVariable.B.double.line6"])]
+        ),  # since we only return a list of all possible references, we can't distinguish between the two functions
+        (  # language=Python "lambda function used as normal function and normal function with same name"
+            """
+class A:
+    double = lambda x: 2 * x
+
+class B:
+    @staticmethod
+    def double(x):
+        return 2 * x
+
+A.double(10)
+B.double(10)
+            """,  # language=none
+            [ReferenceTestNode("x.line3", "Lambda", ["LocalVariable.x.line3"]),
+             ReferenceTestNode("A.line10", "Module.", ["GlobalVariable.A.line2"]),
+             ReferenceTestNode("A.double.line10", "Module.", ["ClassVariable.A.double.line3",
+                                                              "ClassVariable.B.double.line7"]),
+             ReferenceTestNode("x.line8", "FunctionDef.double", ["Parameter.x.line7"]),
+             ReferenceTestNode("B.line11", "Module.", ["GlobalVariable.B.line5"]),
+             ReferenceTestNode("B.double.line11", "Module.", ["ClassVariable.A.double.line3",
+                                                              "ClassVariable.B.double.line7"])]
+        ),  # since we only return a list of all possible references, we can't distinguish between the two functions
         (  # language=Python "lambda function as key"
             """
 names = ["a", "abc", "ab", "abcd"]
@@ -1282,21 +1327,43 @@ class B:
 A.add(1, 2)
 B.add(1, 2)
             """,  # language=none
-            []
-        ),
+            [ReferenceTestNode("a.line5", "FunctionDef.add", ["Parameter.a.line4"]),
+             ReferenceTestNode("b.line5", "FunctionDef.add", ["Parameter.b.line4"]),
+             ReferenceTestNode("a.line10", "FunctionDef.add", ["Parameter.a.line9"]),
+             ReferenceTestNode("b.line10", "FunctionDef.add", ["Parameter.b.line9"]),
+             ReferenceTestNode("A.line12", "Module.", ["GlobalVariable.A.line2"]),
+             ReferenceTestNode("A.add.line12", "Module.", ["ClassVariable.A.add.line2",
+                                                           "ClassVariable.B.add.line7"]),
+             ReferenceTestNode("B.line13", "Module.", ["GlobalVariable.B.line7"]),
+             ReferenceTestNode("B.add.line13", "Module.", ["ClassVariable.A.add.line2",
+                                                           "ClassVariable.B.add.line7"])]
+        ),  # since we only return a list of all possible references, we can't distinguish between the two functions
         (  # language=Python "functions with same name but different signature"
             """
+class A:
+    @staticmethod
+    def add(a, b):
+        return a + b
 
-def add(a, b):
-    return a + b
+class B:
+    @staticmethod
+    def add(a, b, c):
+        return a + b + c
 
-def add(a, b, c):
-    return a + b + c
-
-add(1, 2)
-add(1, 2, 3)
+A.add(1, 2)
+B.add(1, 2, 3)
             """,  # language=none
-            []
+            [ReferenceTestNode("a.line5", "FunctionDef.add", ["Parameter.a.line4"]),
+             ReferenceTestNode("b.line5", "FunctionDef.add", ["Parameter.b.line4"]),
+             ReferenceTestNode("a.line10", "FunctionDef.add", ["Parameter.a.line9"]),
+             ReferenceTestNode("b.line10", "FunctionDef.add", ["Parameter.b.line9"]),
+             ReferenceTestNode("A.line12", "Module.", ["GlobalVariable.A.line2"]),
+             ReferenceTestNode("A.add.line12", "Module.", ["ClassVariable.A.add.line2",
+                                                           "ClassVariable.B.add.line7"]),
+             ReferenceTestNode("B.line13", "Module.", ["GlobalVariable.B.line7"]),
+             ReferenceTestNode("B.add.line13", "Module.", ["ClassVariable.A.add.line2",
+                                                           "ClassVariable.B.add.line7"])]
+            # TODO: [LATER] we should detect the different signatures
         ),
         (  # language=Python "class function call"
             """
@@ -1307,8 +1374,9 @@ class A:
 a = A()
 a.fun_a()
             """,  # language=none
-            [
-             ]
+            [ReferenceTestNode("A.line6", "Module.", ["GlobalVariable.A.line2"]),
+             ReferenceTestNode("a.fun_a.line7", "Module.", ["ClassVariable.A.fun_a.line3"]),
+             ReferenceTestNode("a.line7", "Module.", ["GlobalVariable.a.line6"])]
         ),
         (  # language=Python "class function call, direct call"
             """
@@ -1318,8 +1386,8 @@ class A:
 
 A().fun_a()
             """,  # language=none
-            [
-             ]
+            [ReferenceTestNode("A.line6", "Module.", ["GlobalVariable.A.line2"]),
+             ReferenceTestNode("A.fun_a.line6", "Module.", ["ClassVariable.A.fun_a.line3"])]
         ),
     ],
     ids=[
@@ -1338,6 +1406,8 @@ A().fun_a()
         "lambda function",
         "lambda function call",
         "lambda function used as normal function",
+        "two lambda function used as normal function with same name",
+        "lambda function used as normal function and normal function with same name",
         "lambda function as key",
         "generator function",
         "functions with same name but different classes",
