@@ -77,6 +77,18 @@ def _find_references(value_reference: ReferenceNode,
         if value_reference.node.name in functions.keys():
             func = functions.get(value_reference.node.name)
             complete_reference.referenced_symbols.append(func.symbol)
+        elif isinstance(value_reference.node, MemberAccessValue):
+            if value_reference.node.member.attrname in functions.keys():
+                func = functions.get(value_reference.node.member.attrname)
+                if isinstance(func, list):
+                    for f in func:
+                        # If the Lambda function is assigned to a name, it can be called just as a normal function
+                        # Since Lambdas normally do not have names, we need to add its assigned name manually
+                        if isinstance(f.symbol.node, astroid.Lambda):
+                            f.symbol.name = value_reference.node.member.attrname
+                        complete_reference.referenced_symbols.append(f.symbol)
+                else:
+                    complete_reference.referenced_symbols.append(func.symbol)
 
     return complete_reference
 
@@ -108,7 +120,7 @@ def _find_call_reference_new(function_calls: dict[astroid.Call, Scope | ClassSco
                 symbol = functions.get(reference.node.func.name)
 
                 # If the Lambda function is assigned to a name, it can be called just as a normal function
-                # therefore we need to add its assigned name manually
+                # Since Lambdas normally do not have names, we need to add its assigned name manually
                 if isinstance(functions.get(reference.node.func.name).symbol.node, astroid.Lambda):
                     symbol.symbol.name = reference.node.func.name
 

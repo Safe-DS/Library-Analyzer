@@ -44,7 +44,7 @@ class MemberAccess(Expression):
     #  add a list of all classes of a module to easily access their instance nodes (their names)
 
     def __str__(self) -> str:
-        return self.name
+        return f"{self.__class__.__name__}.{self.name}"
 
     def __hash__(self) -> int:
         return hash(str(self))

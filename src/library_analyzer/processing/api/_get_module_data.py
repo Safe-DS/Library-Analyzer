@@ -282,6 +282,9 @@ class ModuleDataBuilder:
             self.value_nodes[node] = self.current_node_stack[-1]
 
     def enter_assignname(self, node: astroid.AssignName) -> None:
+        # we do not want lambda assignments to be added to the target_nodes dict because they are handled as functions
+        if isinstance(node.parent, astroid.Assign) and isinstance(node.parent.value, astroid.Lambda):
+            return
         if isinstance(
             node.parent,
             astroid.Assign

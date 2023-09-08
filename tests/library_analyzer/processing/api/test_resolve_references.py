@@ -1332,11 +1332,11 @@ B.add(1, 2)
              ReferenceTestNode("a.line10", "FunctionDef.add", ["Parameter.a.line9"]),
              ReferenceTestNode("b.line10", "FunctionDef.add", ["Parameter.b.line9"]),
              ReferenceTestNode("A.line12", "Module.", ["GlobalVariable.A.line2"]),
-             ReferenceTestNode("A.add.line12", "Module.", ["ClassVariable.A.add.line2",
-                                                           "ClassVariable.B.add.line7"]),
+             ReferenceTestNode("A.add.line12", "Module.", ["ClassVariable.A.add.line3",
+                                                           "ClassVariable.B.add.line8"]),
              ReferenceTestNode("B.line13", "Module.", ["GlobalVariable.B.line7"]),
-             ReferenceTestNode("B.add.line13", "Module.", ["ClassVariable.A.add.line2",
-                                                           "ClassVariable.B.add.line7"])]
+             ReferenceTestNode("B.add.line13", "Module.", ["ClassVariable.A.add.line3",
+                                                           "ClassVariable.B.add.line8"])]
         ),  # since we only return a list of all possible references, we can't distinguish between the two functions
         (  # language=Python "functions with same name but different signature"
             """
@@ -1358,11 +1358,11 @@ B.add(1, 2, 3)
              ReferenceTestNode("a.line10", "FunctionDef.add", ["Parameter.a.line9"]),
              ReferenceTestNode("b.line10", "FunctionDef.add", ["Parameter.b.line9"]),
              ReferenceTestNode("A.line12", "Module.", ["GlobalVariable.A.line2"]),
-             ReferenceTestNode("A.add.line12", "Module.", ["ClassVariable.A.add.line2",
-                                                           "ClassVariable.B.add.line7"]),
+             ReferenceTestNode("A.add.line12", "Module.", ["ClassVariable.A.add.line3",
+                                                           "ClassVariable.B.add.line8"]),
              ReferenceTestNode("B.line13", "Module.", ["GlobalVariable.B.line7"]),
-             ReferenceTestNode("B.add.line13", "Module.", ["ClassVariable.A.add.line2",
-                                                           "ClassVariable.B.add.line7"])]
+             ReferenceTestNode("B.add.line13", "Module.", ["ClassVariable.A.add.line3",
+                                                           "ClassVariable.B.add.line8"])]
             # TODO: [LATER] we should detect the different signatures
         ),
         (  # language=Python "class function call"
