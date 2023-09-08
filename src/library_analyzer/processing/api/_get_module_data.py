@@ -47,7 +47,7 @@ class ModuleDataBuilder:
     current_node_stack: list[Scope | ClassScope] = field(default_factory=list)
     children: list[Scope | ClassScope] = field(default_factory=list)
     classes: dict[str, ClassScope] = field(default_factory=dict)
-    functions: dict[str, Scope | ClassScope] = field(default_factory=dict)
+    functions: dict[str, Scope | list[Scope]] = field(default_factory=dict)
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope] = field(default_factory=dict)
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope] = field(default_factory=dict)
     global_variables: dict[str, Scope | ClassScope] = field(default_factory=dict)
@@ -95,10 +95,28 @@ class ModuleDataBuilder:
         self.children.append(self.current_node_stack[-1])  # add the current node to the children
         if isinstance(node, astroid.ClassDef):
             self.classes[node.name] = self.current_node_stack[-1]
+
+        # add functions to the functions dict
+        # if a function is defined multiple times (same name), the function is added to the functions dict as a list
         if isinstance(node, astroid.FunctionDef):
-            self.functions[node.name] = self.current_node_stack[-1]
+            if node.name in self.functions.keys():
+                if not isinstance(self.functions[node.name], list):
+                    self.functions[node.name] = [self.functions.get(node.name)]
+                self.functions[node.name].append(self.current_node_stack[-1])
+            else:
+                self.functions[node.name] = self.current_node_stack[-1]
+
+        # add lambda functions to the functions dict
+        # if a function is defined multiple times (same name), the function is added to the functions dict as a list
         if isinstance(node, astroid.Lambda) and isinstance(node.parent, astroid.Assign):
-            self.functions[node.parent.targets[0].name] = self.current_node_stack[-1]
+            node_name = node.parent.targets[0].name
+            if node_name in self.functions.keys():
+                if not isinstance(self.functions[node_name], list):
+                    self.functions[node_name] = [self.functions.get(node_name)]
+                self.functions[node_name].append(self.current_node_stack[-1])
+            else:
+                self.functions[node_name] = self.current_node_stack[-1]
+
         self.current_node_stack.pop()  # remove the current node from the stack
 
     def _analyze_constructor(self, node: astroid.FunctionDef) -> None:

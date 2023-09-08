@@ -24,7 +24,7 @@ class ModuleData:
     """
     scope: Scope | ClassScope
     classes: dict[str, ClassScope]
-    functions: dict[str, Scope | ClassScope]  # classScope should not be possible here: check that
+    functions: dict[str, Scope | list[Scope]]
     # members: dict[str, list[Symbol]]  # this contains all names of function names and attribute names and their declaratioon
     globals: dict[str, Scope | ClassScope]
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
