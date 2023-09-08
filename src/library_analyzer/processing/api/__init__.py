@@ -1,5 +1,9 @@
 """Analysis of the API of a Python library."""
 
+
+from library_analyzer.processing.api._extract_boundary_values import extract_boundary
+from library_analyzer.processing.api._extract_valid_values import extract_valid_literals
+
 from ._extract_called_after_functions import CalledAfterValues, extract_called_after_functions
 from ._extract_dependencies import (
     Action,
@@ -102,5 +106,6 @@ __all__ = [
     "get_base_expression",
     "extract_called_after_functions",
     "CalledAfterValues",
-
+    "extract_boundary",
+    "extract_valid_literals",
 ]
