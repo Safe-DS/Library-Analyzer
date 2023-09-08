@@ -43,8 +43,8 @@ class MemberAccess(Expression):
     # TODO: when detecting MemberAccess, we will only search for the nodes name in all class scopes ->
     #  add a list of all classes of a module to easily access their instance nodes (their names)
 
-    # def __str__(self):
-    #     return f"{self.expression.name}.{self.value.name}"
+    def __str__(self) -> str:
+        return self.name
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -185,8 +185,11 @@ class Scope:
     def __iter__(self) -> Scope | ClassScope:
         yield self
 
-    def __next__(self):
+    def __next__(self) -> Scope | ClassScope:
         return self
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}.{self.symbol.name}.line{self.symbol.id.line}"
 
     def root(self) -> Scope | ClassScope:
         if self.parent:

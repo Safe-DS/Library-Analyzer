@@ -95,7 +95,7 @@ def _get_symbols(node: ReferenceNode) -> list[Symbol]:
 def _find_call_reference_new(function_calls: dict[astroid.Call, Scope | ClassScope],
                              classes: dict[str, ClassScope],
                              functions: dict[str, Scope | ClassScope],
-                             parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]) -> list[ReferenceNode]:
+                             parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]) -> list[ReferenceNode]:
     final_call_references: list[ReferenceNode] = []
     python_builtins = dir(builtins)
 
@@ -162,10 +162,11 @@ def resolve_references(code: str) -> list[ReferenceNode]:
 
     module_data = _get_module_data(code)
     resolved_references = _create_unspecified_references(module_data.target_nodes, module_data.value_nodes, module_data.scope,
-                                                            module_data.classes, module_data.functions)
+                                                         module_data.classes, module_data.functions)
 
     if module_data.function_calls:
-        references_call = _find_call_reference_new(module_data.function_calls, module_data.classes, module_data.functions, module_data.parameters)
+        references_call = _find_call_reference_new(module_data.function_calls, module_data.classes, module_data.functions,
+                                                   module_data.parameters)
         resolved_references.extend(references_call)
 
     return resolved_references

@@ -20,3 +20,8 @@ class ReferenceNode:
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    def __str__(self) -> str:
+        if isinstance(self.node, astroid.Call):
+            return f"{self.node.func.name}.line{self.node.lineno}"
+        return f"{self.node.name}.line{self.node.lineno}"

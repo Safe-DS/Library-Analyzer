@@ -190,8 +190,9 @@ class ModuleDataBuilder:
                     return Import(node=node, id=_calc_node_id(node), name=node.names[0][1])  # TODO: this needs fixing when multiple imports are handled
                 return GlobalVariable(node=node, id=_calc_node_id(node), name=node.name)
             case astroid.ClassDef():
-                if isinstance(node, astroid.FunctionDef):
-                    return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
+                # we defined that functions are class variables if they are defined in the class scope
+                # if isinstance(node, astroid.FunctionDef):
+                #     return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
                 return ClassVariable(node=node, id=_calc_node_id(node), name=node.name, klass=current_scope)
             case astroid.FunctionDef():
                 if isinstance(current_scope, astroid.FunctionDef):

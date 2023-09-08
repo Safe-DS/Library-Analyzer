@@ -163,14 +163,14 @@ def test_calc_node_id(
                             "GlobalVariable.ClassDef.A",
                             [
                                 SimpleScope(
-                                    "LocalVariable.FunctionDef.__init__",
+                                    "ClassVariable.FunctionDef.__init__",
                                     [
                                         SimpleScope("InstanceVariable.MemberAccess.self.value", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self.test", []),
                                     ],
                                 ),
                                 SimpleScope(
-                                    "LocalVariable.FunctionDef.f",
+                                    "ClassVariable.FunctionDef.f",
                                     [SimpleScope("LocalVariable.AssignName.var1", [])],
                                 ),
                             ],
@@ -280,7 +280,7 @@ def test_calc_node_id(
                             [
                                 SimpleScope("ClassVariable.AssignName.class_attr1", []),
                                 SimpleScope(
-                                    "LocalVariable.FunctionDef.local_class_attr",
+                                    "ClassVariable.FunctionDef.local_class_attr",
                                     [SimpleScope("LocalVariable.AssignName.var1", [])],
                                 ),
                             ],
@@ -314,11 +314,11 @@ def test_calc_node_id(
                                 SimpleScope("ClassVariable.AssignName.local_class_attr1", []),
                                 SimpleScope("ClassVariable.AssignName.local_class_attr2", []),
                                 SimpleScope(
-                                    "LocalVariable.FunctionDef.__init__",
+                                    "ClassVariable.FunctionDef.__init__",
                                     [SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", [])],
                                 ),
                                 SimpleScope(
-                                    "LocalVariable.FunctionDef.local_instance_attr",
+                                    "ClassVariable.FunctionDef.local_instance_attr",
                                     [SimpleScope("LocalVariable.AssignName.var1", [])],
                                 ),
                             ],
@@ -347,7 +347,7 @@ def test_calc_node_id(
                             "GlobalVariable.ClassDef.B",
                             [
                                 SimpleScope(
-                                    "LocalVariable.FunctionDef.__init__",
+                                    "ClassVariable.FunctionDef.__init__",
                                     [SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", [])],
                                 ),
                             ],
@@ -611,7 +611,7 @@ def test_calc_node_id(
                                             [
                                                 SimpleScope("ClassVariable.AssignName.var3", []),
                                                 SimpleScope(
-                                                    "LocalVariable.FunctionDef.local_class_function_scope",
+                                                    "ClassVariable.FunctionDef.local_class_function_scope",
                                                     [
                                                         SimpleScope(
                                                             "LocalVariable.AssignName.var4",
@@ -703,7 +703,7 @@ def test_calc_node_id(
                             [
                                 SimpleScope("ClassVariable.AssignName.additional_locals", []),
                                 SimpleScope(
-                                    "LocalVariable.FunctionDef.__init__",
+                                    "ClassVariable.FunctionDef.__init__",
                                     [
                                         SimpleScope("Parameter.AssignName.handler", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self._handler", []),
@@ -711,13 +711,13 @@ def test_calc_node_id(
                                     ],
                                 ),
                                 SimpleScope(
-                                    "LocalVariable.FunctionDef.walk",
+                                    "ClassVariable.FunctionDef.walk",
                                     [
                                         SimpleScope("Parameter.AssignName.node", []),
                                     ],
                                 ),
                                 SimpleScope(
-                                    "LocalVariable.FunctionDef.__walk",
+                                    "ClassVariable.FunctionDef.__walk",
                                     [
                                         SimpleScope("Parameter.AssignName.node", []),
                                         SimpleScope("Parameter.AssignName.visited_nodes", []),
@@ -725,21 +725,21 @@ def test_calc_node_id(
                                     ],
                                 ),
                                 SimpleScope(
-                                    "LocalVariable.FunctionDef.__enter",
+                                    "ClassVariable.FunctionDef.__enter",
                                     [
                                         SimpleScope("Parameter.AssignName.node", []),
                                         SimpleScope("LocalVariable.AssignName.method", []),
                                     ],
                                 ),
                                 SimpleScope(
-                                    "LocalVariable.FunctionDef.__leave",
+                                    "ClassVariable.FunctionDef.__leave",
                                     [
                                         SimpleScope("Parameter.AssignName.node", []),
                                         SimpleScope("LocalVariable.AssignName.method", []),
                                     ],
                                 ),
                                 SimpleScope(
-                                    "LocalVariable.FunctionDef.__get_callbacks",
+                                    "ClassVariable.FunctionDef.__get_callbacks",
                                     [
                                         SimpleScope("Parameter.AssignName.node", []),
                                         SimpleScope("LocalVariable.AssignName.klass", []),
