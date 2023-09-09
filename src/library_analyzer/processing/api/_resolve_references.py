@@ -58,11 +58,12 @@ def _find_references(value_reference: ReferenceNode,
         if ref.node.name == value_reference.node.name:
             complete_reference.referenced_symbols = list(set(complete_reference.referenced_symbols) | set(_get_symbols(ref)))
         if isinstance(value_reference.node, MemberAccessValue):
-            if ref.node.name == value_reference.node.member.attrname:
+            # Add ClassVariables if the name matches
+            if isinstance(ref.scope, ClassScope) and ref.node.name == value_reference.node.member.attrname:
                 complete_reference.referenced_symbols = list(set(complete_reference.referenced_symbols) | set(_get_symbols(ref)))
 
             # Add InstanceVariables if the name of the MemberAccessValue is the same as the name of the InstanceVariable
-            elif isinstance(ref.node, MemberAccessTarget) and isinstance(value_reference.node, MemberAccessValue):
+            if isinstance(ref.node, MemberAccessTarget):
                 if ref.node.member.attrname == value_reference.node.member.attrname:
                     complete_reference.referenced_symbols = list(set(complete_reference.referenced_symbols) | set(_get_symbols(ref)))
 

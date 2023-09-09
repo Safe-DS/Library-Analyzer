@@ -272,6 +272,8 @@ class ModuleDataBuilder:
                 self.value_nodes[node] = self.current_node_stack[-1]
 
         elif isinstance(node.parent, astroid.AssignAttr):
+            if node.name == "self":
+                return
             self.target_nodes[node] = self.current_node_stack[-1]
         if (
             isinstance(node.parent, astroid.Call)
@@ -304,6 +306,8 @@ class ModuleDataBuilder:
 
         if isinstance(node.parent, astroid.Arguments) and node.name == "self":
             pass  # TODO: Special treatment for self parameter
+            # here self stance for the first implicit parameter of a class methode.
+            # we need to check all possible names here, because it is not bound to be "self"
 
         elif isinstance(
             node.parent,

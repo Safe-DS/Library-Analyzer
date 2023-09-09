@@ -11,7 +11,6 @@ from library_analyzer.processing.api import (
 )
 from library_analyzer.processing.api.model import (
     ReferenceNode,
-    ClassScope,
     MemberAccess,
     MemberAccessTarget,
     MemberAccessValue,
@@ -147,13 +146,14 @@ def local_parameter(*, key_arg_only):
     return 2 * key_arg_only
             """,  # language= None
             [ReferenceTestNode("key_arg_only.line3", "FunctionDef.local_parameter", ["Parameter.key_arg_only.line2"])]
-        ), (  # language=Python "parameter in function scope with positional only"
-            """
+        ),
+        (  # language=Python "parameter in function scope with positional only"
+        """
 def local_parameter(pos_arg_only, /):
     return 2 * pos_arg_only
             """,  # language= None
-            [ReferenceTestNode("pos_arg_only.line3", "FunctionDef.local_parameter", ["Parameter.pos_arg_only.line2"])]
-        ),
+        [ReferenceTestNode("pos_arg_only.line3", "FunctionDef.local_parameter", ["Parameter.pos_arg_only.line2"])]
+    ),
         (  # language=Python "parameter in function scope with default value"
             """
 def local_parameter(def_arg=10):
@@ -559,8 +559,8 @@ a.b.c.name
              ReferenceTestNode("a.b.c.line15", "Module.", ["InstanceVariable.B.c.line8"]),
              ReferenceTestNode("a.b.line15", "Module.", ["InstanceVariable.A.b.line4"]),
              ReferenceTestNode("a.line15", "Module.", ["GlobalVariable.a.line14"]),
-             ReferenceTestNode("B.line4", "ClassDef.A", ["GlobalVariable.B.line6"]),
-             ReferenceTestNode("C.line8", "ClassDef.B", ["GlobalVariable.C.line10"]),
+             ReferenceTestNode("B.line4", "FunctionDef.A.__init__", ["GlobalVariable.B.line6"]),
+             ReferenceTestNode("C.line8", "FunctionDef.B.__init__", ["GlobalVariable.C.line10"]),
              ReferenceTestNode("A.line14", "Module.", ["GlobalVariable.A.line2"]),
              ]
         ),
@@ -766,7 +766,8 @@ match var1:
              ReferenceTestNode("var1.line5", "Module.", ["GlobalVariable.var1.line2"]),
              ReferenceTestNode("var1.line6", "Module.", ["GlobalVariable.var1.line2"]),
              ReferenceTestNode("a.line6", "Module.", ["GlobalVariable.a.line6"]),  # TODO: ask Lars
-             ReferenceTestNode("b.line6", "Module.", ["GlobalVariable.b.line6"])]  # TODO: ask Lars if this is true GlobalVariable
+             ReferenceTestNode("b.line6", "Module.", ["GlobalVariable.b.line6"])]
+        # TODO: ask Lars if this is true GlobalVariable
         ),
         (  # language=Python "try except statement global scope"
             """
@@ -1016,18 +1017,18 @@ c
              ReferenceTestNode("b.line4", "Module.", ["GlobalVariable.b.line3"]),
              ReferenceTestNode("c.line5", "Module.", ["GlobalVariable.c.line4"])]
         ),
-#         (  # language=Python "regex"
-#             """
-# import re
-#
-# regex = re.compile(r"^\s*#")
-# string = "    # comment"
-#
-# if regex.match(string) is None:
-#     print(string, end="")
-#             """,  # language=none
-#             []
-#         ),
+        #         (  # language=Python "regex"
+        #             """
+        # import re
+        #
+        # regex = re.compile(r"^\s*#")
+        # string = "    # comment"
+        #
+        # if regex.match(string) is None:
+        #     print(string, end="")
+        #             """,  # language=none
+        #             []
+        #         ),
     ],
     ids=[
         "array and indexed array global scope",
@@ -1613,7 +1614,8 @@ def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
         return ReferenceTestNode(name=f"{node.node.name}.line{expression.lineno}",
                                  scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",
                                  referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
-    if isinstance(node.scope.symbol.node, astroid.Lambda) and not isinstance(node.scope.symbol.node, astroid.FunctionDef):
+    if isinstance(node.scope.symbol.node, astroid.Lambda) and not isinstance(node.scope.symbol.node,
+                                                                             astroid.FunctionDef):
         if isinstance(node.node, astroid.Call):
             return ReferenceTestNode(name=f"{node.node.func.name}.line{node.node.func.lineno}",
                                      scope=f"{node.scope.symbol.node.__class__.__name__}",
@@ -1622,6 +1624,10 @@ def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
                                  scope=f"{node.scope.symbol.node.__class__.__name__}",
                                  referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
     if isinstance(node.node, astroid.Call):
+        if isinstance(node.scope.symbol.node, astroid.FunctionDef) and node.scope.symbol.name == "__init__":
+            return ReferenceTestNode(name=f"{node.node.func.name}.line{node.node.lineno}",
+                                     scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",
+                                     referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
         return ReferenceTestNode(name=f"{node.node.func.name}.line{node.node.func.lineno}",
                                  scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",
                                  referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
