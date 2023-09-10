@@ -134,6 +134,8 @@ class ClassVariable(Symbol):
         return hash(str(self))
 
     def __str__(self) -> str:
+        if self.klass is None:
+            return f"{self.__class__.__name__}.UNKNOWN_CLASS.{self.name}.line{self.id.line}"
         return f"{self.__class__.__name__}.{self.klass.name}.{self.name}.line{self.id.line}"
 
 
@@ -238,6 +240,6 @@ class ClassScope(Scope):
         super_classes       is a list of ClassScope instances that represent the super classes of the class
     """
 
-    class_variables: list[astroid.AssignName] = field(default_factory=list)
-    instance_variables: list[astroid.AssignAttr] = field(default_factory=list)
+    class_variables: dict[str, astroid.AssignName] = field(default_factory=dict)  # right now, we do not cover the unlikely case of multiple class variables with the same name
+    instance_variables: dict[str, astroid.AssignAttr] = field(default_factory=dict)  # right now, we do not cover the unlikely case of multiple instance variables with the same name
     super_classes: list[ClassScope] | None = field(default=None)

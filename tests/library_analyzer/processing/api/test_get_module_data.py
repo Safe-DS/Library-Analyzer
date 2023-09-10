@@ -810,8 +810,8 @@ def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope
             return SimpleClassScope(
                 to_string(node.symbol),
                 [transform_result(child) for child in node.children],
-                [to_string_class(child) for child in node.class_variables],
-                [to_string_class(child) for child in node.instance_variables],
+                [to_string_class(child) for child in node.class_variables.values()],
+                [to_string_class(child) for child in node.instance_variables.values()],
                 [to_string_class(child) for child in node.super_classes],
             )
         return SimpleScope(to_string(node.symbol), [transform_result(child) for child in node.children])

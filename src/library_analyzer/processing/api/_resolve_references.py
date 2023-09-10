@@ -29,6 +29,8 @@ def _create_unspecified_references(target_nodes: dict[astroid.AssignName | astro
     final_references: list[ReferenceNode] = []
 
     # TODO: is it possible to do this in a more efficient way?
+    # maybe we can speed up the detection of references by using a dictionary instead of a list
+    # -> target_references = {node.name: ReferenceNode(node, scope, []) for node, scope in target_nodes.items()}
     target_references = [ReferenceNode(node, scope, []) for node, scope in target_nodes.items()]
     value_references = [ReferenceNode(node, scope, []) for node, scope in value_nodes.items()]
 
@@ -55,7 +57,9 @@ def _find_references(value_reference: ReferenceNode,
     """
     complete_reference = value_reference
     for ref in all_target_list:
-        if ref.node.name == value_reference.node.name:
+        if ref.node.name == value_reference.node.name and not isinstance(ref.node.parent, astroid.AssignAttr):
+            # Add all references (name)-nodes, that have the same name as the value_reference
+            # and are not the receiver of a MemberAccess (because they are already added)
             complete_reference.referenced_symbols = list(set(complete_reference.referenced_symbols) | set(_get_symbols(ref)))
         if isinstance(value_reference.node, MemberAccessValue):
             # Add ClassVariables if the name matches

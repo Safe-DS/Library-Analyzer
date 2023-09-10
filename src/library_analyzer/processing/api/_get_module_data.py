@@ -131,9 +131,9 @@ class ModuleDataBuilder:
 
             if isinstance(class_node, ClassScope):
                 if isinstance(child, astroid.Assign):
-                    class_node.instance_variables.append(child.targets[0])
+                    class_node.instance_variables[child.targets[0].attrname] = child.targets[0]
                 elif isinstance(child, astroid.AnnAssign):
-                    class_node.instance_variables.append(child.target)
+                    class_node.instance_variables[child.target.attrname] = child.target
                 else:
                     raise TypeError(f"Unexpected node type {type(child)}")
 
@@ -160,8 +160,8 @@ class ModuleDataBuilder:
                 _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
                 _children=[],
                 _parent=self.current_node_stack[-1],
-                instance_variables=[],
-                class_variables=[],
+                instance_variables={},
+                class_variables={},
                 super_classes=self.find_base_classes(node),
             ),
         )
@@ -188,6 +188,18 @@ class ModuleDataBuilder:
                     return Import(node=node, id=_calc_node_id(node), name=node.names[0][0])  # TODO: this needs fixing when multiple imports are handled
                 if isinstance(node, astroid.ImportFrom):
                     return Import(node=node, id=_calc_node_id(node), name=node.names[0][1])  # TODO: this needs fixing when multiple imports are handled
+                if isinstance(node, MemberAccessTarget):
+                    klass = self.get_class_for_receiver_node(node.receiver)
+                    if klass is not None:
+                        if node.member.attrname in klass.class_variables:  # this means that we are dealing with a class variable
+                            return ClassVariable(node=node, id=_calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node)
+                    # this means that we are dealing with an instance variable
+                    elif self.classes is not None:
+                        for klass in self.classes.values():
+                            if node.member.attrname in klass.instance_variables.keys():
+                                return InstanceVariable(node=node, id=_calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node)
+
+                        # return InstanceVariable(node=node, id=_calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node)
                 return GlobalVariable(node=node, id=_calc_node_id(node), name=node.name)
             case astroid.ClassDef():
                 # we defined that functions are class variables if they are defined in the class scope
@@ -332,7 +344,7 @@ class ModuleDataBuilder:
         if isinstance(node.parent.parent, astroid.ClassDef):
             class_node = self.get_node_by_name(node.parent.parent.name)
             if isinstance(class_node, ClassScope):
-                class_node.class_variables.append(node)
+                class_node.class_variables[node.name] = node
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
@@ -441,6 +453,12 @@ class ModuleDataBuilder:
         scope_node = Scope(_symbol=Parameter(constructed_node, _calc_node_id(constructed_node), constructed_node.name), _children=[], _parent=self.current_node_stack[-1])
         self.children.append(scope_node)
         self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], {constructed_node})
+
+    def get_class_for_receiver_node(self, receiver) -> ClassScope | None:
+        if isinstance(receiver, astroid.Name):
+            if receiver.name in self.classes:
+                return self.classes[receiver.name]
+        return None
 
 
 def _calc_node_id(

@@ -461,7 +461,7 @@ x = b.upper_class.class_attr1
             """
 class B:
     def __init__(self):
-        self.instance_attr1 = 10
+        self.instance_attr1 : int = 10
 
 b = B()
 var1 = b.instance_attr1
@@ -518,6 +518,23 @@ x.class_attr
              ReferenceTestNode("x.class_attr.line10", "Module.", ["ClassVariable.X.class_attr.line3"]),
              ReferenceTestNode("x.line10", "Module.", ["GlobalVariable.x.line8"]),
              ReferenceTestNode("X.line8", "Module.", ["GlobalVariable.X.line2"])]
+        ),
+        (  # language=Python "class attribute initialized with instance attribute"
+            """
+class B:
+    instance_attr1: int
+
+    def __init__(self):
+        self.instance_attr1 = 10
+
+b = B()
+var1 = b.instance_attr1
+            """,  # language=none
+            [ReferenceTestNode("b.instance_attr1.line9", "Module.", ["FAILClassVariable.B.instance_attr1.line3",  # TODO: What do we want here?
+                                                                     "FAILInstanceVariable.B.instance_attr1.line6"]),
+
+             ReferenceTestNode("b.line9", "Module.", ["GlobalVariable.b.line8"]),
+             ReferenceTestNode("B.line8", "Module.", ["GlobalVariable.B.line2"])]
         ),
         (  # language=Python "chained class attribute and instance attribute"
             """
@@ -681,6 +698,7 @@ class C:
         "instance attribute target",
         "instance attribute with parameter",
         "instance attribute with parameter and class attribute",
+        "class attribute initialized with instance attribute",
         "chained class attribute and instance attribute",
         "chained instance attributes",
         "two classes with same signature",
