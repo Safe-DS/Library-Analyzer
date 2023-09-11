@@ -48,7 +48,7 @@ from ._package_metadata import (
 from ._resolve_references import (
     resolve_references,
     _find_references,
-    _create_unspecified_references,
+    _find_name_references,
 )
 
 from ._get_module_data import (
@@ -96,8 +96,7 @@ __all__ = [
     "ParameterHasType",
     "ParametersInRelation",
     "_find_references",
-    "_create_unspecified_references",
-    "_add_target_references",
+    "_find_name_references",
     "_calc_node_id",
     "_get_module_data",
     "_construct_member_access_value",

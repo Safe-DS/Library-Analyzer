@@ -13,20 +13,23 @@ from library_analyzer.processing.api.model import Expression, Reference
 class ModuleData:
     """
     Contains all data that is collected for a module.
-    scope: The module's scope, this contains all child scopes.
-    classes: All classes and their scope.
-    functions: All functions and their scope.
-    globals: All global variables and their scope.
-    names: All names that are defined in the module and their scope.
-    parameters: All parameters of functions and their scope.
-    names_list: All names that are defined in the module.
-    function_calls: All function calls and their scope.
+
+    Attributes
+    ----------
+        scope               The module's scope, this contains all child scopes.
+        classes             All classes and their scope.
+        functions           All functions and their scope.
+        global_variables    All global variables and their scope.
+        value_nodes         All value nodes and their scope.
+        target_nodes        All target nodes and their scope.
+        parameters          All parameters of functions and their scope.
+        function_calls      All function calls and their scope.
     """
     scope: Scope | ClassScope
     classes: dict[str, ClassScope]
     functions: dict[str, Scope | list[Scope]]
     # members: dict[str, list[Symbol]]  # this contains all names of function names and attribute names and their declaratioon
-    globals: dict[str, Scope | ClassScope]
+    global_variables: dict[str, Scope | ClassScope]
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]

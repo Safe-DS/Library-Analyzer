@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import astroid
 import pytest
 from library_analyzer.processing.api import (
-    _create_unspecified_references,
+    _find_name_references,
     get_base_expression,
     resolve_references,
 )
@@ -90,7 +90,7 @@ from library_analyzer.processing.api.model import (
 )
 @pytest.mark.xfail(reason="Not implemented yet")
 def test_create_references(node: list[astroid.Name | astroid.AssignName], expected: list[ReferenceNode]) -> None:
-    result = _create_unspecified_references(node)[0]
+    result = _find_name_references(node)[0]
     assert result == expected
     assert_reference_list_equal(result, expected)
 

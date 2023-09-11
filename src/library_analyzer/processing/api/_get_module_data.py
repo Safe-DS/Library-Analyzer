@@ -64,7 +64,7 @@ class ModuleDataBuilder:
 
         Returns
         -------
-            The ScopeNode with the given name, or None if no node with the given name was found.
+            The Scope or ClassScope with the given name, or None if no node with the given name was found.
         """
         for node in self.current_node_stack:
             if node.symbol.node.name == name:
@@ -198,14 +198,14 @@ class ModuleDataBuilder:
                         for klass in self.classes.values():
                             if node.member.attrname in klass.instance_variables.keys():
                                 return InstanceVariable(node=node, id=_calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node)
-
-                        # return InstanceVariable(node=node, id=_calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node)
                 return GlobalVariable(node=node, id=_calc_node_id(node), name=node.name)
+
             case astroid.ClassDef():
                 # we defined that functions are class variables if they are defined in the class scope
                 # if isinstance(node, astroid.FunctionDef):
                 #     return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
                 return ClassVariable(node=node, id=_calc_node_id(node), name=node.name, klass=current_scope)
+
             case astroid.FunctionDef():
                 if isinstance(current_scope, astroid.FunctionDef):
                     if current_scope.name == "__init__":
@@ -215,6 +215,7 @@ class ModuleDataBuilder:
                     if current_scope in self.parameters and self.parameters[current_scope][1].__contains__(node):
                         return Parameter(node=node, id=_calc_node_id(node), name=node.name)
                 return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
+
             case astroid.Lambda():
                 return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
 
@@ -553,7 +554,7 @@ def _get_module_data(code: str) -> ModuleData:
     return ModuleData(scope=scope,
                       classes=scope_handler.classes,
                       functions=scope_handler.functions,
-                      globals=scope_handler.global_variables,
+                      global_variables=scope_handler.global_variables,
                       value_nodes=scope_handler.value_nodes,
                       target_nodes=scope_handler.target_nodes,
                       parameters=scope_handler.parameters,
