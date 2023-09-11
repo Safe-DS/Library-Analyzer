@@ -18,9 +18,12 @@ _action_list: list[Action] = []
 _combined_condition: list[str] = []
 _nlp = load_language("en_core_web_sm")
 _merger_matcher = Matcher(_nlp.vocab)
-_matcher = Matcher(_nlp.vocab)
 _dep_matcher = DependencyMatcher(_nlp.vocab)
 
+_none_phrases = [
+    "None",
+    "unspecified"
+]
 _encoded_rel_ops = {
     "$GT$": ">",
     "$LT$": "<",
@@ -47,10 +50,15 @@ special_values = [
 ]
 
 types = [
+    "bool",
+    "boolean",
+    "str",
     "string",
     "int",
+    "integer",
     "float",
-    "array_like"
+    "array_like",
+
 ]
 
 @dataclass
@@ -350,6 +358,12 @@ def _merger(doc: Doc) -> Doc:
 
     return doc
 
+def _get_final_end_token_idx(doc: Doc, tmp_end_idx: int) -> int:
+    before_last_token = doc[tmp_end_idx - 1]
+    if before_last_token.text == "not" or before_last_token.pos_ == "DET":
+        return tmp_end_idx + 1
+    else:
+        return tmp_end_idx
 
 def _check_passiveness(action_token: Token, match: tuple[Any, ...]) -> bool:
     """Check if the action verb is used in passive form.
@@ -412,6 +426,9 @@ def _preprocess_docstring(docstring: str) -> str:
     docstring = re.sub(r"!=", " does not equal ", docstring)
     docstring = re.sub(r"==?", " equals ", docstring)
     docstring = re.sub(r"\s+", " ", docstring)
+
+    docstring = re.sub(r"not set", "None", docstring)
+    docstring = re.sub(r"not specified", "None", docstring)
 
     docstring = re.sub(r"none", "None", docstring)
 
@@ -554,11 +571,10 @@ def _add_condition(dependee: str, value: str, cond_str: str, passive: bool = Fal
 
     """
     cond: Condition
-    types = ["integer", "float", "bool", "str", "string"]
     type_ = value.split(" ")[1].lower() if len(value.split(" ")) == 2 else ""
 
-    if value == "None" or dependee == "None":
-        dependee_ = dependee if dependee != "None" else value
+    if value in _none_phrases or dependee in _none_phrases:
+        dependee_ = dependee if dependee not in _none_phrases else value
         cond = ParameterIsNone(cond_str, dependee_)
         cond.also = also
     elif value == "not callable":
@@ -613,7 +629,13 @@ def _extract_must_be_condition(
     cond_token = doc[match[1][0]]
     action_token = doc[match[1][2]]
 
-    condition_string = doc[start : cond_token.i + 2].text
+    end = cond_token.i + 2
+    token_before_end = doc[end - 1]
+
+    if token_before_end.text == "not" or token_before_end.pos_ == "DET":
+        end += 1
+
+    condition_string = doc[start : end].text
     action_string = doc[action_token.i : -1].text
 
     if action_token.nbor(-1).is_punct:
@@ -661,7 +683,6 @@ def _extract_only_condition_action(
     condition_string = doc[start:end].text
 
     dependee, value = _extract_dependee_value(action_token)
-    print(f"++++++++++\nAction_token: {action_token.text}, {action_token.i}\n++++++++++++++")
     if action_token.nbor(1).text in _encoded_rel_ops:
         left_dependee_token = action_token
         rel_op_token = action_token.nbor(1)
@@ -767,6 +788,10 @@ def _extract_ignored_condition_action(
 
     dependee, value = _extract_dependee_value(action_token, passive)
 
+    token_before_end = doc[end - 1]
+    if token_before_end.text == "not" or token_before_end.pos_ == "DET":
+        end += 1
+
     condition_string = doc[start:end].text
 
     _add_condition(dependee, value, condition_string)
@@ -803,6 +828,10 @@ def _extract_pure_only_condition_action(
     action_token = doc[match[1][2]]
     start = min(match[1])
     end = max(match[1]) + 2
+
+    token_before_end = doc[end - 1]
+    if token_before_end.text == "not" or token_before_end.pos_ == "DET":
+        end += 1
 
     passive = _check_passiveness(action_token, match)
 
@@ -851,8 +880,11 @@ def _extract_used_condition_action(
 
     dependee, value = _extract_dependee_value(action_token, passive)
 
-    condition_string = doc[start:end].text
+    token_before_end = doc[end - 1]
+    if token_before_end.text == "not" or token_before_end.pos_ == "DET":
+        end += 1
 
+    condition_string = doc[start:end].text
     _add_condition(dependee, value, condition_string, passive)
     _action_list.append(ParameterIsIgnored("not ignored"))
 
@@ -985,39 +1017,8 @@ def _extract_cond_only_noun(
     parameter = parameter_token.text
     value_ = parameter_token.nbor(-1).text
 
-    matcher_matches = _matcher(doc)
-
-    match_id_strings = [(_nlp.vocab.strings[match_id], start_, end_) for match_id, start_, end_ in matcher_matches]
-
-    # If the condition is spread over two sentences, the phrase 'in this case' in the second sentence indicates this.
-    if any(match_id_string == "IN_THIS_CASE" for match_id_string, _, _ in match_id_strings):
-        cond_start = -1
-        cond_end = -1
-        second_matched_token_text = ""
-        action_ = ParameterWillBeSetTo(matched_str, parameter, value_)
-
-        for match_id_string, start_, end_ in match_id_strings:
-            if match_id_string == "COND_VALUE_ASSIGNMENT":
-                cond_start = start_
-                cond_end = end_
-                second_matched_token_text = doc[start_ + 1].text
-                break
-
-        cond_string = doc[cond_start : cond_end + 1].text
-        value_ = doc[cond_end].text
-
-        if second_matched_token_text in ["is", "equals", "set"]:
-            dependee = "this_parameter"
-        else:
-            dependee = doc[cond_start + 1].text
-
-        cond = ParameterHasValue(cond_string, dependee, value_)
-
-        _condition_list.append(cond)
-
-    else:
-        _add_condition(parameter, value_, matched_str)
-        action_ = ParameterIsIgnored("not ignored")
+    _add_condition(parameter, value_, matched_str)
+    action_ = ParameterIsIgnored("not ignored")
 
     _action_list.append(action_)
     return None
@@ -1069,6 +1070,49 @@ def _extract_cond_also_value(
     return None
 
 
+def _extract_if_only_accepted(
+    matcher: DependencyMatcher,  # noqa: ARG001
+    doc: Doc,
+    i: int,
+    matches: list[tuple[Any, ...]],
+) -> Any | None:
+
+    match_ = matches[i]
+    prev_match = matches[i-1]
+
+    if len(matches) > 1 and _nlp.vocab.strings[prev_match[0]] == "DEPENDENCY_COND_ONLY_NOUN":
+        matches.pop(i - 1)
+        _condition_list.pop()
+        _action_list.pop()
+
+
+    cond_start = match_[1][1]
+    cond_end = _get_final_end_token_idx(doc, match_[1][0] + 2)
+    cond_verb_token = doc[match_[1][0]]
+
+    dependee, value = _extract_dependee_value(cond_verb_token)
+
+    cond_str = doc[cond_start: cond_end].text
+
+    _add_condition(dependee, value, cond_str)
+
+    action_start = match_[1][3]
+    action_end = match_[1][2]
+    action_str = doc[action_start:action_end + 1].text
+
+    action_value_token = doc[action_start + 1]
+    if action_value_token.text == "not" or action_value_token.pos_ == "DET":
+        action_value = doc[action_start + 1: action_start + 3].text
+    else:
+        action_value = doc[action_start + 1].text
+
+    action = ParameterWillBeSetTo(action_str, "this_parameter", action_value)
+
+    _action_list.append(action)
+
+    return None
+
+
 def extract_param_dependencies(
     param_qname: str,
     description: str,
@@ -1109,6 +1153,7 @@ def extract_param_dependencies(
         dependency_tuples.append((param_qname, cond, _action_list[idx]))
 
     return dependency_tuples
+
 
 
 _conditional_only = {
@@ -1291,6 +1336,28 @@ _dep_cond_param_also_value = [
     {"LEFT_ID": "cond_head", "REL_OP": "<", "RIGHT_ID": "action_head", "RIGHT_ATTRS": {"POS": "VERB"}},
 ]
 
+_dep_if_only_accepted = [
+    {"RIGHT_ID": "cond_head", "RIGHT_ATTRS": {"ORTH": {"IN": ["equals", "is"]}}},
+    {
+        "LEFT_ID": "cond_head",
+        "REL_OP": ">",
+        "RIGHT_ID": "conditional_if",
+        "RIGHT_ATTRS": {"ORTH": "If"}
+    },
+    {
+        "LEFT_ID": "cond_head",
+        "REL_OP": "<",
+        "RIGHT_ID": "accepted",
+        "RIGHT_ATTRS": {"ORTH": "accepted"}
+    },
+    {
+        "LEFT_ID": "accepted",
+        "REL_OP": ">>",
+        "RIGHT_ID": "action_only",
+        "RIGHT_ATTRS": {"ORTH": "only"}
+    }
+]
+
 _dep_matcher.add(
     "DEPENDENCY_IMPLICIT_IGNORED_ONLY",
     [_dep_cond_only_verb, _dep_cond_only_adj],
@@ -1327,6 +1394,8 @@ _dep_matcher.add("DEPENDENCY_COND_ALSO_VALUE", [_dep_cond_param_also_value], on_
 _dep_matcher.add("DEPENDENCY_COND_RAISE_ERROR_START", [_dep_cond_raise_error_start], on_match=_extract_raise_error)
 _dep_matcher.add("DEPENDENCY_COND_RAISE_ERROR_END", [_dep_cond_raise_error_end], on_match=_extract_raise_error)
 
+_dep_matcher.add("DEPENDENCY_IF_ONLY_ACCEPTED", [_dep_if_only_accepted], on_match=_extract_if_only_accepted)
+
 _pattern_hyphened_values = [{"IS_ASCII": True}, {"ORTH": "-"}, {"IS_ASCII": True}]
 _pattern_hyphened_values2 = [{"IS_ASCII": True}, {"ORTH": "-"}, {"IS_ASCII": True}, {"ORTH": "-"}, {"IS_ASCII": True}]
 _pattern_aux_be = [{"LOWER": {"IN": ["must", "will"]}}, {"LOWER": "be"}]
@@ -1335,21 +1404,38 @@ _pattern_rel_ops = [
     {"ORTH": {"IN": ["LT$", "GT$", "LEQ$", "GEQ$"]}},
 ]
 
-_pattern_in_this_case = [{"LOWER": "in"}, {"LOWER": "this"}, {"LOWER": "case"}]
-
-_pattern_cond_value_assignment = [
-    {"ORTH": {"IN": ["When", "If"]}},
-    {"OP": "?"},
-    {"LOWER": {"IN": ["equals", "set", "is"]}},
-    {"LOWER": "to", "OP": "?"},
-]
 
 _merger_matcher.add("HYPHENED_VALUE", [_pattern_hyphened_values, _pattern_hyphened_values2], greedy="LONGEST")
 _merger_matcher.add("AUXPASS", [_pattern_aux_be])
 _merger_matcher.add("REL_OPS", [_pattern_rel_ops])
 
-_matcher.add("IN_THIS_CASE", [_pattern_in_this_case])
-_matcher.add("COND_VALUE_ASSIGNMENT", [_pattern_cond_value_assignment], greedy="LONGEST")
 
 # Insert merger after Tagger into the pipeline
 _nlp.add_pipe("merger", after="tagger")
+
+if __name__ == '__main__':
+    qname = "test"
+    s1 = "The metric to use when calculating distance between instances in a "\
+        "feature array. If metric is a string or callable, it must be one of "\
+        "the options allowed by :func:`sklearn.metrics.pairwise_distances` for "\
+        "its metric parameter. "\
+        "If linkage is 'ward', only 'euclidean' is accepted. "\
+        "If 'precomputed', a distance matrix (instead of a similarity matrix) "\
+        "is needed as input for the fit method. "\
+        ".. deprecated:: 1.2 "\
+        "`affinity` was deprecated in version 1.2 and will be renamed to "\
+        "`metric` in 1.4."
+    s2 = "Used when ``solver`` == 'sag', 'saga' or 'liblinear' to shuffle the data."
+    s3 = "Only used if U_init and V_init are not None."
+    s4 = "Only if trainsize is unspecified."
+
+
+    ls = [
+        extract_param_dependencies(qname, s4),
+    ]
+
+    for l in ls:
+        for t in l:
+            print(t)
+            # print(t[1].dependee, t[1].value)
+        print("\n----------------------\n")
