@@ -477,7 +477,7 @@ def _calc_node_id(
         case astroid.ClassDef():
             return NodeID(module, node.name, node.lineno, node.col_offset)
         case astroid.FunctionDef():
-            return NodeID(module, node.name, node.lineno, node.col_offset)
+            return NodeID(module, node.name, node.fromlineno, node.col_offset)
         case astroid.AssignName():
             return NodeID(module, node.name, node.lineno, node.col_offset)
         case astroid.Name():
