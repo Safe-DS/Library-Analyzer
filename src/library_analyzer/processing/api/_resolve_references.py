@@ -12,7 +12,7 @@ from library_analyzer.processing.api.model import (
     Scope,
     ClassScope,
     Builtin,
-    ReferenceNode,
+    ReferenceNode, Parameter,
 )
 
 
@@ -69,13 +69,31 @@ def _find_references(value_reference: ReferenceNode,
         * complete_reference: the reference for the given node with all references added to its referenced_symbols
     """
     complete_reference = value_reference
+    outer_continue: bool = False
+
     for ref in all_target_list:
         # Add all references (name)-nodes, that have the same name as the value_reference
         # and are not the receiver of a MemberAccess (because they are already added)
         if ref.node.name == value_reference.node.name and not isinstance(ref.node.parent, astroid.AssignAttr):
-            # Add parameters if the name parameter is declared in the same scope as the value_reference
+            # Add parameters only if the name parameter is declared in the same scope as the value_reference
             if ref.scope.symbol.node in parameters.keys():
                 if not ref.scope == value_reference.scope:
+                    continue
+
+            # this covers the case where a parameter has the same name as a class variable:
+            # class A:
+            #     a = 0
+            #     def f(self, a):
+            #         self.a = a
+            elif isinstance(ref.scope, ClassScope) and parameters:
+                parameters_for_value_reference = parameters.get(value_reference.scope.symbol.node)[1]
+                for param in parameters_for_value_reference:
+                    if ref.node.name == param.name and not isinstance(_get_symbols(ref), Parameter):
+                        outer_continue = True  # the reference isn't a parameter, so don't add it
+                        break
+
+                if outer_continue:
+                    outer_continue = False
                     continue
 
             complete_reference.referenced_symbols = list(set(complete_reference.referenced_symbols) | set(_get_symbols(ref)))
@@ -100,6 +118,11 @@ def _find_references(value_reference: ReferenceNode,
                 break
 
     # Find functions that are passed as arguments to other functions (and therefor are not called directly - hence we handle them here)
+    # def f():
+    #     pass
+    # def g(a):
+    #     a()
+    # g(f)
     if functions:
         if value_reference.node.name in functions.keys():
             func = functions.get(value_reference.node.name)
@@ -143,8 +166,7 @@ def _get_symbols(node: ReferenceNode) -> list[Symbol]:
 def _find_call_reference(function_calls: dict[astroid.Call, Scope | ClassScope],
                          classes: dict[str, ClassScope],
                          functions: dict[str, Scope | ClassScope],
-                         parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]) -> \
-list[ReferenceNode]:
+                         parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]) -> list[ReferenceNode]:
     """Find all references for a function call.
 
     Parameters:

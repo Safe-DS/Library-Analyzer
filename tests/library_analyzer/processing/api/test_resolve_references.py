@@ -5,7 +5,6 @@ from dataclasses import dataclass
 import astroid
 import pytest
 from library_analyzer.processing.api import (
-    _find_name_references,
     get_base_expression,
     resolve_references,
 )
@@ -14,107 +13,7 @@ from library_analyzer.processing.api.model import (
     MemberAccess,
     MemberAccessTarget,
     MemberAccessValue,
-    Scope,
-    NodeID,
 )
-
-
-@pytest.mark.parametrize(
-    ("node", "expected"),
-    [
-        (
-            [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [ReferenceNode(astroid.Name("var1", lineno=1, col_offset=4),
-                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4),
-                                 []))]
-        ),
-        (
-            [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
-             astroid.Name("var2", lineno=2, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
-             astroid.Name("var3", lineno=30, col_offset=4,
-                          parent=astroid.FunctionDef("func2", lineno=1, col_offset=0))],
-            [ReferenceNode(astroid.Name("var1", lineno=1, col_offset=4),
-                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4),
-                                 [])),
-             ReferenceNode(astroid.Name("var2", lineno=2, col_offset=4),
-                           Scope(astroid.Name("var2", lineno=2, col_offset=4), NodeID(astroid.Module(""), "var2", 2, 4),
-                                 [])),
-             ReferenceNode(astroid.Name("var3", lineno=30, col_offset=4),
-                           Scope(astroid.Name("var3", lineno=30, col_offset=4),
-                                 NodeID(astroid.Module(""), "var3", 30, 4), []))]
-        ),
-        (
-            [astroid.AssignName("var1", lineno=12, col_offset=42,
-                                parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [ReferenceNode(astroid.AssignName("var1", lineno=12, col_offset=42),
-                           Scope(astroid.AssignName("var1", lineno=12, col_offset=42),
-                                 NodeID(astroid.Module(""), "var1", 12, 42), []))]
-        ),
-        (
-            [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.FunctionDef("func1", lineno=1, col_offset=0)),
-             astroid.AssignName("var2", lineno=1, col_offset=8,
-                                parent=astroid.FunctionDef("func1", lineno=1, col_offset=0))],
-            [ReferenceNode(astroid.Name("var1", lineno=1, col_offset=4),
-                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4),
-                                 [])),
-             ReferenceNode(astroid.AssignName("var2", lineno=1, col_offset=8),
-                           Scope(astroid.AssignName("var2", lineno=1, col_offset=8),
-                                 NodeID(astroid.Module(""), "var2", 1, 8), []))]
-        ),
-        (
-            [astroid.Name("var1", lineno=1, col_offset=4, parent=astroid.ClassDef("MyClass", lineno=1, col_offset=0))],
-            [ReferenceNode(astroid.Name("var1", lineno=1, col_offset=4),
-                           Scope(astroid.Name("var1", lineno=1, col_offset=4), NodeID(astroid.Module(""), "var1", 1, 4),
-                                 []))]
-        ),
-        (
-            [astroid.Name("glob", lineno=1, col_offset=4, parent=astroid.Module("mod"))],
-            [ReferenceNode(astroid.Name("glob", lineno=1, col_offset=4),
-                           Scope(astroid.Name("glob", lineno=1, col_offset=4),
-                                 NodeID(astroid.Module("mod"), "glob", 1, 4), []))]
-        ),
-        (
-            [],
-            []
-        ),
-    ],
-    ids=[
-        "Name FunctionDef",
-        "Multiple Names FunctionDef",
-        "AssignName FunctionDef",
-        "Name and AssignName FunctionDef",
-        "Name ClassDef",
-        "Name Module",
-        "Empty list",
-    ]
-)
-@pytest.mark.xfail(reason="Not implemented yet")
-def test_create_references(node: list[astroid.Name | astroid.AssignName], expected: list[ReferenceNode]) -> None:
-    result = _find_name_references(node)[0]
-    assert result == expected
-    assert_reference_list_equal(result, expected)
-
-
-# TODO: rewrite this test since the results are no longer just prototypes
-
-
-def assert_reference_list_equal(result: list[ReferenceNode], expected: list[ReferenceNode]) -> None:
-    """ Assert reference list equality.
-
-    The result data as well as the expected data in this test is simplified, so it is easier to compare the results.
-    The real results name and scope are objects and not strings"""
-    result = [
-        ReferenceNode(name.node.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in
-        result]
-    expected = [
-        ReferenceNode(name.node.name, name.scope.children.__class__.__name__, name.referenced_symbols) for name in
-        expected]
-    assert result == expected
-
-
-# TODO: test this when resolve reference is implemented (disabled for now due to test failures)
-# def test_add_target_references() -> None:
-#     raise NotImplementedError("Test not implemented")
 
 
 @dataclass
@@ -148,12 +47,12 @@ def local_parameter(*, key_arg_only):
             [ReferenceTestNode("key_arg_only.line3", "FunctionDef.local_parameter", ["Parameter.key_arg_only.line2"])]
         ),
         (  # language=Python "parameter in function scope with positional only"
-        """
+            """
 def local_parameter(pos_arg_only, /):
     return 2 * pos_arg_only
             """,  # language= None
-        [ReferenceTestNode("pos_arg_only.line3", "FunctionDef.local_parameter", ["Parameter.pos_arg_only.line2"])]
-    ),
+            [ReferenceTestNode("pos_arg_only.line3", "FunctionDef.local_parameter", ["Parameter.pos_arg_only.line2"])]
+        ),
         (  # language=Python "parameter in function scope with default value"
             """
 def local_parameter(def_arg=10):
@@ -530,8 +429,9 @@ class B:
 b = B()
 var1 = b.instance_attr1
             """,  # language=none
-            [ReferenceTestNode("b.instance_attr1.line9", "Module.", ["FAILClassVariable.B.instance_attr1.line3",  # TODO: What do we want here?
-                                                                     "FAILInstanceVariable.B.instance_attr1.line6"]),
+            [ReferenceTestNode("b.instance_attr1.line9", "Module.",
+                               ["FAILClassVariable.B.instance_attr1.line3",  # TODO: What do we want here?
+                                "FAILInstanceVariable.B.instance_attr1.line6"]),
 
              ReferenceTestNode("b.line9", "Module.", ["GlobalVariable.b.line8"]),
              ReferenceTestNode("B.line8", "Module.", ["GlobalVariable.B.line2"])]
@@ -785,7 +685,7 @@ match var1:
              ReferenceTestNode("var1.line6", "Module.", ["GlobalVariable.var1.line2"]),
              ReferenceTestNode("a.line6", "Module.", ["GlobalVariable.a.line6"]),  # TODO: ask Lars
              ReferenceTestNode("b.line6", "Module.", ["GlobalVariable.b.line6"])]
-        # TODO: ask Lars if this is true GlobalVariable
+            # TODO: ask Lars if this is true GlobalVariable
         ),
         (  # language=Python "try except statement global scope"
             """
@@ -1204,10 +1104,10 @@ def call_function(a):
 call_function(1)
             """,  # language=none
             [
-             ReferenceTestNode("fun1.line10", "FunctionDef.call_function", ["GlobalVariable.fun1.line2"]),
-             ReferenceTestNode("fun2.line12", "FunctionDef.call_function", ["GlobalVariable.fun2.line5"]),
-             ReferenceTestNode("call_function.line14", "Module.", ["GlobalVariable.call_function.line8"]),
-             ReferenceTestNode("a.line9", "FunctionDef.call_function", ["Parameter.a.line8"])]
+                ReferenceTestNode("fun1.line10", "FunctionDef.call_function", ["GlobalVariable.fun1.line2"]),
+                ReferenceTestNode("fun2.line12", "FunctionDef.call_function", ["GlobalVariable.fun2.line5"]),
+                ReferenceTestNode("call_function.line14", "Module.", ["GlobalVariable.call_function.line8"]),
+                ReferenceTestNode("a.line9", "FunctionDef.call_function", ["Parameter.a.line8"])]
         ),
         (  # language=Python "recursive function call",
             """
