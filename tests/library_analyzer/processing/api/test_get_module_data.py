@@ -765,6 +765,28 @@ def test_calc_node_id(
                 a = "a"
             """,
             [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.a", [])])],
+        ),
+        (
+            """
+                [len(num) for num in nums]
+            """,
+            [SimpleScope("Module", [SimpleScope("GlobalVariable.ListComp.", [SimpleScope("LocalVariable.AssignName.num", [])])])],
+        ),
+        (
+            """
+                class A:
+                    x = [len(num) for num in nums]
+            """,
+            [SimpleScope("Module", [SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.x", []),
+                                                                                   SimpleScope("ClassVariable.ListComp.", [SimpleScope("LocalVariable.AssignName.num", [])])], ["x"], [], [])])],
+        ),
+        (
+            """
+                def fun():
+                    x = [len(num) for num in nums]
+            """,
+            [SimpleScope("Module", [SimpleScope("GlobalVariable.FunctionDef.fun", [SimpleScope("LocalVariable.AssignName.x", []),
+                                                                                   SimpleScope("LocalVariable.ListComp.", [SimpleScope("LocalVariable.AssignName.num", [])])])])],
         )
     ],
     ids=[
@@ -789,6 +811,9 @@ def test_calc_node_id(
         "Complex Scope",
         "ASTWalker",
         "AssignName",
+        "List Comprehension in Module",
+        "List Comprehension in Class",
+        "List Comprehension in Function",
     ],  # TODO: add tests for lambda and generator expressions
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
@@ -835,6 +860,8 @@ def to_string(symbol: Symbol) -> str:
         return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.modname}.{symbol.node.names[0][0]}"  # TODO: handle multiple imports and aliases
     elif isinstance(symbol.node, astroid.Name):
         return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.name}"
+    elif isinstance(symbol.node, astroid.ListComp):
+        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}."
     raise NotImplementedError(f"Unknown node type: {symbol.node.__class__.__name__}")
 
 
