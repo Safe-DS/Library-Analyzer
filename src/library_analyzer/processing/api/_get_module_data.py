@@ -186,8 +186,10 @@ class ModuleDataBuilder:
             case astroid.Module() | None:
                 if isinstance(node, astroid.Import):
                     return Import(node=node, id=_calc_node_id(node), name=node.names[0][0])  # TODO: this needs fixing when multiple imports are handled
+
                 if isinstance(node, astroid.ImportFrom):
                     return Import(node=node, id=_calc_node_id(node), name=node.names[0][1])  # TODO: this needs fixing when multiple imports are handled
+
                 if isinstance(node, MemberAccessTarget):
                     klass = self.get_class_for_receiver_node(node.receiver)
                     if klass is not None:
@@ -198,12 +200,16 @@ class ModuleDataBuilder:
                         for klass in self.classes.values():
                             if node.member.attrname in klass.instance_variables.keys():
                                 return InstanceVariable(node=node, id=_calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node)
+                if isinstance(node, astroid.ListComp):
+                    return GlobalVariable(node=node, id=_calc_node_id(node), name="ListComp")
                 return GlobalVariable(node=node, id=_calc_node_id(node), name=node.name)
 
             case astroid.ClassDef():
                 # we defined that functions are class variables if they are defined in the class scope
                 # if isinstance(node, astroid.FunctionDef):
                 #     return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
+                if isinstance(node, astroid.ListComp):
+                    return ClassVariable(node=node, id=_calc_node_id(node), name="ListComp")
                 return ClassVariable(node=node, id=_calc_node_id(node), name=node.name, klass=current_scope)
 
             case astroid.FunctionDef():
@@ -211,12 +217,20 @@ class ModuleDataBuilder:
                     if current_scope.name == "__init__":
                         if isinstance(node, MemberAccessTarget):
                             return InstanceVariable(node=node, id=_calc_node_id(node), name=node.member.attrname, klass=current_scope.parent)
+
                 if isinstance(node, astroid.AssignName) and self.parameters:
                     if current_scope in self.parameters and self.parameters[current_scope][1].__contains__(node):
                         return Parameter(node=node, id=_calc_node_id(node), name=node.name)
+
+                if isinstance(node, astroid.ListComp):
+                    return LocalVariable(node=node, id=_calc_node_id(node), name="ListComp")
+
                 return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
 
             case astroid.Lambda():
+                return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
+
+            case astroid.ListComp():
                 return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
 
         return Symbol(node=node, id=_calc_node_id(node), name=node.name)
@@ -229,6 +243,16 @@ class ModuleDataBuilder:
         )
 
     def leave_lambda(self, node: astroid.Lambda) -> None:
+        self._detect_scope(node)
+
+    def enter_listcomp(self, node: astroid.ListComp) -> None:
+        self.current_node_stack.append(
+            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                  _children=[],
+                  _parent=self.current_node_stack[-1]),
+        )
+
+    def leave_listcomp(self, node: astroid.ListComp) -> None:
         self._detect_scope(node)
 
     def enter_arguments(self, node: astroid.Arguments) -> None:
@@ -300,6 +324,8 @@ class ModuleDataBuilder:
         # we do not want lambda assignments to be added to the target_nodes dict because they are handled as functions
         if isinstance(node.parent, astroid.Assign) and isinstance(node.parent.value, astroid.Lambda):
             return
+
+        # The following nodes are not added to the target_nodes dict because they are real assignments and therefore targets
         if isinstance(
             node.parent,
             astroid.Assign
@@ -322,6 +348,8 @@ class ModuleDataBuilder:
             # here self stance for the first implicit parameter of a class methode.
             # we need to check all possible names here, because it is not bound to be "self"
 
+        # the following nodes are no real target nodes, but astroid generates an AssignName node for them.
+        # they still need to be added to the children of the current scope
         elif isinstance(
             node.parent,
             astroid.Assign
@@ -334,6 +362,7 @@ class ModuleDataBuilder:
             | astroid.For
             | astroid.NamedExpr
             | astroid.Starred
+            | astroid.Comprehension
         ):
             parent = self.current_node_stack[-1]
             scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
