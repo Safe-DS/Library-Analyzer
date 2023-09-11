@@ -20,7 +20,8 @@ def _find_name_references(
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope],
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope],
     classes: dict[str, ClassScope],
-    functions: dict[str, Scope | list[Scope]]) -> list[ReferenceNode]:
+    functions: dict[str, Scope | list[Scope]],
+    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]) -> list[ReferenceNode]:
     """Create a list of references from a list of name nodes.
 
     Parameters:
@@ -42,7 +43,7 @@ def _find_name_references(
 
     for value_ref in value_references:
         if isinstance(value_ref.node, astroid.Name | MemberAccessValue):
-            target_ref = _find_references(value_ref, target_references, classes, functions)
+            target_ref = _find_references(value_ref, target_references, classes, functions, parameters)
             final_references.append(target_ref)
 
     return final_references
@@ -51,7 +52,8 @@ def _find_name_references(
 def _find_references(value_reference: ReferenceNode,
                      all_target_list: list[ReferenceNode],
                      classes: dict[str, ClassScope],
-                     functions: dict[str, Scope | list[Scope]]) -> ReferenceNode:
+                     functions: dict[str, Scope | list[Scope]],
+                     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]) -> ReferenceNode:
     """ Find all references for a node.
 
     Finds all references for a node in a list of references and adds them to the list of referenced_symbols of the node.
@@ -59,18 +61,25 @@ def _find_references(value_reference: ReferenceNode,
     Parameters:
         * value_reference: the node for which we want to find all references
         * all_target_list: a list of target references in the module
-        * classes: a list of all classes in the module
+        * classes: a dict of all classes in the module
+        * functions: a dict of all functions in the module
+        * parameters: a dict of all parameters for each functions in the module
 
     Returns:
         * complete_reference: the reference for the given node with all references added to its referenced_symbols
     """
     complete_reference = value_reference
     for ref in all_target_list:
+        # Add all references (name)-nodes, that have the same name as the value_reference
+        # and are not the receiver of a MemberAccess (because they are already added)
         if ref.node.name == value_reference.node.name and not isinstance(ref.node.parent, astroid.AssignAttr):
-            # Add all references (name)-nodes, that have the same name as the value_reference
-            # and are not the receiver of a MemberAccess (because they are already added)
-            complete_reference.referenced_symbols = list(
-                set(complete_reference.referenced_symbols) | set(_get_symbols(ref)))
+            # Add parameters if the name parameter is declared in the same scope as the value_reference
+            if ref.scope.symbol.node in parameters.keys():
+                if not ref.scope == value_reference.scope:
+                    continue
+
+            complete_reference.referenced_symbols = list(set(complete_reference.referenced_symbols) | set(_get_symbols(ref)))
+
         if isinstance(value_reference.node, MemberAccessValue):
             # Add ClassVariables if the name matches
             if isinstance(ref.scope, ClassScope) and ref.node.name == value_reference.node.member.attrname:
@@ -215,7 +224,7 @@ def resolve_references(code: str) -> list[ReferenceNode]:
 
     module_data = _get_module_data(code)
     resolved_references = _find_name_references(module_data.target_nodes, module_data.value_nodes,
-                                                module_data.classes, module_data.functions)
+                                                module_data.classes, module_data.functions, module_data.parameters)
 
     if module_data.function_calls:
         references_call = _find_call_reference(module_data.function_calls, module_data.classes, module_data.functions,
