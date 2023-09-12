@@ -52,7 +52,6 @@ from ._resolve_references import (
 )
 
 from ._get_module_data import (
-    ModuleDataBuilder,
     _get_module_data,
     get_base_expression,
     _calc_node_id,

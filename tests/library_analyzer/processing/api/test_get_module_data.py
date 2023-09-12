@@ -919,7 +919,7 @@ def to_string(symbol: Symbol) -> str:
     raise NotImplementedError(f"Unknown node type: {symbol.node.__class__.__name__}")
 
 
-def to_string_class(node: astroid.NodeNG) -> str:
+def to_string_class(node: astroid.NodeNG | ClassScope) -> str:
     if isinstance(node, astroid.AssignAttr):
         return f"{node.__class__.__name__}.{node.attrname}"
     elif isinstance(node, astroid.AssignName | astroid.FunctionDef | astroid.ClassDef):
@@ -1053,9 +1053,9 @@ def test_get_module_data_functions(code: str, expected: str) -> None:
     []
 )
 def test_get_module_data_globals(code: str, expected: str) -> None:
-    globals = _get_module_data(code).classes
+    globs = _get_module_data(code).classes
     raise NotImplementedError("TODO: implement test")
-    assert globals == expected
+    assert globs == expected
 
 
 @pytest.mark.parametrize(

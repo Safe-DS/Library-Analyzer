@@ -105,10 +105,9 @@ def _find_references(value_reference: ReferenceNode,
                     set(complete_reference.referenced_symbols) | set(_get_symbols(ref)))
 
             # Add InstanceVariables if the name of the MemberAccessValue is the same as the name of the InstanceVariable
-            if isinstance(ref.node, MemberAccessTarget):
-                if ref.node.member.attrname == value_reference.node.member.attrname:
-                    complete_reference.referenced_symbols = list(
-                        set(complete_reference.referenced_symbols) | set(_get_symbols(ref)))
+            if isinstance(ref.node, MemberAccessTarget) and ref.node.member.attrname == value_reference.node.member.attrname:
+                complete_reference.referenced_symbols = list(
+                    set(complete_reference.referenced_symbols) | set(_get_symbols(ref)))
 
     # Find classes that are referenced
     if classes:
@@ -167,7 +166,7 @@ def _get_symbols(node: ReferenceNode) -> list[Symbol]:
 
 def _find_call_reference(function_calls: dict[astroid.Call, Scope | ClassScope],
                          classes: dict[str, ClassScope],
-                         functions: dict[str, Scope | ClassScope],
+                         functions: dict[str, Scope | list[Scope]],
                          parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]) -> list[ReferenceNode]:
     """Find all references for a function call.
 

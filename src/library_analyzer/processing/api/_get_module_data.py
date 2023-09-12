@@ -405,7 +405,7 @@ class ModuleDataBuilder:
                                _parent=parent)
             self.children.append(scope_node)
 
-        # add AssignName node to the class_variables dict of the parent class if the parent of the Assign node is a class node
+        # add AssignName node to the class_variables dict of the parent class if the parent of the parent node(=Assign) is a class node
         if isinstance(node.parent.parent, astroid.ClassDef):
             class_node = self.get_node_by_name(node.parent.parent.name)
             if isinstance(class_node, ClassScope):
@@ -446,8 +446,8 @@ class ModuleDataBuilder:
             self.value_nodes[member_access] = self.current_node_stack[-1]
 
     @staticmethod
-    def has_assignattr_parent(node) -> bool:
-        """Checks if any parent of the given node is an AssignAttr node."""
+    def has_assignattr_parent(node: astroid.Attribute) -> bool:
+        """Check if any parent of the given node is an AssignAttr node."""
         current_node = node
         while current_node is not None:
             if isinstance(current_node, astroid.AssignAttr):
@@ -519,7 +519,7 @@ class ModuleDataBuilder:
         self.children.append(scope_node)
         self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], {constructed_node})
 
-    def get_class_for_receiver_node(self, receiver) -> ClassScope | None:
+    def get_class_for_receiver_node(self, receiver: MemberAccessTarget) -> ClassScope | None:
         if isinstance(receiver, astroid.Name):
             if receiver.name in self.classes:
                 return self.classes[receiver.name]
@@ -578,8 +578,8 @@ def _construct_member_access_target(receiver: astroid.Name | astroid.Attribute |
         else:
             return MemberAccessTarget(receiver=_construct_member_access_target(receiver.expr, receiver),
                                       member=member)
-    except TypeError:
-        raise TypeError(f"Unexpected node type {type(member)}")
+    except TypeError as err:
+        raise TypeError(f"Unexpected node type {type(member)}") from err
 
 
 def _construct_member_access_value(receiver: astroid.Name | astroid.Attribute | astroid.Call, member: astroid.Attribute) -> MemberAccessValue:
@@ -591,8 +591,8 @@ def _construct_member_access_value(receiver: astroid.Name | astroid.Attribute | 
         else:
             return MemberAccessValue(receiver=_construct_member_access_value(receiver.expr, receiver),
                                      member=member)
-    except TypeError:
-        raise TypeError(f"Unexpected node type {type(member)}")
+    except TypeError as err:
+        raise TypeError(f"Unexpected node type {type(member)}") from err
 
 
 def get_base_expression(node: MemberAccess) -> astroid.NodeNG:

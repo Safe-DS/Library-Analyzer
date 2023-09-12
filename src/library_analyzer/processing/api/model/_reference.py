@@ -11,11 +11,11 @@ from library_analyzer.processing.api.model import (
 
 @dataclass
 class ReferenceNode:
-    node: astroid.Name | astroid.AssignName | astroid.Call | MemberAccess | str  # TODO: remove str?
+    node: astroid.Name | astroid.AssignName | astroid.Call | MemberAccess
     scope: Scope
     referenced_symbols: list[Symbol] = field(default_factory=list)
 
-    def __contains__(self, item) -> bool:
+    def __contains__(self, item: Symbol) -> bool:
         return item in self.referenced_symbols
 
     def __hash__(self) -> int:

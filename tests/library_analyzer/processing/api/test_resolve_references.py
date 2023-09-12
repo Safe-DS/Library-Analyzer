@@ -13,6 +13,8 @@ from library_analyzer.processing.api.model import (
     MemberAccess,
     MemberAccessTarget,
     MemberAccessValue,
+    ClassVariable,
+    InstanceVariable,
 )
 
 
@@ -1545,7 +1547,7 @@ def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
                                  scope=f"{node.scope.symbol.node.__class__.__name__}",
                                  referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
     if isinstance(node.node, astroid.Call):
-        if isinstance(node.scope.symbol.node, astroid.FunctionDef) and node.scope.symbol.name == "__init__":
+        if isinstance(node.scope.symbol.node, astroid.FunctionDef) and node.scope.symbol.name == "__init__" and isinstance(node.scope.symbol, ClassVariable | InstanceVariable):
             return ReferenceTestNode(name=f"{node.node.func.name}.line{node.node.lineno}",
                                      scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",
                                      referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))

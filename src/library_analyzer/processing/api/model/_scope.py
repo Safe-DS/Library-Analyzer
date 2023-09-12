@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from abc import ABC
 from types import NoneType
+from typing import Callable
 
 import astroid
 
@@ -102,10 +103,10 @@ class Symbol(ABC):
     def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
-    def __eq__(self, other: Symbol) -> bool:
-        if isinstance(other, Symbol):
-            return self.name == other.name and self.id == other.id
-        return False
+    # def __eq__(self, other: Symbol) -> bool:
+    #     if isinstance(other, Symbol):
+    #         return self.name == other.name and self.id == other.id
+    #     return False
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -150,6 +151,8 @@ class InstanceVariable(Symbol):
         return hash(str(self))
 
     def __str__(self) -> str:
+        if self.klass is None:
+            return f"{self.__class__.__name__}.UNKNOWN_CLASS.{self.name}.line{self.id.line}"
         return f"{self.__class__.__name__}.{self.klass.name}.{self.name}.line{self.id.line}"
 
 
@@ -183,7 +186,7 @@ class Scope:
         _parent      is the parent node in the scope tree, is None if the node is the root node.
     """
 
-    _symbol: Symbol = field(default_factory=Symbol)
+    _symbol: Symbol = field(default_factory=Callable[[], Symbol])
     _children: list[Scope | ClassScope] = field(default_factory=list)
     _parent: Scope | ClassScope | None = None
 
@@ -245,4 +248,4 @@ class ClassScope(Scope):
 
     class_variables: dict[str, astroid.AssignName | astroid.FunctionDef | astroid.ClassDef] = field(default_factory=dict)  # right now, we do not cover the unlikely case of multiple class variables with the same name
     instance_variables: dict[str, astroid.AssignAttr] = field(default_factory=dict)  # right now, we do not cover the unlikely case of multiple instance variables with the same name
-    super_classes: list[ClassScope] | None = field(default=None)
+    super_classes: list[ClassScope] = field(default_factory=list)
