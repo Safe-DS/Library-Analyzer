@@ -760,12 +760,12 @@ for num in nums:
         (  # language=Python "for loop in list comprehension global scope"
             """
 nums = ["one", "two", "three"]
-lengths = [len(num) for num in nums]  # TODO: list comprehension should get its own scope (LATER: for further improvement)
+lengths = [len(num) for num in nums]
 lengths
         """,  # language=none
-            [ReferenceTestNode("len.line3", "Module.", ["Builtin.len"]),
-             ReferenceTestNode("num.line3", "List.", ["LocalVariable.num.line3"]),
-             ReferenceTestNode("nums.line3", "Module.", ["GlobalVariable.nums.line2"]),
+            [ReferenceTestNode("len.line3", "ListComp.", ["Builtin.len"]),
+             ReferenceTestNode("num.line3", "ListComp.", ["LocalVariable.num.line3"]),
+             ReferenceTestNode("nums.line3", "ListComp.", ["GlobalVariable.nums.line2"]),
              ReferenceTestNode("lengths.line4", "Module.", ["GlobalVariable.lengths.line3"])]
         ),
         (  # language=Python "while loop global scope"
@@ -1547,8 +1547,16 @@ def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
             return ReferenceTestNode(name=f"{node.node.func.name}.line{node.node.lineno}",
                                      scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",
                                      referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
+        if isinstance(node.scope.symbol.node, astroid.ListComp):
+            return ReferenceTestNode(name=f"{node.node.func.name}.line{node.node.func.lineno}",
+                                     scope=f"{node.scope.symbol.node.__class__.__name__}.",
+                                     referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
         return ReferenceTestNode(name=f"{node.node.func.name}.line{node.node.func.lineno}",
                                  scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",
+                                 referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
+    if isinstance(node.scope.symbol.node, astroid.ListComp):
+        return ReferenceTestNode(name=f"{node.node.name}.line{node.node.lineno}",
+                                 scope=f"{node.scope.symbol.node.__class__.__name__}.",
                                  referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
     return ReferenceTestNode(name=f"{node.node.name}.line{node.node.lineno}",
                              scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",

@@ -340,6 +340,7 @@ class ModuleDataBuilder:
             | astroid.Tuple
             | astroid.NamedExpr
             | astroid.Starred
+            | astroid.Comprehension
         ):
             self.target_nodes[node] = self.current_node_stack[-1]
 
@@ -524,6 +525,8 @@ def _calc_node_id(
             return NodeID(module, node.func.name, node.lineno, node.col_offset)
         case astroid.Lambda():
             return NodeID(module, "LAMBDA", node.lineno, node.col_offset)
+        case astroid.ListComp():
+            return NodeID(module, "LIST_COMP", node.lineno, node.col_offset)
         case astroid.NodeNG():
             return NodeID(module, node.as_string(), node.lineno, node.col_offset)
         case _:

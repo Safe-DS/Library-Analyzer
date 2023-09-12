@@ -157,7 +157,9 @@ def _get_symbols(node: ReferenceNode) -> list[Symbol]:
     current_scope = node.scope
 
     for child in current_scope.children:
-        if child.symbol.node.name == node.node.name:
+        if isinstance(child.symbol.node, astroid.ListComp):
+            continue
+        elif child.symbol.node.name == node.node.name:
             refined_symbol.append(child.symbol)
 
     return refined_symbol
