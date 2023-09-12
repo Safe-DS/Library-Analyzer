@@ -166,6 +166,12 @@ class ModuleDataBuilder:
             ),
         )
 
+        # add class node to the class_variables dict of the parent class if the parent of the function is a class
+        if isinstance(node.parent, astroid.ClassDef):
+            class_node = self.get_node_by_name(node.parent.name)
+            if isinstance(class_node, ClassScope):
+                class_node.class_variables[node.name] = node
+
     def leave_classdef(self, node: astroid.ClassDef) -> None:
         self._detect_scope(node)
 
@@ -177,6 +183,12 @@ class ModuleDataBuilder:
         )
         if node.name == "__init__":
             self._analyze_constructor(node)
+
+        # add function bode to the class_variables dict of the parent class if the parent of the function is a class
+        if isinstance(node.parent, astroid.ClassDef):
+            class_node = self.get_node_by_name(node.parent.name)
+            if isinstance(class_node, ClassScope):
+                class_node.class_variables[node.name] = node
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
         self._detect_scope(node)
@@ -393,7 +405,7 @@ class ModuleDataBuilder:
                                _parent=parent)
             self.children.append(scope_node)
 
-        # add class variables to the class_variables list of the class
+        # add AssignName node to the class_variables dict of the parent class if the parent of the Assign node is a class node
         if isinstance(node.parent.parent, astroid.ClassDef):
             class_node = self.get_node_by_name(node.parent.parent.name)
             if isinstance(class_node, ClassScope):

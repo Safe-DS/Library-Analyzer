@@ -243,6 +243,6 @@ class ClassScope(Scope):
         super_classes       is a list of ClassScope instances that represent the super classes of the class
     """
 
-    class_variables: dict[str, astroid.AssignName] = field(default_factory=dict)  # right now, we do not cover the unlikely case of multiple class variables with the same name
+    class_variables: dict[str, astroid.AssignName | astroid.FunctionDef | astroid.ClassDef] = field(default_factory=dict)  # right now, we do not cover the unlikely case of multiple class variables with the same name
     instance_variables: dict[str, astroid.AssignAttr] = field(default_factory=dict)  # right now, we do not cover the unlikely case of multiple instance variables with the same name
     super_classes: list[ClassScope] | None = field(default=None)
