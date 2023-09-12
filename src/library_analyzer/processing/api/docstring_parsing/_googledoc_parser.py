@@ -71,7 +71,7 @@ class GoogleDocParser(AbstractDocstringParser):
         return ParameterDocstring(
             type=last_parameter_docstring_obj.type_name or "",
             default_value=last_parameter_docstring_obj.default or "",
-            description=last_parameter_docstring_obj.description,
+            description=last_parameter_docstring_obj.description or "",
         )
 
     def get_attribute_documentation(

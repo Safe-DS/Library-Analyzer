@@ -23,7 +23,7 @@ from library_analyzer.processing.api.model import (
             {
                 "kind": "UnionType",
                 "types": [
-                    {"kind": "EnumType", "values": {"auto", "log2", "sqrt"}},
+                    {"kind": "EnumType", "values": ["auto", "log2", "sqrt"]},
                     {"kind": "NamedType", "name": "int"},
                     {"kind": "NamedType", "name": "None"},
                     {"kind": "NamedType", "name": "'manual'"},
@@ -142,7 +142,7 @@ def test_boundary_from_string(description: str, expected: dict[str, Any]) -> Non
                         "min": 0.0,
                         "min_inclusive": True,
                     },
-                    {"kind": "EnumType", "values": {"yesterday", "today"}},
+                    {"kind": "EnumType", "values": ["today", "yesterday"]},
                     {"kind": "NamedType", "name": "int"},
                     {"kind": "NamedType", "name": "'Auto'"},
                 ],
