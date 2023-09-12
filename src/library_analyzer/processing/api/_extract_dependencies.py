@@ -644,6 +644,8 @@ def _extract_must_be_condition(
     else:
         dependee, dependee_value = _extract_dependee_value(cond_token)
         depender, depender_value = _extract_dependee_value(action_token)
+        if depender.lower() == "it":
+            depender = "this_parameter"
         restriction = ParameterWillBeSetTo(action_string, depender, depender_value)
 
     _add_condition(dependee, dependee_value, condition_string)
