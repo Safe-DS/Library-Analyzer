@@ -200,16 +200,16 @@ class ModuleDataBuilder:
                         for klass in self.classes.values():
                             if node.member.attrname in klass.instance_variables.keys():
                                 return InstanceVariable(node=node, id=_calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node)
-                if isinstance(node, astroid.ListComp):
-                    return GlobalVariable(node=node, id=_calc_node_id(node), name="ListComp")
+                if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally) and not isinstance(node, astroid.FunctionDef):
+                    return GlobalVariable(node=node, id=_calc_node_id(node), name=node.__class__.__name__)
                 return GlobalVariable(node=node, id=_calc_node_id(node), name=node.name)
 
             case astroid.ClassDef():
                 # we defined that functions are class variables if they are defined in the class scope
                 # if isinstance(node, astroid.FunctionDef):
                 #     return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
-                if isinstance(node, astroid.ListComp):
-                    return ClassVariable(node=node, id=_calc_node_id(node), name="ListComp")
+                if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally) and not isinstance(node, astroid.FunctionDef):
+                    return ClassVariable(node=node, id=_calc_node_id(node), name=node.__class__.__name__, klass=current_scope)
                 return ClassVariable(node=node, id=_calc_node_id(node), name=node.name, klass=current_scope)
 
             case astroid.FunctionDef():
@@ -222,15 +222,15 @@ class ModuleDataBuilder:
                     if current_scope in self.parameters and self.parameters[current_scope][1].__contains__(node):
                         return Parameter(node=node, id=_calc_node_id(node), name=node.name)
 
-                if isinstance(node, astroid.ListComp):
-                    return LocalVariable(node=node, id=_calc_node_id(node), name="ListComp")
+                if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally):
+                    return LocalVariable(node=node, id=_calc_node_id(node), name=node.__class__.__name__)
 
                 return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
 
-            case astroid.Lambda():
+            case astroid.Lambda() | astroid.ListComp():
                 return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
 
-            case astroid.ListComp():
+            case astroid.TryExcept() | astroid.TryFinally():  # TODO: can we summarize Lambda and ListComp here? only if nodes in try except are not global
                 return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
 
         return Symbol(node=node, id=_calc_node_id(node), name=node.name)
@@ -253,6 +253,26 @@ class ModuleDataBuilder:
         )
 
     def leave_listcomp(self, node: astroid.ListComp) -> None:
+        self._detect_scope(node)
+
+    # def enter_tryfinally(self, node: astroid.TryFinally) -> None:
+    #     self.current_node_stack.append(
+    #         Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+    #               _children=[],
+    #               _parent=self.current_node_stack[-1]),
+    #     )
+    #
+    # def leave_tryfinally(self, node: astroid.TryFinally) -> None:
+    #     self._detect_scope(node)
+
+    def enter_tryexcept(self, node: astroid.TryExcept) -> None:
+        self.current_node_stack.append(
+            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                  _children=[],
+                  _parent=self.current_node_stack[-1]),
+        )
+
+    def leave_tryexcept(self, node: astroid.TryExcept) -> None:
         self._detect_scope(node)
 
     def enter_arguments(self, node: astroid.Arguments) -> None:
@@ -341,6 +361,7 @@ class ModuleDataBuilder:
             | astroid.NamedExpr
             | astroid.Starred
             | astroid.Comprehension
+            | astroid.ExceptHandler
         ):
             self.target_nodes[node] = self.current_node_stack[-1]
 
@@ -364,6 +385,7 @@ class ModuleDataBuilder:
             | astroid.NamedExpr
             | astroid.Starred
             | astroid.Comprehension
+            | astroid.ExceptHandler
         ):
             parent = self.current_node_stack[-1]
             scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),

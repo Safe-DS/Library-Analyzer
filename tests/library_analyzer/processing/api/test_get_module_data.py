@@ -106,12 +106,12 @@ class SimpleClassScope(SimpleScope):
             "my_module.np.1.0",
         ),
         (
-            astroid.ImportFrom(fromname='math', names=[('sqrt', None)], level=0, lineno=1, col_offset=0,
+            astroid.ImportFrom(fromname="math", names=[("sqrt", None)], level=0, lineno=1, col_offset=0,
                                parent=astroid.Module("my_module")),
             "my_module.sqrt.1.0",
         ),
         (
-            astroid.ImportFrom(fromname='math', names=[('sqrt', 's')], level=0, lineno=1, col_offset=0,
+            astroid.ImportFrom(fromname="math", names=[("sqrt", "s")], level=0, lineno=1, col_offset=0,
                                parent=astroid.Module("my_module")),
             "my_module.s.1.0",
         )
@@ -770,7 +770,7 @@ def test_calc_node_id(
             """
                 [len(num) for num in nums]
             """,
-            [SimpleScope("Module", [SimpleScope("GlobalVariable.ListComp.", [SimpleScope("LocalVariable.AssignName.num", [])])])],
+            [SimpleScope("Module", [SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])])])],
         ),
         (
             """
@@ -778,7 +778,7 @@ def test_calc_node_id(
                     x = [len(num) for num in nums]
             """,
             [SimpleScope("Module", [SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.x", []),
-                                                                                   SimpleScope("ClassVariable.ListComp.", [SimpleScope("LocalVariable.AssignName.num", [])])], ["x"], [], [])])],
+                                                                                   SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])])], ["x"], [], [])])],
         ),
         (
             """
@@ -786,8 +786,58 @@ def test_calc_node_id(
                     x = [len(num) for num in nums]
             """,
             [SimpleScope("Module", [SimpleScope("GlobalVariable.FunctionDef.fun", [SimpleScope("LocalVariable.AssignName.x", []),
-                                                                                   SimpleScope("LocalVariable.ListComp.", [SimpleScope("LocalVariable.AssignName.num", [])])])])],
-        )
+                                                                                   SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])])])])],
+        ),
+        (
+            """
+                try:
+                    result = num1 / num2
+                except ZeroDivisionError as zde:
+                    zde
+            """,
+            [SimpleScope("Module", [SimpleScope("TryExcept", [SimpleScope("LocalVariable.AssignName.result", []),
+                                                                              SimpleScope("LocalVariable.AssignName.zde", [])])])],
+            # TODO: do we want zde to be Global?
+        ),
+        (
+            """
+                try:
+                    result = num1 / num2
+                except ZeroDivisionError as error:
+                    error
+                finally:
+                    final = 1
+            """,
+            [SimpleScope("Module", [SimpleScope("TryExcept", [SimpleScope("LocalVariable.AssignName.result", []),
+                                                                              SimpleScope("LocalVariable.AssignName.error", []),
+                                                                              SimpleScope("LocalVariable.AssignName.final", [])])])],
+            # TODO: do we want finally to be its own scope?
+        ),
+        (
+            """
+                class A:
+                    try:
+                        result = num1 / num2
+                    except ZeroDivisionError as zde:
+                        zde
+            """,
+            [SimpleScope("Module", [SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("TryExcept", [SimpleScope("LocalVariable.AssignName.result", []),
+                                                                              SimpleScope("LocalVariable.AssignName.zde", [])])],
+                                                     [], [], [])])],
+            # TODO: do we want any of these to be class variables?
+        ),
+        (
+            """
+                def fun():
+                    try:
+                        result = num1 / num2
+                    except ZeroDivisionError as zde:
+                        zde
+            """,
+            [SimpleScope("Module", [SimpleScope("GlobalVariable.FunctionDef.fun", [SimpleScope("TryExcept", [SimpleScope("LocalVariable.AssignName.result", []),
+                                                                              SimpleScope("LocalVariable.AssignName.zde", [])])])])],
+            # TODO: what about this case?
+        ),
     ],
     ids=[
         "Seminar Example",
@@ -814,6 +864,10 @@ def test_calc_node_id(
         "List Comprehension in Module",
         "List Comprehension in Class",
         "List Comprehension in Function",
+        "Try Except in Module",
+        "Try Except Finally in Module",
+        "Try Except in Class",
+        "Try Except in Function",
     ],  # TODO: add tests for lambda and generator expressions
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
@@ -846,7 +900,7 @@ def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope
 
 def to_string(symbol: Symbol) -> str:
     if isinstance(symbol.node, astroid.Module):
-        return "Module"
+        return f"{symbol.node.__class__.__name__}"
     elif isinstance(symbol.node, astroid.ClassDef | astroid.FunctionDef | astroid.AssignName):
         return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.name}"
     elif isinstance(symbol.node, astroid.AssignAttr):
@@ -860,8 +914,8 @@ def to_string(symbol: Symbol) -> str:
         return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.modname}.{symbol.node.names[0][0]}"  # TODO: handle multiple imports and aliases
     elif isinstance(symbol.node, astroid.Name):
         return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.name}"
-    elif isinstance(symbol.node, astroid.ListComp):
-        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}."
+    elif isinstance(symbol.node, astroid.ListComp | astroid.TryExcept | astroid.TryFinally):
+        return f"{symbol.node.__class__.__name__}"
     raise NotImplementedError(f"Unknown node type: {symbol.node.__class__.__name__}")
 
 
@@ -1085,6 +1139,23 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
               "var2": "Name.var2"},
              {})
         ),
+        (  # Try Except Finally
+            """
+                try:
+                    result = num1 / num2
+                except ZeroDivisionError as error:
+                    error
+                finally:
+                    final = num3
+            """,
+            ({"error": "Name.error",
+              "num1": "Name.num1",
+              "num2": "Name.num2",
+              "num3": "Name.num3"},
+             {"error": "AssignName.error",
+              "final": "AssignName.final",
+              "result": "AssignName.result"})
+        ),
         (  # AnnAssign
             """
                 def ann_assign():
@@ -1233,6 +1304,7 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
         "If",
         "If Else",
         "If Elif",
+        "Try Except Finally",
         "AnnAssign",
         "FuncCall",
         "FuncCall Parameter",
