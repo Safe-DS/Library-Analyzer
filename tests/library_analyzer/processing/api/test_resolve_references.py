@@ -673,16 +673,18 @@ else:
         ),
         (  # language=Python "match statement global scope"
             """
-var1 = 10
+var1, var2 = 10, 20
 match var1:
     case 1: var1
     case 2: 2 * var1
     case (a, b): var1, a, b  # TODO: Match should get its own scope (LATER: for further improvement)  maybe add its parent
+    case _: var2
         """,  # language=none
             [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
              ReferenceTestNode("var1.line4", "Module.", ["GlobalVariable.var1.line2"]),
              ReferenceTestNode("var1.line5", "Module.", ["GlobalVariable.var1.line2"]),
              ReferenceTestNode("var1.line6", "Module.", ["GlobalVariable.var1.line2"]),
+             ReferenceTestNode("var2.line7", "Module.", ["GlobalVariable.var2.line2"]),
              ReferenceTestNode("a.line6", "Module.", ["GlobalVariable.a.line6"]),  # TODO: ask Lars
              ReferenceTestNode("b.line6", "Module.", ["GlobalVariable.b.line6"])]
             # TODO: ask Lars if this is true GlobalVariable
@@ -694,7 +696,7 @@ num2 = 0
 try:
     result = num1 / num2
     result
-except ZeroDivisionError as zde:   # TODO: zde is not detected as a global variable # TODO: Except should get its own scope (LATER: for further improvement)
+except ZeroDivisionError as zde:   # TODO: zde is not detected as a global variable -> do we really want that?
     zde
         """,  # language=none
             [ReferenceTestNode("num1.line5", "Module.", ["GlobalVariable.num1.line2"]),
