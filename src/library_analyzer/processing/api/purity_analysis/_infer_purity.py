@@ -6,7 +6,7 @@ from enum import Enum, auto
 
 import astroid
 
-from library_analyzer.processing.api.model import (
+from library_analyzer.processing.api.purity_analysis.model import (
     BuiltInFunction,
     Call,
     ConcreteImpurityIndicator,

@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 import astroid
 import pytest
 
-from library_analyzer.processing.api.model import (
+from library_analyzer.processing.api.purity_analysis.model import (
     Scope,
     ClassScope,
     MemberAccess,
@@ -14,11 +14,9 @@ from library_analyzer.processing.api.model import (
     MemberAccessTarget,
 )
 
-from library_analyzer.processing.api import (
-    _get_module_data,
-    _construct_member_access_value,
-    _construct_member_access_target,
-    _calc_node_id,
+from library_analyzer.processing.api.purity_analysis import (
+    get_module_data,
+    calc_node_id,
 )
 
 
@@ -135,7 +133,7 @@ def test_calc_node_id(
     node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name,
     expected: str,
 ) -> None:
-    result = _calc_node_id(node)
+    result = calc_node_id(node)
     assert result.__str__() == expected
 
 
@@ -886,7 +884,7 @@ def test_calc_node_id(
     ],  # TODO: add tests for lambda and generator expressions
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
-    scope = _get_module_data(code).scope
+    scope = get_module_data(code).scope
     # assert result == expected
     assert_test_get_scope(scope, expected)
 
@@ -1081,7 +1079,7 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str:
     ]
 )
 def test_get_module_data_classes(code: str, expected: dict[str, SimpleClassScope]) -> None:
-    classes = _get_module_data(code).classes
+    classes = get_module_data(code).classes
 
     assert_get_module_data_classes(classes, expected)
 
@@ -1099,7 +1097,7 @@ def assert_get_module_data_classes(classes: dict[str, ClassScope],
     []
 )
 def test_get_module_data_functions(code: str, expected: str) -> None:
-    functions = _get_module_data(code).classes
+    functions = get_module_data(code).classes
     raise NotImplementedError("TODO: implement test")
     assert functions == expected
 
@@ -1109,7 +1107,7 @@ def test_get_module_data_functions(code: str, expected: str) -> None:
     []
 )
 def test_get_module_data_globals(code: str, expected: str) -> None:
-    globs = _get_module_data(code).classes
+    globs = get_module_data(code).classes
     raise NotImplementedError("TODO: implement test")
     assert globs == expected
 
@@ -1120,7 +1118,7 @@ def test_get_module_data_globals(code: str, expected: str) -> None:
     ]
 )
 def test_get_module_data_parameters(code: str, expected: str) -> None:
-    parameters = _get_module_data(code).classes
+    parameters = get_module_data(code).classes
     raise NotImplementedError("TODO: implement test")
     assert parameters == expected
 
@@ -1457,7 +1455,7 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
     ],
 )
 def test_get_module_data_value_and_target_nodes(code: str, expected: str) -> None:
-    module_data = _get_module_data(code)
+    module_data = get_module_data(code)
     value_nodes = module_data.value_nodes
     target_nodes = module_data.target_nodes
 
@@ -1524,6 +1522,6 @@ def transform_member_access(member_access: MemberAccess) -> str:
     ]
 )
 def test_get_module_data_function_calls(code: str, expected: str) -> None:
-    function_calls = _get_module_data(code).classes
+    function_calls = get_module_data(code).classes
     raise NotImplementedError("TODO: implement test")
     assert function_calls == expected

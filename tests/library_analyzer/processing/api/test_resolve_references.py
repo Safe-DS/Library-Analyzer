@@ -4,11 +4,11 @@ from dataclasses import dataclass
 
 import astroid
 import pytest
-from library_analyzer.processing.api import (
+from library_analyzer.processing.api.purity_analysis import (
     get_base_expression,
     resolve_references,
 )
-from library_analyzer.processing.api.model import (
+from library_analyzer.processing.api.purity_analysis.model import (
     ReferenceNode,
     MemberAccess,
     MemberAccessTarget,

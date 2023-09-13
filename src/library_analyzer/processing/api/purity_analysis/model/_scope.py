@@ -7,7 +7,7 @@ from typing import Callable
 
 import astroid
 
-from library_analyzer.processing.api.model import Expression
+from library_analyzer.processing.api.purity_analysis.model._purity import Expression  # TODO: can we import this from purity_analysis.model?
 
 
 @dataclass

@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 import astroid
 
 from library_analyzer.utils import ASTWalker
-from library_analyzer.processing.api.model import (
+from library_analyzer.processing.api.purity_analysis.model import (
     ModuleData,
     Scope,
     ClassScope,
@@ -193,55 +193,55 @@ class ModuleDataBuilder:
         match current_scope:
             case astroid.Module() | None:
                 if isinstance(node, astroid.Import):
-                    return Import(node=node, id=_calc_node_id(node), name=node.names[0][0])  # TODO: this needs fixing when multiple imports are handled
+                    return Import(node=node, id=calc_node_id(node), name=node.names[0][0])  # TODO: this needs fixing when multiple imports are handled
 
                 if isinstance(node, astroid.ImportFrom):
-                    return Import(node=node, id=_calc_node_id(node), name=node.names[0][1])  # TODO: this needs fixing when multiple imports are handled
+                    return Import(node=node, id=calc_node_id(node), name=node.names[0][1])  # TODO: this needs fixing when multiple imports are handled
 
                 if isinstance(node, MemberAccessTarget):
                     klass = self.get_class_for_receiver_node(node.receiver)
                     if klass is not None:
                         if node.member.attrname in klass.class_variables:  # this means that we are dealing with a class variable
-                            return ClassVariable(node=node, id=_calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node)
+                            return ClassVariable(node=node, id=calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node)
                     # this means that we are dealing with an instance variable
                     elif self.classes is not None:
                         for klass in self.classes.values():
                             if node.member.attrname in klass.instance_variables.keys():
-                                return InstanceVariable(node=node, id=_calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node)
+                                return InstanceVariable(node=node, id=calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node)
                 if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally) and not isinstance(node, astroid.FunctionDef):
-                    return GlobalVariable(node=node, id=_calc_node_id(node), name=node.__class__.__name__)
-                return GlobalVariable(node=node, id=_calc_node_id(node), name=node.name)
+                    return GlobalVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__)
+                return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
 
             case astroid.ClassDef():
                 # we defined that functions are class variables if they are defined in the class scope
                 # if isinstance(node, astroid.FunctionDef):
                 #     return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
                 if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally) and not isinstance(node, astroid.FunctionDef):
-                    return ClassVariable(node=node, id=_calc_node_id(node), name=node.__class__.__name__, klass=current_scope)
-                return ClassVariable(node=node, id=_calc_node_id(node), name=node.name, klass=current_scope)
+                    return ClassVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__, klass=current_scope)
+                return ClassVariable(node=node, id=calc_node_id(node), name=node.name, klass=current_scope)
 
             case astroid.FunctionDef():
                 if isinstance(current_scope, astroid.FunctionDef):
                     if current_scope.name == "__init__":
                         if isinstance(node, MemberAccessTarget):
-                            return InstanceVariable(node=node, id=_calc_node_id(node), name=node.member.attrname, klass=current_scope.parent)
+                            return InstanceVariable(node=node, id=calc_node_id(node), name=node.member.attrname, klass=current_scope.parent)
 
                 if isinstance(node, astroid.AssignName) and self.parameters:
                     if current_scope in self.parameters and self.parameters[current_scope][1].__contains__(node):
-                        return Parameter(node=node, id=_calc_node_id(node), name=node.name)
+                        return Parameter(node=node, id=calc_node_id(node), name=node.name)
 
                 if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally):
-                    return LocalVariable(node=node, id=_calc_node_id(node), name=node.__class__.__name__)
+                    return LocalVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__)
 
-                return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
+                return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
             case astroid.Lambda() | astroid.ListComp():
-                return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
+                return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
             case astroid.TryExcept() | astroid.TryFinally():  # TODO: can we summarize Lambda and ListComp here? only if nodes in try except are not global
-                return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
+                return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
-        return Symbol(node=node, id=_calc_node_id(node), name=node.name)
+        return Symbol(node=node, id=calc_node_id(node), name=node.name)
 
     def enter_lambda(self, node: astroid.Lambda) -> None:
         self.current_node_stack.append(
@@ -511,7 +511,7 @@ class ModuleDataBuilder:
 
     def handle_arg(self, constructed_node: astroid.AssignName) -> None:
         self.target_nodes[constructed_node] = self.current_node_stack[-1]
-        scope_node = Scope(_symbol=Parameter(constructed_node, _calc_node_id(constructed_node), constructed_node.name), _children=[], _parent=self.current_node_stack[-1])
+        scope_node = Scope(_symbol=Parameter(constructed_node, calc_node_id(constructed_node), constructed_node.name), _children=[], _parent=self.current_node_stack[-1])
         self.children.append(scope_node)
         self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], {constructed_node})
 
@@ -522,7 +522,7 @@ class ModuleDataBuilder:
         return None
 
 
-def _calc_node_id(
+def calc_node_id(
     node: astroid.NodeNG | astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name | astroid.AssignAttr | astroid.Import | astroid.ImportFrom | MemberAccess
 ) -> NodeID:
     if isinstance(node, MemberAccess):
@@ -598,11 +598,11 @@ def get_base_expression(node: MemberAccess) -> astroid.NodeNG:
         return node.receiver
 
 
-def _get_module_data(code: str) -> ModuleData:
+def get_module_data(code: str) -> ModuleData:
     """Get the module data of the given code.
 
     In order to get the module data of the given code, the code is parsed into an AST and then walked by an ASTWalker.
-    The ASTWalker detects the scope of each node and builds a scope tree by using an instance of ScopeFinder.
+    The ModuleDataBuilder detects the scope of each node and builds a scope tree by using an instance of ScopeFinder.
     The ScopeFinder also collects all name nodes, parameters, global variables, classes and functions of the module.
     """
     scope_handler = ModuleDataBuilder()

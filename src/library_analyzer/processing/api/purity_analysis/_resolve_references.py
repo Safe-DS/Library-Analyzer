@@ -3,8 +3,8 @@ from __future__ import annotations
 import astroid
 import builtins
 
-from library_analyzer.processing.api._get_module_data import _get_module_data  # Todo: can we import from .api?
-from library_analyzer.processing.api.model import (
+from library_analyzer.processing.api.purity_analysis._get_module_data import get_module_data  # Todo: can we import from .api?
+from library_analyzer.processing.api.purity_analysis.model import (
     MemberAccessTarget,
     MemberAccessValue,
     NodeID,
@@ -237,7 +237,7 @@ def resolve_references(code: str) -> list[ReferenceNode]:
         * resolved_references: a list of all resolved references in the module
     """
 
-    module_data = _get_module_data(code)
+    module_data = get_module_data(code)
     resolved_references = _find_name_references(module_data.target_nodes, module_data.value_nodes,
                                                 module_data.classes, module_data.functions, module_data.parameters)
 
