@@ -731,7 +731,7 @@ except ZeroDivisionError as zde:   # TODO: zde is not detected as a global varia
         "if in statement global scope",
         "match statement global scope",
         "try except statement global scope",
-    ]
+    ]  # TODO: add cases with try except finally
 )
 def test_resolve_references_conditional_statements(code: str, expected: list[ReferenceTestNode]) -> None:
     references = resolve_references(code)
@@ -984,7 +984,7 @@ c
         "variable swap",
         "aliases",
         # "regex"
-    ]
+    ]  # TODO: add tests for with ... open
 )
 def test_resolve_references_miscellaneous(code: str, expected: list[ReferenceTestNode]) -> None:
     references = resolve_references(code)

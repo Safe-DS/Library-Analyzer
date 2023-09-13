@@ -97,7 +97,7 @@ class SimpleClassScope(SimpleScope):
             astroid.Import(names=[("numpy", None), ("sys", None)], lineno=1, col_offset=0,
                            parent=astroid.Module("my_module")),
             "my_module.numpy.1.0",
-        # TODO: this is a problem since one node can contain multiple imports and therefore each one needs its own id
+            # TODO: this is a problem since one node can contain multiple imports and therefore each one needs its own id
         ),
         (
             astroid.Import(names=[("numpy", "np")], lineno=1, col_offset=0, parent=astroid.Module("my_module")),
@@ -324,7 +324,8 @@ def test_calc_node_id(
                                     [SimpleScope("LocalVariable.AssignName.var1", [])],
                                 ),
                             ],
-                            ["AssignName.local_class_attr1", "AssignName.local_class_attr2", "FunctionDef.__init__", "FunctionDef.local_instance_attr"],
+                            ["AssignName.local_class_attr1", "AssignName.local_class_attr2", "FunctionDef.__init__",
+                             "FunctionDef.local_instance_attr"],
                             ["AssignAttr.instance_attr1"],
                         ),
                     ],
@@ -710,6 +711,7 @@ def test_calc_node_id(
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.__init__",
                                     [
+                                        SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("Parameter.AssignName.handler", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self._handler", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self._cache", []),
@@ -718,12 +720,14 @@ def test_calc_node_id(
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.walk",
                                     [
+                                        SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("Parameter.AssignName.node", []),
                                     ],
                                 ),
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.__walk",
                                     [
+                                        SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("Parameter.AssignName.node", []),
                                         SimpleScope("Parameter.AssignName.visited_nodes", []),
                                         SimpleScope("LocalVariable.AssignName.child_node", []),
@@ -732,6 +736,7 @@ def test_calc_node_id(
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.__enter",
                                     [
+                                        SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("Parameter.AssignName.node", []),
                                         SimpleScope("LocalVariable.AssignName.method", []),
                                     ],
@@ -739,6 +744,7 @@ def test_calc_node_id(
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.__leave",
                                     [
+                                        SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("Parameter.AssignName.node", []),
                                         SimpleScope("LocalVariable.AssignName.method", []),
                                     ],
@@ -746,6 +752,7 @@ def test_calc_node_id(
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.__get_callbacks",
                                     [
+                                        SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("Parameter.AssignName.node", []),
                                         SimpleScope("LocalVariable.AssignName.klass", []),
                                         SimpleScope("LocalVariable.AssignName.methods", []),
@@ -758,7 +765,9 @@ def test_calc_node_id(
                                     ],
                                 ),
                             ],
-                            ["AssignName.additional_locals", "FunctionDef.__init__", "FunctionDef.walk", "FunctionDef.__walk", "FunctionDef.__enter", "FunctionDef.__leave", "FunctionDef.__get_callbacks"],
+                            ["AssignName.additional_locals", "FunctionDef.__init__", "FunctionDef.walk",
+                             "FunctionDef.__walk", "FunctionDef.__enter", "FunctionDef.__leave",
+                             "FunctionDef.__get_callbacks"],
                             ["AssignAttr._handler", "AssignAttr._cache"],
                         ),
                     ],
@@ -782,16 +791,23 @@ def test_calc_node_id(
                 class A:
                     x = [len(num) for num in nums]
             """,
-            [SimpleScope("Module", [SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.x", []),
-                                                                                   SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])])], ["AssignName.x"], [], [])])],
+            [SimpleScope("Module",
+                         [SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.x", []),
+                                                                         SimpleScope("ListComp", [
+                                                                             SimpleScope("LocalVariable.AssignName.num",
+                                                                                         [])])], ["AssignName.x"], [],
+                                           [])])],
         ),
         (  # List Comprehension in Function
             """
                 def fun():
                     x = [len(num) for num in nums]
             """,
-            [SimpleScope("Module", [SimpleScope("GlobalVariable.FunctionDef.fun", [SimpleScope("LocalVariable.AssignName.x", []),
-                                                                                   SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])])])])],
+            [SimpleScope("Module",
+                         [SimpleScope("GlobalVariable.FunctionDef.fun", [SimpleScope("LocalVariable.AssignName.x", []),
+                                                                         SimpleScope("ListComp", [
+                                                                             SimpleScope("LocalVariable.AssignName.num",
+                                                                                         [])])])])],
         ),
         (  # Try Except in Module
             """
@@ -800,23 +816,24 @@ def test_calc_node_id(
                 except ZeroDivisionError as zde:
                     zde
             """,
-            [SimpleScope("Module", [SimpleScope("TryExcept", [SimpleScope("LocalVariable.AssignName.result", []),
-                                                                              SimpleScope("LocalVariable.AssignName.zde", [])])])],
-            # TODO: do we want zde to be Global?
+            [SimpleScope("Module", [SimpleScope("TryExcept", [SimpleScope("GlobalVariable.AssignName.result", []),
+                                                              SimpleScope("LocalVariable.AssignName.zde", [])])])],
+            # TODO: do we want zde to be Global? -> no it should be local to the except block
         ),
         (  # Try Except Finally in Module
             """
                 try:
                     result = num1 / num2
-                except ZeroDivisionError as error:
-                    error
+                except ZeroDivisionError as zde:
+                    error = 1
                 finally:
                     final = 1
             """,
-            [SimpleScope("Module", [SimpleScope("TryExcept", [SimpleScope("LocalVariable.AssignName.result", []),
-                                                                              SimpleScope("LocalVariable.AssignName.error", []),
-                                                                              SimpleScope("LocalVariable.AssignName.final", [])])])],
-            # TODO: do we want finally to be its own scope?
+            [SimpleScope("Module", [SimpleScope("TryExcept", [SimpleScope("GlobalVariable.AssignName.result", []),
+                                                              SimpleScope("GlobalVariable.AssignName.error", []),
+                                                              SimpleScope("GlobalVariable.AssignName.final", [])])])],
+            # TODO: do we want finally to be its own scope? -> No. we want its content to be part of the parent scope
+            #  just zde is local to the except block which should get its own scope
         ),
         (  # Try Except in Class
             """
@@ -824,12 +841,13 @@ def test_calc_node_id(
                     try:
                         result = num1 / num2
                     except ZeroDivisionError as zde:
-                        zde
+                        error = 1
             """,
-            [SimpleScope("Module", [SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("TryExcept", [SimpleScope("LocalVariable.AssignName.result", []),
-                                                                              SimpleScope("LocalVariable.AssignName.zde", [])])],
+            [SimpleScope("Module", [SimpleClassScope("GlobalVariable.ClassDef.A", [
+                SimpleScope("TryExcept", [SimpleScope("ClassVariable.AssignName.result", []),
+                                          SimpleScope("GlobalVariable.AssignName.error", [])])],
                                                      [], [], [])])],
-            # TODO: do we want any of these to be class variables?
+            # TODO: do we want any of these to be class variables? -> Yes all of them, just zde is local
         ),
         (  # Try Except in Function
             """
@@ -837,18 +855,50 @@ def test_calc_node_id(
                     try:
                         result = num1 / num2
                     except ZeroDivisionError as zde:
-                        zde
+                        error = 1
             """,
-            [SimpleScope("Module", [SimpleScope("GlobalVariable.FunctionDef.fun", [SimpleScope("TryExcept", [SimpleScope("LocalVariable.AssignName.result", []),
-                                                                              SimpleScope("LocalVariable.AssignName.zde", [])])])])],
-            # TODO: what about this case?
+            [SimpleScope("Module", [SimpleScope("GlobalVariable.FunctionDef.fun", [
+                SimpleScope("TryExcept", [SimpleScope("LocalVariable.AssignName.result", []),
+                                          SimpleScope("LocalVariable.AssignName.zde", [])])])])],
+            # TODO: what about this case? -> see above: zde should be local the rest is in parent scope
         ),
         (  # With Statement
             """
-                with open("file.txt", "r") as f:
+                with file:
+                    a = 1
+            """,
+            [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.a", []),
+                                    SimpleScope("With", [])])]
+        ),
+        (  # With Statement File
+            """
+                file = "file.txt"
+                with open(file, "r") as f:
+                    a = 1
                     f.read()
             """,
-            [],
+            [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.file", []),
+                                    SimpleScope("GlobalVariable.AssignName.a", []),
+                                    SimpleScope("With", [SimpleScope("LocalVariable.AssignName.f", [])])])]
+        ),
+        (  # With Statement Class
+            """
+                class MyContext:
+                    def __enter__(self):
+                        print("Entering the context")
+                        return self
+
+                    def __exit__(self):
+                        print("Exiting the context")
+
+                with MyContext() as context:
+                    print("Inside the context")
+            """,
+            [SimpleScope("Module", [SimpleClassScope("GlobalVariable.ClassDef.MyContext", [
+                SimpleScope("ClassVariable.FunctionDef.__enter__", [SimpleScope("Parameter.AssignName.self", [])]),
+                SimpleScope("ClassVariable.FunctionDef.__exit__", [SimpleScope("Parameter.AssignName.self", [])])],
+                                                     ["FunctionDef.__enter__", "FunctionDef.__exit__"], [], []),
+                                    SimpleScope("With", [SimpleScope("LocalVariable.AssignName.context", [])])])]
         ),
     ],
     ids=[
@@ -881,6 +931,8 @@ def test_calc_node_id(
         "Try Except in Class",
         "Try Except in Function",
         "With Statement",
+        "With Statement File",
+        "With Statement Class",
     ],  # TODO: add tests for lambda and generator expressions
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
@@ -938,7 +990,7 @@ def to_string(symbol: Symbol) -> str:
         return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.modname}.{symbol.node.names[0][0]}"  # TODO: handle multiple imports and aliases
     elif isinstance(symbol.node, astroid.Name):
         return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.name}"
-    elif isinstance(symbol.node, astroid.ListComp | astroid.TryExcept | astroid.TryFinally):
+    elif isinstance(symbol.node, astroid.ListComp | astroid.TryExcept | astroid.TryFinally | astroid.With):
         return f"{symbol.node.__class__.__name__}"
     raise NotImplementedError(f"Unknown node type: {symbol.node.__class__.__name__}")
 
@@ -953,6 +1005,8 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
     elif isinstance(node, ClassScope):
         return f"{node.symbol.node.__class__.__name__}.{node.symbol.node.name}"
     raise NotImplementedError(f"Unknown node type: {node.__class__.__name__}")
+
+
 #
 #
 # @pytest.mark.parametrize(
@@ -970,9 +1024,10 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
 
 
 @pytest.mark.parametrize(
-    ("code", "expected"),  # expected is a tuple of (ClassDefName, set of class variables, set of instance variables, list of super classes)
+    ("code", "expected"),
+    # expected is a tuple of (ClassDefName, set of class variables, set of instance variables, list of super classes)
     [
-        (   # ClassDef
+        (  # ClassDef
             """
                 class A:
                     pass
@@ -984,7 +1039,8 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 class A:
                     var1 = 1
             """,
-            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.var1", [])], ["AssignName.var1"], [], [])},
+            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.var1", [])],
+                                   ["AssignName.var1"], [], [])},
         ),
         (  # ClassDef with multiple class attribute
             """
@@ -993,7 +1049,8 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                     var2 = 2
             """,
             {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.var1", []),
-                                                                 SimpleScope("ClassVariable.AssignName.var2", [])], ["AssignName.var1", "AssignName.var2"], [], [])},
+                                                                 SimpleScope("ClassVariable.AssignName.var2", [])],
+                                   ["AssignName.var1", "AssignName.var2"], [], [])},
         ),
         (  # ClassDef with multiple class attribute (same name)
             """
@@ -1026,11 +1083,17 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                         self.name: str = "name"
                         self.state: bool = True
             """,
-            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.FunctionDef.__init__", [SimpleScope("Parameter.AssignName.self", []),
-                                                                                                                    SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
-                                                                                                                    SimpleScope("InstanceVariable.MemberAccess.self.name", []),
-                                                                                                                    SimpleScope("InstanceVariable.MemberAccess.self.state", [])])],
-                                   ["FunctionDef.__init__"], ["AssignAttr.var1", "AssignAttr.name", "AssignAttr.state"], [])},
+            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [
+                SimpleScope("ClassVariable.FunctionDef.__init__", [SimpleScope("Parameter.AssignName.self", []),
+                                                                   SimpleScope(
+                                                                       "InstanceVariable.MemberAccess.self.var1", []),
+                                                                   SimpleScope(
+                                                                       "InstanceVariable.MemberAccess.self.name", []),
+                                                                   SimpleScope(
+                                                                       "InstanceVariable.MemberAccess.self.state",
+                                                                       [])])],
+                                   ["FunctionDef.__init__"], ["AssignAttr.var1", "AssignAttr.name", "AssignAttr.state"],
+                                   [])},
         ),
         (  # ClassDef with conditional instance attributes (instance attributes with same name)
             """
@@ -1059,7 +1122,10 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
             {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.var1", []),
                                                                  SimpleScope("ClassVariable.FunctionDef.__init__", [
                                                                      SimpleScope("Parameter.AssignName.self", []),
-                                                                     SimpleScope("InstanceVariable.MemberAccess.self.var1", [])])], ["AssignName.var1", "FunctionDef.__init__"], ["AssignAttr.var1"], [])},
+                                                                     SimpleScope(
+                                                                         "InstanceVariable.MemberAccess.self.var1",
+                                                                         [])])],
+                                   ["AssignName.var1", "FunctionDef.__init__"], ["AssignAttr.var1"], [])},
         ),
         (  # ClassDef with nested class
             """
@@ -1375,7 +1441,8 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     var1 = math.pi
                     return var1
             """,
-            ("Import.math", "AssignName.var1", "MemberAccess.math.pi", "Name.var1")  # TODO: adapt test when import is implemented
+            ("Import.math", "AssignName.var1", "MemberAccess.math.pi", "Name.var1")
+        # TODO: adapt test when import is implemented
         ),
         (  # Import From
             """
@@ -1385,7 +1452,8 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     var1 = pi
                     return var1
             """,
-            ("ImportFrom.math.pi", "AssignName.var1", "Name.test", "Name.var1")  # TODO: adapt test when import is implemented
+            ("ImportFrom.math.pi", "AssignName.var1", "Name.test", "Name.var1")
+        # TODO: adapt test when import is implemented
         ),
         (  # Import From As
             """
@@ -1395,7 +1463,8 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     var1 = test
                     return var1
             """,
-            ("ImportFrom.math.pi.test", "AssignName.var1", "Name.test", "Name.var1")  # TODO: adapt test when import is implemented
+            ("ImportFrom.math.pi.test", "AssignName.var1", "Name.test", "Name.var1")
+        # TODO: adapt test when import is implemented
         ),
         (  # ASTWalker
             """
@@ -1514,7 +1583,8 @@ def transform_value_nodes(value_nodes: dict[astroid.Name | MemberAccessValue, Sc
     return value_nodes_transformed
 
 
-def transform_target_nodes(target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]) -> dict[str, str]:
+def transform_target_nodes(
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]) -> dict[str, str]:
     target_nodes_transformed = {}
     for node in target_nodes:
         if isinstance(node, astroid.AssignName | astroid.Name):
