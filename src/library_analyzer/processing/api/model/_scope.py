@@ -236,11 +236,11 @@ class ClassScope(Scope):
 
     Attributes
     ----------
-        class_variables     is a list of AssignName nodes that define class variables
-        instance_variables  is a list of AssignAttr nodes that define instance variables
+        class_variables     a dict of ClassDef, FunctionDef or AssignName nodes that define class variables
+        instance_variables  a dict of instance variables and their Symbols
         super_classes       is a list of ClassScope instances that represent the super classes of the class
     """
 
     class_variables: dict[str, astroid.AssignName | astroid.FunctionDef | astroid.ClassDef] = field(default_factory=dict)  # TODO: right now, we do not cover the unlikely case of multiple class variables with the same name -  change to list
-    instance_variables: dict[str, astroid.AssignAttr] = field(default_factory=dict)  # right now, we do not cover the unlikely case of multiple instance variables with the same name
+    instance_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     super_classes: list[ClassScope] = field(default_factory=list)

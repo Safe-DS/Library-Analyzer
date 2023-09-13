@@ -165,6 +165,7 @@ def test_calc_node_id(
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.__init__",
                                     [
+                                        SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self.value", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self.test", []),
                                     ],
@@ -315,7 +316,10 @@ def test_calc_node_id(
                                 SimpleScope("ClassVariable.AssignName.local_class_attr2", []),
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.__init__",
-                                    [SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", [])],
+                                    [
+                                        SimpleScope("Parameter.AssignName.self", []),
+                                        SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", [])
+                                    ],
                                 ),
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.local_instance_attr",
@@ -348,7 +352,10 @@ def test_calc_node_id(
                             [
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.__init__",
-                                    [SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", [])],
+                                    [
+                                        SimpleScope("Parameter.AssignName.self", []),
+                                        SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", [])
+                                    ],
                                 ),
                             ],
                             ["FunctionDef.__init__"],
@@ -894,11 +901,16 @@ def assert_test_get_scope(result: Scope, expected: list[SimpleScope | SimpleClas
 def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope:
     if node.children is not None:
         if isinstance(node, ClassScope):
+            instance_vars_transformed = []
+            for child in node.instance_variables.values():
+                for c in child:
+                    instance_vars_transformed.append(to_string_class(c.node.member))
+
             return SimpleClassScope(
                 to_string(node.symbol),
                 [transform_result(child) for child in node.children],
                 [to_string_class(child) for child in node.class_variables.values()],
-                [to_string_class(child) for child in node.instance_variables.values()],
+                instance_vars_transformed,
                 [to_string_class(child) for child in node.super_classes],
             )
         return SimpleScope(to_string(node.symbol), [transform_result(child) for child in node.children])
@@ -974,8 +986,40 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str:
                     def __init__(self):
                         self.var1 = 1
             """,
-            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.FunctionDef.__init__", [SimpleScope("InstanceVariable.MemberAccess.self.var1", [])])],
+            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.FunctionDef.__init__", [
+                SimpleScope("Parameter.AssignName.self", []),
+                SimpleScope("InstanceVariable.MemberAccess.self.var1", [])])],
                                    ["FunctionDef.__init__"], ["AssignAttr.var1"], [])},
+        ),
+        (  # ClassDef with multiple instance attributes (and type annotations)
+            """
+                class A:
+                    def __init__(self):
+                        self.var1: int = 1
+                        self.name: str = "name"
+                        self.state: bool = True
+            """,
+            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.FunctionDef.__init__", [SimpleScope("Parameter.AssignName.self", []),
+                                                                                                                    SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
+                                                                                                                    SimpleScope("InstanceVariable.MemberAccess.self.name", []),
+                                                                                                                    SimpleScope("InstanceVariable.MemberAccess.self.state", [])])],
+                                   ["FunctionDef.__init__"], ["AssignAttr.var1", "AssignAttr.name", "AssignAttr.state"], [])},
+        ),
+        (  # ClassDef with conditional instance attributes (instance attributes with same name)
+            """
+                class A:
+                    def __init__(self):
+                        if True:
+                            self.var1 = 1
+                        else:
+                            self.var1 = 0
+            """,
+            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.FunctionDef.__init__", [
+                SimpleScope("Parameter.AssignName.self", []),
+                SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
+                SimpleScope("InstanceVariable.MemberAccess.self.var1", [])])],
+                                   ["FunctionDef.__init__"], ["AssignAttr.var1", "AssignAttr.var1"],
+                                   [])},
         ),
         (  # ClassDef with class and instance attribute
             """
@@ -986,7 +1030,9 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str:
                         self.var1 = 1
             """,
             {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.var1", []),
-                                                                 SimpleScope("ClassVariable.FunctionDef.__init__", [SimpleScope("InstanceVariable.MemberAccess.self.var1", [])])], ["AssignName.var1", "FunctionDef.__init__"], ["AssignAttr.var1"], [])},
+                                                                 SimpleScope("ClassVariable.FunctionDef.__init__", [
+                                                                     SimpleScope("Parameter.AssignName.self", []),
+                                                                     SimpleScope("InstanceVariable.MemberAccess.self.var1", [])])], ["AssignName.var1", "FunctionDef.__init__"], ["AssignAttr.var1"], [])},
         ),
         (  # ClassDef with nested class
             """
@@ -1026,6 +1072,8 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str:
         "ClassDef",
         "ClassDef with class attribute",
         "ClassDef with instance attribute",
+        "ClassDef with multiple instance attributes",
+        "ClassDef with conditional instance attributes (instance attributes with same name)",
         "ClassDef with class and instance attribute",
         "ClassDef with nested class",
         "Multiple ClassDef",

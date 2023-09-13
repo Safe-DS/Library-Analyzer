@@ -103,6 +103,9 @@ class ModuleDataBuilder:
             else:
                 self.functions[node.name] = [self.current_node_stack[-1]]
 
+            if node.name == "__init__":
+                self._analyze_constructor()
+
         # add lambda functions that are assigned to a name (and therefor are callable) to the functions dict
         if isinstance(node, astroid.Lambda) and isinstance(node.parent, astroid.Assign):
             node_name = node.parent.targets[0].name
@@ -118,23 +121,19 @@ class ModuleDataBuilder:
 
         self.current_node_stack.pop()  # remove the current node from the stack
 
-    def _analyze_constructor(self, node: astroid.FunctionDef) -> None:
+    def _analyze_constructor(self) -> None:
         """Analyze the constructor of a class.
 
         The constructor of a class is a special function that is called when an instance of the class is created.
         This function only is called when the name of the FunctionDef node is `__init__`.
         """
         # add instance variables to the instance_variables list of the class
-        for child in node.body:
-            class_node = self.get_node_by_name(node.parent.name)
-
-            if isinstance(class_node, ClassScope):
-                if isinstance(child, astroid.Assign):
-                    class_node.instance_variables[child.targets[0].attrname] = child.targets[0]
-                elif isinstance(child, astroid.AnnAssign):
-                    class_node.instance_variables[child.target.attrname] = child.target
+        for child in self.current_node_stack[-1].children:
+            if isinstance(child.symbol, InstanceVariable) and isinstance(self.current_node_stack[-1].parent, ClassScope):
+                if child.symbol.name in self.current_node_stack[-1].parent.instance_variables.keys():
+                    self.current_node_stack[-1].parent.instance_variables[child.symbol.name].append(child.symbol)
                 else:
-                    raise TypeError(f"Unexpected node type {type(child)}")
+                    self.current_node_stack[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
 
     def enter_module(self, node: astroid.Module) -> None:
         """
@@ -180,8 +179,6 @@ class ModuleDataBuilder:
                   _children=[],
                   _parent=self.current_node_stack[-1]),
         )
-        if node.name == "__init__":
-            self._analyze_constructor(node)
 
         # add function bode to the class_variables dict of the parent class if the parent of the function is a class
         if isinstance(node.parent, astroid.ClassDef):
