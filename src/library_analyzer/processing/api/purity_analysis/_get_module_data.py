@@ -64,13 +64,30 @@ class ModuleDataBuilder:
         current_scope = node
         outer_scope_children: list[Scope | ClassScope] = []
         inner_scope_children: list[Scope | ClassScope] = []
-        for child in self.children:
-            if (
-                child.parent is not None and child.parent.symbol.node != current_scope
-            ):  # check if the child is in the scope of the current node
-                outer_scope_children.append(child)  # add the child to the outer scope
-            else:
-                inner_scope_children.append(child)  # add the child to the inner scope
+        # this is only the case when we leave the module: every child must be in the inner scope(=module scope)
+        if isinstance(node, astroid.Module):
+            inner_scope_children = self.children
+
+        # If we deal with a With node, we differentiate between the children that belong inside the scope
+        # of the With node (everything that is inside the With items), and the children that belong outside the With scope.
+        # This is the case for every node that is inside the With body.
+        elif isinstance(node, astroid.With):
+            for child in self.children:
+                if child.parent is not None and child.parent.symbol.node != current_scope:  # check if the child is in the scope of the current node
+                    outer_scope_children.append(child)  # add the child to the outer scope
+                else:
+                    if isinstance(child.symbol, LocalVariable):
+                        inner_scope_children.append(child)  # add the child to the inner scope
+                    else:
+                        outer_scope_children.append(child)  # add the child to the outer scope
+        else:
+            for child in self.children:
+                if (
+                    child.parent is not None and child.parent.symbol.node != current_scope
+                ):  # check if the child is in the scope of the current node
+                    outer_scope_children.append(child)  # add the child to the outer scope
+                else:
+                    inner_scope_children.append(child)  # add the child to the inner scope
 
         self.current_node_stack[-1].children = inner_scope_children  # set the children of the current node
         self.children = outer_scope_children  # keep the children that are not in the scope of the current node
@@ -186,7 +203,7 @@ class ModuleDataBuilder:
                         for klass in self.classes.values():
                             if node.member.attrname in klass.instance_variables.keys():
                                 return InstanceVariable(node=node, id=calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node)
-                if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally) and not isinstance(node, astroid.FunctionDef):
+                if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally | astroid.With) and not isinstance(node, astroid.FunctionDef):
                     return GlobalVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__)
                 return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
 
@@ -216,8 +233,14 @@ class ModuleDataBuilder:
             case astroid.Lambda() | astroid.ListComp():
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
-            case astroid.TryExcept() | astroid.TryFinally():  # TODO: can we summarize Lambda and ListComp here? only if nodes in try except are not global
+            case astroid.TryExcept() | astroid.TryFinally():  # TODO: can we summarize Lambda and ListComp here? -> only if nodes in try except are not global
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
+
+            case astroid.With():
+                for item in current_scope.items:
+                    if node == item[1]:
+                        return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
+                return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
 
         return Symbol(node=node, id=calc_node_id(node), name=node.name)
 
@@ -239,6 +262,16 @@ class ModuleDataBuilder:
         )
 
     def leave_listcomp(self, node: astroid.ListComp) -> None:
+        self._detect_scope(node)
+
+    def enter_with(self, node: astroid.With) -> None:
+        self.current_node_stack.append(
+            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                  _children=[],
+                  _parent=self.current_node_stack[-1]),
+        )
+
+    def leave_with(self, node: astroid.With) -> None:
         self._detect_scope(node)
 
     # def enter_tryfinally(self, node: astroid.TryFinally) -> None:
@@ -348,6 +381,7 @@ class ModuleDataBuilder:
             | astroid.Starred
             | astroid.Comprehension
             | astroid.ExceptHandler
+            | astroid.With
         ):
             self.target_nodes[node] = self.current_node_stack[-1]
 
@@ -372,6 +406,7 @@ class ModuleDataBuilder:
             | astroid.Starred
             | astroid.Comprehension
             | astroid.ExceptHandler
+            | astroid.With
         ):
             parent = self.current_node_stack[-1]
             scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
