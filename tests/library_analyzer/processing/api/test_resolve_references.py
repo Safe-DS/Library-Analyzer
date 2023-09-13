@@ -1216,7 +1216,7 @@ B.double(10)
             [ReferenceTestNode("x.line3", "Lambda", ["LocalVariable.x.line3"]),
              ReferenceTestNode("A.line10", "Module.", ["GlobalVariable.A.line2"]),
              ReferenceTestNode("A.double.line10", "Module.", ["ClassVariable.A.double.line3",
-                                                              "ClassVariable.B.double.line7"]),  # TODO: ask Lars if it is a problem that
+                                                              "ClassVariable.B.double.line7"]),
              ReferenceTestNode("x.line8", "FunctionDef.double", ["Parameter.x.line7"]),
              ReferenceTestNode("B.line11", "Module.", ["GlobalVariable.B.line5"]),
              ReferenceTestNode("B.double.line11", "Module.", ["ClassVariable.A.double.line3",

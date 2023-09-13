@@ -20,7 +20,7 @@ def _find_name_references(
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope],
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope],
     classes: dict[str, ClassScope],
-    functions: dict[str, Scope | list[Scope]],
+    functions: dict[str, list[Scope]],
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]) -> list[ReferenceNode]:
     """Create a list of references from a list of name nodes.
 
@@ -53,7 +53,7 @@ def _find_name_references(
 def _find_references(value_reference: ReferenceNode,
                      all_target_list: list[ReferenceNode],
                      classes: dict[str, ClassScope],
-                     functions: dict[str, Scope | list[Scope]],
+                     functions: dict[str, list[Scope]],
                      parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]) -> ReferenceNode:
     """ Find all references for a node.
 
@@ -125,20 +125,14 @@ def _find_references(value_reference: ReferenceNode,
     # g(f)
     if functions:
         if value_reference.node.name in functions.keys():
-            func = functions.get(value_reference.node.name)
-            complete_reference.referenced_symbols.append(func.symbol)
+            function_def = functions.get(value_reference.node.name)
+            symbols = [func.symbol for func in function_def]
+            complete_reference.referenced_symbols.extend(symbols)
         elif isinstance(value_reference.node, MemberAccessValue):
             if value_reference.node.member.attrname in functions.keys():
-                func = functions.get(value_reference.node.member.attrname)
-                if isinstance(func, list):
-                    for f in func:
-                        # If the Lambda function is assigned to a name, it can be called just as a normal function
-                        # Since Lambdas normally do not have names, we need to add its assigned name manually
-                        if isinstance(f.symbol.node, astroid.Lambda):
-                            f.symbol.name = value_reference.node.member.attrname
-                        complete_reference.referenced_symbols.append(f.symbol)
-                else:
-                    complete_reference.referenced_symbols.append(func.symbol)
+                function_def = functions.get(value_reference.node.member.attrname)
+                symbols = [func.symbol for func in function_def]
+                complete_reference.referenced_symbols.extend(symbols)
 
     return complete_reference
 
@@ -167,7 +161,7 @@ def _get_symbols(node: ReferenceNode) -> list[Symbol]:
 
 def _find_call_reference(function_calls: dict[astroid.Call, Scope | ClassScope],
                          classes: dict[str, ClassScope],
-                         functions: dict[str, Scope | list[Scope]],
+                         functions: dict[str, list[Scope]],
                          parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]) -> list[ReferenceNode]:
     """Find all references for a function call.
 
@@ -190,20 +184,17 @@ def _find_call_reference(function_calls: dict[astroid.Call, Scope | ClassScope],
         if isinstance(reference.node.func, astroid.Name):
             # Find functions that are called
             if reference.node.func.name in functions.keys():
-                symbol = functions.get(reference.node.func.name)
+                function_def = functions.get(reference.node.func.name)
+                symbols = [func.symbol for func in function_def]
+                call_references[i].referenced_symbols.extend(symbols)
 
-                # If the Lambda function is assigned to a name, it can be called just as a normal function
-                # Since Lambdas normally do not have names, we need to add its assigned name manually
-                if isinstance(functions.get(reference.node.func.name).symbol.node, astroid.Lambda):
-                    symbol.symbol.name = reference.node.func.name
-
-                call_references[i].referenced_symbols.append(symbol.symbol)
                 final_call_references.append(call_references[i])
 
             # Find classes that are called (initialized)
             elif reference.node.func.name in classes.keys():
                 symbol = classes.get(reference.node.func.name)
                 call_references[i].referenced_symbols.append(symbol.symbol)
+
                 final_call_references.append(call_references[i])
 
             # Find builtins that are called

@@ -47,7 +47,7 @@ class ModuleDataBuilder:
     current_node_stack: list[Scope | ClassScope] = field(default_factory=list)
     children: list[Scope | ClassScope] = field(default_factory=list)
     classes: dict[str, ClassScope] = field(default_factory=dict)
-    functions: dict[str, Scope | list[Scope]] = field(default_factory=dict)
+    functions: dict[str, list[Scope]] = field(default_factory=dict)
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope] = field(default_factory=dict)
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope] = field(default_factory=dict)
     global_variables: dict[str, Scope | ClassScope] = field(default_factory=dict)
@@ -97,25 +97,24 @@ class ModuleDataBuilder:
             self.classes[node.name] = self.current_node_stack[-1]
 
         # add functions to the functions dict
-        # if a function is defined multiple times (same name), the function is added to the functions dict as a list
         if isinstance(node, astroid.FunctionDef):
             if node.name in self.functions.keys():
-                if not isinstance(self.functions[node.name], list):
-                    self.functions[node.name] = [self.functions.get(node.name)]
-                self.functions[node.name].append(self.current_node_stack[-1])
+                self.functions[node.name].extend(self.current_node_stack[-1])
             else:
-                self.functions[node.name] = self.current_node_stack[-1]
+                self.functions[node.name] = [self.current_node_stack[-1]]
 
-        # add lambda functions to the functions dict
-        # if a function is defined multiple times (same name), the function is added to the functions dict as a list
+        # add lambda functions that are assigned to a name (and therefor are callable) to the functions dict
         if isinstance(node, astroid.Lambda) and isinstance(node.parent, astroid.Assign):
             node_name = node.parent.targets[0].name
+            # If the Lambda function is assigned to a name, it can be called just as a normal function
+            # Since Lambdas normally do not have names, we need to add its assigned name manually
+            self.current_node_stack[-1].symbol.name = node_name
+
+            # extend the list of functions with the current node or create a new list with the current node
             if node_name in self.functions.keys():
-                if not isinstance(self.functions[node_name], list):
-                    self.functions[node_name] = [self.functions.get(node_name)]
-                self.functions[node_name].append(self.current_node_stack[-1])
+                self.functions[node_name].extend(self.current_node_stack[-1])
             else:
-                self.functions[node_name] = self.current_node_stack[-1]
+                self.functions[node_name] = [self.current_node_stack[-1]]
 
         self.current_node_stack.pop()  # remove the current node from the stack
 
