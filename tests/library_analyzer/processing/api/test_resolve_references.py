@@ -432,8 +432,8 @@ b = B()
 var1 = b.instance_attr1
             """,  # language=none
             [ReferenceTestNode("b.instance_attr1.line9", "Module.",
-                               ["FAILClassVariable.B.instance_attr1.line3",  # TODO: What do we want here?
-                                "FAILInstanceVariable.B.instance_attr1.line6"]),
+                               ["ClassVariable.B.instance_attr1.line3",
+                                "InstanceVariable.B.instance_attr1.line6"]),
 
              ReferenceTestNode("b.line9", "Module.", ["GlobalVariable.b.line8"]),
              ReferenceTestNode("B.line8", "Module.", ["GlobalVariable.B.line2"])]
@@ -538,22 +538,27 @@ class C:
     state: int = 0
 
     def set_state(self, state):
-        self.state = state  # TODO: Problem: the parameter "state" has the same name as the class variable "state" unterscheide zwischen MAT und AsssignName um Parameter rauszufilterna
+        self.state = state
             """,  # language= None
             [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5"]),
              ReferenceTestNode("self.line6", "FunctionDef.set_state", ["Parameter.self.line5"]),
              ReferenceTestNode("self.state.line6", "FunctionDef.set_state", ["ClassVariable.C.state.line3"])]
-        ),  # TODO: what do we do with self.state?
+        ),
         (  # language=Python "setter function with self different name"
             """
+class A:
+    stateX: str = "A"
+
 class C:
     stateX: int = 0
 
-    def set_state(self, state):  # TODO: find the name of the first parameter
+    def set_state(self, state):
         self.stateX = state
             """,  # language= None
-            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5"])]
-        ),  # TODO: what do we do with self.stateX?
+            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5"]),
+             ReferenceTestNode("self.line6", "FunctionDef.set_state", ["Parameter.self.line5"]),
+             ReferenceTestNode("self.stateX.line6", "FunctionDef.set_state", ["ClassVariable.C.stateX.line3"])]
+        ),
         (  # language=Python "setter function with classname different name"
             """
 class C:
@@ -562,31 +567,43 @@ class C:
     def set_state(self, state):
         C.stateX = state
             """,  # language= None
-            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5"])]
-        ),  # TODO: what do we do with C.stateX?
+            [ReferenceTestNode("state.line6", "FunctionDef.set_state", ["Parameter.state.line5"]),
+             ReferenceTestNode("C.line6", "FunctionDef.set_state", ["GlobalVariable.C.line2"]),
+             ReferenceTestNode("C.stateX.line6", "FunctionDef.set_state", ["ClassVariable.C.stateX.line3"])]
+        ),
         (  # language=Python "setter function as @staticmethod"
             """
+class A:
+    state: str = "A"
+
 class C:
     state: int = 0
 
     @staticmethod
-    def set_state(self, state):
-        self.state = state  # TODO: Problem: the parameter "state" has the same name as the class variable "state"
+    def set_state(node, state):
+        node.state = state
             """,  # language= None
             [ReferenceTestNode("state.line7", "FunctionDef.set_state", ["Parameter.state.line6"]),
-             ReferenceTestNode("self.line7", "FunctionDef.set_state", ["Parameter.self.line6"])]
+             ReferenceTestNode("node.line7", "FunctionDef.set_state", ["Parameter.self.line6"]),
+             ReferenceTestNode("node.state.line7", "FunctionDef.set_state", ["ClassVariable.C.state.line6",
+                                                                             "ClassVariable.A.state.line3"])]
         ),
         (  # language=Python "setter function as @classmethod"
             """
+class A:
+    state: str = "A"
+
 class C:
     state: int = 0
 
     @classmethod
     def set_state(cls, state):
-        cls.state = state  # TODO: Problem: the parameter "state" has the same name as the class variable "state"
+        cls.state = state
             """,  # language= None
             [ReferenceTestNode("state.line7", "FunctionDef.set_state", ["Parameter.state.line6"]),
-             ReferenceTestNode("cls.line7", "FunctionDef.set_state", ["Parameter.cls.line6"])]
+             ReferenceTestNode("cls.line7", "FunctionDef.set_state", ["Parameter.cls.line6"]),
+             ReferenceTestNode("cls.state.line7", "FunctionDef.set_state", ["ClassVariable.C.state.line6",
+                                                                            "ClassVariable.A.state.line3"])]
         ),
         # TODO: is_instance_methode: check if decorator
         #       if not check first parameter (usually self)
@@ -1505,7 +1522,8 @@ class State:
 State(10).state
             """,  # language=none
             [ReferenceTestNode("State.line16", "Module.", ["GlobalVariable.State.line5"]),
-             ReferenceTestNode("self._state.line10", "FunctionDef.state", ["ClassVariable.State._state.line6"]),
+             ReferenceTestNode("self._state.line10", "FunctionDef.state", ["ClassVariable.State._state.line6"]),  # TODO: ask Lars: do we want to handle this?
+             ReferenceTestNode("self.line10", "FunctionDef.state", ["Parameter.self.line9"]),
              ReferenceTestNode("value.line14", "FunctionDef.state", ["Parameter.value.line13"]),
              ReferenceTestNode("State.state.line16", "Module.", ["ClassVariable.State._state.line6"])]
         ),

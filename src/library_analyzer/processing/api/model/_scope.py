@@ -7,7 +7,7 @@ from typing import Callable
 
 import astroid
 
-from library_analyzer.processing.api.model import Expression, Reference
+from library_analyzer.processing.api.model import Expression
 
 
 @dataclass
@@ -28,11 +28,11 @@ class ModuleData:
     """
     scope: Scope | ClassScope
     classes: dict[str, ClassScope]
-    functions: dict[str, Scope | list[Scope]]
+    functions: dict[str, Scope | list[Scope]]  # TODO: change to dict[str, list[Scope]]
     # members: dict[str, list[Symbol]]  # this contains all names of function names and attribute names and their declaratioon
     global_variables: dict[str, Scope | ClassScope]
-    value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]
+    value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]  # TODO: dict[str, list[Scope]]
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope] # dict[str, list[Scope]]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
     function_calls: dict[astroid.Call, Scope | ClassScope]
 
@@ -102,11 +102,6 @@ class Symbol(ABC):
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
-
-    # def __eq__(self, other: Symbol) -> bool:
-    #     if isinstance(other, Symbol):
-    #         return self.name == other.name and self.id == other.id
-    #     return False
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -246,6 +241,6 @@ class ClassScope(Scope):
         super_classes       is a list of ClassScope instances that represent the super classes of the class
     """
 
-    class_variables: dict[str, astroid.AssignName | astroid.FunctionDef | astroid.ClassDef] = field(default_factory=dict)  # right now, we do not cover the unlikely case of multiple class variables with the same name
+    class_variables: dict[str, astroid.AssignName | astroid.FunctionDef | astroid.ClassDef] = field(default_factory=dict)  # TODO: right now, we do not cover the unlikely case of multiple class variables with the same name -  change to list
     instance_variables: dict[str, astroid.AssignAttr] = field(default_factory=dict)  # right now, we do not cover the unlikely case of multiple instance variables with the same name
     super_classes: list[ClassScope] = field(default_factory=list)

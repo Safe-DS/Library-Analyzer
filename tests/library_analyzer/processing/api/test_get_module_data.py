@@ -838,6 +838,13 @@ def test_calc_node_id(
                                                                               SimpleScope("LocalVariable.AssignName.zde", [])])])])],
             # TODO: what about this case?
         ),
+        (  # With Statement
+            """
+                with open("file.txt", "r") as f:
+                    f.read()
+            """,
+            [],
+        ),
     ],
     ids=[
         "Seminar Example",
@@ -868,6 +875,7 @@ def test_calc_node_id(
         "Try Except Finally in Module",
         "Try Except in Class",
         "Try Except in Function",
+        "With Statement",
     ],  # TODO: add tests for lambda and generator expressions
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:

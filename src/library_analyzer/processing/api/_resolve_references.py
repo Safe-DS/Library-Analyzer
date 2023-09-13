@@ -45,7 +45,8 @@ def _find_name_references(
         if isinstance(value_ref.node, astroid.Name | MemberAccessValue):
             target_ref = _find_references(value_ref, target_references, classes, functions, parameters)
             final_references.append(target_ref)
-
+        # elif isinstance(value_ref.node, astroid.AssignName | MemberAccessTarget):
+            # TODO: handle MemberAccessTarget/ AssignName
     return final_references
 
 

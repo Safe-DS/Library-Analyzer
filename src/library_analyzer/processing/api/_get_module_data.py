@@ -329,8 +329,8 @@ class ModuleDataBuilder:
             | astroid.Comprehension
             | astroid.Attribute
         ):
-            if node.name == "self":
-                return
+            # if node.name == "self":
+            #     return
             # the following if statement is necessary to avoid adding the same node to
             # both the target_nodes and the value_nodes dict since there is a case where a name node is used as a
             # target we need to check if the node is already in the target_nodes dict this is only the case if the
@@ -377,14 +377,14 @@ class ModuleDataBuilder:
         ):
             self.target_nodes[node] = self.current_node_stack[-1]
 
-        if isinstance(node.parent, astroid.Arguments) and node.name == "self":
-            pass  # TODO: Special treatment for self parameter
+        # if isinstance(node.parent, astroid.Arguments) and node.name == "self":
+        #     pass  # TODO: Special treatment for self parameter
             # here self stance for the first implicit parameter of a class methode.
             # we need to check all possible names here, because it is not bound to be "self"
 
         # the following nodes are no real target nodes, but astroid generates an AssignName node for them.
         # they still need to be added to the children of the current scope
-        elif isinstance(
+        if isinstance(
             node.parent,
             astroid.Assign
             | astroid.Arguments
