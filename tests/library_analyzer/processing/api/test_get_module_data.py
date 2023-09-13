@@ -900,14 +900,20 @@ def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope
     if node.children is not None:
         if isinstance(node, ClassScope):
             instance_vars_transformed = []
+            class_vars_transformed = []
             for child in node.instance_variables.values():
                 for c in child:
                     instance_vars_transformed.append(to_string_class(c.node.member))
+            for child in node.class_variables.values():
+                for c in child:
+                    c_str = to_string_class(c.node)
+                    if c_str is not None:
+                        class_vars_transformed.append(c_str)
 
             return SimpleClassScope(
                 to_string(node.symbol),
                 [transform_result(child) for child in node.children],
-                [to_string_class(child) for child in node.class_variables.values()],
+                class_vars_transformed,
                 instance_vars_transformed,
                 [to_string_class(child) for child in node.super_classes],
             )
@@ -937,11 +943,13 @@ def to_string(symbol: Symbol) -> str:
     raise NotImplementedError(f"Unknown node type: {symbol.node.__class__.__name__}")
 
 
-def to_string_class(node: astroid.NodeNG | ClassScope) -> str:
+def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
     if isinstance(node, astroid.AssignAttr):
         return f"{node.__class__.__name__}.{node.attrname}"
     elif isinstance(node, astroid.AssignName | astroid.FunctionDef | astroid.ClassDef):
         return f"{node.__class__.__name__}.{node.name}"
+    elif isinstance(node, astroid.Lambda | astroid.TryExcept | astroid.TryFinally | astroid.ListComp):
+        return None
     elif isinstance(node, ClassScope):
         return f"{node.symbol.node.__class__.__name__}.{node.symbol.node.name}"
     raise NotImplementedError(f"Unknown node type: {node.__class__.__name__}")
@@ -977,6 +985,27 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str:
                     var1 = 1
             """,
             {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.var1", [])], ["AssignName.var1"], [], [])},
+        ),
+        (  # ClassDef with multiple class attribute
+            """
+                class A:
+                    var1 = 1
+                    var2 = 2
+            """,
+            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.var1", []),
+                                                                 SimpleScope("ClassVariable.AssignName.var2", [])], ["AssignName.var1", "AssignName.var2"], [], [])},
+        ),
+        (  # ClassDef with multiple class attribute (same name)
+            """
+                class A:
+                    if True:
+                        var1 = 1
+                    else:
+                        var1 = 2
+            """,
+            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.var1", []),
+                                                                 SimpleScope("ClassVariable.AssignName.var1", [])],
+                                   ["AssignName.var1", "AssignName.var1"], [], [])},
         ),
         (  # ClassDef with instance attribute
             """
@@ -1069,6 +1098,8 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str:
     ids=[
         "ClassDef",
         "ClassDef with class attribute",
+        "ClassDef with multiple class attribute",
+        "ClassDef with conditional class attribute (same name)",
         "ClassDef with instance attribute",
         "ClassDef with multiple instance attributes",
         "ClassDef with conditional instance attributes (instance attributes with same name)",

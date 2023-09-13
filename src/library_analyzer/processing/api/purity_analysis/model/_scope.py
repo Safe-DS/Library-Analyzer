@@ -32,7 +32,7 @@ class ModuleData:
     # all_names: dict[str, list[Symbol]]  # this contains all names of function names and attribute names and their declaratioon
     global_variables: dict[str, Scope | ClassScope]
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]  # TODO: dict[str, list[Scope]]
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope] # dict[str, list[Scope]]
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]  # TODO: dict[str, list[Scope]]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
     function_calls: dict[astroid.Call, Scope | ClassScope]
 
@@ -236,11 +236,11 @@ class ClassScope(Scope):
 
     Attributes
     ----------
-        class_variables     a dict of ClassDef, FunctionDef or AssignName nodes that define class variables
+        class_variables     a dict of class variables and their Symbols
         instance_variables  a dict of instance variables and their Symbols
-        super_classes       is a list of ClassScope instances that represent the super classes of the class
+        super_classes       a list of ClassScope instances that represent the super classes of the class
     """
 
-    class_variables: dict[str, astroid.AssignName | astroid.FunctionDef | astroid.ClassDef] = field(default_factory=dict)  # TODO: right now, we do not cover the unlikely case of multiple class variables with the same name -  change to list
+    class_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     instance_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     super_classes: list[ClassScope] = field(default_factory=list)

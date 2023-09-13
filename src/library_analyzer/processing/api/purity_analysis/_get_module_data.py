@@ -54,24 +54,6 @@ class ModuleDataBuilder:
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]] = field(default_factory=dict)
     function_calls: dict[astroid.Call, Scope | ClassScope] = field(default_factory=dict)
 
-    def get_node_by_name(self, name: str) -> Scope | ClassScope | None:
-        """
-        Get a ScopeNode by its name.
-
-        Parameters
-        ----------
-            name    is the name of the node that should be found.
-
-        Returns
-        -------
-            The Scope or ClassScope with the given name, or None if no node with the given name was found.
-        """
-        for node in self.current_node_stack:
-            if node.symbol.node.name == name:
-                return node
-        return None
-        # TODO: this is inefficient, instead use a dict to store the nodes
-
     def _detect_scope(self, node: astroid.NodeNG) -> None:
         """
         Detect the scope of the given node.
@@ -95,6 +77,14 @@ class ModuleDataBuilder:
         self.children.append(self.current_node_stack[-1])  # add the current node to the children
         if isinstance(node, astroid.ClassDef):
             self.classes[node.name] = self.current_node_stack[-1]
+
+            # add class variables to the class_variables dict
+            for child in self.current_node_stack[-1].children:
+                if isinstance(child.symbol, ClassVariable) and isinstance(self.current_node_stack[-1], ClassScope):
+                    if child.symbol.name in self.current_node_stack[-1].class_variables.keys():
+                        self.current_node_stack[-1].class_variables[child.symbol.name].append(child.symbol)
+                    else:
+                        self.current_node_stack[-1].class_variables[child.symbol.name] = [child.symbol]
 
         # add functions to the functions dict
         if isinstance(node, astroid.FunctionDef):
@@ -164,12 +154,6 @@ class ModuleDataBuilder:
             ),
         )
 
-        # add class node to the class_variables dict of the parent class if the parent of the function is a class
-        if isinstance(node.parent, astroid.ClassDef):
-            class_node = self.get_node_by_name(node.parent.name)
-            if isinstance(class_node, ClassScope):
-                class_node.class_variables[node.name] = node
-
     def leave_classdef(self, node: astroid.ClassDef) -> None:
         self._detect_scope(node)
 
@@ -179,12 +163,6 @@ class ModuleDataBuilder:
                   _children=[],
                   _parent=self.current_node_stack[-1]),
         )
-
-        # add function bode to the class_variables dict of the parent class if the parent of the function is a class
-        if isinstance(node.parent, astroid.ClassDef):
-            class_node = self.get_node_by_name(node.parent.name)
-            if isinstance(class_node, ClassScope):
-                class_node.class_variables[node.name] = node
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
         self._detect_scope(node)
@@ -400,12 +378,6 @@ class ModuleDataBuilder:
                                _children=[],
                                _parent=parent)
             self.children.append(scope_node)
-
-        # add AssignName node to the class_variables dict of the parent class if the parent of the parent node(=Assign) is a class node
-        if isinstance(node.parent.parent, astroid.ClassDef):
-            class_node = self.get_node_by_name(node.parent.parent.name)
-            if isinstance(class_node, ClassScope):
-                class_node.class_variables[node.name] = node
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
