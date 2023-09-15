@@ -47,7 +47,46 @@ def _find_name_references(
             final_references.append(target_ref)
         # elif isinstance(value_ref.node, astroid.AssignName | MemberAccessTarget):
             # TODO: handle MemberAccessTarget/ AssignName
+
+    for target_ref in target_references:
+        if isinstance(target_ref.node, astroid.AssignName | MemberAccessTarget):
+            target_ref = _find_references_target(target_ref, target_references)
+            # remove all references that are never referenced
+            if target_ref.referenced_symbols:
+                final_references.append(target_ref)
+
     return final_references
+
+
+def _find_references_target(target_reference: ReferenceNode,
+                            all_target_list: list[ReferenceNode]) -> ReferenceNode:
+
+    if target_reference in all_target_list:
+        copy = all_target_list[:all_target_list.index(target_reference)]
+        result: list[Symbol] = []
+        for ref in copy:
+            copy_nodes = [re.node for re in copy]
+            if isinstance(target_reference.node, MemberAccessTarget) and ref.node.name == target_reference.node.member.attrname:
+                current_scope = target_reference.scope
+                result: list[Symbol] = []
+
+                for node in copy:
+                    if node.node.name == ref.node.name:
+                        result.extend(_get_symbols(node))
+
+            # elif ref.node.name == target_reference.node.name or (
+            #     isinstance(target_reference.node, MemberAccessTarget) and ref.node.name == target_reference.node.receiver.name
+            # ):
+            #     current_scope = ref.scope
+            #
+            #     for child in current_scope.children:
+            #         if child.symbol.node in copy_nodes:
+            #             if child.symbol.node.name == ref.node.name:
+            #                 result.append(child.symbol)
+
+        target_reference.referenced_symbols = list(set(target_reference.referenced_symbols) | set(result))
+
+    return target_reference
 
 
 def _find_references(value_reference: ReferenceNode,
@@ -137,6 +176,7 @@ def _find_references(value_reference: ReferenceNode,
     return complete_reference
 
 
+# TODO: move this to Symbol as a getter method
 def _get_symbols(node: ReferenceNode) -> list[Symbol]:
     """Get all symbols for a node.
 
@@ -151,6 +191,7 @@ def _get_symbols(node: ReferenceNode) -> list[Symbol]:
     current_scope = node.scope
 
     for child in current_scope.children:
+        # this excludes ListComps, because they are not referenced
         if isinstance(child.symbol.node, astroid.ListComp):
             continue
         elif child.symbol.node.name == node.node.name:

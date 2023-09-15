@@ -65,6 +65,7 @@ class ModuleDataBuilder:
         outer_scope_children: list[Scope | ClassScope] = []
         inner_scope_children: list[Scope | ClassScope] = []
         # this is only the case when we leave the module: every child must be in the inner scope(=module scope)
+        # this speeds up the process of finding the scope of the children and guarantees that no child is lost
         if isinstance(node, astroid.Module):
             inner_scope_children = self.children
 
@@ -80,6 +81,8 @@ class ModuleDataBuilder:
                         inner_scope_children.append(child)  # add the child to the inner scope
                     else:
                         outer_scope_children.append(child)  # add the child to the outer scope
+
+        # For every other node Type we only need to look at its parent node to determine if it is in the scope of the current node.
         else:
             for child in self.children:
                 if (
@@ -110,6 +113,7 @@ class ModuleDataBuilder:
             else:
                 self.functions[node.name] = [self.current_node_stack[-1]]
 
+            # if we deal with a constructor, we need to analyze it to find the instance variables of the class
             if node.name == "__init__":
                 self._analyze_constructor()
 
@@ -185,6 +189,8 @@ class ModuleDataBuilder:
         self._detect_scope(node)
 
     def get_symbol(self, node: astroid.NodeNG, current_scope: astroid.NodeNG | None) -> Symbol:
+        """ Get the symbol of a node. """
+
         match current_scope:
             case astroid.Module() | None:
                 if isinstance(node, astroid.Import):
