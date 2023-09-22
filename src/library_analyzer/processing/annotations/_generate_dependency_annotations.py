@@ -258,7 +258,9 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
                         case ParameterHasValue():
                             is_depending_on_param = _search_for_parameter(condition.dependee, parameters, init_func)
 
-                            if is_depending_on_param is None and condition.check_dependee:
+                            if (is_depending_on_param is None or is_depending_on_param.lower() in ["if", "when"])\
+                                    and condition.check_dependee:
+
                                 is_depending_on_param = _search_for_parameter(condition.value, parameters, init_func)
 
                             _add_dependency_parameter(is_depending_on_param, is_depending_on)
@@ -307,13 +309,3 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
                                 is_depending_on,
                             )
                             _add_depending_on_dependencies(param.id, dependency_targets, is_depending_on, annotations)
-
-if __name__ == '__main__':
-    api = API.from_json_file(Path("/home/nils/PycharmProjects/Library-Analyzer/src/library_analyzer/processing/api/example_api.json"))
-    print(api.to_dict())
-    a_store = AnnotationStore()
-
-    _generate_dependency_annotations(api, a_store)
-
-    with open("/home/nils/Schreibtisch/Test.json", "w") as f:
-        f.write(json.dumps(a_store.to_dict(), indent=4))

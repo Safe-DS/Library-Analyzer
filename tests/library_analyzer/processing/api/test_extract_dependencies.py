@@ -300,7 +300,7 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 (
                     "n_components",
                     ParameterHasValue("If algorithm equals arpack", "algorithm", "arpack"),
-                    ParameterIsRestricted("must be strictly less than the number of features"),
+                    ParameterIsRestricted(", must be strictly less than the number of features"),
                 ),
             ],
         ),

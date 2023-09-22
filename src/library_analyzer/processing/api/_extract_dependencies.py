@@ -582,7 +582,12 @@ def _add_condition(dependee: str, value: str, cond_str: str, passive: bool = Fal
 
     """
     cond: Condition
-    type_ = value.split(" ")[1].lower() if len(value.split(" ")) == 2 else ""
+    if value in types:
+        type_ = value
+    elif len(value.split(" ")) == 2:
+        type_ = value.split(" ")[1].lower()
+    else:
+        type_ = ""
 
     if value in _none_phrases or dependee in _none_phrases:
         dependee_ = dependee if dependee not in _none_phrases else value
@@ -590,7 +595,7 @@ def _add_condition(dependee: str, value: str, cond_str: str, passive: bool = Fal
         cond.also = also
     elif value == "not callable":
         cond = ParameterDoesNotHaveType(cond_str, dependee, value)
-    elif type_ in types or value in types:
+    elif type_ in types:
         cond = ParameterHasType(cond_str, dependee, type_)
     else:
         cond = ParameterHasValue(cond_str, dependee, value)
@@ -649,10 +654,13 @@ def _extract_must_be_condition(
     condition_string = doc[start: end].text
     action_string = doc[action_token.i: -1].text
 
-    if action_token.nbor(-1).is_punct or action_token.nbor(2).pos_ != "SCONJ":
+    if (action_token.nbor(-1).is_punct or action_token.nbor(2).pos_ != "SCONJ")\
+            and action_token.nbor(1).text.lower() not in special_values:
+
         dependee, dependee_value = _extract_dependee_value(cond_token)
         action_string = doc[action_token.i - 1: -1].text
         restriction = ParameterIsRestricted(action_string)
+
     else:
         dependee, dependee_value = _extract_dependee_value(cond_token)
         depender, depender_value = _extract_dependee_value(action_token)
@@ -906,7 +914,6 @@ def _extract_used_condition_action(
     passive = _check_passiveness(action_token, match)
 
     dependee, value = _extract_dependee_value(action_token, passive)
-
     token_before_end = doc[end - 1]
     if token_before_end.text == "not" or token_before_end.pos_ == "DET":
         end += 1
@@ -1101,7 +1108,7 @@ def _extract_cond_also_value(
     action_string = action_string_doc.text
 
     if action_string[0:2] == "must be" and action_string_doc[3].pos_ != "SCONJ":
-        action_string = doc[action_start-1: action_end].text
+        action_string = doc[action_start - 1: action_end].text
         _action_list.append(ParameterIsRestricted(action_string))
     else:
         _action_list.append(ParameterWillBeSetTo(action_string, "this_parameter", set_value))
@@ -1136,7 +1143,6 @@ def _extract_if_only_accepted(
     action_start = match_[1][3]
     action_end = match_[1][2]
 
-
     action_value_token = doc[action_start + 1]
     if action_value_token.text == "not" or action_value_token.pos_ == "DET":
         action_value = doc[action_start + 1: action_start + 3].text
@@ -1147,7 +1153,7 @@ def _extract_if_only_accepted(
     action_string = action_string_doc.text
 
     if action_string[0:2] == "must be" and action_string_doc[3].pos_ != "SCONJ":
-        action_string = doc[action_start-1:action_end + 1].text
+        action_string = doc[action_start - 1:action_end + 1].text
         action = ParameterIsRestricted(action_string)
     else:
         action = ParameterWillBeSetTo(action_string, "this_parameter", action_value)
@@ -1187,10 +1193,8 @@ def extract_param_dependencies(
 
     description_preprocessed = _preprocess_docstring(description)
     description_doc = _nlp(description_preprocessed)
-    print(f":::::::::::::: {param_qname} ::::::::::::::")
     for sent in description_doc.sents:
         matches = _dep_matcher(sent)
-        print([_nlp.vocab.strings[m[0]] for m in matches])
 
     for idx, cond in enumerate(_condition_list):
         dependency_tuples.append((param_qname, cond, _action_list[idx]))
@@ -1480,44 +1484,3 @@ _merger_matcher.add("REL_OPS", [_pattern_rel_ops])
 
 # Insert merger after Tagger into the pipeline
 _nlp.add_pipe("merger", after="tagger")
-
-if __name__ == '__main__':
-    qname = "test"
-    s1 = "The metric to use when calculating distance between instances in a " \
-         "feature array. If metric is a string or callable, it must be one of " \
-         "the options allowed by :func:`sklearn.metrics.pairwise_distances` for " \
-         "its metric parameter. " \
-         "If linkage is 'ward', only 'euclidean' is accepted. " \
-         "If 'precomputed', a distance matrix (instead of a similarity matrix) " \
-         "is needed as input for the fit method. " \
-         ".. deprecated:: 1.2 " \
-         "`affinity` was deprecated in version 1.2 and will be renamed to " \
-         "`metric` in 1.4."
-    s2 = "Used when ``solver`` == 'sag', 'saga' or 'liblinear' to shuffle the data."
-    s3 = "Only used if U_init and V_init are not None."
-    s4 = "Only if trainsize is unspecified."
-    s5 = "Ignored if knots is array-like"
-    s6 = (" The average number of labels per instance. More precisely, the number "
-          "of labels per sample is drawn from a Poisson distribution with "
-          "``n_labels`` as its expected value, but samples are bounded (using "
-          "rejection sampling) by ``n_classes``, and must be nonzero if "
-          "``allow_unlabeled`` is False.")
-    s7 = ("If metric is a string or callable, it must be one of "
-        "the options allowed by :func:`sklearn.metrics.pairwise_distances` for "
-        "its metric parameter.")
-    s8 = ("If ``svd_solver == 'arpack'``, the number of components must be strictly less than the minimum of "
-          "n_features and n_samples.")
-    s9 = " Note that if X is None then Gram must be specified, i.e., cannot be None or False."
-    s10 = "Ignored if cv equals prefit' was found."
-
-    ls = [
-        extract_param_dependencies(qname, s10),
-    ]
-
-    for l in ls:
-        for t in l:
-            print(t)
-            print(t[2].dependee)
-        print("\n----------------------\n")
-
-    # print([token.text for token in _nlp(s7)])
