@@ -208,10 +208,10 @@ def _extract_list(
 
         if found_list and token.text not in seperators_opener and token.text not in quotes:
             first_left_nbor = token.nbor(-1).text
+            second_left_nbor = "'"
+
             if token.i > 1:
                 second_left_nbor = token.nbor(-2).text
-            else:
-                second_left_nbor = "'"
 
             if token.text in ["True", "False", "bool"]:
                 ex.append("True")

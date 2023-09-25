@@ -106,7 +106,7 @@ def _extract_function(
     elif match_id_string == "CALLED_AFTER:IS_CALLED":
         last_id = match_[2] + 1
         if last_id >= len(doc):
-            last_id -= 1
+            last_id = match_[2] - 3
 
         func_names.append(doc[last_id].text)
 
