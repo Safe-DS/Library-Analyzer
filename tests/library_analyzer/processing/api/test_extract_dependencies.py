@@ -399,14 +399,10 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
             [
                 (
                     "max_iter",
-                    ParameterHasValue(
-                        "If max_iter is not None, n_iter is ignored",
-                        "max_iter",
-                        "not None"
-                    ),
-                    ParameterIsIgnored("ignored", "n_iter")
-                )
-            ]
+                    ParameterHasValue("If max_iter is not None, n_iter is ignored", "max_iter", "not None"),
+                    ParameterIsIgnored("ignored", "n_iter"),
+                ),
+            ],
         ),
         # this case was derived from the previous one
         (
@@ -415,14 +411,10 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
             [
                 (
                     "max_iter",
-                    ParameterHasValue(
-                        "If max_iter is not None, n_iter will be ignored",
-                        "max_iter",
-                        "not None"
-                    ),
-                    ParameterIsIgnored("ignored", "n_iter")
-                )
-            ]
+                    ParameterHasValue("If max_iter is not None, n_iter will be ignored", "max_iter", "not None"),
+                    ParameterIsIgnored("ignored", "n_iter"),
+                ),
+            ],
         ),
         # https://github.com/scikit-learn/scikit-learn/blob/4b352163d555d85f721e68a520a4b19b7a406637/sklearn/cluster/_spectral.py#L450
         (
@@ -431,19 +423,11 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
             [
                 (
                     "n_neighbors",
-                    ParameterHasValue(
-                        "Ignored for affinity equals rbf",
-                        "affinity",
-                        "rbf"
-                    ),
-                    ParameterIsIgnored(
-                        "ignored",
-                        "this_parameter"
-                    )
-                )
-            ]
-        )
-
+                    ParameterHasValue("Ignored for affinity equals rbf", "affinity", "rbf"),
+                    ParameterIsIgnored("ignored", "this_parameter"),
+                ),
+            ],
+        ),
     ],
 )
 def test_extract_param_dependencies(
@@ -528,7 +512,7 @@ def test_cond_dict_methods(dictionary: dict[str, Any], expected_class: Condition
         ({"variant": "action", "action": "will be set to None"}, Action(action="will be set to None")),
         (
             {"variant": "is_ignored", "action": "ignored", "dependee": "this_parameter"},
-            ParameterIsIgnored(action_="ignored", dependee="this_parameter")
+            ParameterIsIgnored(action_="ignored", dependee="this_parameter"),
         ),
         ({"variant": "is_illegal", "action": "raises KeyError"}, ParameterIsIllegal(action_="raises KeyError")),
         (

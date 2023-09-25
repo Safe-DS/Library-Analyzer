@@ -1,5 +1,3 @@
-import json
-from pathlib import Path
 
 from library_analyzer.processing.annotations._constants import autogen_author
 from library_analyzer.processing.annotations.model import AnnotationStore, DependencyAnnotation, EnumReviewResult
@@ -258,9 +256,9 @@ def _generate_dependency_annotations(api: API, annotations: AnnotationStore) -> 
                         case ParameterHasValue():
                             is_depending_on_param = _search_for_parameter(condition.dependee, parameters, init_func)
 
-                            if (is_depending_on_param is None or is_depending_on_param.lower() in ["if", "when"])\
-                                    and condition.check_dependee:
-
+                            if (
+                                is_depending_on_param is None or is_depending_on_param.lower() in ["if", "when"]
+                            ) and condition.check_dependee:
                                 is_depending_on_param = _search_for_parameter(condition.value, parameters, init_func)
 
                             _add_dependency_parameter(is_depending_on_param, is_depending_on)

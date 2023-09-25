@@ -20,23 +20,10 @@ _nlp = load_language("en_core_web_sm")
 _merger_matcher = Matcher(_nlp.vocab)
 _dep_matcher = DependencyMatcher(_nlp.vocab)
 
-_none_phrases = [
-    "None",
-    "unspecified"
-]
-_encoded_rel_ops = {
-    "$GT$": ">",
-    "$LT$": "<",
-    "$GEQ$": ">=",
-    "$LEQ$": "<="
-}
+_none_phrases = ["None", "unspecified"]
+_encoded_rel_ops = {"$GT$": ">", "$LT$": "<", "$GEQ$": ">=", "$LEQ$": "<="}
 
-has_value_phrases = [
-    "equals",
-    "is",
-    "are",
-    "used"
-]
+has_value_phrases = ["equals", "is", "are", "used"]
 
 has_value_phrases_splitting = [
     "equals",
@@ -46,15 +33,9 @@ has_value_phrases_splitting = [
     "$LEQ$",
 ]
 
-passive_has_value_phrases = [
-    "used"
-]
+passive_has_value_phrases = ["used"]
 
-special_values = [
-    "none",
-    "true",
-    "false"
-]
+special_values = ["none", "true", "false"]
 
 types = [
     "bool",
@@ -65,7 +46,6 @@ types = [
     "integer",
     "float",
     "array-like",
-
 ]
 
 
@@ -478,8 +458,9 @@ def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) 
         token_text = token.text.lower()
         if token_text in ["if", "when"]:
             if_when_idx = token.i
-        elif token_text in has_value_phrases_splitting\
-                or (token_text in passive_has_value_phrases and token.i > 0 and token.nbor(-1).text in ["is", "are"]):
+        elif token_text in has_value_phrases_splitting or (
+            token_text in passive_has_value_phrases and token.i > 0 and token.nbor(-1).text in ["is", "are"]
+        ):
             has_value_idxs.append(token.i)
         elif token_text in special_values and token.nbor(-1).text in ["is", "are", "not"]:
             special_value_idxs.append(token.i)
@@ -504,23 +485,23 @@ def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) 
         if len(seperator_idxs) == value_idxs_cnt - 1:
             if has_value_idxs:
                 seperator_idx = seperator_idxs[0]
-                start_phrase = doc[:if_when_idx + 1].text
-                end_phrase = doc[seperator_idx + 1:].text
+                start_phrase = doc[: if_when_idx + 1].text
+                end_phrase = doc[seperator_idx + 1 :].text
 
         # <start_phrase> ... <param>, <param>, <and | or> <param> <end_phrase_with_val>
         elif action_token_index > max(seperator_idxs):
             seperator_idx = seperator_idxs[-1]
-            end_phrase = doc[seperator_idx + 2:].text
+            end_phrase = doc[seperator_idx + 2 :].text
             if doc[seperator_idx].text in ["and", "or"] and doc[seperator_idx - 1].text == ",":
-                start_phrase = doc[:seperator_idx - 1].text
+                start_phrase = doc[: seperator_idx - 1].text
             else:
                 start_phrase = doc[:seperator_idx].text
 
         # <start_phrase with param> ... <val>, <val>, <and | or> <val> <end_phrase>
         elif action_token_index < min(seperator_idxs):
             seperator_idx = seperator_idxs[0]
-            end_phrase = doc[seperator_idx + 1:].text
-            start_phrase = doc[:action_token_index + 1].text
+            end_phrase = doc[seperator_idx + 1 :].text
+            start_phrase = doc[: action_token_index + 1].text
 
     shortened_sent = start_phrase + " " + end_phrase
     shortened_doc = _nlp(shortened_sent)
@@ -651,14 +632,14 @@ def _extract_must_be_condition(
     if token_before_end.text == "not" or token_before_end.pos_ == "DET":
         end += 1
 
-    condition_string = doc[start: end].text
-    action_string = doc[action_token.i: -1].text
+    condition_string = doc[start:end].text
+    action_string = doc[action_token.i : -1].text
 
-    if (action_token.nbor(-1).is_punct or action_token.nbor(2).pos_ != "SCONJ")\
-            and action_token.nbor(1).text.lower() not in special_values:
-
+    if (action_token.nbor(-1).is_punct or action_token.nbor(2).pos_ != "SCONJ") and action_token.nbor(
+        1,
+    ).text.lower() not in special_values:
         dependee, dependee_value = _extract_dependee_value(cond_token)
-        action_string = doc[action_token.i - 1: -1].text
+        action_string = doc[action_token.i - 1 : -1].text
         restriction = ParameterIsRestricted(action_string)
 
     else:
@@ -711,21 +692,18 @@ def _extract_only_condition_action(
         right_dependee_token = action_token.nbor(2)
 
         cond_str = (
-            doc[:left_dependee_token.i + 1].text +
-            f" {_encoded_rel_ops[rel_op_token.text]} " +
-            doc[right_dependee_token.i].text
+            doc[: left_dependee_token.i + 1].text
+            + f" {_encoded_rel_ops[rel_op_token.text]} "
+            + doc[right_dependee_token.i].text
         )
 
         _condition_list.append(
             ParametersInRelation(
-                cond_str,
-                left_dependee_token.text,
-                right_dependee_token.text,
-                _encoded_rel_ops[rel_op_token.text])
+                cond_str, left_dependee_token.text, right_dependee_token.text, _encoded_rel_ops[rel_op_token.text],
+            ),
         )
 
     else:
-
         if len(value.split()) == 2:
             condition_string += " " + doc[end].text
 
@@ -966,7 +944,7 @@ def _extract_relational_condition(
 
     rel_op = " " + _encoded_rel_ops[cond_token.text] + " "
 
-    condition_string = doc[match_[1][1]: cond_token.i].text + rel_op + doc[cond_token.i + 1].text
+    condition_string = doc[match_[1][1] : cond_token.i].text + rel_op + doc[cond_token.i + 1].text
 
     _condition_list.append(ParametersInRelation(condition_string, left_dependee, right_dependee, rel_op.strip()))
 
@@ -1009,11 +987,11 @@ def _extract_raise_error(
     match_id_string = _nlp.vocab.strings[match_[0]]
 
     if match_id_string == "DEPENDENCY_COND_RAISE_ERROR_START":
-        action_string = doc[match_[1][1]: match_[1][0] + 1].text
+        action_string = doc[match_[1][1] : match_[1][0] + 1].text
         cond = Condition(doc.text)
     else:
         dependee, value_ = _extract_dependee_value(doc[match_[1][3]])
-        action_string = doc[match_[1][1]: match_[1][0] + 1].text
+        action_string = doc[match_[1][1] : match_[1][0] + 1].text
         cond = ParameterHasValue(doc.text, dependee, value_)
 
     _condition_list.append(cond)
@@ -1107,7 +1085,7 @@ def _extract_cond_also_value(
     action_string = action_string_doc.text
 
     if action_string[0:2] == "must be" and action_string_doc[3].pos_ != "SCONJ":
-        action_string = doc[action_start - 1: action_end].text
+        action_string = doc[action_start - 1 : action_end].text
         _action_list.append(ParameterIsRestricted(action_string))
     else:
         _action_list.append(ParameterWillBeSetTo(action_string, "this_parameter", set_value))
@@ -1136,7 +1114,7 @@ def _extract_if_only_accepted(
 
     dependee, value = _extract_dependee_value(cond_verb_token)
 
-    cond_str = doc[cond_start: cond_end].text
+    cond_str = doc[cond_start:cond_end].text
 
     _add_condition(dependee, value, cond_str)
 
@@ -1145,15 +1123,15 @@ def _extract_if_only_accepted(
 
     action_value_token = doc[action_start + 1]
     if action_value_token.text == "not" or action_value_token.pos_ == "DET":
-        action_value = doc[action_start + 1: action_start + 3].text
+        action_value = doc[action_start + 1 : action_start + 3].text
     else:
         action_value = doc[action_start + 1].text
 
-    action_string_doc = doc[action_start:action_end + 1]
+    action_string_doc = doc[action_start : action_end + 1]
     action_string = action_string_doc.text
 
     if action_string[0:2] == "must be" and action_string_doc[3].pos_ != "SCONJ":
-        action_string = doc[action_start - 1:action_end + 1].text
+        action_string = doc[action_start - 1 : action_end + 1].text
         action = ParameterIsRestricted(action_string)
     else:
         action = ParameterWillBeSetTo(action_string, "this_parameter", action_value)
@@ -1194,7 +1172,7 @@ def extract_param_dependencies(
     description_preprocessed = _preprocess_docstring(description)
     description_doc = _nlp(description_preprocessed)
     for sent in description_doc.sents:
-        matches = _dep_matcher(sent)
+        _dep_matcher(sent)
 
     for idx, cond in enumerate(_condition_list):
         dependency_tuples.append((param_qname, cond, _action_list[idx]))
@@ -1215,7 +1193,12 @@ _dep_cond_only_verb = [
     _conditional_only,
     {"LEFT_ID": "condition_head", "REL_OP": ".", "RIGHT_ID": "action_start", "RIGHT_ATTRS": {"POS": "SCONJ"}},
     # {"LEFT_ID": "action_start", "REL_OP": "<", "RIGHT_ID": "action", "RIGHT_ATTRS": {"POS": {"IN": ["AUX", "VERB"]}}},
-    {"LEFT_ID": "action_start", "REL_OP": "<", "RIGHT_ID": "action", "RIGHT_ATTRS": {"ORTH": {"IN": has_value_phrases}}}
+    {
+        "LEFT_ID": "action_start",
+        "REL_OP": "<",
+        "RIGHT_ID": "action",
+        "RIGHT_ATTRS": {"ORTH": {"IN": has_value_phrases}},
+    },
 ]
 
 # only <ADJ> ... <if | when | ...> ... <action VERB>
@@ -1224,7 +1207,12 @@ _dep_cond_only_adj = [
     _conditional_only,
     {"LEFT_ID": "condition_head", "REL_OP": ".", "RIGHT_ID": "action_start", "RIGHT_ATTRS": {"POS": "SCONJ"}},
     # {"LEFT_ID": "action_start", "REL_OP": "<", "RIGHT_ID": "action", "RIGHT_ATTRS": {"POS": {"IN": ["AUX", "VERB"]}}},
-    {"LEFT_ID": "action_start", "REL_OP": "<", "RIGHT_ID": "action", "RIGHT_ATTRS": {"ORTH": {"IN": has_value_phrases}}}
+    {
+        "LEFT_ID": "action_start",
+        "REL_OP": "<",
+        "RIGHT_ID": "action",
+        "RIGHT_ATTRS": {"ORTH": {"IN": has_value_phrases}},
+    },
 ]
 
 # only  <if | when | ...> ... <action VERB>
@@ -1277,14 +1265,9 @@ _dep_cond_ignored_at_beginning = [
         "LEFT_ID": "action_head",
         "REL_OP": "<",
         "RIGHT_ID": "condition_head",
-        "RIGHT_ATTRS": {"ORTH": {"IN": has_value_phrases}}
+        "RIGHT_ATTRS": {"ORTH": {"IN": has_value_phrases}},
     },
-    {
-        "LEFT_ID": "action_head",
-        "REL_OP": ">",
-        "RIGHT_ID": "for",
-        "RIGHT_ATTRS": {"ORTH": "for"}
-    }
+    {"LEFT_ID": "action_head", "REL_OP": ">", "RIGHT_ID": "for", "RIGHT_ATTRS": {"ORTH": "for"}},
 ]
 
 # Used ... <if | when | ...> ... <action VERB>
@@ -1408,24 +1391,9 @@ _dep_cond_param_also_value = [
 
 _dep_if_only_accepted = [
     {"RIGHT_ID": "cond_head", "RIGHT_ATTRS": {"ORTH": {"IN": ["equals", "is"]}}},
-    {
-        "LEFT_ID": "cond_head",
-        "REL_OP": ">",
-        "RIGHT_ID": "conditional_if",
-        "RIGHT_ATTRS": {"ORTH": "If"}
-    },
-    {
-        "LEFT_ID": "cond_head",
-        "REL_OP": "<",
-        "RIGHT_ID": "accepted",
-        "RIGHT_ATTRS": {"ORTH": "accepted"}
-    },
-    {
-        "LEFT_ID": "accepted",
-        "REL_OP": ">>",
-        "RIGHT_ID": "action_only",
-        "RIGHT_ATTRS": {"ORTH": "only"}
-    }
+    {"LEFT_ID": "cond_head", "REL_OP": ">", "RIGHT_ID": "conditional_if", "RIGHT_ATTRS": {"ORTH": "If"}},
+    {"LEFT_ID": "cond_head", "REL_OP": "<", "RIGHT_ID": "accepted", "RIGHT_ATTRS": {"ORTH": "accepted"}},
+    {"LEFT_ID": "accepted", "REL_OP": ">>", "RIGHT_ID": "action_only", "RIGHT_ATTRS": {"ORTH": "only"}},
 ]
 
 _dep_matcher.add(
@@ -1448,7 +1416,7 @@ _dep_matcher.add(
 _dep_matcher.add(
     "DEPENDENCY_COND_IGNORED",
     [_dep_cond_ignored, _dep_cond_ignored_at_beginning],
-    on_match=_extract_ignored_condition_action
+    on_match=_extract_ignored_condition_action,
 )
 
 _dep_matcher.add("DEPENDENCY_COND_WHEN_BRACKETS", [_dep_cond_when], on_match=_extract_used_condition_action)
