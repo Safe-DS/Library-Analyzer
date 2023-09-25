@@ -421,6 +421,7 @@ def _preprocess_docstring(docstring: str) -> str:
         str
             The processed docstring.
     """
+
     docstring = re.sub(r'["“”`]', "", docstring)
     docstring = re.sub(r"'", "", docstring)
 
@@ -448,7 +449,7 @@ def _preprocess_docstring(docstring: str) -> str:
 
 def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) -> None:
     """
-    The Doc-Object is checked for multiple conditions, which are linked with an 'and' or 'or'.
+    Check for multiple conditions in the Doc object, which are linked with an 'and' or 'or'.
     The first condition found is removed and the new truncated Doc object is passed back to the dependency matcher.
 
     Parameters
@@ -463,6 +464,7 @@ def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) 
         Doc object to be checked for multiple conditions.
 
     """
+
     start_phrase: str = ""
     end_phrase: str = ""
     seperator_idxs = []
@@ -1047,7 +1049,6 @@ def _extract_cond_only_noun(
 
     """
     action_: Action
-    cond: Condition
 
     match_ = matches[i]
     parameter_token = doc[match_[1][2]]
@@ -1122,6 +1123,7 @@ def _extract_if_only_accepted(
     i: int,
     matches: list[tuple[Any, ...]],
 ) -> Any | None:
+    action: Action
     match_ = matches[i]
     prev_match = matches[i - 1]
 
