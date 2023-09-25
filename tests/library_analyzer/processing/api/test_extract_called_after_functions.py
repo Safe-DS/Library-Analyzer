@@ -29,6 +29,18 @@ from library_analyzer.processing.api import CalledAfterValues, extract_called_af
             "Before errorbar is called, '~.Axes.set_xlim' must be called.",
             CalledAfterValues("errorbar", ["~.Axes.set_xlim"], "after"),
         ),
+        # https://github.com/matplotlib/matplotlib/blob/7d2acfda30077403682d8beef5a3c340ac98a43b/lib/matplotlib/figure.py#L1421
+        (
+            "align_labels",
+            "Alignment persists for draw events after this is called.",
+            CalledAfterValues("align_labels", ["this"], "after"),
+        ),
+        # Created Testcase without example
+        (
+            "errorbar",
+            "Show the error bar of the data to be examined.",
+            None,
+        ),
     ],
 )
 def test_extract_called_after_functions(
