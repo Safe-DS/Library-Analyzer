@@ -699,7 +699,10 @@ def _extract_only_condition_action(
 
         _condition_list.append(
             ParametersInRelation(
-                cond_str, left_dependee_token.text, right_dependee_token.text, _encoded_rel_ops[rel_op_token.text],
+                cond_str,
+                left_dependee_token.text,
+                right_dependee_token.text,
+                _encoded_rel_ops[rel_op_token.text],
             ),
         )
 

@@ -1,4 +1,3 @@
-
 from library_analyzer.processing.annotations._constants import autogen_author
 from library_analyzer.processing.annotations.model import AnnotationStore, DependencyAnnotation, EnumReviewResult
 from library_analyzer.processing.api import (
