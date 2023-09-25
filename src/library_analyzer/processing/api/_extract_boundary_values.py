@@ -685,7 +685,7 @@ def _analyze_matches(matches: list[tuple[str, Span]], boundaries: BoundaryList) 
                     match_label = match["match_label"]
                     match_string = match["match_string"]
 
-                boundaries.add_boundary(match_label, type_, match_string)
+            boundaries.add_boundary(match_label, type_, match_string)
 
 
 def _preprocess_docstring(docstring: str) -> str:
