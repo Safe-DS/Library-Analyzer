@@ -421,7 +421,6 @@ def _preprocess_docstring(docstring: str) -> str:
         str
             The processed docstring.
     """
-
     docstring = re.sub(r'["“”`]', "", docstring)
     docstring = re.sub(r"'", "", docstring)
 
@@ -450,6 +449,7 @@ def _preprocess_docstring(docstring: str) -> str:
 def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) -> None:
     """
     Check for multiple conditions in the Doc object, which are linked with an 'and' or 'or'.
+
     The first condition found is removed and the new truncated Doc object is passed back to the dependency matcher.
 
     Parameters
@@ -464,7 +464,6 @@ def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) 
         Doc object to be checked for multiple conditions.
 
     """
-
     start_phrase: str = ""
     end_phrase: str = ""
     seperator_idxs = []
@@ -479,9 +478,8 @@ def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) 
         token_text = token.text.lower()
         if token_text in ["if", "when"]:
             if_when_idx = token.i
-        elif token_text in has_value_phrases_splitting:
-            has_value_idxs.append(token.i)
-        elif token_text in passive_has_value_phrases and token.i > 0 and token.nbor(-1).text in ["is", "are"]:
+        elif token_text in has_value_phrases_splitting\
+                or (token_text in passive_has_value_phrases and token.i > 0 and token.nbor(-1).text in ["is", "are"]):
             has_value_idxs.append(token.i)
         elif token_text in special_values and token.nbor(-1).text in ["is", "are", "not"]:
             special_value_idxs.append(token.i)
