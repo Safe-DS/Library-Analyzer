@@ -798,28 +798,3 @@ def extract_boundary(description: str, type_string: str) -> set[BoundaryType]:
                 _analyze_matches(desc_matches, boundaries)
 
     return boundaries.get_boundaries()
-
-
-if __name__ == '__main__':
-
-    s1 = ("How to align the bars within the cells relative to a width adjusted center. "
-            "If string must be one of: "
-
-            "- 'left' : bars are drawn rightwards from the minimum data value. "
-            "- 'right' : bars are drawn leftwards from the maximum data value. "
-            "- 'zero' : a value of zero is located at the center of the cell. "
-            "- 'mid' : a value of (max-min)/2 is located at the center of the cell, "
-              "or if all values are negative (positive) the zero is "
-              "aligned at the right (left) of the cell. "
-            "- 'mean' : the mean value of the data is located at the center of the cell. "
-
-            "If a float or integer is given this will indicate the center of the cell. "
-
-            "If a callable should take a 1d or 2d array and return a scalar. "
-
-            ".. versionchanged:: 1.4.0")
-    t1 = "str, int, float, callable, default 'mid'"
-
-    s = extract_boundary(s1, t1)
-
-    print(s)
