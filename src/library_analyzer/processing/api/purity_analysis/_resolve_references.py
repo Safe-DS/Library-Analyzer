@@ -49,29 +49,41 @@ def _find_name_references(
             # TODO: handle MemberAccessTarget/ AssignName
 
     for target_ref in target_references:
-        if isinstance(target_ref.node, astroid.AssignName | MemberAccessTarget):
-            target_ref = _find_references_target(target_ref, target_references)
+        if isinstance(target_ref.node, astroid.AssignName | astroid.Name | MemberAccessTarget):
+            target_ref_complete = _find_references_target(target_ref, target_references)
             # remove all references that are never referenced
-            if target_ref.referenced_symbols:
-                final_references.append(target_ref)
+            if target_ref_complete.referenced_symbols:
+                final_references.append(target_ref_complete)
 
     return final_references
 
 
-def _find_references_target(target_reference: ReferenceNode,
+def _find_references_target(current_target_reference: ReferenceNode,
                             all_target_list: list[ReferenceNode]) -> ReferenceNode:
 
-    if target_reference in all_target_list:
-        copy = all_target_list[:all_target_list.index(target_reference)]
+    if current_target_reference in all_target_list:
+        all_targets_before_current_target_reference = all_target_list[:all_target_list.index(current_target_reference)]
         result: list[Symbol] = []
-        for ref in copy:
-            copy_nodes = [re.node for re in copy]
-            if isinstance(target_reference.node, MemberAccessTarget) and ref.node.name == target_reference.node.member.attrname:
-                current_scope = target_reference.scope
+        for ref in all_targets_before_current_target_reference:
+
+            # this deals with member accesses where an attribute is assigned:
+            if isinstance(current_target_reference.node, MemberAccessTarget) and ref.node.name == current_target_reference.node.member.attrname:
                 result: list[Symbol] = []
 
-                for node in copy:
+                for node in all_targets_before_current_target_reference:
                     if node.node.name == ref.node.name:
+                        result.extend(_get_symbols(node))
+
+            # elif isinstance(current_target_reference.node, MemberAccessTarget) and ref.node.name == current_target_reference.node.receiver.name:
+            #     result: list[Symbol] = []
+            #
+            #     for node in all_targets_after_current_target_reference:
+            #         if node.node.name == ref.node.name:
+            #             result.extend(_get_symbols(node))
+
+            elif isinstance(current_target_reference.node, astroid.Name) and ref.node.name == current_target_reference.node.name:
+                for node in all_targets_before_current_target_reference:
+                    if node.node.name == ref.node.name and node.scope == current_target_reference.scope:
                         result.extend(_get_symbols(node))
 
             # elif ref.node.name == target_reference.node.name or (
@@ -84,9 +96,9 @@ def _find_references_target(target_reference: ReferenceNode,
             #             if child.symbol.node.name == ref.node.name:
             #                 result.append(child.symbol)
 
-        target_reference.referenced_symbols = list(set(target_reference.referenced_symbols) | set(result))
+        current_target_reference.referenced_symbols = list(set(current_target_reference.referenced_symbols) | set(result))
 
-    return target_reference
+    return current_target_reference
 
 
 def _find_references(value_reference: ReferenceNode,

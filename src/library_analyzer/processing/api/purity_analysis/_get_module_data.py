@@ -354,8 +354,8 @@ class ModuleDataBuilder:
                 self.value_nodes[node] = self.current_node_stack[-1]
 
         elif isinstance(node.parent, astroid.AssignAttr):
-            if node.name == "self":
-                return
+            # if node.name == "self":
+            #     return
             self.target_nodes[node] = self.current_node_stack[-1]
         if (
             isinstance(node.parent, astroid.Call)
@@ -445,8 +445,8 @@ class ModuleDataBuilder:
         if isinstance(node.parent, astroid.AssignAttr) or self.has_assignattr_parent(node):
             member_access = _construct_member_access_target(node.expr, node)
             if isinstance(node.expr, astroid.Name):
-                if node.expr.name == "self":
-                    return
+                # if node.expr.name == "self":
+                #     return
                 self.target_nodes[node.expr] = self.current_node_stack[-1]
 
         if isinstance(member_access, MemberAccessTarget):
