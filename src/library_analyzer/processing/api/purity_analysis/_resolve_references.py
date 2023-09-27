@@ -41,16 +41,16 @@ def _find_name_references(
     target_references = [ReferenceNode(node, scope, []) for node, scope in target_nodes.items()]
     value_references = [ReferenceNode(node, scope, []) for node, scope in value_nodes.items()]
 
+    # detect all value references: references that are used as values (e.g. sth = value, return value)
     for value_ref in value_references:
         if isinstance(value_ref.node, astroid.Name | MemberAccessValue):
-            target_ref = _find_references(value_ref, target_references, classes, functions, parameters)
-            final_references.append(target_ref)
-        # elif isinstance(value_ref.node, astroid.AssignName | MemberAccessTarget):
-            # TODO: handle MemberAccessTarget/ AssignName
+            value_ref_complete = _find_references(value_ref, target_references, classes, functions, parameters)
+            final_references.append(value_ref_complete)
 
+    # detect all target references: references that are used as targets (e.g. target = sth)
     for target_ref in target_references:
         if isinstance(target_ref.node, astroid.AssignName | astroid.Name | MemberAccessTarget):
-            target_ref_complete = _find_references_target(target_ref, target_references)
+            target_ref_complete = _find_references_target(target_ref, target_references, classes)
             # remove all references that are never referenced
             if target_ref_complete.referenced_symbols:
                 final_references.append(target_ref_complete)
@@ -59,42 +59,43 @@ def _find_name_references(
 
 
 def _find_references_target(current_target_reference: ReferenceNode,
-                            all_target_list: list[ReferenceNode]) -> ReferenceNode:
+                            all_target_list: list[ReferenceNode],
+                            classes: dict[str, ClassScope]) -> ReferenceNode:
 
     if current_target_reference in all_target_list:
         all_targets_before_current_target_reference = all_target_list[:all_target_list.index(current_target_reference)]
         result: list[Symbol] = []
         for ref in all_targets_before_current_target_reference:
 
-            # this deals with member accesses where an attribute is assigned:
-            if isinstance(current_target_reference.node, MemberAccessTarget) and ref.node.name == current_target_reference.node.member.attrname:
-                result: list[Symbol] = []
+            if isinstance(current_target_reference.node, MemberAccessTarget):
+                # Add ClassVariables if the name matches
+                if isinstance(ref.scope, ClassScope) and ref.node.name == current_target_reference.node.member.attrname:
+                    result.extend(_get_symbols(ref))
 
-                for node in all_targets_before_current_target_reference:
-                    if node.node.name == ref.node.name:
-                        result.extend(_get_symbols(node))
+                # Add InstanceVariables if the name of the MemberAccessTarget is the same as the name of the InstanceVariable
+                if isinstance(ref.node, MemberAccessTarget) and ref.node.member.attrname == current_target_reference.node.member.attrname:
+                    result.extend(_get_symbols(ref))
 
-            # elif isinstance(current_target_reference.node, MemberAccessTarget) and ref.node.name == current_target_reference.node.receiver.name:
-            #     result: list[Symbol] = []
-            #
-            #     for node in all_targets_after_current_target_reference:
-            #         if node.node.name == ref.node.name:
-            #             result.extend(_get_symbols(node))
+            # this deals with the receivers of the MemberAccess, e.g: self.sth  ->  self
+            # when dealing with this case of receivers we only want to check the current scope because they are bound to the current scope, which is their class
+            elif isinstance(current_target_reference.node, astroid.Name) and ref.node.name == current_target_reference.node.name and ref.scope == current_target_reference.scope:
+                result.extend(_get_symbols(ref))
 
-            elif isinstance(current_target_reference.node, astroid.Name) and ref.node.name == current_target_reference.node.name:
-                for node in all_targets_before_current_target_reference:
-                    if node.node.name == ref.node.name and node.scope == current_target_reference.scope:
-                        result.extend(_get_symbols(node))
+            # this deals with the case where a variable is reassigned
+            elif isinstance(current_target_reference.node, astroid.AssignName) and ref.node.name == current_target_reference.node.name and not isinstance(current_target_reference.scope.symbol.node, astroid.Lambda) and not isinstance(current_target_reference.scope, ClassScope):
+                symbol_list = _get_symbols(ref)
+                all_targets_before_current_target_reference_nodes = [node.node for node in all_targets_before_current_target_reference]
 
-            # elif ref.node.name == target_reference.node.name or (
-            #     isinstance(target_reference.node, MemberAccessTarget) and ref.node.name == target_reference.node.receiver.name
-            # ):
-            #     current_scope = ref.scope
-            #
-            #     for child in current_scope.children:
-            #         if child.symbol.node in copy_nodes:
-            #             if child.symbol.node.name == ref.node.name:
-            #                 result.append(child.symbol)
+                if symbol_list:
+                    for symbol in symbol_list:
+                        if symbol.node in all_targets_before_current_target_reference_nodes:
+                            result.append(symbol)
+
+            if classes:
+                for klass in classes.values():
+                    if klass.symbol.node.name == current_target_reference.node.name:
+                        result.append(klass.symbol)
+                        break
 
         current_target_reference.referenced_symbols = list(set(current_target_reference.referenced_symbols) | set(result))
 
