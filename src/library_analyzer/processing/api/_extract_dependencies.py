@@ -13,6 +13,52 @@ from library_analyzer.utils import load_language
 if TYPE_CHECKING:
     from spacy.tokens import Doc, Token
 
+current_name = ""
+log_dict = {
+    "L354": "",
+    "L356": "",
+    "L481": "",
+    "L496": "",
+    "L567": "",
+    "L590": "",
+    "L633": "",
+    "L649": "",
+    "L692": "",
+    "L694": "",
+    "L700": "",
+    "L798": "",
+    "L808": "",
+    "L850": "",
+    "L900": "",
+    "L939": "",
+    "L958": "",
+    "L1041": "",
+    "L1092": "",
+    "L1107": "",
+    "L1112": "",
+    "L1116": "",
+    "L1118": "",
+    "L1120": "",
+    "L1122": "",
+    "L1125": "",
+    "L1129": "",
+    "L1131": "",
+    "L1134": "",
+    "L1138": "",
+    "L1140": "",
+    "L1142": "",
+}
+
+
+def update_log(line, c=False):
+    if log_dict[line] == "" and c:
+        log_dict[line] = current_name
+
+
+def get_log():
+    return log_dict
+
+
 _condition_list: list[Condition] = []
 _action_list: list[Action] = []
 _combined_condition: list[str] = []
@@ -47,7 +93,6 @@ types = [
     "float",
     "array-like",
 ]
-
 
 @dataclass
 class Condition:
@@ -351,8 +396,10 @@ def _merger(doc: Doc) -> Doc:
 def _get_final_end_token_idx(doc: Doc, tmp_end_idx: int) -> int:
     before_last_token = doc[tmp_end_idx - 1]
     if before_last_token.text == "not" or before_last_token.pos_ == "DET":
+        update_log("L354")
         return tmp_end_idx + 1
     else:
+        update_log("L356")
         return tmp_end_idx
 
 
@@ -465,7 +512,7 @@ def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) 
         elif token_text in special_values and token.nbor(-1).text in ["is", "are", "not"]:
             special_value_idxs.append(token.i)
         elif token_text in ["and", "or", ","] and token.nbor(1).text not in ["and", "or"]:
-            if token_text == "and":
+            if token_text == "and" and left_bracket_idx == -1:
                 _combined_condition.append(dependee)
             seperator_idxs.append(token.i)
         elif token_text in types:
@@ -475,10 +522,16 @@ def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) 
         elif token_text == ")":
             right_bracket_idx = token.i
 
+
     value_idxs_cnt = len(has_value_idxs) + len(special_value_idxs)
 
     if seperator_idxs and left_bracket_idx != -1 and right_bracket_idx != -1:
+        update_log("L481")
         seperator_idxs = list(filter(lambda idx: left_bracket_idx < idx < right_bracket_idx, seperator_idxs))
+        for idx in seperator_idxs:
+            if doc[idx].text == "and":
+                _combined_condition.append(dependee)
+                break
 
     if seperator_idxs:
         # <start_phrase>...<param_with_val>, <param_with_val>, <and | or> <param_with_val> <end_phrase>
@@ -494,6 +547,7 @@ def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) 
             end_phrase = doc[seperator_idx + 2 :].text
             if doc[seperator_idx].text in ["and", "or"] and doc[seperator_idx - 1].text == ",":
                 start_phrase = doc[: seperator_idx - 1].text
+                update_log("L496")
             else:
                 start_phrase = doc[:seperator_idx].text
 
@@ -564,6 +618,7 @@ def _add_condition(dependee: str, value: str, cond_str: str, passive: bool = Fal
     """
     cond: Condition
     if value in types:
+        update_log("L567")
         type_ = value
     elif len(value.split(" ")) == 2:
         type_ = value.split(" ")[1].lower()
@@ -585,6 +640,7 @@ def _add_condition(dependee: str, value: str, cond_str: str, passive: bool = Fal
 
     if _combined_condition:
         if _condition_list[-1].combined_with:
+            update_log("L590")
             for comb_cond in _condition_list[-1].combined_with:
                 cond.combined_with.append(Condition.from_dict(comb_cond.to_dict()))
             _condition_list[-1].combined_with = []
@@ -630,6 +686,7 @@ def _extract_must_be_condition(
     token_before_end = doc[end - 1]
 
     if token_before_end.text == "not" or token_before_end.pos_ == "DET":
+        update_log("L633")
         end += 1
 
     condition_string = doc[start:end].text
@@ -646,6 +703,7 @@ def _extract_must_be_condition(
         dependee, dependee_value = _extract_dependee_value(cond_token)
         depender, depender_value = _extract_dependee_value(action_token)
         if depender.lower() in ["it", "and"]:
+            update_log("L649")
             depender = "this_parameter"
         restriction = ParameterWillBeSetTo(action_string, depender, depender_value)
 
@@ -687,16 +745,19 @@ def _extract_only_condition_action(
 
     dependee, value = _extract_dependee_value(action_token)
     if action_token.nbor(1).text in _encoded_rel_ops:
+        update_log("L692")
         left_dependee_token = action_token
         rel_op_token = action_token.nbor(1)
         right_dependee_token = action_token.nbor(2)
 
+        update_log("L694")
         cond_str = (
             doc[: left_dependee_token.i + 1].text
             + f" {_encoded_rel_ops[rel_op_token.text]} "
             + doc[right_dependee_token.i].text
         )
 
+        update_log("L700")
         _condition_list.append(
             ParametersInRelation(
                 cond_str,
@@ -795,6 +856,7 @@ def _extract_ignored_condition_action(
 
     token_before_end = doc[end - 1]
     if token_before_end.text == "not" or token_before_end.pos_ == "DET":
+        update_log("L798")
         end += 1
 
     condition_string = doc[start:end].text
@@ -805,6 +867,7 @@ def _extract_ignored_condition_action(
         if verb_before_ignored in ["is", "are"]:
             ignored_parameter = doc[ignored_idx - 2].text
         elif verb_before_ignored == "be":
+            update_log("L808")
             ignored_parameter = doc[ignored_idx - 3].text
 
         if ignored_parameter.lower() in ["this", "it", "parameter"]:
@@ -847,6 +910,7 @@ def _extract_pure_only_condition_action(
 
     token_before_end = doc[end - 1]
     if token_before_end.text == "not" or token_before_end.pos_ == "DET":
+        update_log("L850")
         end += 1
 
     passive = _check_passiveness(action_token, match)
@@ -892,11 +956,16 @@ def _extract_used_condition_action(
     end = max(match[1]) + 2
     action_token = doc[match[1][1]]
 
+    if _nlp.vocab.strings[match[0]] == "DEPENDENCY_COND_WHEN_BRACKETS" and len(matches) > 1:
+        matches.pop(i)
+        return None
+
     passive = _check_passiveness(action_token, match)
 
     dependee, value = _extract_dependee_value(action_token, passive)
     token_before_end = doc[end - 1]
     if token_before_end.text == "not" or token_before_end.pos_ == "DET":
+        update_log("L900")
         end += 1
 
     condition_string = doc[start:end].text
@@ -935,6 +1004,7 @@ def _extract_relational_condition(
     match_ = matches[i]
 
     if match_[1][0] != min(match_[1]):
+        update_log("L939")
         matches.pop(i)
         return None
 
@@ -955,6 +1025,7 @@ def _extract_relational_condition(
     action_string = action_string_doc.text
 
     if action_string[0:2] == "must be" and action_string_doc[3].pos_ != "SCONJ":
+        update_log("L958")
         _action_list.append(ParameterIsRestricted(action_string))
     else:
         _action_list.append(ParameterWillBeSetTo(action_string, depender, value))
@@ -1037,6 +1108,7 @@ def _extract_cond_only_noun(
     parameter = parameter_token.text
     value_ = parameter_token.nbor(-1).text
 
+    update_log("L1041")
     _add_condition(parameter, value_, matched_str)
     action_ = ParameterIsIgnored("not ignored")
 
@@ -1088,6 +1160,7 @@ def _extract_cond_also_value(
     action_string = action_string_doc.text
 
     if action_string[0:2] == "must be" and action_string_doc[3].pos_ != "SCONJ":
+        update_log("L1092")
         action_string = doc[action_start - 1 : action_end].text
         _action_list.append(ParameterIsRestricted(action_string))
     else:
@@ -1102,43 +1175,60 @@ def _extract_if_only_accepted(
     i: int,
     matches: list[tuple[Any, ...]],
 ) -> Any | None:
+    update_log("L1107")
     action: Action
     match_ = matches[i]
     prev_match = matches[i - 1]
 
     if len(matches) > 1 and _nlp.vocab.strings[prev_match[0]] == "DEPENDENCY_COND_ONLY_NOUN":
+        update_log("L1112")
         matches.pop(i - 1)
         _condition_list.pop()
         _action_list.pop()
 
+    update_log("L1116")
     cond_start = match_[1][1]
     cond_end = _get_final_end_token_idx(doc, match_[1][0] + 2)
     cond_verb_token = doc[match_[1][0]]
 
+    update_log("L1118")
     dependee, value = _extract_dependee_value(cond_verb_token)
 
+    update_log("L1120")
     cond_str = doc[cond_start:cond_end].text
 
+    update_log("L1122")
     _add_condition(dependee, value, cond_str)
 
+    update_log("L1125")
     action_start = match_[1][3]
     action_end = match_[1][2]
 
-    action_value_token = doc[action_start + 1]
-    if action_value_token.text == "not" or action_value_token.pos_ == "DET":
-        action_value = doc[action_start + 1 : action_start + 3].text
-    else:
-        action_value = doc[action_start + 1].text
+    # action_value_token = doc[action_start + 1]
+    update_log("L1129")
+    update_log("L1131")
+    action_value = doc[action_start + 1].text
 
+    # if action_value_token.text == "not" or action_value_token.pos_ == "DET":
+    #     action_value = doc[action_start + 1 : action_start + 3].text
+    #     print("CASE 1")
+    # else:
+    #     action_value = doc[action_start + 1].text
+    #     print("CASE 2")
+
+    update_log("L1134")
     action_string_doc = doc[action_start : action_end + 1]
     action_string = action_string_doc.text
 
     if action_string[0:2] == "must be" and action_string_doc[3].pos_ != "SCONJ":
+        update_log("L1138")
         action_string = doc[action_start - 1 : action_end + 1].text
         action = ParameterIsRestricted(action_string)
     else:
+        update_log("L1140")
         action = ParameterWillBeSetTo(action_string, "this_parameter", action_value)
 
+    update_log("L1142")
     _action_list.append(action)
 
     return None
@@ -1166,16 +1256,24 @@ def extract_param_dependencies(
         A dependency tuple always consists of the parameter name, the condition and the resulting action.
 
     """
+    global current_name  # noqa: PLW0603
     _condition_list.clear()
     _action_list.clear()
     _combined_condition.clear()
+
+    current_name = param_qname
 
     dependency_tuples: list[tuple[str, Condition, Action]] = []
 
     description_preprocessed = _preprocess_docstring(description)
     description_doc = _nlp(description_preprocessed)
     for sent in description_doc.sents:
-        _dep_matcher(sent)
+        print(sent)
+        ms = _dep_matcher(sent)
+        print(ms)
+        # for m in ms:
+        #     if _nlp.vocab.strings[m[0]] == "DEPENDENCY_IF_ONLY_ACCEPTED":
+        #         print("DEPEDENCY_IF_ONLY_ACCEPTED: ", param_qname)
 
     for idx, cond in enumerate(_condition_list):
         dependency_tuples.append((param_qname, cond, _action_list[idx]))
@@ -1455,3 +1553,11 @@ _merger_matcher.add("REL_OPS", [_pattern_rel_ops])
 
 # Insert merger after Tagger into the pipeline
 _nlp.add_pipe("merger", after="tagger")
+
+
+if __name__ == '__main__':
+    s1 = ("Used for initializing the dictionary when ``dict_init`` is not specified, randomly shuffling the data when "
+          "``shuffle`` is set to ``True``, and updating the dictionary."
+          )
+
+    print(extract_param_dependencies("test", s1))

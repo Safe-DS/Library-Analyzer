@@ -428,6 +428,57 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 ),
             ],
         ),
+        # https://github.com/scikit-learn/scikit-learn/blob/457b02c61a2f3cd353d2997929b67a3ef890bf60/sklearn/cluster/_agglomerative.py#L782
+        (
+            "affinity",
+            "If linkage is 'ward', only 'euclidean' is accepted.",
+            [
+                (
+                    "affinity",
+                    ParameterHasValue("If linkage is ward", "linkage", "ward"),
+                    ParameterWillBeSetTo("only euclidean is accepted", "this_parameter", "euclidean")
+                ),
+            ],
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/457b02c61a2f3cd353d2997929b67a3ef890bf60/sklearn/datasets/_samples_generator.py#L915C9-L916
+        (
+            "centers",
+            "If n_samples is array-like, centers must be either None or an array of length equal to the length of "
+            "n_samples.",
+            [
+                (
+                    "centers",
+                    ParameterHasType("If n_samples is array-like", "n_samples", "array-like"),
+                    ParameterIsRestricted("centers must be either None or an array of length equal to the length of "
+                                          "n_samples")
+                )
+            ]
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/457b02c61a2f3cd353d2997929b67a3ef890bf60/sklearn/decomposition/_nmf.py#L1942-L1943C46
+        (
+            "random_state",
+            "Used for initialisation (when ``init`` == 'nndsvdar' or 'random'), and in Coordinate Descent.",
+            [
+                (
+                    "random_state",
+                    ParameterHasValue(
+                        "Used for initialisation (when init equals nndsvdar",
+                        "init",
+                        "nndsvar"
+                    ),
+                    ParameterIsIgnored("not ignored")
+                ),
+                (
+                    "random_state",
+                    ParameterHasValue(
+                        "Used for initialisation (when init equals random",
+                        "init",
+                        "random"
+                    ),
+                    ParameterIsIgnored("not ignored")
+                )
+            ]
+        ),
     ],
 )
 def test_extract_param_dependencies(
