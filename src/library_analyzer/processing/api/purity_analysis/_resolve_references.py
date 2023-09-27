@@ -71,6 +71,10 @@ def _find_references_target(current_target_reference: ReferenceNode,
                 # Add ClassVariables if the name matches
                 if isinstance(ref.scope, ClassScope) and ref.node.name == current_target_reference.node.member.attrname:
                     result.extend(_get_symbols(ref))
+                    # This deals with the special case where the self keyword is used.
+                    # Self indicates that we are inside a class and therefore only want to check the class itself for references.
+                    if current_target_reference.node.receiver.name == "self":
+                        result = [symbol for symbol in result if isinstance(symbol, ClassVariable) and symbol.klass == current_target_reference.scope.parent.symbol.node]
 
                 # Add InstanceVariables if the name of the MemberAccessTarget is the same as the name of the InstanceVariable
                 if isinstance(ref.node, MemberAccessTarget) and ref.node.member.attrname == current_target_reference.node.member.attrname:
