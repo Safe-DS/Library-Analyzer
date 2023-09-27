@@ -3,7 +3,7 @@ from __future__ import annotations
 import astroid
 import builtins
 
-from library_analyzer.processing.api.purity_analysis._get_module_data import get_module_data  # Todo: can we import from .api?
+from library_analyzer.processing.api.purity_analysis import get_module_data
 from library_analyzer.processing.api.purity_analysis.model import (
     MemberAccessTarget,
     MemberAccessValue,
@@ -12,7 +12,9 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Scope,
     ClassScope,
     Builtin,
-    ReferenceNode, Parameter,
+    ReferenceNode,
+    Parameter,
+    ClassVariable,
 )
 
 
@@ -29,6 +31,7 @@ def _find_name_references(
         * value_nodes: a list of all value nodes in the module and their scope
         * classes: a list of all classes in the module and their scope
         * functions: a list of all functions in the module and their scope
+        * parameters: a list of all parameters of functions in the module and their scope
 
     Returns:
         * final_references: contains all references that are used as targets
@@ -61,14 +64,26 @@ def _find_name_references(
 def _find_references_target(current_target_reference: ReferenceNode,
                             all_target_list: list[ReferenceNode],
                             classes: dict[str, ClassScope]) -> ReferenceNode:
+    """Find all references for a target node.
 
+    Finds all references for a target node in a list of references and adds them to the list of referenced_symbols of the node.
+    We only want to find references that are used as targets before the current target reference, because all later references are not relevant for the current target reference.
+
+    Parameters:
+        * current_target_reference: the node for which we want to find all references
+        * all_target_list: a list of target references in the module
+        * classes: a dict of all classes in the module
+
+    Returns:
+        * current_target_reference: the reference for the given node with all references added to its referenced_symbols
+    """
     if current_target_reference in all_target_list:
         all_targets_before_current_target_reference = all_target_list[:all_target_list.index(current_target_reference)]
         result: list[Symbol] = []
         for ref in all_targets_before_current_target_reference:
 
             if isinstance(current_target_reference.node, MemberAccessTarget):
-                # Add ClassVariables if the name matches
+                # Add ClassVariables if the name matches.
                 if isinstance(ref.scope, ClassScope) and ref.node.name == current_target_reference.node.member.attrname:
                     result.extend(_get_symbols(ref))
                     # This deals with the special case where the self keyword is used.
@@ -76,16 +91,16 @@ def _find_references_target(current_target_reference: ReferenceNode,
                     if current_target_reference.node.receiver.name == "self":
                         result = [symbol for symbol in result if isinstance(symbol, ClassVariable) and symbol.klass == current_target_reference.scope.parent.symbol.node]
 
-                # Add InstanceVariables if the name of the MemberAccessTarget is the same as the name of the InstanceVariable
+                # Add InstanceVariables if the name of the MemberAccessTarget is the same as the name of the InstanceVariable.
                 if isinstance(ref.node, MemberAccessTarget) and ref.node.member.attrname == current_target_reference.node.member.attrname:
                     result.extend(_get_symbols(ref))
 
-            # this deals with the receivers of the MemberAccess, e.g: self.sth  ->  self
-            # when dealing with this case of receivers we only want to check the current scope because they are bound to the current scope, which is their class
+            # This deals with the receivers of the MemberAccess, e.g: self.sth  ->  self
+            # When dealing with this case of receivers we only want to check the current scope because they are bound to the current scope, which is their class.
             elif isinstance(current_target_reference.node, astroid.Name) and ref.node.name == current_target_reference.node.name and ref.scope == current_target_reference.scope:
                 result.extend(_get_symbols(ref))
 
-            # this deals with the case where a variable is reassigned
+            # This deals with the case where a variable is reassigned.
             elif isinstance(current_target_reference.node, astroid.AssignName) and ref.node.name == current_target_reference.node.name and not isinstance(current_target_reference.scope.symbol.node, astroid.Lambda) and not isinstance(current_target_reference.scope, ClassScope):
                 symbol_list = _get_symbols(ref)
                 all_targets_before_current_target_reference_nodes = [node.node for node in all_targets_before_current_target_reference]
@@ -137,7 +152,7 @@ def _find_references(value_reference: ReferenceNode,
                 if not ref.scope == value_reference.scope:
                     continue
 
-            # this covers the case where a parameter has the same name as a class variable:
+            # This covers the case where a parameter has the same name as a class variable:
             # class A:
             #     a = 0
             #     def f(self, a):

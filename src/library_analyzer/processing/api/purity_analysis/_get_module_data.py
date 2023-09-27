@@ -74,13 +74,10 @@ class ModuleDataBuilder:
         # This is the case for every node that is inside the With body.
         elif isinstance(node, astroid.With):
             for child in self.children:
-                if child.parent is not None and child.parent.symbol.node != current_scope:  # check if the child is in the scope of the current node
-                    outer_scope_children.append(child)  # add the child to the outer scope
+                if isinstance(child.symbol, LocalVariable):
+                    inner_scope_children.append(child)  # add the child to the inner scope
                 else:
-                    if isinstance(child.symbol, LocalVariable):
-                        inner_scope_children.append(child)  # add the child to the inner scope
-                    else:
-                        outer_scope_children.append(child)  # add the child to the outer scope
+                    outer_scope_children.append(child)  # add the child to the outer scope
 
         # For every other node Type we only need to look at its parent node to determine if it is in the scope of the current node.
         else:
@@ -222,15 +219,15 @@ class ModuleDataBuilder:
                 return ClassVariable(node=node, id=calc_node_id(node), name=node.name, klass=current_scope)
 
             case astroid.FunctionDef():
-                if isinstance(current_scope, astroid.FunctionDef):
-                    if current_scope.name == "__init__":
-                        if isinstance(node, MemberAccessTarget):
-                            return InstanceVariable(node=node, id=calc_node_id(node), name=node.member.attrname, klass=current_scope.parent)
+                # find instance variables (in the constructor)
+                if isinstance(current_scope, astroid.FunctionDef) and isinstance(node, MemberAccessTarget) and current_scope.name == "__init__":
+                    return InstanceVariable(node=node, id=calc_node_id(node), name=node.member.attrname, klass=current_scope.parent)
 
-                if isinstance(node, astroid.AssignName) and self.parameters:
-                    if current_scope in self.parameters and self.parameters[current_scope][1].__contains__(node):
-                        return Parameter(node=node, id=calc_node_id(node), name=node.name)
+                # find parameters
+                if isinstance(node, astroid.AssignName) and self.parameters and current_scope in self.parameters and self.parameters[current_scope][1].__contains__(node):
+                    return Parameter(node=node, id=calc_node_id(node), name=node.name)
 
+                # special cases for nodes inside functions that we defined as LocalVariables but which do not have a name
                 if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally):
                     return LocalVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__)
 
@@ -342,8 +339,6 @@ class ModuleDataBuilder:
             | astroid.Comprehension
             | astroid.Attribute
         ):
-            # if node.name == "self":
-            #     return
             # the following if statement is necessary to avoid adding the same node to
             # both the target_nodes and the value_nodes dict since there is a case where a name node is used as a
             # target we need to check if the node is already in the target_nodes dict this is only the case if the
@@ -354,8 +349,6 @@ class ModuleDataBuilder:
                 self.value_nodes[node] = self.current_node_stack[-1]
 
         elif isinstance(node.parent, astroid.AssignAttr):
-            # if node.name == "self":
-            #     return
             self.target_nodes[node] = self.current_node_stack[-1]
         if (
             isinstance(node.parent, astroid.Call)
@@ -390,11 +383,6 @@ class ModuleDataBuilder:
             | astroid.With
         ):
             self.target_nodes[node] = self.current_node_stack[-1]
-
-        # if isinstance(node.parent, astroid.Arguments) and node.name == "self":
-        #     pass  # TODO: Special treatment for self parameter
-            # here self stance for the first implicit parameter of a class methode.
-            # we need to check all possible names here, because it is not bound to be "self"
 
         # the following nodes are no real target nodes, but astroid generates an AssignName node for them.
         # they still need to be added to the children of the current scope
@@ -433,9 +421,8 @@ class ModuleDataBuilder:
         if isinstance(member_access, MemberAccessValue):
             self.value_nodes[member_access] = self.current_node_stack[-1]
 
-        # self.names_list.append(member_access)
-
     def enter_attribute(self, node: astroid.Attribute) -> None:
+        # we do not want to handle names used in decorators
         if isinstance(node.parent, astroid.Decorators):
             return
 
@@ -445,8 +432,6 @@ class ModuleDataBuilder:
         if isinstance(node.parent, astroid.AssignAttr) or self.has_assignattr_parent(node):
             member_access = _construct_member_access_target(node.expr, node)
             if isinstance(node.expr, astroid.Name):
-                # if node.expr.name == "self":
-                #     return
                 self.target_nodes[node.expr] = self.current_node_stack[-1]
 
         if isinstance(member_access, MemberAccessTarget):
@@ -496,9 +481,8 @@ class ModuleDataBuilder:
         """
         if not isinstance(node, astroid.Module):
             return self.check_if_global(name, node.parent)
-        else:
-            if name in node.globals:
-                return True
+        elif isinstance(node, astroid.Module) and name in node.globals:
+            return True
         return False
 
     def find_base_classes(self, node: astroid.ClassDef) -> list[ClassScope]:
@@ -529,9 +513,8 @@ class ModuleDataBuilder:
         self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], {constructed_node})
 
     def get_class_for_receiver_node(self, receiver: MemberAccessTarget) -> ClassScope | None:
-        if isinstance(receiver, astroid.Name):
-            if receiver.name in self.classes:
-                return self.classes[receiver.name]
+        if isinstance(receiver, astroid.Name) and receiver.name in self.classes:
+            return self.classes[receiver.name]
         return None
 
 
@@ -579,6 +562,12 @@ def calc_node_id(
 
 
 def _construct_member_access_target(receiver: astroid.Name | astroid.Attribute | astroid.Call, member: astroid.AssignAttr | astroid.Attribute) -> MemberAccessTarget:
+    """Construct a MemberAccessTarget node.
+
+    Constructing a MemberAccessTarget node means constructing a MemberAccessTarget node with the given receiver and member.
+    The receiver is the node that is accessed and the member is the node that accesses the receiver. The receiver can be nested.
+    """
+
     try:
         if isinstance(receiver, astroid.Name):
             return MemberAccessTarget(receiver=receiver, member=member)
@@ -592,6 +581,12 @@ def _construct_member_access_target(receiver: astroid.Name | astroid.Attribute |
 
 
 def _construct_member_access_value(receiver: astroid.Name | astroid.Attribute | astroid.Call, member: astroid.Attribute) -> MemberAccessValue:
+    """Construct a MemberAccessValue node.
+
+    Constructing a MemberAccessValue node means constructing a MemberAccessValue node with the given receiver and member.
+    The receiver is the node that is accessed and the member is the node that accesses the receiver. The receiver can be nested.
+    """
+
     try:
         if isinstance(receiver, astroid.Name):
             return MemberAccessValue(receiver=receiver, member=member)
@@ -618,19 +613,19 @@ def get_module_data(code: str) -> ModuleData:
     The ModuleDataBuilder detects the scope of each node and builds a scope tree by using an instance of ScopeFinder.
     The ScopeFinder also collects all name nodes, parameters, global variables, classes and functions of the module.
     """
-    scope_handler = ModuleDataBuilder()
-    walker = ASTWalker(scope_handler)
+    module_data_handler = ModuleDataBuilder()
+    walker = ASTWalker(module_data_handler)
     module = astroid.parse(code)
-    print(module.repr_tree())
+    # print(module.repr_tree())
     walker.walk(module)
 
-    scope = scope_handler.children[0]  # get the children of the root node, which are the scopes of the module
+    scope = module_data_handler.children[0]  # get the children of the root node, which are the scopes of the module
 
     return ModuleData(scope=scope,
-                      classes=scope_handler.classes,
-                      functions=scope_handler.functions,
-                      global_variables=scope_handler.global_variables,
-                      value_nodes=scope_handler.value_nodes,
-                      target_nodes=scope_handler.target_nodes,
-                      parameters=scope_handler.parameters,
-                      function_calls=scope_handler.function_calls)
+                      classes=module_data_handler.classes,
+                      functions=module_data_handler.functions,
+                      global_variables=module_data_handler.global_variables,
+                      value_nodes=module_data_handler.value_nodes,
+                      target_nodes=module_data_handler.target_nodes,
+                      parameters=module_data_handler.parameters,
+                      function_calls=module_data_handler.function_calls)

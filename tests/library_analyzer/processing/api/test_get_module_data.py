@@ -1007,22 +1007,6 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
     raise NotImplementedError(f"Unknown node type: {node.__class__.__name__}")
 
 
-#
-#
-# @pytest.mark.parametrize(
-#     ("node", "expected"),
-#     [
-#         (
-#             astroid.AssignAttr(attrname="member", expr=astroid.Name(name="self")),
-#             "self.member"
-#         )
-#     ]
-# )
-# def test_construct_member_access(node: astroid.AssignAttr | astroid.Attribute, expected: str) -> None:
-#     result = _construct_member_access(node)
-#     assert result == expected
-
-
 @pytest.mark.parametrize(
     ("code", "expected"),
     # expected is a tuple of (ClassDefName, set of class variables, set of instance variables, list of super classes)

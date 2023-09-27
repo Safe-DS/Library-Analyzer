@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from abc import ABC
-from types import NoneType
 from typing import Callable
 
 import astroid
@@ -224,8 +223,8 @@ class Scope:
         return self._parent
 
     @parent.setter
-    def parent(self, new_parent: Scope | ClassScope | NoneType) -> None:
-        if not isinstance(new_parent, (Scope, ClassScope, NoneType)):
+    def parent(self, new_parent: Scope | ClassScope | None) -> None:
+        if not isinstance(new_parent, Scope | ClassScope | None):
             raise TypeError("Invalid parent type.")
         self._parent = new_parent
 

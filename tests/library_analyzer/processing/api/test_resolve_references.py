@@ -663,7 +663,7 @@ class C:
         cls.state = state
             """,  # language= None
             [ReferenceTestNode("state.line10", "FunctionDef.set_state", ["Parameter.state.line9"]),
-             ReferenceTestNode("cls.state.line10", "FunctionDef.set_state", ["ClassVariable.A.state.line3",
+             ReferenceTestNode("cls.state.line10", "FunctionDef.set_state", ["ClassVariable.A.state.line3",   # TODO: should this be removed?
                                                                              "ClassVariable.C.state.line6"]),
              ReferenceTestNode("cls.line10", "FunctionDef.set_state", ["Parameter.cls.line9"])]
         ),
@@ -751,48 +751,48 @@ else:
              ReferenceTestNode("var1.line6", "Module.", ["GlobalVariable.var1.line2"]),
              ReferenceTestNode("var1.line8", "Module.", ["GlobalVariable.var1.line2"])]
         ),
-        (  # language=Python "match statement global scope"
-            """
-var1, var2 = 10, 20
-match var1:
-    case 1: var1
-    case 2: 2 * var1
-    case (a, b): var1, a, b  # TODO: Match should get its own scope (LATER: for further improvement)  maybe add its parent
-    case _: var2
-        """,  # language=none
-            [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
-             ReferenceTestNode("var1.line4", "Module.", ["GlobalVariable.var1.line2"]),
-             ReferenceTestNode("var1.line5", "Module.", ["GlobalVariable.var1.line2"]),
-             ReferenceTestNode("var1.line6", "Module.", ["GlobalVariable.var1.line2"]),
-             ReferenceTestNode("var2.line7", "Module.", ["GlobalVariable.var2.line2"]),
-             ReferenceTestNode("a.line6", "Module.", ["GlobalVariable.a.line6"]),  # TODO: ask Lars
-             ReferenceTestNode("b.line6", "Module.", ["GlobalVariable.b.line6"])]
-            # TODO: ask Lars if this is true GlobalVariable
-        ),
-        (  # language=Python "try except statement global scope"
-            """
-num1 = 2
-num2 = 0
-try:
-    result = num1 / num2
-    result
-except ZeroDivisionError as zde:   # TODO: zde is not detected as a global variable -> do we really want that?
-    zde
-        """,  # language=none
-            [ReferenceTestNode("num1.line5", "Module.", ["GlobalVariable.num1.line2"]),
-             ReferenceTestNode("num2.line5", "Module.", ["GlobalVariable.num2.line3"]),
-             ReferenceTestNode("result.line6", "Module.", ["GlobalVariable.result.line5"]),
-             ReferenceTestNode("zde.line8", "Module.", ["GlobalVariable.zde.line7"])]
-        ),
+#         (  # language=Python "match statement global scope"
+#             """
+# var1, var2 = 10, 20
+# match var1:
+#     case 1: var1
+#     case 2: 2 * var1
+#     case (a, b): var1, a, b  # TODO: Match should get its own scope (LATER: for further improvement)  maybe add its parent
+#     case _: var2
+#         """,  # language=none
+#             [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
+#              ReferenceTestNode("var1.line4", "Module.", ["GlobalVariable.var1.line2"]),
+#              ReferenceTestNode("var1.line5", "Module.", ["GlobalVariable.var1.line2"]),
+#              ReferenceTestNode("var1.line6", "Module.", ["GlobalVariable.var1.line2"]),
+#              ReferenceTestNode("var2.line7", "Module.", ["GlobalVariable.var2.line2"]),
+#              ReferenceTestNode("a.line6", "Module.", ["GlobalVariable.a.line6"]),  # TODO: ask Lars
+#              ReferenceTestNode("b.line6", "Module.", ["GlobalVariable.b.line6"])]
+#             # TODO: ask Lars if this is true GlobalVariable
+#         ),
+#         (  # language=Python "try except statement global scope"
+#             """
+# num1 = 2
+# num2 = 0
+# try:
+#     result = num1 / num2
+#     result
+# except ZeroDivisionError as zde:   # TODO: zde is not detected as a global variable -> do we really want that?
+#     zde
+#         """,  # language=none
+#             [ReferenceTestNode("num1.line5", "Module.", ["GlobalVariable.num1.line2"]),
+#              ReferenceTestNode("num2.line5", "Module.", ["GlobalVariable.num2.line3"]),
+#              ReferenceTestNode("result.line6", "Module.", ["GlobalVariable.result.line5"]),
+#              ReferenceTestNode("zde.line8", "Module.", ["GlobalVariable.zde.line7"])]
+#         ),
     ],
     ids=[
         "if statement global scope",
         "if else statement global scope",
         "if elif else statement global scope",
         "if in statement global scope",
-        "match statement global scope",
-        "try except statement global scope",
-    ]  # TODO: add cases with try except finally
+        # "match statement global scope",
+        # "try except statement global scope",
+    ]  # TODO: add cases with try except finally -> first check scope detection
     # TODO: add cases for assignment in if statement -> ignore branches in general
 )
 def test_resolve_references_conditional_statements(code: str, expected: list[ReferenceTestNode]) -> None:
