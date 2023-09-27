@@ -89,7 +89,7 @@ def _find_references_target(current_target_reference: ReferenceNode,
                     # This deals with the special case where the self keyword is used.
                     # Self indicates that we are inside a class and therefore only want to check the class itself for references.
                     if result and current_target_reference.node.receiver.name == "self":
-                        result = [symbol for symbol in result if isinstance(symbol, ClassVariable) and symbol.klass == current_target_reference.scope.parent.symbol.node]
+                        result = [symbol for symbol in result if isinstance(symbol, ClassVariable) and symbol.klass == current_target_reference.scope.parent.symbol.node]  # type: ignore[union-attr] # "None" has no attribute "symbol" but since we check for the type before, this is fine
 
                 # Add InstanceVariables if the name of the MemberAccessTarget is the same as the name of the InstanceVariable.
                 if isinstance(ref.node, MemberAccessTarget) and ref.node.member.attrname == current_target_reference.node.member.attrname:
@@ -158,7 +158,7 @@ def _find_references(value_reference: ReferenceNode,
             #     def f(self, a):
             #         self.a = a
             elif isinstance(ref.scope, ClassScope) and parameters:
-                parameters_for_value_reference = parameters.get(value_reference.scope.symbol.node)[1]
+                parameters_for_value_reference = parameters.get(value_reference.scope.symbol.node)[1]  # type: ignore[index] # "None" is not indexable, but we check for it
                 for param in parameters_for_value_reference:
                     if ref.node.name == param.name and not isinstance(_get_symbols(ref), Parameter):
                         outer_continue = True  # the reference isn't a parameter, so don't add it
@@ -254,43 +254,42 @@ def _find_call_reference(function_calls: dict[astroid.Call, Scope | ClassScope],
     call_references = [ReferenceNode(call, scope, []) for call, scope in function_calls.items()]
 
     for i, reference in enumerate(call_references):
-        if isinstance(reference.node.func, astroid.Name):
-            # Find functions that are called
-            if reference.node.func.name in functions.keys():
-                function_def = functions.get(reference.node.func.name)
-                symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but we check for it
-                call_references[i].referenced_symbols.extend(symbols)
+        # Find functions that are called
+        if isinstance(reference.node.func, astroid.Name) and reference.node.func.name in functions.keys():
+            function_def = functions.get(reference.node.func.name)
+            symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but we check for it
+            call_references[i].referenced_symbols.extend(symbols)
 
-                final_call_references.append(call_references[i])
+            final_call_references.append(call_references[i])
 
-            # Find classes that are called (initialized)
-            elif reference.node.func.name in classes.keys():
-                symbol = classes.get(reference.node.func.name)
-                if symbol:
-                    call_references[i].referenced_symbols.append(symbol.symbol)
+        # Find classes that are called (initialized)
+        elif reference.node.func.name in classes.keys():
+            symbol = classes.get(reference.node.func.name)
+            if symbol:
+                call_references[i].referenced_symbols.append(symbol.symbol)
 
-                final_call_references.append(call_references[i])
+            final_call_references.append(call_references[i])
 
-            # Find builtins that are called
-            if reference.node.func.name in python_builtins:
-                builtin_call = Builtin(reference.scope, NodeID("builtins", reference.node.func.name, 0, 0),
-                                       reference.node.func.name)
-                call_references[i].referenced_symbols.append(builtin_call)
-                final_call_references.append(call_references[i])
+        # Find builtins that are called
+        if reference.node.func.name in python_builtins:
+            builtin_call = Builtin(reference.scope, NodeID("builtins", reference.node.func.name, 0, 0),
+                                   reference.node.func.name)
+            call_references[i].referenced_symbols.append(builtin_call)
+            final_call_references.append(call_references[i])
 
-            # Find function parameters that are called (passed as arguments), like:
-            # def f(a):
-            #     a()
-            # For now: it is not possible to analyse this any further before runtime
-            if parameters:
-                for func_def, (scope, parameter_set) in parameters.items():
-                    for param in parameter_set:
-                        if reference.node.func.name == param.name and reference.scope.symbol.node == func_def:
-                            for child in parameters.get(func_def)[0].children:
-                                if child.symbol.node.name == param.name:
-                                    call_references[i].referenced_symbols.append(child.symbol)
-                                    final_call_references.append(call_references[i])
-                                    break
+        # Find function parameters that are called (passed as arguments), like:
+        # def f(a):
+        #     a()
+        # For now: it is not possible to analyse this any further before runtime
+        if parameters:
+            for func_def, (scope, parameter_set) in parameters.items():
+                for param in parameter_set:
+                    if reference.node.func.name == param.name and reference.scope.symbol.node == func_def:
+                        for child in parameters.get(func_def)[0].children:   # type: ignore[index] # "None" is not indexable, but we check for it
+                            if child.symbol.node.name == param.name:
+                                call_references[i].referenced_symbols.append(child.symbol)
+                                final_call_references.append(call_references[i])
+                                break
 
     return final_call_references
 

@@ -490,7 +490,7 @@ def test_calc_node_id(
                 ),
             ],
         ),
-        (
+        (  # Import Scope
             """
                 import math
 
@@ -512,7 +512,7 @@ def test_calc_node_id(
                 ),
             ],
         ),
-        (
+        (  # Import Scope with multiple imports
             """
                 import math, datetime
 
@@ -523,7 +523,7 @@ def test_calc_node_id(
                           SimpleScope("GlobalVariable.Import.datetime", []),
                           SimpleScope("GlobalVariable.AssignName.a", [])])],
         ),
-        (
+        (  # Import Scope with alias
             """
                 import math as m
 
@@ -539,7 +539,7 @@ def test_calc_node_id(
                 ),
             ],
         ),
-        (
+        (  # ImportFrom Scope
             """
                 from math import pi
 
@@ -559,7 +559,7 @@ def test_calc_node_id(
                 ),
             ],
         ),
-        (
+        (  # ImportFrom Scope with multiple imports
             """
                 from math import pi, e
 
@@ -572,7 +572,7 @@ def test_calc_node_id(
                              SimpleScope("GlobalVariable.AssignName.a", [])])
             ]
         ),
-        (
+        (  # ImportFrom Scope with alias
             """
                 from math import pi as pi_value
 
@@ -586,7 +586,7 @@ def test_calc_node_id(
                 )
             ]
         ),
-        (
+        (  # Complex Scope
             """
                 def function_scope():
                     var1 = 10
@@ -917,9 +917,9 @@ def test_calc_node_id(
         "Import Scope",
         "Import Scope with multiple imports",
         "Import Scope with alias",
-        "Import From Scope",
-        "Import From Scope with multiple imports",
-        "Import From Scope with alias",
+        "ImportFrom Scope",
+        "ImportFrom Scope with multiple imports",
+        "ImportFrom Scope with alias",
         "Complex Scope",
         "ASTWalker",
         "AssignName",
@@ -933,7 +933,7 @@ def test_calc_node_id(
         "With Statement",
         "With Statement File",
         "With Statement Class",
-    ],  # TODO: add tests for lambda and generator expressions
+    ],  # TODO: add tests for lambda, match and generator expressions
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
     scope = get_module_data(code).scope
@@ -953,6 +953,7 @@ def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope
         if isinstance(node, ClassScope):
             instance_vars_transformed = []
             class_vars_transformed = []
+            super_classes_transformed = []
             for child in node.instance_variables.values():
                 for c in child:
                     c_str = to_string_class(c.node.member)
@@ -964,12 +965,17 @@ def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope
                     if c_str is not None:
                         class_vars_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
 
+            for child in node.super_classes:
+                c_str = to_string_class(child)
+                if c_str is not None:
+                    super_classes_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
+
             return SimpleClassScope(
                 to_string(node.symbol),
                 [transform_result(child) for child in node.children],
                 class_vars_transformed,
                 instance_vars_transformed,
-                [to_string_class(child) for child in node.super_classes],
+                super_classes_transformed,
             )
         return SimpleScope(to_string(node.symbol), [transform_result(child) for child in node.children])
     else:
