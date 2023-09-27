@@ -94,7 +94,7 @@ class ModuleDataBuilder:
         self.children.append(self.current_node_stack[-1])  # add the current node to the children
         if isinstance(node, astroid.ClassDef):
             # add classdef to the classes dict (we can ignore the linter error because of the if statement above)
-            self.classes[node.name] = self.current_node_stack[-1]  # type: ignore
+            self.classes[node.name] = self.current_node_stack[-1]  # TODO type: ignore
 
             # add class variables to the class_variables dict
             for child in self.current_node_stack[-1].children:

@@ -1651,7 +1651,7 @@ def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
         expression = get_base_expression(node.node)
         if node.scope.symbol.name == "__init__" and isinstance(node.scope.symbol, ClassVariable | InstanceVariable):
             return ReferenceTestNode(name=f"{node.node.name}.line{expression.lineno}",
-                                     scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",
+                                     scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                                      referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
         return ReferenceTestNode(name=f"{node.node.name}.line{expression.lineno}",
                                  scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",
@@ -1668,7 +1668,7 @@ def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
     if isinstance(node.node, astroid.Call):
         if isinstance(node.scope.symbol.node, astroid.FunctionDef) and node.scope.symbol.name == "__init__" and isinstance(node.scope.symbol, ClassVariable | InstanceVariable):
             return ReferenceTestNode(name=f"{node.node.func.name}.line{node.node.lineno}",
-                                     scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",
+                                     scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                                      referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
         if isinstance(node.scope.symbol.node, astroid.ListComp):
             return ReferenceTestNode(name=f"{node.node.func.name}.line{node.node.func.lineno}",
@@ -1683,7 +1683,7 @@ def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
                                  referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
     if isinstance(node.node, astroid.Name) and node.scope.symbol.name == "__init__" and isinstance(node.scope.symbol, ClassVariable | InstanceVariable):
         return ReferenceTestNode(name=f"{node.node.name}.line{node.node.lineno}",
-                                 scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",
+                                 scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                                  referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]))
     return ReferenceTestNode(name=f"{node.node.name}.line{node.node.lineno}",
                              scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",

@@ -197,12 +197,12 @@ def _find_references(value_reference: ReferenceNode,
     if functions:
         if value_reference.node.name in functions.keys():
             function_def = functions.get(value_reference.node.name)
-            symbols = [func.symbol for func in function_def if function_def]
+            symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but we check for it
             complete_reference.referenced_symbols.extend(symbols)
         elif isinstance(value_reference.node, MemberAccessValue):
             if value_reference.node.member.attrname in functions.keys():
                 function_def = functions.get(value_reference.node.member.attrname)
-                symbols = [func.symbol for func in function_def if function_def]
+                symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but we check for it
                 complete_reference.referenced_symbols.extend(symbols)
 
     return complete_reference
@@ -258,7 +258,7 @@ def _find_call_reference(function_calls: dict[astroid.Call, Scope | ClassScope],
             # Find functions that are called
             if reference.node.func.name in functions.keys():
                 function_def = functions.get(reference.node.func.name)
-                symbols = [func.symbol for func in function_def if function_def]
+                symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but we check for it
                 call_references[i].referenced_symbols.extend(symbols)
 
                 final_call_references.append(call_references[i])

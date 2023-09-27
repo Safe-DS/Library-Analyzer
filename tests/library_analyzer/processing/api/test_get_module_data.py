@@ -956,13 +956,13 @@ def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope
             for child in node.instance_variables.values():
                 for c in child:
                     c_str = to_string_class(c.node.member)
-                    if c_str is not None:  # this check lets us ignore the linter warning
-                        instance_vars_transformed.append(c_str)
+                    if c_str is not None:
+                        instance_vars_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
             for child in node.class_variables.values():
                 for c in child:
                     c_str = to_string_class(c.node)
-                    if c_str is not None:  # this check lets us ignore the linter warning
-                        class_vars_transformed.append(c_str) # type: ignore
+                    if c_str is not None:
+                        class_vars_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
 
             return SimpleClassScope(
                 to_string(node.symbol),

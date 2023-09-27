@@ -180,11 +180,11 @@ class Scope:
         _parent      is the parent node in the scope tree, is None if the node is the root node.
     """
 
-    _symbol: Symbol = field(default_factory=Symbol)
+    _symbol: Symbol = field(default_factory=Callable[[], Symbol])
     _children: list[Scope | ClassScope] = field(default_factory=list)
     _parent: Scope | ClassScope | None = None
 
-    def __iter__(self) -> Generator[Scope | ClassScope]:
+    def __iter__(self) -> Generator[Scope | ClassScope, None, None]:
         yield self
 
     def __next__(self) -> Scope | ClassScope:
