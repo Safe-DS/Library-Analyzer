@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from abc import ABC
-from typing import Callable
+from typing import Callable, Generator
 
 import astroid
 
@@ -180,11 +180,11 @@ class Scope:
         _parent      is the parent node in the scope tree, is None if the node is the root node.
     """
 
-    _symbol: Symbol = field(default_factory=Callable[[], Symbol])
+    _symbol: Symbol = field(default_factory=Symbol)
     _children: list[Scope | ClassScope] = field(default_factory=list)
     _parent: Scope | ClassScope | None = None
 
-    def __iter__(self) -> Scope | ClassScope:
+    def __iter__(self) -> Generator[Scope | ClassScope]:
         yield self
 
     def __next__(self) -> Scope | ClassScope:

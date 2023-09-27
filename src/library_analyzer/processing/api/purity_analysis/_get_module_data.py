@@ -93,7 +93,8 @@ class ModuleDataBuilder:
         self.children = outer_scope_children  # keep the children that are not in the scope of the current node
         self.children.append(self.current_node_stack[-1])  # add the current node to the children
         if isinstance(node, astroid.ClassDef):
-            self.classes[node.name] = self.current_node_stack[-1]
+            # add classdef to the classes dict (we can ignore the linter error because of the if statement above)
+            self.classes[node.name] = self.current_node_stack[-1]  # type: ignore
 
             # add class variables to the class_variables dict
             for child in self.current_node_stack[-1].children:

@@ -88,7 +88,7 @@ def _find_references_target(current_target_reference: ReferenceNode,
                     result.extend(_get_symbols(ref))
                     # This deals with the special case where the self keyword is used.
                     # Self indicates that we are inside a class and therefore only want to check the class itself for references.
-                    if current_target_reference.node.receiver.name == "self":
+                    if result and current_target_reference.node.receiver.name == "self":
                         result = [symbol for symbol in result if isinstance(symbol, ClassVariable) and symbol.klass == current_target_reference.scope.parent.symbol.node]
 
                 # Add InstanceVariables if the name of the MemberAccessTarget is the same as the name of the InstanceVariable.
@@ -197,12 +197,12 @@ def _find_references(value_reference: ReferenceNode,
     if functions:
         if value_reference.node.name in functions.keys():
             function_def = functions.get(value_reference.node.name)
-            symbols = [func.symbol for func in function_def]
+            symbols = [func.symbol for func in function_def if function_def]
             complete_reference.referenced_symbols.extend(symbols)
         elif isinstance(value_reference.node, MemberAccessValue):
             if value_reference.node.member.attrname in functions.keys():
                 function_def = functions.get(value_reference.node.member.attrname)
-                symbols = [func.symbol for func in function_def]
+                symbols = [func.symbol for func in function_def if function_def]
                 complete_reference.referenced_symbols.extend(symbols)
 
     return complete_reference
@@ -258,7 +258,7 @@ def _find_call_reference(function_calls: dict[astroid.Call, Scope | ClassScope],
             # Find functions that are called
             if reference.node.func.name in functions.keys():
                 function_def = functions.get(reference.node.func.name)
-                symbols = [func.symbol for func in function_def]
+                symbols = [func.symbol for func in function_def if function_def]
                 call_references[i].referenced_symbols.extend(symbols)
 
                 final_call_references.append(call_references[i])
@@ -266,7 +266,8 @@ def _find_call_reference(function_calls: dict[astroid.Call, Scope | ClassScope],
             # Find classes that are called (initialized)
             elif reference.node.func.name in classes.keys():
                 symbol = classes.get(reference.node.func.name)
-                call_references[i].referenced_symbols.append(symbol.symbol)
+                if symbol:
+                    call_references[i].referenced_symbols.append(symbol.symbol)
 
                 final_call_references.append(call_references[i])
 
