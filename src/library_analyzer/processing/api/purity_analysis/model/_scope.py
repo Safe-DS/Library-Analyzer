@@ -43,14 +43,8 @@ class MemberAccess(Expression):
     parent: astroid.NodeNG | None = field(default=None)
     name: str = field(init=False)
 
-    # TODO: when detecting MemberAccess, we will only search for the nodes name in all class scopes ->
-    #  add a list of all classes of a module to easily access their instance nodes (their names)
-
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
-
-    def __hash__(self) -> int:
-        return hash(str(self))
 
     def __post_init__(self) -> None:
         if isinstance(self.receiver, astroid.Call):
@@ -80,7 +74,7 @@ class NodeID:
     line: int
     col: int
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"{self.module}.{self.name}.{self.line}.{self.col}"
 
 
@@ -99,11 +93,8 @@ class Symbol(ABC):
     id: NodeID
     name: str
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
-
-    def __hash__(self) -> int:
-        return hash(str(self))
 
 
 @dataclass
@@ -111,17 +102,26 @@ class Parameter(Symbol):  # TODO: find correct node type and add fields with fur
     def __hash__(self) -> int:
         return hash(str(self))
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
+
 
 @dataclass
 class LocalVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
+
 
 @dataclass
 class GlobalVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
 
 @dataclass
@@ -131,7 +131,7 @@ class ClassVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         if self.klass is None:
             return f"{self.__class__.__name__}.UNKNOWN_CLASS.{self.name}.line{self.id.line}"
         return f"{self.__class__.__name__}.{self.klass.name}.{self.name}.line{self.id.line}"
@@ -144,7 +144,7 @@ class InstanceVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         if self.klass is None:
             return f"{self.__class__.__name__}.UNKNOWN_CLASS.{self.name}.line{self.id.line}"
         return f"{self.__class__.__name__}.{self.klass.name}.{self.name}.line{self.id.line}"
@@ -158,11 +158,8 @@ class Import(Symbol):
 
 @dataclass
 class Builtin(Symbol):
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
-
-    def __hash__(self) -> int:
-        return hash(str(self))
 
 
 @dataclass
@@ -190,13 +187,8 @@ class Scope:
     def __next__(self) -> Scope | ClassScope:
         return self
 
-    def __str__(self) -> str:
-        return f"{self.__class__.__name__}.{self.symbol.name}.line{self.symbol.id.line}"
-
-    def root(self) -> Scope | ClassScope:
-        if self.parent:
-            return self.parent.root()
-        return self
+    def __repr__(self) -> str:
+        return f"{self.symbol.name}.line{self.symbol.id.line}"
 
     @property
     def symbol(self) -> Symbol:

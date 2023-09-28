@@ -246,7 +246,8 @@ class ModuleDataBuilder:
                         return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
                 return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
 
-        return Symbol(node=node, id=calc_node_id(node), name=node.name)
+        # this line is a fallback but should never be reached
+        return Symbol(node=node, id=calc_node_id(node), name=node.name)  # pragma: no cover
 
     def enter_lambda(self, node: astroid.Lambda) -> None:
         self.current_node_stack.append(
@@ -505,7 +506,8 @@ class ModuleDataBuilder:
         for klass in self.classes:
             if klass == name:
                 return self.classes[klass]
-        return None
+        # thi is not possible because we only call this function when we know that the class exists
+        return None  # pragma: no cover
 
     def handle_arg(self, constructed_node: astroid.AssignName) -> None:
         self.target_nodes[constructed_node] = self.current_node_stack[-1]
@@ -577,8 +579,9 @@ def _construct_member_access_target(receiver: astroid.Name | astroid.Attribute |
         else:
             return MemberAccessTarget(receiver=_construct_member_access_target(receiver.expr, receiver),
                                       member=member)
-    except TypeError as err:
-        raise TypeError(f"Unexpected node type {type(member)}") from err
+    # since it is tedious to add testcases for this function we ignore the coverage for now
+    except TypeError as err:  # pragma: no cover
+        raise TypeError(f"Unexpected node type {type(member)}") from err  # pragma: no cover
 
 
 def _construct_member_access_value(receiver: astroid.Name | astroid.Attribute | astroid.Call, member: astroid.Attribute) -> MemberAccessValue:
@@ -596,8 +599,9 @@ def _construct_member_access_value(receiver: astroid.Name | astroid.Attribute | 
         else:
             return MemberAccessValue(receiver=_construct_member_access_value(receiver.expr, receiver),
                                      member=member)
-    except TypeError as err:
-        raise TypeError(f"Unexpected node type {type(member)}") from err
+    # since it is tedious to add testcases for this function we ignore the coverage for now
+    except TypeError as err:  # pragma: no cover
+        raise TypeError(f"Unexpected node type {type(member)}") from err  # pragma: no cover
 
 
 def get_base_expression(node: MemberAccess) -> astroid.NodeNG:

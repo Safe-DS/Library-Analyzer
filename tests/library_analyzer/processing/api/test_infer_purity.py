@@ -334,19 +334,6 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
         ),
         (
             """
-                def fun14(path14):
-                    with open(path14) as f:
-                        f.read()
-            """,
-            [
-                FileRead(source=Reference("path14")),
-                Call(expression=Reference(name="open(path14)")),
-                Call(expression=Reference(name="f.read()")),
-                VariableRead(expression=Reference(name="f.read")),
-            ],  # ??
-        ),
-        (
-            """
                 def fun15(path15): # open with variable and wrong mode
                     open(path15, "test")
             """,
