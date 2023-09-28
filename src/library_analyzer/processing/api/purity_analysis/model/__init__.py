@@ -1,47 +1,45 @@
 """Data model for purity analysis."""
 
+from library_analyzer.processing.api.purity_analysis.model._purity import (  # TODO: rework this
+    AttributeAccess,
+    BuiltInFunction,
+    Call,
+    ConcreteImpurityIndicator,
+    Expression,
+    FileRead,
+    FileWrite,
+    GlobalAccess,
+    ImpurityCertainty,
+    ImpurityIndicator,
+    InstanceAccess,
+    ParameterAccess,
+    Reference,
+    StringLiteral,
+    SystemInteraction,
+    UnknownCallTarget,
+    VariableRead,
+    VariableWrite,
+)
+from library_analyzer.processing.api.purity_analysis.model._reference import ReferenceNode
 from library_analyzer.processing.api.purity_analysis.model._scope import (
-    ModuleData,
-    Scope,
+    Builtin,
     ClassScope,
+    ClassVariable,
+    GlobalVariable,
+    Import,
+    InstanceVariable,
+    LocalVariable,
     MemberAccess,
     MemberAccessTarget,
     MemberAccessValue,
+    ModuleData,
     NodeID,
-    Symbol,
     Parameter,
-    LocalVariable,
-    GlobalVariable,
-    ClassVariable,
-    InstanceVariable,
-    Import,
-    Builtin,
+    Scope,
+    Symbol,
 )
 
-from library_analyzer.processing.api.purity_analysis.model._reference import ReferenceNode
-
-from library_analyzer.processing.api.purity_analysis.model._purity import (  # TODO: rework this
-    Expression,
-    AttributeAccess,
-    GlobalAccess,
-    InstanceAccess,
-    ParameterAccess,
-    StringLiteral,
-    Reference,
-    ImpurityCertainty,
-    ImpurityIndicator,
-    ConcreteImpurityIndicator,
-    VariableRead,
-    VariableWrite,
-    FileRead,
-    FileWrite,
-    SystemInteraction,
-    UnknownCallTarget,
-    Call,
-    BuiltInFunction,
-)
-
-__all__ =[
+__all__ = [
     "ModuleData",
     "Scope",
     "ClassScope",

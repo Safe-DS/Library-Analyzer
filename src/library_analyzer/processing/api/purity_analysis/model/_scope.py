@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from abc import ABC
-from typing import Callable, Generator
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 import astroid
 
-from library_analyzer.processing.api.purity_analysis.model._purity import Expression  # TODO: can we import this from purity_analysis.model?
+from library_analyzer.processing.api.purity_analysis.model._purity import (
+    Expression,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 
 @dataclass
@@ -25,13 +30,16 @@ class ModuleData:
         parameters          All parameters of functions and their scope.
         function_calls      All function calls and their scope.
     """
+
     scope: Scope | ClassScope
     classes: dict[str, ClassScope]
     functions: dict[str, list[Scope]]
     # all_names: dict[str, list[Symbol]]  # this contains all names of function names and attribute names and their declaratioon
     global_variables: dict[str, Scope | ClassScope]
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]  # TODO: dict[str, list[Scope]]
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]  # TODO: dict[str, list[Scope]]
+    target_nodes: dict[
+        astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope,
+    ]  # TODO: dict[str, list[Scope]]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
     function_calls: dict[astroid.Call, Scope | ClassScope]
 
@@ -89,6 +97,7 @@ class Symbol(ABC):
         name    is the name of the symbol.
 
     """
+
     node: astroid.NodeNG | MemberAccess
     id: NodeID
     name: str

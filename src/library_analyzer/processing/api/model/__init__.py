@@ -21,7 +21,6 @@ from ._docstring import (
     ParameterDocstring,
     ResultDocstring,
 )
-
 from ._types import (
     AbstractType,
     BoundaryType,

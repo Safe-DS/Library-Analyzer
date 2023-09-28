@@ -4,19 +4,17 @@ from dataclasses import dataclass, field
 
 import astroid
 import pytest
-
+from library_analyzer.processing.api.purity_analysis import (
+    calc_node_id,
+    get_module_data,
+)
 from library_analyzer.processing.api.purity_analysis.model import (
-    Scope,
     ClassScope,
     MemberAccess,
-    Symbol,
-    MemberAccessValue,
     MemberAccessTarget,
-)
-
-from library_analyzer.processing.api.purity_analysis import (
-    get_module_data,
-    calc_node_id,
+    MemberAccessValue,
+    Scope,
+    Symbol,
 )
 
 
@@ -287,7 +285,7 @@ def test_calc_node_id(
                                     "ClassVariable.FunctionDef.__init__",
                                     [
                                         SimpleScope("Parameter.AssignName.self", []),
-                                        SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", [])
+                                        SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", []),
                                     ],
                                 ),
                                 SimpleScope(
@@ -295,8 +293,12 @@ def test_calc_node_id(
                                     [SimpleScope("LocalVariable.AssignName.var1", [])],
                                 ),
                             ],
-                            ["AssignName.local_class_attr1", "AssignName.local_class_attr2", "FunctionDef.__init__",
-                             "FunctionDef.local_instance_attr"],
+                            [
+                                "AssignName.local_class_attr1",
+                                "AssignName.local_class_attr2",
+                                "FunctionDef.__init__",
+                                "FunctionDef.local_instance_attr",
+                            ],
                             ["AssignAttr.instance_attr1"],
                         ),
                     ],
@@ -324,7 +326,7 @@ def test_calc_node_id(
                                     "ClassVariable.FunctionDef.__init__",
                                     [
                                         SimpleScope("Parameter.AssignName.self", []),
-                                        SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", [])
+                                        SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", []),
                                     ],
                                 ),
                             ],
@@ -388,20 +390,20 @@ def test_calc_node_id(
                             "GlobalVariable.ClassDef.A",
                             [SimpleScope("ClassVariable.AssignName.var1", [])],
                             ["AssignName.var1"],
-                            []
+                            [],
                         ),
                         SimpleClassScope(
                             "GlobalVariable.ClassDef.X",
                             [SimpleScope("ClassVariable.AssignName.var3", [])],
                             ["AssignName.var3"],
-                            []
+                            [],
                         ),
                         SimpleClassScope(
                             "GlobalVariable.ClassDef.B",
                             [SimpleScope("ClassVariable.AssignName.var2", [])],
                             ["AssignName.var2"],
                             [],
-                            ["ClassDef.A", "ClassDef.X"]
+                            ["ClassDef.A", "ClassDef.X"],
                         ),
                     ],
                 ),
@@ -640,9 +642,15 @@ def test_calc_node_id(
                                     ],
                                 ),
                             ],
-                            ["AssignName.additional_locals", "FunctionDef.__init__", "FunctionDef.walk",
-                             "FunctionDef.__walk", "FunctionDef.__enter", "FunctionDef.__leave",
-                             "FunctionDef.__get_callbacks"],
+                            [
+                                "AssignName.additional_locals",
+                                "FunctionDef.__init__",
+                                "FunctionDef.walk",
+                                "FunctionDef.__walk",
+                                "FunctionDef.__enter",
+                                "FunctionDef.__leave",
+                                "FunctionDef.__get_callbacks",
+                            ],
                             ["AssignAttr._handler", "AssignAttr._cache"],
                         ),
                     ],
@@ -666,31 +674,50 @@ def test_calc_node_id(
                 class A:
                     x = [len(num) for num in nums]
             """,
-            [SimpleScope("Module",
-                         [SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.x", []),
-                                                                         SimpleScope("ListComp", [
-                                                                             SimpleScope("LocalVariable.AssignName.num",
-                                                                                         [])])], ["AssignName.x"], [],
-                                           [])])],
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleClassScope(
+                            "GlobalVariable.ClassDef.A",
+                            [
+                                SimpleScope("ClassVariable.AssignName.x", []),
+                                SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
+                            ],
+                            ["AssignName.x"],
+                            [],
+                            [],
+                        ),
+                    ],
+                ),
+            ],
         ),
         (  # List Comprehension in Function
             """
                 def fun():
                     x = [len(num) for num in nums]
             """,
-            [SimpleScope("Module",
-                         [SimpleScope("GlobalVariable.FunctionDef.fun", [SimpleScope("LocalVariable.AssignName.x", []),
-                                                                         SimpleScope("ListComp", [
-                                                                             SimpleScope("LocalVariable.AssignName.num",
-                                                                                         [])])])])],
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope(
+                            "GlobalVariable.FunctionDef.fun",
+                            [
+                                SimpleScope("LocalVariable.AssignName.x", []),
+                                SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
         ),
         (  # With Statement
             """
                 with file:
                     a = 1
             """,
-            [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.a", []),
-                                    SimpleScope("With", [])])]
+            [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.a", []), SimpleScope("With", [])])],
         ),
         (  # With Statement File
             """
@@ -699,9 +726,16 @@ def test_calc_node_id(
                     a = 1
                     f.read()
             """,
-            [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.file", []),
-                                    SimpleScope("GlobalVariable.AssignName.a", []),
-                                    SimpleScope("With", [SimpleScope("LocalVariable.AssignName.f", [])])])]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope("GlobalVariable.AssignName.file", []),
+                        SimpleScope("GlobalVariable.AssignName.a", []),
+                        SimpleScope("With", [SimpleScope("LocalVariable.AssignName.f", [])]),
+                    ],
+                ),
+            ],
         ),
         (  # With Statement Class
             """
@@ -716,11 +750,29 @@ def test_calc_node_id(
                 with MyContext() as context:
                     print("Inside the context")
             """,
-            [SimpleScope("Module", [SimpleClassScope("GlobalVariable.ClassDef.MyContext", [
-                SimpleScope("ClassVariable.FunctionDef.__enter__", [SimpleScope("Parameter.AssignName.self", [])]),
-                SimpleScope("ClassVariable.FunctionDef.__exit__", [SimpleScope("Parameter.AssignName.self", [])])],
-                                                     ["FunctionDef.__enter__", "FunctionDef.__exit__"], [], []),
-                                    SimpleScope("With", [SimpleScope("LocalVariable.AssignName.context", [])])])]
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleClassScope(
+                            "GlobalVariable.ClassDef.MyContext",
+                            [
+                                SimpleScope(
+                                    "ClassVariable.FunctionDef.__enter__",
+                                    [SimpleScope("Parameter.AssignName.self", [])],
+                                ),
+                                SimpleScope(
+                                    "ClassVariable.FunctionDef.__exit__", [SimpleScope("Parameter.AssignName.self", [])],
+                                ),
+                            ],
+                            ["FunctionDef.__enter__", "FunctionDef.__exit__"],
+                            [],
+                            [],
+                        ),
+                        SimpleScope("With", [SimpleScope("LocalVariable.AssignName.context", [])]),
+                    ],
+                ),
+            ],
         ),
     ],
     ids=[
@@ -805,7 +857,9 @@ def to_string(symbol: Symbol) -> str:
         result = transform_member_access(symbol.node)
         return f"{symbol.__class__.__name__}.MemberAccess.{result}"
     elif isinstance(symbol.node, astroid.Import):
-        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.names[0][0]}"  # TODO: handle multiple imports and aliases
+        return (  # TODO: handle multiple imports and aliases
+            f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.names[0][0]}"
+        )
     elif isinstance(symbol.node, astroid.ImportFrom):
         return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.modname}.{symbol.node.names[0][0]}"  # TODO: handle multiple imports and aliases
     elif isinstance(symbol.node, astroid.Name):
@@ -843,8 +897,15 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 class A:
                     var1 = 1
             """,
-            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.var1", [])],
-                                   ["AssignName.var1"], [], [])},
+            {
+                "A": SimpleClassScope(
+                    "GlobalVariable.ClassDef.A",
+                    [SimpleScope("ClassVariable.AssignName.var1", [])],
+                    ["AssignName.var1"],
+                    [],
+                    [],
+                ),
+            },
         ),
         (  # ClassDef with multiple class attribute
             """
@@ -852,9 +913,18 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                     var1 = 1
                     var2 = 2
             """,
-            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.var1", []),
-                                                                 SimpleScope("ClassVariable.AssignName.var2", [])],
-                                   ["AssignName.var1", "AssignName.var2"], [], [])},
+            {
+                "A": SimpleClassScope(
+                    "GlobalVariable.ClassDef.A",
+                    [
+                        SimpleScope("ClassVariable.AssignName.var1", []),
+                        SimpleScope("ClassVariable.AssignName.var2", []),
+                    ],
+                    ["AssignName.var1", "AssignName.var2"],
+                    [],
+                    [],
+                ),
+            },
         ),
         (  # ClassDef with multiple class attribute (same name)
             """
@@ -864,9 +934,18 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                     else:
                         var1 = 2
             """,
-            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.var1", []),
-                                                                 SimpleScope("ClassVariable.AssignName.var1", [])],
-                                   ["AssignName.var1", "AssignName.var1"], [], [])},
+            {
+                "A": SimpleClassScope(
+                    "GlobalVariable.ClassDef.A",
+                    [
+                        SimpleScope("ClassVariable.AssignName.var1", []),
+                        SimpleScope("ClassVariable.AssignName.var1", []),
+                    ],
+                    ["AssignName.var1", "AssignName.var1"],
+                    [],
+                    [],
+                ),
+            },
         ),
         (  # ClassDef with instance attribute
             """
@@ -874,10 +953,23 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                     def __init__(self):
                         self.var1 = 1
             """,
-            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.FunctionDef.__init__", [
-                SimpleScope("Parameter.AssignName.self", []),
-                SimpleScope("InstanceVariable.MemberAccess.self.var1", [])])],
-                                   ["FunctionDef.__init__"], ["AssignAttr.var1"], [])},
+            {
+                "A": SimpleClassScope(
+                    "GlobalVariable.ClassDef.A",
+                    [
+                        SimpleScope(
+                            "ClassVariable.FunctionDef.__init__",
+                            [
+                                SimpleScope("Parameter.AssignName.self", []),
+                                SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
+                            ],
+                        ),
+                    ],
+                    ["FunctionDef.__init__"],
+                    ["AssignAttr.var1"],
+                    [],
+                ),
+            },
         ),
         (  # ClassDef with multiple instance attributes (and type annotations)
             """
@@ -887,17 +979,25 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                         self.name: str = "name"
                         self.state: bool = True
             """,
-            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [
-                SimpleScope("ClassVariable.FunctionDef.__init__", [SimpleScope("Parameter.AssignName.self", []),
-                                                                   SimpleScope(
-                                                                       "InstanceVariable.MemberAccess.self.var1", []),
-                                                                   SimpleScope(
-                                                                       "InstanceVariable.MemberAccess.self.name", []),
-                                                                   SimpleScope(
-                                                                       "InstanceVariable.MemberAccess.self.state",
-                                                                       [])])],
-                                   ["FunctionDef.__init__"], ["AssignAttr.var1", "AssignAttr.name", "AssignAttr.state"],
-                                   [])},
+            {
+                "A": SimpleClassScope(
+                    "GlobalVariable.ClassDef.A",
+                    [
+                        SimpleScope(
+                            "ClassVariable.FunctionDef.__init__",
+                            [
+                                SimpleScope("Parameter.AssignName.self", []),
+                                SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
+                                SimpleScope("InstanceVariable.MemberAccess.self.name", []),
+                                SimpleScope("InstanceVariable.MemberAccess.self.state", []),
+                            ],
+                        ),
+                    ],
+                    ["FunctionDef.__init__"],
+                    ["AssignAttr.var1", "AssignAttr.name", "AssignAttr.state"],
+                    [],
+                ),
+            },
         ),
         (  # ClassDef with conditional instance attributes (instance attributes with same name)
             """
@@ -908,12 +1008,24 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                         else:
                             self.var1 = 0
             """,
-            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.FunctionDef.__init__", [
-                SimpleScope("Parameter.AssignName.self", []),
-                SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
-                SimpleScope("InstanceVariable.MemberAccess.self.var1", [])])],
-                                   ["FunctionDef.__init__"], ["AssignAttr.var1", "AssignAttr.var1"],
-                                   [])},
+            {
+                "A": SimpleClassScope(
+                    "GlobalVariable.ClassDef.A",
+                    [
+                        SimpleScope(
+                            "ClassVariable.FunctionDef.__init__",
+                            [
+                                SimpleScope("Parameter.AssignName.self", []),
+                                SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
+                                SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
+                            ],
+                        ),
+                    ],
+                    ["FunctionDef.__init__"],
+                    ["AssignAttr.var1", "AssignAttr.var1"],
+                    [],
+                ),
+            },
         ),
         (  # ClassDef with class and instance attribute
             """
@@ -923,13 +1035,24 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                     def __init__(self):
                         self.var1 = 1
             """,
-            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleScope("ClassVariable.AssignName.var1", []),
-                                                                 SimpleScope("ClassVariable.FunctionDef.__init__", [
-                                                                     SimpleScope("Parameter.AssignName.self", []),
-                                                                     SimpleScope(
-                                                                         "InstanceVariable.MemberAccess.self.var1",
-                                                                         [])])],
-                                   ["AssignName.var1", "FunctionDef.__init__"], ["AssignAttr.var1"], [])},
+            {
+                "A": SimpleClassScope(
+                    "GlobalVariable.ClassDef.A",
+                    [
+                        SimpleScope("ClassVariable.AssignName.var1", []),
+                        SimpleScope(
+                            "ClassVariable.FunctionDef.__init__",
+                            [
+                                SimpleScope("Parameter.AssignName.self", []),
+                                SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
+                            ],
+                        ),
+                    ],
+                    ["AssignName.var1", "FunctionDef.__init__"],
+                    ["AssignAttr.var1"],
+                    [],
+                ),
+            },
         ),
         (  # ClassDef with nested class
             """
@@ -937,10 +1060,16 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                     class B:
                         pass
             """,
-            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [SimpleClassScope("ClassVariable.ClassDef.B",
-                                                                                  [], [], [], [])],
-                                   ["ClassDef.B"], [], []),
-             "B": SimpleClassScope("ClassVariable.ClassDef.B", [], [], [], [])},
+            {
+                "A": SimpleClassScope(
+                    "GlobalVariable.ClassDef.A",
+                    [SimpleClassScope("ClassVariable.ClassDef.B", [], [], [], [])],
+                    ["ClassDef.B"],
+                    [],
+                    [],
+                ),
+                "B": SimpleClassScope("ClassVariable.ClassDef.B", [], [], [], []),
+            },
         ),
         (  # Multiple ClassDef
             """
@@ -950,8 +1079,10 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 class B:
                     pass
             """,
-            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [], []),
-             "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [], [])},
+            {
+                "A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [], []),
+                "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [], []),
+            },
         ),
         (  # ClassDef with super class
             """
@@ -961,8 +1092,10 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 class B(A):
                     pass
             """,
-            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [], []),
-             "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [], ["ClassDef.A"])},
+            {
+                "A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [], []),
+                "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [], ["ClassDef.A"]),
+            },
         ),
     ],
     ids=[
@@ -977,7 +1110,7 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
         "ClassDef with nested class",
         "Multiple ClassDef",
         "ClassDef with super class",
-    ]
+    ],
 )
 def test_get_module_data_classes(code: str, expected: dict[str, SimpleClassScope]) -> None:
     classes = get_module_data(code).classes
@@ -985,39 +1118,28 @@ def test_get_module_data_classes(code: str, expected: dict[str, SimpleClassScope
     assert_get_module_data_classes(classes, expected)
 
 
-def assert_get_module_data_classes(classes: dict[str, ClassScope],
-                                   expected: dict[str, SimpleClassScope]) -> None:
+def assert_get_module_data_classes(classes: dict[str, ClassScope], expected: dict[str, SimpleClassScope]) -> None:
     transformed_classes = {
         klassname: transform_result(klass) for klassname, klass in classes.items()
     }  # The result and the expected data is simplified to make the comparison easier
     assert transformed_classes == expected
 
 
-@pytest.mark.parametrize(
-    ("code", "expected"),
-    []
-)
+@pytest.mark.parametrize(("code", "expected"), [])
 def test_get_module_data_functions(code: str, expected: str) -> None:
     functions = get_module_data(code).classes
     raise NotImplementedError("TODO: implement test")
     assert functions == expected
 
 
-@pytest.mark.parametrize(
-    ("code", "expected"),
-    []
-)
+@pytest.mark.parametrize(("code", "expected"), [])
 def test_get_module_data_globals(code: str, expected: str) -> None:
     globs = get_module_data(code).classes
     raise NotImplementedError("TODO: implement test")
     assert globs == expected
 
 
-@pytest.mark.parametrize(
-    ("code", "expected"),
-    [
-    ]
-)
+@pytest.mark.parametrize(("code", "expected"), [])
 def test_get_module_data_parameters(code: str, expected: str) -> None:
     parameters = get_module_data(code).classes
     raise NotImplementedError("TODO: implement test")
@@ -1032,17 +1154,14 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                 def variable():
                     var1 = 20
             """,
-            ({},
-             {"var1": "AssignName.var1"}),
+            ({}, {"var1": "AssignName.var1"}),
         ),
         (  # Assign Parameter
             """
                 def parameter(a):
                     var1 = a
             """,
-            ({"a": "Name.a"},
-             {"var1": "AssignName.var1",
-              "a": "AssignName.a"}),
+            ({"a": "Name.a"}, {"var1": "AssignName.var1", "a": "AssignName.a"}),
         ),
         (  # Global unused
             """
@@ -1057,17 +1176,14 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     global glob1
                     var1 = glob1
             """,
-            ({"glob1": "Name.glob1"},
-             {"var1": "AssignName.var1"}),
+            ({"glob1": "Name.glob1"}, {"var1": "AssignName.var1"}),
         ),
         (  # Assign Class Attribute
             """
                 def class_attr():
                     var1 = A.class_attr
             """,
-            ({"A": "Name.A",
-              "A.class_attr": "MemberAccessValue.A.class_attr"},
-             {"var1": "AssignName.var1"}),
+            ({"A": "Name.A", "A.class_attr": "MemberAccessValue.A.class_attr"}, {"var1": "AssignName.var1"}),
         ),
         (  # Assign Instance Attribute
             """
@@ -1075,57 +1191,61 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     b = B()
                     var1 = b.instance_attr
             """,
-            ({"b": "Name.b",
-              "b.instance_attr": "MemberAccessValue.b.instance_attr"},
-             {"b": "AssignName.b",
-              "var1": "AssignName.var1"}),
+            (
+                {"b": "Name.b", "b.instance_attr": "MemberAccessValue.b.instance_attr"},
+                {"b": "AssignName.b", "var1": "AssignName.var1"},
+            ),
         ),
         (  # Assign MemberAccessValue
             """
                 def chain():
                     var1 = test.instance_attr.field.next_field
             """,
-            ({"test": "Name.test",
-              "test.instance_attr": "MemberAccessValue.test.instance_attr",
-              "test.instance_attr.field": "MemberAccessValue.test.instance_attr.field",
-              "test.instance_attr.field.next_field": "MemberAccessValue.test.instance_attr.field.next_field"},
-             {"var1": "AssignName.var1"}),
+            (
+                {
+                    "test": "Name.test",
+                    "test.instance_attr": "MemberAccessValue.test.instance_attr",
+                    "test.instance_attr.field": "MemberAccessValue.test.instance_attr.field",
+                    "test.instance_attr.field.next_field": "MemberAccessValue.test.instance_attr.field.next_field",
+                },
+                {"var1": "AssignName.var1"},
+            ),
         ),
         (  # Assign MemberAccessTarget
             """
                 def chain_reversed():
                     test.instance_attr.field.next_field = var1
             """,
-            ({"var1": "Name.var1"},
-             {"test": "Name.test",
-              "test.instance_attr": "MemberAccessTarget.test.instance_attr",
-              "test.instance_attr.field": "MemberAccessTarget.test.instance_attr.field",
-              "test.instance_attr.field.next_field": "MemberAccessTarget.test.instance_attr.field.next_field"})
+            (
+                {"var1": "Name.var1"},
+                {
+                    "test": "Name.test",
+                    "test.instance_attr": "MemberAccessTarget.test.instance_attr",
+                    "test.instance_attr.field": "MemberAccessTarget.test.instance_attr.field",
+                    "test.instance_attr.field.next_field": "MemberAccessTarget.test.instance_attr.field.next_field",
+                },
+            ),
         ),
         (  # AssignAttr
             """
                 def assign_attr():
                     a.res = 1
             """,
-            ({},
-             {"a": "Name.a",
-              "a.res": "MemberAccessTarget.a.res"}),
+            ({}, {"a": "Name.a", "a.res": "MemberAccessTarget.a.res"}),
         ),
         (  # AugAssign
             """
                 def aug_assign():
                     var1 += 1
             """,
-            ({},
-             {"var1": "AssignName.var1"}),
+            ({}, {"var1": "AssignName.var1"}),
         ),
         (  # Return
             """
                 def assign_return():
                     return var1
             """,
-            ({"var1": "Name.var1"},
-             {})
+            ({"var1": "Name.var1"}, {}),
         ),
         (  # While
             """
@@ -1133,8 +1253,7 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     while var1 > 0:
                         do_something()
             """,
-            ({"var1": "Name.var1"},
-             {})
+            ({"var1": "Name.var1"}, {}),
         ),
         (  # For
             """
@@ -1142,8 +1261,7 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     for var1 in range(10):
                         do_something()
             """,
-            ({},
-             {"var1": "AssignName.var1"})
+            ({}, {"var1": "AssignName.var1"}),
         ),
         (  # If
             """
@@ -1151,8 +1269,7 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     if var1 > 0:
                         do_something()
             """,
-            ({"var1": "Name.var1"},
-             {})
+            ({"var1": "Name.var1"}, {}),
         ),
         (  # If Else
             """
@@ -1162,8 +1279,7 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     else:
                         do_something_else()
             """,
-            ({"var1": "Name.var1"},
-             {})
+            ({"var1": "Name.var1"}, {}),
         ),
         (  # If Elif
             """
@@ -1173,10 +1289,7 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                     elif var1 | var2:
                         do_something_else()
             """,
-            ({"var1": "Name.var1",
-              "var1": "Name.var1",
-              "var2": "Name.var2"},
-             {})
+            ({"var1": "Name.var1", "var2": "Name.var2"}, {}),
         ),
         (  # Try Except Finally
             """
@@ -1187,55 +1300,45 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
                 finally:
                     final = num3
             """,
-            ({"error": "Name.error",
-              "num1": "Name.num1",
-              "num2": "Name.num2",
-              "num3": "Name.num3"},
-             {"error": "AssignName.error",
-              "final": "AssignName.final",
-              "result": "AssignName.result"})
+            (
+                {"error": "Name.error", "num1": "Name.num1", "num2": "Name.num2", "num3": "Name.num3"},
+                {"error": "AssignName.error", "final": "AssignName.final", "result": "AssignName.result"},
+            ),
         ),
         (  # AnnAssign
             """
                 def ann_assign():
                     var1: int = 10
             """,
-            ({},
-             {"var1": "AssignName.var1"})
+            ({}, {"var1": "AssignName.var1"}),
         ),
         (  # FuncCall
             """
                 def func_call():
                     var1 = func(var2)
             """,
-            ({"var2": "Name.var2"},
-             {"var1": "AssignName.var1"})
+            ({"var2": "Name.var2"}, {"var1": "AssignName.var1"}),
         ),
         (  # FuncCall Parameter
             """
                 def func_call_par(param):
                     var1 = param + func(param)
             """,
-            ({"param": "Name.param",
-              "param": "Name.param"},
-             {"param": "AssignName.param",
-              "var1": "AssignName.var1"})
+            ({"param": "Name.param"}, {"param": "AssignName.param", "var1": "AssignName.var1"}),
         ),
         (  # BinOp
             """
                 def bin_op():
                     var1 = 20 + var2
             """,
-            ({"var2": "Name.var2"},
-             {"var1": "AssignName.var1"})
+            ({"var2": "Name.var2"}, {"var1": "AssignName.var1"}),
         ),
         (  # BoolOp
             """
                 def bool_op():
                     var1 = True and var2
             """,
-            ({"var2": "Name.var2"},
-             {"var1": "AssignName.var1"})
+            ({"var2": "Name.var2"}, {"var1": "AssignName.var1"}),
         ),
     ],
     ids=[
@@ -1272,9 +1375,11 @@ def test_get_module_data_value_and_target_nodes(code: str, expected: str) -> Non
     assert_names_list(value_nodes, target_nodes, expected)
 
 
-def assert_names_list(value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope],
-                      target_nodes: dict[astroid.AssignName | MemberAccessTarget, Scope | ClassScope],
-                      expected: str) -> None:
+def assert_names_list(
+    value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope],
+    target_nodes: dict[astroid.AssignName | MemberAccessTarget, Scope | ClassScope],
+    expected: str,
+) -> None:
     value_nodes_transformed = transform_value_nodes(value_nodes)
     target_nodes_transformed = transform_target_nodes(target_nodes)
     assert (value_nodes_transformed, target_nodes_transformed) == expected
@@ -1293,7 +1398,8 @@ def transform_value_nodes(value_nodes: dict[astroid.Name | MemberAccessValue, Sc
 
 
 def transform_target_nodes(
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]) -> dict[str, str]:
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope],
+) -> dict[str, str]:
     target_nodes_transformed = {}
     for node in target_nodes:
         if isinstance(node, astroid.AssignName | astroid.Name):
@@ -1320,11 +1426,7 @@ def transform_member_access(member_access: MemberAccess) -> str:
     return ".".join(reversed(attribute_names))
 
 
-@pytest.mark.parametrize(
-    ("code", "expected"),
-    [
-    ]
-)
+@pytest.mark.parametrize(("code", "expected"), [])
 def test_get_module_data_function_calls(code: str, expected: str) -> None:
     function_calls = get_module_data(code).classes
     raise NotImplementedError("TODO: implement test")

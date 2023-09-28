@@ -4,23 +4,23 @@ from dataclasses import dataclass, field
 
 import astroid
 
-from library_analyzer.utils import ASTWalker
 from library_analyzer.processing.api.purity_analysis.model import (
-    ModuleData,
-    Scope,
     ClassScope,
+    ClassVariable,
+    GlobalVariable,
+    Import,
+    InstanceVariable,
+    LocalVariable,
     MemberAccess,
-    NodeID,
     MemberAccessTarget,
     MemberAccessValue,
-    Symbol,
-    GlobalVariable,
-    LocalVariable,
-    ClassVariable,
+    ModuleData,
+    NodeID,
     Parameter,
-    InstanceVariable,
-    Import,
+    Scope,
+    Symbol,
 )
+from library_analyzer.utils import ASTWalker
 
 
 @dataclass
@@ -49,9 +49,13 @@ class ModuleDataBuilder:
     classes: dict[str, ClassScope] = field(default_factory=dict)
     functions: dict[str, list[Scope]] = field(default_factory=dict)
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope] = field(default_factory=dict)
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope] = field(default_factory=dict)
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope] = field(
+        default_factory=dict,
+    )
     global_variables: dict[str, Scope | ClassScope] = field(default_factory=dict)
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]] = field(default_factory=dict)
+    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]] = field(
+        default_factory=dict,
+    )
     function_calls: dict[astroid.Call, Scope | ClassScope] = field(default_factory=dict)
 
     def _detect_scope(self, node: astroid.NodeNG) -> None:
@@ -99,14 +103,14 @@ class ModuleDataBuilder:
             # add class variables to the class_variables dict
             for child in self.current_node_stack[-1].children:
                 if isinstance(child.symbol, ClassVariable) and isinstance(self.current_node_stack[-1], ClassScope):
-                    if child.symbol.name in self.current_node_stack[-1].class_variables.keys():
+                    if child.symbol.name in self.current_node_stack[-1].class_variables:
                         self.current_node_stack[-1].class_variables[child.symbol.name].append(child.symbol)
                     else:
                         self.current_node_stack[-1].class_variables[child.symbol.name] = [child.symbol]
 
         # add functions to the functions dict
         if isinstance(node, astroid.FunctionDef):
-            if node.name in self.functions.keys():
+            if node.name in self.functions:
                 self.functions[node.name].extend(self.current_node_stack[-1])
             else:
                 self.functions[node.name] = [self.current_node_stack[-1]]
@@ -123,7 +127,7 @@ class ModuleDataBuilder:
             self.current_node_stack[-1].symbol.name = node_name
 
             # extend the list of functions with the current node or create a new list with the current node
-            if node_name in self.functions.keys():
+            if node_name in self.functions:
                 self.functions[node_name].extend(self.current_node_stack[-1])
             else:
                 self.functions[node_name] = [self.current_node_stack[-1]]
@@ -138,8 +142,10 @@ class ModuleDataBuilder:
         """
         # add instance variables to the instance_variables list of the class
         for child in self.current_node_stack[-1].children:
-            if isinstance(child.symbol, InstanceVariable) and isinstance(self.current_node_stack[-1].parent, ClassScope):
-                if child.symbol.name in self.current_node_stack[-1].parent.instance_variables.keys():
+            if isinstance(child.symbol, InstanceVariable) and isinstance(
+                self.current_node_stack[-1].parent, ClassScope,
+            ):
+                if child.symbol.name in self.current_node_stack[-1].parent.instance_variables:
                     self.current_node_stack[-1].parent.instance_variables[child.symbol.name].append(child.symbol)
                 else:
                     self.current_node_stack[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
@@ -152,16 +158,13 @@ class ModuleDataBuilder:
         The module node is also the first node that is visited, so the current_node_stack is empty before entering the module node.
         """
         self.current_node_stack.append(
-            Scope(_symbol=self.get_symbol(node, None),
-                  _children=[],
-                  _parent=None),
+            Scope(_symbol=self.get_symbol(node, None), _children=[], _parent=None),
         )
 
     def leave_module(self, node: astroid.Module) -> None:
         self._detect_scope(node)
 
     def enter_classdef(self, node: astroid.ClassDef) -> None:
-
         self.current_node_stack.append(
             ClassScope(
                 _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
@@ -178,36 +181,49 @@ class ModuleDataBuilder:
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
         self.current_node_stack.append(
-            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-                  _children=[],
-                  _parent=self.current_node_stack[-1]),
+            Scope(
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                _children=[],
+                _parent=self.current_node_stack[-1],
+            ),
         )
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
         self._detect_scope(node)
 
     def get_symbol(self, node: astroid.NodeNG, current_scope: astroid.NodeNG | None) -> Symbol:
-        """ Get the symbol of a node. """
-
+        """Get the symbol of a node."""
         match current_scope:
             case astroid.Module() | None:
                 if isinstance(node, astroid.Import):
-                    return Import(node=node, id=calc_node_id(node), name=node.names[0][0])  # TODO: this needs fixing when multiple imports are handled
+                    return Import(
+                        node=node, id=calc_node_id(node), name=node.names[0][0],
+                    )  # TODO: this needs fixing when multiple imports are handled
 
                 if isinstance(node, astroid.ImportFrom):
-                    return Import(node=node, id=calc_node_id(node), name=node.names[0][1])  # TODO: this needs fixing when multiple imports are handled
+                    return Import(
+                        node=node, id=calc_node_id(node), name=node.names[0][1],
+                    )  # TODO: this needs fixing when multiple imports are handled
 
                 if isinstance(node, MemberAccessTarget):
                     klass = self.get_class_for_receiver_node(node.receiver)
                     if klass is not None:
-                        if node.member.attrname in klass.class_variables:  # this means that we are dealing with a class variable
-                            return ClassVariable(node=node, id=calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node)
+                        if (
+                            node.member.attrname in klass.class_variables
+                        ):  # this means that we are dealing with a class variable
+                            return ClassVariable(
+                                node=node, id=calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node,
+                            )
                     # this means that we are dealing with an instance variable
                     elif self.classes is not None:
                         for klass in self.classes.values():
-                            if node.member.attrname in klass.instance_variables.keys():
-                                return InstanceVariable(node=node, id=calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node)
-                if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally | astroid.With) and not isinstance(node, astroid.FunctionDef):
+                            if node.member.attrname in klass.instance_variables:
+                                return InstanceVariable(
+                                    node=node, id=calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node,
+                                )
+                if isinstance(
+                    node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally | astroid.With,
+                ) and not isinstance(node, astroid.FunctionDef):
                     return GlobalVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__)
                 return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
 
@@ -215,17 +231,32 @@ class ModuleDataBuilder:
                 # we defined that functions are class variables if they are defined in the class scope
                 # if isinstance(node, astroid.FunctionDef):
                 #     return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
-                if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally) and not isinstance(node, astroid.FunctionDef):
-                    return ClassVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__, klass=current_scope)
+                if isinstance(
+                    node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally,
+                ) and not isinstance(node, astroid.FunctionDef):
+                    return ClassVariable(
+                        node=node, id=calc_node_id(node), name=node.__class__.__name__, klass=current_scope,
+                    )
                 return ClassVariable(node=node, id=calc_node_id(node), name=node.name, klass=current_scope)
 
             case astroid.FunctionDef():
                 # find instance variables (in the constructor)
-                if isinstance(current_scope, astroid.FunctionDef) and isinstance(node, MemberAccessTarget) and current_scope.name == "__init__":
-                    return InstanceVariable(node=node, id=calc_node_id(node), name=node.member.attrname, klass=current_scope.parent)
+                if (
+                    isinstance(current_scope, astroid.FunctionDef)
+                    and isinstance(node, MemberAccessTarget)
+                    and current_scope.name == "__init__"
+                ):
+                    return InstanceVariable(
+                        node=node, id=calc_node_id(node), name=node.member.attrname, klass=current_scope.parent,
+                    )
 
                 # find parameters
-                if isinstance(node, astroid.AssignName) and self.parameters and current_scope in self.parameters and self.parameters[current_scope][1].__contains__(node):
+                if (
+                    isinstance(node, astroid.AssignName)
+                    and self.parameters
+                    and current_scope in self.parameters
+                    and self.parameters[current_scope][1].__contains__(node)
+                ):
                     return Parameter(node=node, id=calc_node_id(node), name=node.name)
 
                 # special cases for nodes inside functions that we defined as LocalVariables but which do not have a name
@@ -251,9 +282,11 @@ class ModuleDataBuilder:
 
     def enter_lambda(self, node: astroid.Lambda) -> None:
         self.current_node_stack.append(
-            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-                  _children=[],
-                  _parent=self.current_node_stack[-1]),
+            Scope(
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                _children=[],
+                _parent=self.current_node_stack[-1],
+            ),
         )
 
     def leave_lambda(self, node: astroid.Lambda) -> None:
@@ -261,9 +294,11 @@ class ModuleDataBuilder:
 
     def enter_listcomp(self, node: astroid.ListComp) -> None:
         self.current_node_stack.append(
-            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-                  _children=[],
-                  _parent=self.current_node_stack[-1]),
+            Scope(
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                _children=[],
+                _parent=self.current_node_stack[-1],
+            ),
         )
 
     def leave_listcomp(self, node: astroid.ListComp) -> None:
@@ -271,9 +306,11 @@ class ModuleDataBuilder:
 
     def enter_with(self, node: astroid.With) -> None:
         self.current_node_stack.append(
-            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-                  _children=[],
-                  _parent=self.current_node_stack[-1]),
+            Scope(
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                _children=[],
+                _parent=self.current_node_stack[-1],
+            ),
         )
 
     def leave_with(self, node: astroid.With) -> None:
@@ -291,9 +328,11 @@ class ModuleDataBuilder:
 
     def enter_tryexcept(self, node: astroid.TryExcept) -> None:
         self.current_node_stack.append(
-            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-                  _children=[],
-                  _parent=self.current_node_stack[-1]),
+            Scope(
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                _children=[],
+                _parent=self.current_node_stack[-1],
+            ),
         )
 
     def leave_tryexcept(self, node: astroid.TryExcept) -> None:
@@ -303,22 +342,29 @@ class ModuleDataBuilder:
         if node.args:
             self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], set(node.args))
         if node.kwonlyargs:
-            self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], set(node.kwonlyargs))
+            self.parameters[self.current_node_stack[-1].symbol.node] = (
+                self.current_node_stack[-1],
+                set(node.kwonlyargs),
+            )
         if node.posonlyargs:
-            self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], set(node.posonlyargs))
+            self.parameters[self.current_node_stack[-1].symbol.node] = (
+                self.current_node_stack[-1],
+                set(node.posonlyargs),
+            )
         if node.vararg:
-            constructed_node = astroid.AssignName(name=node.vararg, parent=node, lineno=node.parent.lineno,
-                                                  col_offset=node.parent.col_offset)
+            constructed_node = astroid.AssignName(
+                name=node.vararg, parent=node, lineno=node.parent.lineno, col_offset=node.parent.col_offset,
+            )
             # TODO: col_offset is not correct: it should be the col_offset of the vararg/(kwarg) node which is not
             #  collected by astroid
             self.handle_arg(constructed_node)
         if node.kwarg:
-            constructed_node = astroid.AssignName(name=node.kwarg, parent=node, lineno=node.parent.lineno,
-                                                  col_offset=node.parent.col_offset)
+            constructed_node = astroid.AssignName(
+                name=node.kwarg, parent=node, lineno=node.parent.lineno, col_offset=node.parent.col_offset,
+            )
             self.handle_arg(constructed_node)
 
-    def enter_name(self,
-                   node: astroid.Name) -> None:
+    def enter_name(self, node: astroid.Name) -> None:
         if isinstance(node.parent, astroid.Decorators) or isinstance(node.parent.parent, astroid.Decorators):
             return
 
@@ -339,7 +385,7 @@ class ModuleDataBuilder:
             | astroid.Keyword
             | astroid.Expr
             | astroid.Comprehension
-            | astroid.Attribute
+            | astroid.Attribute,
         ):
             # the following if statement is necessary to avoid adding the same node to
             # both the target_nodes and the value_nodes dict since there is a case where a name node is used as a
@@ -382,7 +428,7 @@ class ModuleDataBuilder:
             | astroid.Starred
             | astroid.Comprehension
             | astroid.ExceptHandler
-            | astroid.With
+            | astroid.With,
         ):
             self.target_nodes[node] = self.current_node_stack[-1]
 
@@ -402,20 +448,22 @@ class ModuleDataBuilder:
             | astroid.Starred
             | astroid.Comprehension
             | astroid.ExceptHandler
-            | astroid.With
+            | astroid.With,
         ):
             parent = self.current_node_stack[-1]
-            scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-                               _children=[],
-                               _parent=parent)
+            scope_node = Scope(
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node), _children=[], _parent=parent,
+            )
             self.children.append(scope_node)
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
         member_access = _construct_member_access_target(node.expr, node)
-        scope_node = Scope(_symbol=self.get_symbol(member_access, self.current_node_stack[-1].symbol.node),
-                           _children=[],
-                           _parent=parent)
+        scope_node = Scope(
+            _symbol=self.get_symbol(member_access, self.current_node_stack[-1].symbol.node),
+            _children=[],
+            _parent=parent,
+        )
         self.children.append(scope_node)
 
         if isinstance(member_access, MemberAccessTarget):
@@ -462,21 +510,21 @@ class ModuleDataBuilder:
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
-        scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-                           _children=[],
-                           _parent=parent)
+        scope_node = Scope(
+            _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node), _children=[], _parent=parent,
+        )
         self.children.append(scope_node)
 
     def enter_importfrom(self, node: astroid.ImportFrom) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
-        scope_node = Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-                           _children=[],
-                           _parent=parent)
+        scope_node = Scope(
+            _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node), _children=[], _parent=parent,
+        )
         self.children.append(scope_node)
 
     def check_if_global(self, name: str, node: astroid.NodeNG) -> bool:
         """
-        Check if a name is a global variable
+        Check if a name is a global variable.
 
         Checks if a name is a global variable inside the root of the given node
         Returns True if the name is listed in root.globals dict, False otherwise
@@ -488,9 +536,7 @@ class ModuleDataBuilder:
         return False
 
     def find_base_classes(self, node: astroid.ClassDef) -> list[ClassScope]:
-        """
-        Find a list of all base classes of the given class
-        """
+        """Find a list of all base classes of the given class."""
         base_classes = []
         for base in node.bases:
             if isinstance(base, astroid.Name):
@@ -500,9 +546,7 @@ class ModuleDataBuilder:
         return base_classes
 
     def get_class_by_name(self, name: str) -> ClassScope | None:
-        """
-        Get the class with the given name
-        """
+        """Get the class with the given name."""
         for klass in self.classes:
             if klass == name:
                 return self.classes[klass]
@@ -511,7 +555,11 @@ class ModuleDataBuilder:
 
     def handle_arg(self, constructed_node: astroid.AssignName) -> None:
         self.target_nodes[constructed_node] = self.current_node_stack[-1]
-        scope_node = Scope(_symbol=Parameter(constructed_node, calc_node_id(constructed_node), constructed_node.name), _children=[], _parent=self.current_node_stack[-1])
+        scope_node = Scope(
+            _symbol=Parameter(constructed_node, calc_node_id(constructed_node), constructed_node.name),
+            _children=[],
+            _parent=self.current_node_stack[-1],
+        )
         self.children.append(scope_node)
         self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], {constructed_node})
 
@@ -522,7 +570,16 @@ class ModuleDataBuilder:
 
 
 def calc_node_id(
-    node: astroid.NodeNG | astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name | astroid.AssignAttr | astroid.Import | astroid.ImportFrom | MemberAccess
+    node: astroid.NodeNG
+    | astroid.Module
+    | astroid.ClassDef
+    | astroid.FunctionDef
+    | astroid.AssignName
+    | astroid.Name
+    | astroid.AssignAttr
+    | astroid.Import
+    | astroid.ImportFrom
+    | MemberAccess,
 ) -> NodeID:
     if isinstance(node, MemberAccess):
         module = node.receiver.root().name
@@ -564,41 +621,41 @@ def calc_node_id(
     # TODO: add fitting default case and merge same types of cases together
 
 
-def _construct_member_access_target(receiver: astroid.Name | astroid.Attribute | astroid.Call, member: astroid.AssignAttr | astroid.Attribute) -> MemberAccessTarget:
+def _construct_member_access_target(
+    receiver: astroid.Name | astroid.Attribute | astroid.Call, member: astroid.AssignAttr | astroid.Attribute,
+) -> MemberAccessTarget:
     """Construct a MemberAccessTarget node.
 
     Constructing a MemberAccessTarget node means constructing a MemberAccessTarget node with the given receiver and member.
     The receiver is the node that is accessed and the member is the node that accesses the receiver. The receiver can be nested.
     """
-
     try:
         if isinstance(receiver, astroid.Name):
             return MemberAccessTarget(receiver=receiver, member=member)
         elif isinstance(receiver, astroid.Call):
             return MemberAccessTarget(receiver=receiver.func, member=member)
         else:
-            return MemberAccessTarget(receiver=_construct_member_access_target(receiver.expr, receiver),
-                                      member=member)
+            return MemberAccessTarget(receiver=_construct_member_access_target(receiver.expr, receiver), member=member)
     # since it is tedious to add testcases for this function we ignore the coverage for now
     except TypeError as err:  # pragma: no cover
         raise TypeError(f"Unexpected node type {type(member)}") from err  # pragma: no cover
 
 
-def _construct_member_access_value(receiver: astroid.Name | astroid.Attribute | astroid.Call, member: astroid.Attribute) -> MemberAccessValue:
+def _construct_member_access_value(
+    receiver: astroid.Name | astroid.Attribute | astroid.Call, member: astroid.Attribute,
+) -> MemberAccessValue:
     """Construct a MemberAccessValue node.
 
     Constructing a MemberAccessValue node means constructing a MemberAccessValue node with the given receiver and member.
     The receiver is the node that is accessed and the member is the node that accesses the receiver. The receiver can be nested.
     """
-
     try:
         if isinstance(receiver, astroid.Name):
             return MemberAccessValue(receiver=receiver, member=member)
         elif isinstance(receiver, astroid.Call):
             return MemberAccessValue(receiver=receiver.func, member=member)
         else:
-            return MemberAccessValue(receiver=_construct_member_access_value(receiver.expr, receiver),
-                                     member=member)
+            return MemberAccessValue(receiver=_construct_member_access_value(receiver.expr, receiver), member=member)
     # since it is tedious to add testcases for this function we ignore the coverage for now
     except TypeError as err:  # pragma: no cover
         raise TypeError(f"Unexpected node type {type(member)}") from err  # pragma: no cover
@@ -626,11 +683,13 @@ def get_module_data(code: str) -> ModuleData:
 
     scope = module_data_handler.children[0]  # get the children of the root node, which are the scopes of the module
 
-    return ModuleData(scope=scope,
-                      classes=module_data_handler.classes,
-                      functions=module_data_handler.functions,
-                      global_variables=module_data_handler.global_variables,
-                      value_nodes=module_data_handler.value_nodes,
-                      target_nodes=module_data_handler.target_nodes,
-                      parameters=module_data_handler.parameters,
-                      function_calls=module_data_handler.function_calls)
+    return ModuleData(
+        scope=scope,
+        classes=module_data_handler.classes,
+        functions=module_data_handler.functions,
+        global_variables=module_data_handler.global_variables,
+        value_nodes=module_data_handler.value_nodes,
+        target_nodes=module_data_handler.target_nodes,
+        parameters=module_data_handler.parameters,
+        function_calls=module_data_handler.function_calls,
+    )

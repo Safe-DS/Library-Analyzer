@@ -13,18 +13,16 @@ from library_analyzer.processing.api.purity_analysis import (
     extract_impurity_reasons,
     infer_purity,
 )
-
 from library_analyzer.processing.api.purity_analysis.model import (
     AttributeAccess,
     Call,
     FileRead,
     FileWrite,
+    ImpurityIndicator,
     Reference,
     StringLiteral,
     VariableRead,
     VariableWrite,
-    ImpurityIndicator,
-
 )
 
 
