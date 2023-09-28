@@ -143,7 +143,8 @@ class ModuleDataBuilder:
         # add instance variables to the instance_variables list of the class
         for child in self.current_node_stack[-1].children:
             if isinstance(child.symbol, InstanceVariable) and isinstance(
-                self.current_node_stack[-1].parent, ClassScope,
+                self.current_node_stack[-1].parent,
+                ClassScope,
             ):
                 if child.symbol.name in self.current_node_stack[-1].parent.instance_variables:
                     self.current_node_stack[-1].parent.instance_variables[child.symbol.name].append(child.symbol)
@@ -197,12 +198,16 @@ class ModuleDataBuilder:
             case astroid.Module() | None:
                 if isinstance(node, astroid.Import):
                     return Import(
-                        node=node, id=calc_node_id(node), name=node.names[0][0],
+                        node=node,
+                        id=calc_node_id(node),
+                        name=node.names[0][0],
                     )  # TODO: this needs fixing when multiple imports are handled
 
                 if isinstance(node, astroid.ImportFrom):
                     return Import(
-                        node=node, id=calc_node_id(node), name=node.names[0][1],
+                        node=node,
+                        id=calc_node_id(node),
+                        name=node.names[0][1],
                     )  # TODO: this needs fixing when multiple imports are handled
 
                 if isinstance(node, MemberAccessTarget):
@@ -212,17 +217,24 @@ class ModuleDataBuilder:
                             node.member.attrname in klass.class_variables
                         ):  # this means that we are dealing with a class variable
                             return ClassVariable(
-                                node=node, id=calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node,
+                                node=node,
+                                id=calc_node_id(node),
+                                name=node.member.attrname,
+                                klass=klass.symbol.node,
                             )
                     # this means that we are dealing with an instance variable
                     elif self.classes is not None:
                         for klass in self.classes.values():
                             if node.member.attrname in klass.instance_variables:
                                 return InstanceVariable(
-                                    node=node, id=calc_node_id(node), name=node.member.attrname, klass=klass.symbol.node,
+                                    node=node,
+                                    id=calc_node_id(node),
+                                    name=node.member.attrname,
+                                    klass=klass.symbol.node,
                                 )
                 if isinstance(
-                    node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally | astroid.With,
+                    node,
+                    astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally | astroid.With,
                 ) and not isinstance(node, astroid.FunctionDef):
                     return GlobalVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__)
                 return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
@@ -232,10 +244,14 @@ class ModuleDataBuilder:
                 # if isinstance(node, astroid.FunctionDef):
                 #     return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
                 if isinstance(
-                    node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally,
+                    node,
+                    astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally,
                 ) and not isinstance(node, astroid.FunctionDef):
                     return ClassVariable(
-                        node=node, id=calc_node_id(node), name=node.__class__.__name__, klass=current_scope,
+                        node=node,
+                        id=calc_node_id(node),
+                        name=node.__class__.__name__,
+                        klass=current_scope,
                     )
                 return ClassVariable(node=node, id=calc_node_id(node), name=node.name, klass=current_scope)
 
@@ -247,7 +263,10 @@ class ModuleDataBuilder:
                     and current_scope.name == "__init__"
                 ):
                     return InstanceVariable(
-                        node=node, id=calc_node_id(node), name=node.member.attrname, klass=current_scope.parent,
+                        node=node,
+                        id=calc_node_id(node),
+                        name=node.member.attrname,
+                        klass=current_scope.parent,
                     )
 
                 # find parameters
@@ -353,14 +372,20 @@ class ModuleDataBuilder:
             )
         if node.vararg:
             constructed_node = astroid.AssignName(
-                name=node.vararg, parent=node, lineno=node.parent.lineno, col_offset=node.parent.col_offset,
+                name=node.vararg,
+                parent=node,
+                lineno=node.parent.lineno,
+                col_offset=node.parent.col_offset,
             )
             # TODO: col_offset is not correct: it should be the col_offset of the vararg/(kwarg) node which is not
             #  collected by astroid
             self.handle_arg(constructed_node)
         if node.kwarg:
             constructed_node = astroid.AssignName(
-                name=node.kwarg, parent=node, lineno=node.parent.lineno, col_offset=node.parent.col_offset,
+                name=node.kwarg,
+                parent=node,
+                lineno=node.parent.lineno,
+                col_offset=node.parent.col_offset,
             )
             self.handle_arg(constructed_node)
 
@@ -452,7 +477,9 @@ class ModuleDataBuilder:
         ):
             parent = self.current_node_stack[-1]
             scope_node = Scope(
-                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node), _children=[], _parent=parent,
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                _children=[],
+                _parent=parent,
             )
             self.children.append(scope_node)
 
@@ -511,14 +538,18 @@ class ModuleDataBuilder:
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
         scope_node = Scope(
-            _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node), _children=[], _parent=parent,
+            _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+            _children=[],
+            _parent=parent,
         )
         self.children.append(scope_node)
 
     def enter_importfrom(self, node: astroid.ImportFrom) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
         scope_node = Scope(
-            _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node), _children=[], _parent=parent,
+            _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+            _children=[],
+            _parent=parent,
         )
         self.children.append(scope_node)
 
@@ -622,7 +653,8 @@ def calc_node_id(
 
 
 def _construct_member_access_target(
-    receiver: astroid.Name | astroid.Attribute | astroid.Call, member: astroid.AssignAttr | astroid.Attribute,
+    receiver: astroid.Name | astroid.Attribute | astroid.Call,
+    member: astroid.AssignAttr | astroid.Attribute,
 ) -> MemberAccessTarget:
     """Construct a MemberAccessTarget node.
 
@@ -642,7 +674,8 @@ def _construct_member_access_target(
 
 
 def _construct_member_access_value(
-    receiver: astroid.Name | astroid.Attribute | astroid.Call, member: astroid.Attribute,
+    receiver: astroid.Name | astroid.Attribute | astroid.Call,
+    member: astroid.Attribute,
 ) -> MemberAccessValue:
     """Construct a MemberAccessValue node.
 

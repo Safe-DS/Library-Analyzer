@@ -66,7 +66,9 @@ def _find_name_references(
 
 
 def _find_references_target(
-    current_target_reference: ReferenceNode, all_target_list: list[ReferenceNode], classes: dict[str, ClassScope],
+    current_target_reference: ReferenceNode,
+    all_target_list: list[ReferenceNode],
+    classes: dict[str, ClassScope],
 ) -> ReferenceNode:
     """Find all references for a target node.
 
@@ -308,7 +310,9 @@ def _find_call_reference(
         # Find builtins that are called
         if reference.node.func.name in python_builtins:
             builtin_call = Builtin(
-                reference.scope, NodeID("builtins", reference.node.func.name, 0, 0), reference.node.func.name,
+                reference.scope,
+                NodeID("builtins", reference.node.func.name, 0, 0),
+                reference.node.func.name,
             )
             call_references[i].referenced_symbols.append(builtin_call)
             final_call_references.append(call_references[i])
@@ -358,7 +362,10 @@ def resolve_references(code: str) -> list[ReferenceNode]:
 
     if module_data.function_calls:
         references_call = _find_call_reference(
-            module_data.function_calls, module_data.classes, module_data.functions, module_data.parameters,
+            module_data.function_calls,
+            module_data.classes,
+            module_data.functions,
+            module_data.parameters,
         )
         resolved_references.extend(references_call)
 

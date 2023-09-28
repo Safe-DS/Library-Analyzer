@@ -483,7 +483,9 @@ var1 = b.instance_attr1
                 ),
                 ReferenceTestNode("b.line9", "Module.", ["GlobalVariable.b.line8"]),
                 ReferenceTestNode(
-                    "self.instance_attr1.line6", "FunctionDef.B.__init__", ["ClassVariable.B.instance_attr1.line3"],
+                    "self.instance_attr1.line6",
+                    "FunctionDef.B.__init__",
+                    ["ClassVariable.B.instance_attr1.line3"],
                 ),
                 ReferenceTestNode("self.line6", "FunctionDef.B.__init__", ["Parameter.self.line5"]),
                 ReferenceTestNode("B.line8", "Module.", ["GlobalVariable.B.line2"]),
@@ -677,7 +679,9 @@ class C:
             [
                 ReferenceTestNode("state.line9", "FunctionDef.set_state", ["Parameter.state.line8"]),
                 ReferenceTestNode(
-                    "self.stateX.line9", "FunctionDef.set_state", ["ClassVariable.C.stateX.line6"],
+                    "self.stateX.line9",
+                    "FunctionDef.set_state",
+                    ["ClassVariable.C.stateX.line6"],
                 ),  # here self indicates that we are in class C -> therefore only C.stateX is detected
                 ReferenceTestNode("self.line9", "FunctionDef.set_state", ["Parameter.self.line8"]),
             ],
@@ -1176,7 +1180,9 @@ a
                     ],
                 ),
                 ReferenceTestNode(
-                    "a.line5", "Module.", ["GlobalVariable.a.line2", "GlobalVariable.a.line3", "GlobalVariable.a.line4"],
+                    "a.line5",
+                    "Module.",
+                    ["GlobalVariable.a.line2", "GlobalVariable.a.line3", "GlobalVariable.a.line4"],
                 ),
                 ReferenceTestNode("a.line4", "Module.", ["GlobalVariable.a.line2", "GlobalVariable.a.line3"]),
                 ReferenceTestNode("a.line3", "Module.", ["GlobalVariable.a.line2"]),
@@ -1445,12 +1451,16 @@ B.double(10)
                 ReferenceTestNode("x.line3", "Lambda", ["LocalVariable.x.line3"]),
                 ReferenceTestNode("A.line8", "Module.", ["GlobalVariable.A.line2"]),
                 ReferenceTestNode(
-                    "A.double.line8", "Module.", ["ClassVariable.A.double.line3", "ClassVariable.B.double.line6"],
+                    "A.double.line8",
+                    "Module.",
+                    ["ClassVariable.A.double.line3", "ClassVariable.B.double.line6"],
                 ),
                 ReferenceTestNode("x.line6", "Lambda", ["LocalVariable.x.line6"]),
                 ReferenceTestNode("B.line9", "Module.", ["GlobalVariable.B.line5"]),
                 ReferenceTestNode(
-                    "B.double.line9", "Module.", ["ClassVariable.A.double.line3", "ClassVariable.B.double.line6"],
+                    "B.double.line9",
+                    "Module.",
+                    ["ClassVariable.A.double.line3", "ClassVariable.B.double.line6"],
                 ),
             ],
         ),  # since we only return a list of all possible references, we can't distinguish between the two functions
@@ -1471,12 +1481,16 @@ B.double(10)
                 ReferenceTestNode("x.line3", "Lambda", ["LocalVariable.x.line3"]),
                 ReferenceTestNode("A.line10", "Module.", ["GlobalVariable.A.line2"]),
                 ReferenceTestNode(
-                    "A.double.line10", "Module.", ["ClassVariable.A.double.line3", "ClassVariable.B.double.line7"],
+                    "A.double.line10",
+                    "Module.",
+                    ["ClassVariable.A.double.line3", "ClassVariable.B.double.line7"],
                 ),
                 ReferenceTestNode("x.line8", "FunctionDef.double", ["Parameter.x.line7"]),
                 ReferenceTestNode("B.line11", "Module.", ["GlobalVariable.B.line5"]),
                 ReferenceTestNode(
-                    "B.double.line11", "Module.", ["ClassVariable.A.double.line3", "ClassVariable.B.double.line7"],
+                    "B.double.line11",
+                    "Module.",
+                    ["ClassVariable.A.double.line3", "ClassVariable.B.double.line7"],
                 ),
             ],
         ),  # since we only return a list of all possible references, we can't distinguish between the two functions
@@ -1536,11 +1550,15 @@ B.add(1, 2)
                 ReferenceTestNode("b.line10", "FunctionDef.add", ["Parameter.b.line9"]),
                 ReferenceTestNode("A.line12", "Module.", ["GlobalVariable.A.line2"]),
                 ReferenceTestNode(
-                    "A.add.line12", "Module.", ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                    "A.add.line12",
+                    "Module.",
+                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
                 ),
                 ReferenceTestNode("B.line13", "Module.", ["GlobalVariable.B.line7"]),
                 ReferenceTestNode(
-                    "B.add.line13", "Module.", ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                    "B.add.line13",
+                    "Module.",
+                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
                 ),
             ],
         ),  # since we only return a list of all possible references, we can't distinguish between the two functions
@@ -1567,11 +1585,15 @@ B.add(1, 2, 3)
                 ReferenceTestNode("c.line10", "FunctionDef.add", ["Parameter.c.line9"]),
                 ReferenceTestNode("A.line12", "Module.", ["GlobalVariable.A.line2"]),
                 ReferenceTestNode(
-                    "A.add.line12", "Module.", ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                    "A.add.line12",
+                    "Module.",
+                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
                 ),  # remove this
                 ReferenceTestNode("B.line13", "Module.", ["GlobalVariable.B.line7"]),
                 ReferenceTestNode(
-                    "B.add.line13", "Module.", ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],  # remove this
+                    "B.add.line13",
+                    "Module.",
+                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],  # remove this
                 ),
             ],
             # TODO: [LATER] we should detect the different signatures
@@ -1860,7 +1882,8 @@ def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
             referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
         )
     if isinstance(node.scope.symbol.node, astroid.Lambda) and not isinstance(
-        node.scope.symbol.node, astroid.FunctionDef,
+        node.scope.symbol.node,
+        astroid.FunctionDef,
     ):
         if isinstance(node.node, astroid.Call):
             return ReferenceTestNode(

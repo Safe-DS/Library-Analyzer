@@ -38,7 +38,8 @@ class ModuleData:
     global_variables: dict[str, Scope | ClassScope]
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]  # TODO: dict[str, list[Scope]]
     target_nodes: dict[
-        astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope,
+        astroid.AssignName | astroid.Name | MemberAccessTarget,
+        Scope | ClassScope,
     ]  # TODO: dict[str, list[Scope]]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
     function_calls: dict[astroid.Call, Scope | ClassScope]

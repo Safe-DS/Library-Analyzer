@@ -762,7 +762,8 @@ def test_calc_node_id(
                                     [SimpleScope("Parameter.AssignName.self", [])],
                                 ),
                                 SimpleScope(
-                                    "ClassVariable.FunctionDef.__exit__", [SimpleScope("Parameter.AssignName.self", [])],
+                                    "ClassVariable.FunctionDef.__exit__",
+                                    [SimpleScope("Parameter.AssignName.self", [])],
                                 ),
                             ],
                             ["FunctionDef.__enter__", "FunctionDef.__exit__"],
