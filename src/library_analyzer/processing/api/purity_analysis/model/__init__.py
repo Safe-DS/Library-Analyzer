@@ -20,7 +20,9 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (  # T
     VariableRead,
     VariableWrite,
 )
-from library_analyzer.processing.api.purity_analysis.model._reference import ReferenceNode
+from library_analyzer.processing.api.purity_analysis.model._reference import (
+    ReferenceNode,
+)
 from library_analyzer.processing.api.purity_analysis.model._scope import (
     Builtin,
     ClassScope,

@@ -34,7 +34,6 @@ class ModuleData:
     scope: Scope | ClassScope
     classes: dict[str, ClassScope]
     functions: dict[str, list[Scope]]
-    # all_names: dict[str, list[Symbol]]  # this contains all names of function names and attribute names and their declaratioon
     global_variables: dict[str, Scope | ClassScope]
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]  # TODO: dict[str, list[Scope]]
     target_nodes: dict[

@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 
 import astroid
 
-from library_analyzer.processing.api.purity_analysis.model import (
+from library_analyzer.processing.api.purity_analysis.model._scope import (
     MemberAccessTarget,
     MemberAccessValue,
     Scope,
