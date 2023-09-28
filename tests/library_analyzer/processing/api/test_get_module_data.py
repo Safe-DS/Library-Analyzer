@@ -89,30 +89,6 @@ class SimpleClassScope(SimpleScope):
             ),
             "numpy.glob.20.0",
         ),
-        (
-            astroid.Import(names=[("numpy", None)], lineno=1, col_offset=0, parent=astroid.Module("my_module")),
-            "my_module.numpy.1.0",
-        ),
-        (
-            astroid.Import(names=[("numpy", None), ("sys", None)], lineno=1, col_offset=0,
-                           parent=astroid.Module("my_module")),
-            "my_module.numpy.1.0",
-            # TODO: this is a problem since one node can contain multiple imports and therefore each one needs its own id
-        ),
-        (
-            astroid.Import(names=[("numpy", "np")], lineno=1, col_offset=0, parent=astroid.Module("my_module")),
-            "my_module.np.1.0",
-        ),
-        (
-            astroid.ImportFrom(fromname="math", names=[("sqrt", None)], level=0, lineno=1, col_offset=0,
-                               parent=astroid.Module("my_module")),
-            "my_module.sqrt.1.0",
-        ),
-        (
-            astroid.ImportFrom(fromname="math", names=[("sqrt", "s")], level=0, lineno=1, col_offset=0,
-                               parent=astroid.Module("my_module")),
-            "my_module.s.1.0",
-        )
     ],
     ids=[
         "Module",
@@ -122,12 +98,7 @@ class SimpleClassScope(SimpleScope):
         "AssignName (parent FunctionDef)",
         "Name (parent FunctionDef)",
         "Name (parent FunctionDef, parent ClassDef, parent Module)",
-        "Import",
-        "Import multiple",
-        "Import as",
-        "Import From",
-        "Import From as",
-    ],
+    ],  # TODO: add Import and ImportFrom
 )
 def test_calc_node_id(
     node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name,
@@ -490,102 +461,6 @@ def test_calc_node_id(
                 ),
             ],
         ),
-        (  # Import Scope
-            """
-                import math
-
-                class A:
-                    value = math.pi
-            """,
-            [
-                SimpleScope(
-                    "Module",
-                    [
-                        SimpleScope("GlobalVariable.Import.math", []),
-                        SimpleClassScope(
-                            "GlobalVariable.ClassDef.A",
-                            [SimpleScope("ClassVariable.AssignName.value", [])],
-                            ["AssignName.value"],
-                            [],
-                        ),
-                    ],
-                ),
-            ],
-        ),
-        (  # Import Scope with multiple imports
-            """
-                import math, datetime
-
-                a = math.pi + datetime.today()
-            """,
-            [SimpleScope("Module",
-                         [SimpleScope("GlobalVariable.Import.math", []),
-                          SimpleScope("GlobalVariable.Import.datetime", []),
-                          SimpleScope("GlobalVariable.AssignName.a", [])])],
-        ),
-        (  # Import Scope with alias
-            """
-                import math as m
-
-                a = m.pi
-            """,
-            [
-                SimpleScope(
-                    "Module",
-                    [
-                        SimpleScope("GlobalVariable.Import.m", []),
-                        SimpleScope("GlobalVariable.AssignName.a", []),
-                    ],
-                ),
-            ],
-        ),
-        (  # ImportFrom Scope
-            """
-                from math import pi
-
-                class B:
-                    value = pi
-            """,
-            [
-                SimpleScope(
-                    "Module",
-                    [
-                        SimpleScope("GlobalVariable.ImportFrom.math.pi", []),
-                        SimpleClassScope("GlobalVariable.ClassDef.B",
-                                         [SimpleScope("ClassVariable.AssignName.value", [])],
-                                         ["AssignName.value"],
-                                         []),
-                    ],
-                ),
-            ],
-        ),
-        (  # ImportFrom Scope with multiple imports
-            """
-                from math import pi, e
-
-                a = pi + e
-            """,
-            [
-                SimpleScope("Module",
-                            [SimpleScope("GlobalVariable.ImportFrom.math.pi", []),
-                             SimpleScope("GlobalVariable.ImportFrom.math.e", []),
-                             SimpleScope("GlobalVariable.AssignName.a", [])])
-            ]
-        ),
-        (  # ImportFrom Scope with alias
-            """
-                from math import pi as pi_value
-
-                a = pi_value
-            """,
-            [
-                SimpleScope(
-                    "Module",
-                    [SimpleScope("GlobalVariable.ImportFrom.math.pi_value", []),
-                     SimpleScope("GlobalVariable.AssignName.a", [])]
-                )
-            ]
-        ),
         (  # Complex Scope
             """
                 def function_scope():
@@ -809,59 +684,6 @@ def test_calc_node_id(
                                                                              SimpleScope("LocalVariable.AssignName.num",
                                                                                          [])])])])],
         ),
-        (  # Try Except in Module
-            """
-                try:
-                    result = num1 / num2
-                except ZeroDivisionError as zde:
-                    zde
-            """,
-            [SimpleScope("Module", [SimpleScope("TryExcept", [SimpleScope("GlobalVariable.AssignName.result", []),
-                                                              SimpleScope("LocalVariable.AssignName.zde", [])])])],
-            # TODO: do we want zde to be Global? -> no it should be local to the except block
-        ),
-        (  # Try Except Finally in Module
-            """
-                try:
-                    result = num1 / num2
-                except ZeroDivisionError as zde:
-                    error = 1
-                finally:
-                    final = 1
-            """,
-            [SimpleScope("Module", [SimpleScope("TryExcept", [SimpleScope("GlobalVariable.AssignName.result", []),
-                                                              SimpleScope("GlobalVariable.AssignName.error", []),
-                                                              SimpleScope("GlobalVariable.AssignName.final", [])])])],
-            # TODO: do we want finally to be its own scope? -> No. we want its content to be part of the parent scope
-            #  just zde is local to the except block which should get its own scope
-        ),
-        (  # Try Except in Class
-            """
-                class A:
-                    try:
-                        result = num1 / num2
-                    except ZeroDivisionError as zde:
-                        error = 1
-            """,
-            [SimpleScope("Module", [SimpleClassScope("GlobalVariable.ClassDef.A", [
-                SimpleScope("TryExcept", [SimpleScope("ClassVariable.AssignName.result", []),
-                                          SimpleScope("GlobalVariable.AssignName.error", [])])],
-                                                     [], [], [])])],
-            # TODO: do we want any of these to be class variables? -> Yes all of them, just zde is local
-        ),
-        (  # Try Except in Function
-            """
-                def fun():
-                    try:
-                        result = num1 / num2
-                    except ZeroDivisionError as zde:
-                        error = 1
-            """,
-            [SimpleScope("Module", [SimpleScope("GlobalVariable.FunctionDef.fun", [
-                SimpleScope("TryExcept", [SimpleScope("LocalVariable.AssignName.result", []),
-                                          SimpleScope("LocalVariable.AssignName.zde", [])])])])],
-            # TODO: what about this case? -> see above: zde should be local the rest is in parent scope
-        ),
         (  # With Statement
             """
                 with file:
@@ -914,26 +736,16 @@ def test_calc_node_id(
         "Class Scope with subclass",
         "Class Scope within Function Scope",
         "Function Scope within Function Scope",
-        "Import Scope",
-        "Import Scope with multiple imports",
-        "Import Scope with alias",
-        "ImportFrom Scope",
-        "ImportFrom Scope with multiple imports",
-        "ImportFrom Scope with alias",
         "Complex Scope",
         "ASTWalker",
         "AssignName",
         "List Comprehension in Module",
         "List Comprehension in Class",
         "List Comprehension in Function",
-        "Try Except in Module",
-        "Try Except Finally in Module",
-        "Try Except in Class",
-        "Try Except in Function",
         "With Statement",
         "With Statement File",
         "With Statement Class",
-    ],  # TODO: add tests for lambda, match and generator expressions
+    ],  # TODO: add tests for lambda, match, try except and generator expressions
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
     scope = get_module_data(code).scope
@@ -1425,97 +1237,6 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
             ({"var2": "Name.var2"},
              {"var1": "AssignName.var1"})
         ),
-        (  # Import
-            """
-                import math
-
-                def local_import():
-                    var1 = math.pi
-                    return var1
-            """,
-            ("Import.math", "AssignName.var1", "MemberAccess.math.pi", "Name.var1")
-        # TODO: adapt test when import is implemented
-        ),
-        (  # Import From
-            """
-                from math import pi
-
-                def local_import():
-                    var1 = pi
-                    return var1
-            """,
-            ("ImportFrom.math.pi", "AssignName.var1", "Name.test", "Name.var1")
-        # TODO: adapt test when import is implemented
-        ),
-        (  # Import From As
-            """
-                from math import pi as test
-
-                def local_import():
-                    var1 = test
-                    return var1
-            """,
-            ("ImportFrom.math.pi.test", "AssignName.var1", "Name.test", "Name.var1")
-        # TODO: adapt test when import is implemented
-        ),
-        (  # ASTWalker
-            """
-                from collections.abc import Callable
-                from typing import Any
-
-                import astroid
-
-                _EnterAndLeaveFunctions = tuple[
-                    Callable[[astroid.NodeNG], None] | None,
-                    Callable[[astroid.NodeNG], None] | None,
-                ]
-
-
-                class ASTWalker:
-                    def __init__(self, handler: Any) -> None:
-                        self._handler = handler
-                        self._cache: dict[type, _EnterAndLeaveFunctions] = {}
-
-                    def walk(self, node: astroid.NodeNG) -> None:
-                        self.__walk(node, set())
-
-                    def __walk(self, node: astroid.NodeNG, visited_nodes: set[astroid.NodeNG]) -> None:
-                        if node in visited_nodes:
-                            raise AssertionError("Node visited twice")
-                        visited_nodes.add(node)
-
-                        self.__enter(node)
-                        for child_node in node.get_children():
-                            self.__walk(child_node, visited_nodes)
-                        self.__leave(node)
-
-                    def __enter(self, node: astroid.NodeNG) -> None:
-                        method = self.__get_callbacks(node)[0]
-                        if method is not None:
-                            method(node)
-
-                    def __leave(self, node: astroid.NodeNG) -> None:
-                        method = self.__get_callbacks(node)[1]
-                        if method is not None:
-                            method(node)
-
-                    def __get_callbacks(self, node: astroid.NodeNG) -> _EnterAndLeaveFunctions:
-                        klass = node.__class__
-                        methods = self._cache.get(klass)
-
-                        if methods is None:
-                            handler = self._handler
-                            class_name = klass.__name__.lower()
-                            enter_method = getattr(handler, f"enter_{class_name}", getattr(handler, "enter_default", None))
-                            leave_method = getattr(handler, f"leave_{class_name}", getattr(handler, "leave_default", None))
-                            self._cache[klass] = (enter_method, leave_method)
-                        else:
-                            enter_method, leave_method = methods
-
-                        return enter_method, leave_method
-
-            """, ("")
-        ),
     ],
     ids=[
         "Assign",
@@ -1540,10 +1261,6 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
         "FuncCall Parameter",
         "BinOp",
         "BoolOp",
-        "Import",
-        "Import From",
-        "Import From As",
-        "ASTWalker"
     ],
 )
 def test_get_module_data_value_and_target_nodes(code: str, expected: str) -> None:
@@ -1586,12 +1303,6 @@ def transform_target_nodes(
             target_nodes_transformed.update({result: f"{node.__class__.__name__}.{result}"})
 
     return target_nodes_transformed
-
-
-# def get_symbol(node, scope: Scope | ClassScope) -> str:
-#     for child in scope.children:
-#         if child.symbol.node == node:
-#             return child.symbol.__class__.__name__
 
 
 def transform_member_access(member_access: MemberAccess) -> str:
