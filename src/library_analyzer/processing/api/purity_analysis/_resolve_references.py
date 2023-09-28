@@ -148,9 +148,8 @@ def _find_references(value_reference: ReferenceNode,
         # and are not the receiver of a MemberAccess (because they are already added)
         if ref.node.name == value_reference.node.name and not isinstance(ref.node.parent, astroid.AssignAttr):
             # Add parameters only if the name parameter is declared in the same scope as the value_reference
-            if ref.scope.symbol.node in parameters.keys():
-                if not ref.scope == value_reference.scope:
-                    continue
+            if ref.scope.symbol.node in parameters.keys() and not ref.scope == value_reference.scope:
+                continue
 
             # This covers the case where a parameter has the same name as a class variable:
             # class A:

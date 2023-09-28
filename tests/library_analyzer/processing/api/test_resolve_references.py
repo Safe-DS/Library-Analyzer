@@ -1615,7 +1615,9 @@ State(0).state
 #     def state(self, value):
 #         self._state = value
 #
-# State(10).state
+# a = State(1)
+#
+# a.state = 2
 #             """,  # language=none
 #             [
 #              ReferenceTestNode("value.line14", "FunctionDef.state", ["Parameter.value.line13"]),

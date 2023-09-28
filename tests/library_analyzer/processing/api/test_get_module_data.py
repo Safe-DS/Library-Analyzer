@@ -777,8 +777,8 @@ def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope
                     if c_str is not None:
                         class_vars_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
 
-            for child in node.super_classes:
-                c_str = to_string_class(child)
+            for klass in node.super_classes:
+                c_str = to_string_class(klass)
                 if c_str is not None:
                     super_classes_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
 
