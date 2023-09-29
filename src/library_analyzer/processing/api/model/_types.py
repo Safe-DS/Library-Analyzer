@@ -93,8 +93,7 @@ class EnumType(AbstractType):
     def from_string(cls, string: str) -> EnumType | None:
         def remove_backslash(e: str) -> str:
             e = e.replace(r"\"", '"')
-            e = e.replace(r"\'", "'")
-            return e
+            return e.replace(r"\'", "'")
 
         enum_match = re.search(r"{(.*?)}", string)
         if enum_match:
@@ -130,7 +129,7 @@ class EnumType(AbstractType):
         return EnumType(frozenset(values))
 
     def to_dict(self) -> dict[str, Any]:
-        return {"kind": self.__class__.__name__, "values": set(self.values)}
+        return {"kind": self.__class__.__name__, "values": sorted(self.values)}
 
 
 @dataclass(frozen=True)
