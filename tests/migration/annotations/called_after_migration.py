@@ -222,13 +222,13 @@ def migrate_called_after_annotation_data_one_to_one_mapping__no_mapping_found() 
         reviewResult=EnumReviewResult.NONE,
         calledAfterName="test_before",
     )
-    annotationv2 = CalledAfterAnnotation(
+    annotationv2 = TodoAnnotation(
         target="test/test.called_after.test3.test/NewClass/new_test_after",
         authors=["testauthor", migration_author],
         reviewers=[],
-        comment=get_migration_text(annotationv1, mapping_after),
-        reviewResult=EnumReviewResult.UNSURE,
-        calledAfterName="test_before",
+        comment="",
+        reviewResult=EnumReviewResult.NONE,
+        newTodo=get_migration_text(annotationv1, mapping_after, for_todo_annotation=True),
     )
     return mapping_after, annotationv1, [annotationv2]
 

@@ -14,9 +14,7 @@ from library_analyzer.processing.api.model import (
     Result,
 )
 from library_analyzer.processing.migration.model import (
-    ManyToOneMapping,
     Mapping,
-    OneToOneMapping,
 )
 
 from ._constants import migration_author
@@ -52,42 +50,17 @@ def _was_moved(
     )
 
 
-def migrate_move_annotation(move_annotation: MoveAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
-    move_annotation = deepcopy(move_annotation)
-    authors = move_annotation.authors
-    authors.append(migration_author)
-    move_annotation.authors = authors
-
-    if isinstance(mapping, ManyToOneMapping | OneToOneMapping):
-        element = mapping.get_apiv2_elements()[0]
-        if isinstance(element, Attribute | Result):
-            return []
-        if not is_moveable(element):
-            return [
-                TodoAnnotation(
-                    element.id,
-                    authors,
-                    move_annotation.reviewers,
-                    move_annotation.comment,
-                    EnumReviewResult.NONE,
-                    get_migration_text(move_annotation, mapping, for_todo_annotation=True),
-                ),
-            ]
-        if _was_moved(
-            get_annotated_api_element(move_annotation, mapping.get_apiv1_elements()),
-            element,
-            move_annotation,
-        ):
-            move_annotation.reviewResult = EnumReviewResult.UNSURE
-        move_annotation.target = element.id
-        return [move_annotation]
-
-    annotated_apiv1_element = get_annotated_api_element(move_annotation, mapping.get_apiv1_elements())
+def migrate_move_annotation(origin_annotation: MoveAnnotation, mapping: Mapping) -> list[AbstractAnnotation]:
+    annotated_apiv1_element = get_annotated_api_element(origin_annotation, mapping.get_apiv1_elements())
     if annotated_apiv1_element is None:
         return []
 
-    move_annotations: list[AbstractAnnotation] = []
+    migrated_annotations: list[AbstractAnnotation] = []
     for element in mapping.get_apiv2_elements():
+        move_annotation = deepcopy(origin_annotation)
+        authors = move_annotation.authors
+        authors.append(migration_author)
+        move_annotation.authors = authors
         if (
             isinstance(element, type(annotated_apiv1_element))
             and is_moveable(element)
@@ -102,18 +75,11 @@ def migrate_move_annotation(move_annotation: MoveAnnotation, mapping: Mapping) -
                 )
                 else EnumReviewResult.NONE
             )
-            move_annotations.append(
-                MoveAnnotation(
-                    element.id,
-                    authors,
-                    move_annotation.reviewers,
-                    move_annotation.comment,
-                    review_result,
-                    move_annotation.destination,
-                ),
-            )
+            move_annotation.target = element.id
+            move_annotation.reviewResult = review_result
+            migrated_annotations.append(move_annotation)
         elif not isinstance(element, Attribute | Result):
-            move_annotations.append(
+            migrated_annotations.append(
                 TodoAnnotation(
                     element.id,
                     authors,
@@ -123,4 +89,4 @@ def migrate_move_annotation(move_annotation: MoveAnnotation, mapping: Mapping) -
                     get_migration_text(move_annotation, mapping, for_todo_annotation=True),
                 ),
             )
-    return move_annotations
+    return migrated_annotations
