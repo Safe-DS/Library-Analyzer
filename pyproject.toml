@@ -17,7 +17,7 @@ analyze-library = "library_analyzer.main:main"
 
 [tool.poetry.dependencies]
 python = "^3.10,<3.12"
-astroid = "^2.14.2"
+astroid = ">=2.14.2,<4.0.0"
 black = "^23.1.0"
 levenshtein = ">=0.20.9,<0.23.0"
 scipy = "^1.10.1"
