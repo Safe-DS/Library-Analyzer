@@ -347,6 +347,7 @@ def resolve_references(code: str) -> list[ReferenceNode]:
     ----------
         * code: the code of the module for which we want to resolve the references
 
+
     Returns
     -------
         * resolved_references: a list of all resolved references in the module
