@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC
-from dataclasses import dataclass, field
 from enum import Enum, auto
 
 import astroid
@@ -19,6 +17,12 @@ from library_analyzer.processing.api.purity_analysis.model import (
     SystemInteraction,
     VariableRead,
     VariableWrite,
+    FunctionID,
+    PurityInformation,
+    PurityResult,
+    DefinitelyImpure,
+    DefinitelyPure,
+    MaybeImpure,
 )
 from library_analyzer.utils import ASTWalker
 
@@ -45,52 +49,6 @@ BUILTIN_FUNCTIONS = {
     ),
     "close": BuiltInFunction(Reference("close"), ConcreteImpurityIndicator(), ImpurityCertainty.DEFINITELY_PURE),
 }
-
-
-@dataclass
-class FunctionID:
-    module: str
-    name: str
-    line: int
-    col: int
-
-    def __str__(self) -> str:
-        return f"{self.module}.{self.name}.{self.line}.{self.col}"
-
-
-class PurityResult(ABC):  # noqa: B024
-    def __init__(self) -> None:
-        self.reasons: list[ImpurityIndicator] = []
-
-
-@dataclass
-class DefinitelyPure(PurityResult):
-    reasons: list = field(default_factory=list)
-
-
-@dataclass
-class MaybeImpure(PurityResult):
-    reasons: list[ImpurityIndicator]
-
-    # def __hash__(self) -> int:
-
-
-@dataclass
-class DefinitelyImpure(PurityResult):
-    reasons: list[ImpurityIndicator]
-
-    # def __hash__(self) -> int:
-
-
-@dataclass
-class PurityInformation:
-    id: FunctionID
-    reasons: list[ImpurityIndicator]
-
-    # def __hash__(self) -> int:
-
-    # def __eq__(self, other: object) -> bool:
-    #     if not isinstance(other, PurityInformation):
 
 
 class PurityHandler:
