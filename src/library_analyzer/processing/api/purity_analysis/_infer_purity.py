@@ -23,6 +23,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     DefinitelyImpure,
     DefinitelyPure,
     MaybeImpure,
+    ReferenceNode,
 )
 from library_analyzer.utils import ASTWalker
 
@@ -291,3 +292,10 @@ def get_purity_result_str(indicators: list[ImpurityIndicator]) -> str:
         return "Definitely Impure"
 
     return "Maybe Impure"
+
+
+def infer_purity_new(references: list[ReferenceNode]):
+    purity_cache = {}
+    for reference in references:
+        if isinstance(reference, Call):
+            pass

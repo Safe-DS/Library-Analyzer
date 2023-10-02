@@ -12,6 +12,8 @@ from library_analyzer.processing.api.purity_analysis import (
     determine_purity,
     extract_impurity_reasons,
     infer_purity,
+    resolve_references,
+    infer_purity_new,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
     AttributeAccess,
@@ -26,47 +28,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
 )
 
 
-@pytest.mark.parametrize(
-    ("code", "expected"),
-    [
-        (
-            """
-                def fun1(a):
-                    h(a)
-                    return a
-            """,
-            ".fun1.2.0",
-        ),
-        (
-            """
-
-                def fun2(a):
-                    a = 1
-                    return a
-            """,
-            ".fun2.3.0",
-        ),
-        (
-            """
-                a += 1 # not a function => TypeError
-            """,
-            None,
-        ),
-    ],
-)
-def test_calc_function_id(code: str, expected: str) -> None:
-    module = astroid.parse(code)
-    function_node = module.body[0]
-    if expected is None:
-        with pytest.raises(TypeError):
-            calc_function_id(function_node)
-
-    else:
-        result = calc_function_id(function_node)
-        assert str(result) == expected
-
-
-# since we only look at FunctionDefs we can not use other types of CodeSnippets
 @pytest.mark.parametrize(
     ("purity_result", "expected"),
     [
@@ -359,58 +320,160 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
         assert purity_info[0].reasons == expected
 
 
-# @pytest.mark.parametrize(
-#     "code, expected",
-#             """
-#                 def impure_fun(a):
-#             """,
-#             [Call(expression=Reference(name='impure_call(a)')),
-#              Call(expression=Reference(name='impure_call(a)'))],
-#         ),
-#             """
-#                 def pure_fun(a):
-#             """,
-#         ),
-#             """
-#                 class A:
-#                     def __init__(self):
-#
-#
-#                 def instance(a):
-#             """,
-#             [VariableWrite(expression=InstanceAccess(
-#             ))],  # TODO: is this correct?
-#         ),
-#             """
-#                 class B:
-#
-#
-#                 def attribute(b):
-#             """,
-#         ),
-#             """
-#                 def global_access():
-#             """,
-#         ),
-#             """
-#                 def parameter_access(a):
-#             """,
-#             [Call(expression=ParameterAccess(
-#                 function="parameter_access"),
-#             )],  # TODO: is this correct?
-#         ),
-#             """
-#                 # function call and therefore further analysis is needed
-#             """,
-#             [VariableWrite(expression=Reference(name='b = g(a)')),
-#              Call(expression=Reference(name="g(1)"))],  # TODO: is this correct?
-#         ),
-#             """
-#                 def fun(a):
-#             """,
-#             [Call(expression=Reference(name='h(a)')),
-#              Call(expression=Reference(name='g(a)'))],  # TODO: is this correct?
-#         ),
-#
-#
-# def test_infer_purity_basics(code: str, expected: list[ImpurityIndicator]) -> None:
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "Pure function"
+            """
+def fun():
+    return 2  # Pure
+
+a = fun()
+            """,  # language= None
+            [],
+        ),
+        (  # language=Python "Pure function with parameter"
+            """
+def fun(x):
+    return 2 * x  # Pure
+
+a = fun(1)
+            """,  # language= None
+            [],
+        ),
+        (  # language=Python "VariableWrite to LocalVariable"
+            """
+def fun():
+    var1 = 2  # Pure: VariableWrite to LocalVariable
+    return var1
+
+a = fun()
+            """,  # language= None
+            [],
+        ),
+        (  # language=Python "VariableWrite to LocalVariable with parameter"
+            """
+def fun(x):
+    var1 = x  # Pure: VariableWrite to LocalVariable
+    return var1
+
+a = fun(2)
+            """,  # language= None
+            [],
+        ),
+        (  # language=Python "VariableRead from LocalVariable"
+            """
+def fun():
+    var1 = 1  # Pure: VariableRead from LocalVariable
+    return var1
+
+a = fun()
+            """,  # language= None
+            [],
+        ),
+        (  # language=Python "Call of Pure Function"
+            """
+def fun1():
+    res = fun2()  # Pure: Call of Pure Function
+    return res
+
+def fun2():
+    return 1  # Pure
+
+a = fun1()
+            """,  # language= None
+            [],
+        ),
+    ],
+    ids=[
+        "pure function",
+        "pure function with parameter",
+        "VariableWrite to LocalVariable",
+        "VariableWrite to LocalVariable with parameter",
+        "VariableRead from LocalVariable",
+        "Call of Pure Function",
+    ],
+)
+def test_infer_purity_pure(code: str, expected: list[ImpurityIndicator]) -> None:
+    references = resolve_references(code)
+
+    purity_results = infer_purity_new(references)
+
+    assert purity_results == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "SystemInteraction"
+            """
+def fun():
+    print("text")  # Impure: SystemInteraction
+
+fun()
+            """,
+            []
+        ),
+        (  # language=Python "SystemInteraction with parameter"
+            """
+def local_parameter(pos_arg):
+    print(pos_arg)  # Impure: SystemInteraction
+
+local_parameter(1)
+            """,
+            []
+        ),
+        (  # language=Python "VariableWrite to GlobalVariable"
+            """
+var1 = 1
+def fun():
+    global var1
+    var1 = 2  # Impure: VariableWrite to GlobalVariable
+    return var1
+
+a = fun()
+            """,  # language= None
+            [],
+        ),
+        (  # language=Python "VariableRead from GlobalVariable"
+            """
+var1 = 1
+def fun():
+    global var1
+    res = var1  # Impure: VariableWrite to GlobalVariable
+    return res
+
+a = fun()
+            """,  # language= None
+            [],
+        ),
+        (  # language=Python "Call of Impure Function"
+            """
+var1 = 1
+def fun1():
+    res = fun2()  # Impure: Call of Impure Function
+    return res
+
+def fun2():
+    global var1
+    return var1  # Impure: VariableRead from GlobalVariable
+
+a = fun1()
+            """,  # language= None
+            [],
+        ),
+    ],
+    ids=[
+        "SystemInteraction",
+        "SystemInteraction with parameter",
+        "VariableWrite to GlobalVariable",
+        "VariableRead from GlobalVariable",
+        "Call of Impure Function",
+    ],
+)
+def test_infer_purity_impure(code: str, expected: list[ImpurityIndicator]) -> None:
+    references = resolve_references(code)
+
+    purity_results = infer_purity_new(references)
+
+    assert purity_results == expected
