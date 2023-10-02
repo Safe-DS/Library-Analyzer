@@ -32,3 +32,5 @@ def _run_api_command(
     api_dependencies = get_dependencies(api)
     out_file_api_dependencies = out_dir_path.joinpath(f"{package}__api_dependencies.json")
     api_dependencies.to_json_file(out_file_api_dependencies)
+
+    # TODO: call resolve_references here
