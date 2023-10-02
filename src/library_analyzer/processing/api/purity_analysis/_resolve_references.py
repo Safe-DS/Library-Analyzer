@@ -343,10 +343,6 @@ def resolve_references(code: str) -> list[ReferenceNode]:
     First we get the module data for the given (module) code.
     Then we call the functions to find all references in the module.
 
-    Parameters
-    ----------
-        * code: the code of the module which we want to analyse (resolve references)
-
     Returns
     -------
         * resolved_references: a list of all resolved references in the module
