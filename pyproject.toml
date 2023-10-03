@@ -16,7 +16,7 @@ packages = [
 analyze-library = "library_analyzer.main:main"
 
 [tool.poetry.dependencies]
-python = "^3.10,<3.12"
+python = "^3.11,<3.13"
 astroid = "^2.14.2"
 black = "^23.1.0"
 levenshtein = ">=0.20.9,<0.23.0"
