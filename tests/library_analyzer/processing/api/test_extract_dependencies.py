@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypeAlias
 
 import pytest
 from library_analyzer.processing.api import (
@@ -16,6 +16,47 @@ from library_analyzer.processing.api import (
     extract_param_dependencies,
 )
 from library_analyzer.processing.api._extract_dependencies import ParameterHasNotValue
+
+_CONDTION_TYPE: TypeAlias = ParametersInRelation | ParameterHasValue | ParameterHasNotValue | ParameterIsNone | ParameterHasType | ParameterDoesNotHaveType | Condition
+_ACTION_TYPE: TypeAlias = ParameterIsIgnored | ParameterIsIllegal | ParameterWillBeSetTo | ParameterIsRestricted | Action
+
+
+def _assert_condition(extracted: _CONDTION_TYPE, expected: _CONDTION_TYPE) -> None:
+    assert type(extracted) is type(expected)
+    assert extracted == expected
+
+    match extracted:
+        case ParametersInRelation():
+            assert extracted.left_dependee == expected.left_dependee
+            assert extracted.right_dependee == expected.right_dependee
+            assert extracted.rel_op == expected.rel_op
+        case ParameterHasValue():
+            print(f"EXTRACTED: {extracted.check_dependee}, EXPECTED: {expected.check_dependee}")
+            assert extracted.check_dependee == expected.check_dependee
+            assert extracted.value == expected.value
+            assert extracted.also == expected.also
+        case ParameterIsNone():
+            assert extracted.also == expected.also
+        case ParameterHasType() | ParameterDoesNotHaveType():
+            assert extracted.type_ == expected.type_
+
+    if extracted.combined_with:
+        assert len(extracted.combined_with) == len(expected.combined_with)
+
+        for idx, extracted_cond in enumerate(extracted.combined_with):
+            _assert_condition(extracted_cond, expected.combined_with[idx])
+
+
+def _assert_action(extracted: _ACTION_TYPE, expected: _ACTION_TYPE) -> None:
+    assert type(extracted) is type(expected)
+    assert extracted == expected
+
+    match extracted:
+        case ParameterIsIgnored():
+            assert extracted.dependee == expected.dependee
+        case ParameterWillBeSetTo():
+            assert extracted.depender == expected.depender
+            assert extracted.value_ == expected.value_
 
 
 @pytest.mark.parametrize(
@@ -109,9 +150,9 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                                 "only when the solver liblinear is used",
                                 "solver",
                                 "liblinear",
+                                check_dependee=True,
                             ),
                         ],
-                        check_dependee=True,
                     ),
                     ParameterIsIgnored("not ignored"),
                 ),
@@ -205,6 +246,28 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 (
                     "random_state",
                     ParameterHasValue("Used when solver equals sag", "solver", "sag"),
+                    ParameterIsIgnored("not ignored"),
+                ),
+                (
+                    "random_state",
+                    ParameterHasValue("Used when solver equals saga", "solver", "saga"),
+                    ParameterIsIgnored("not ignored"),
+                ),
+            ],
+        ),
+        # test was derived from the previous test case
+        (
+            "random_state",
+            "Used when solver == 'sag', 'adam', or 'saga' to shuffle the data.",
+            [
+                (
+                    "random_state",
+                    ParameterHasValue("Used when solver equals sag", "solver", "sag"),
+                    ParameterIsIgnored("not ignored"),
+                ),
+                (
+                    "random_state",
+                    ParameterHasValue("Used when solver equals adam", "solver", "adam"),
                     ParameterIsIgnored("not ignored"),
                 ),
                 (
@@ -464,7 +527,7 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                     ParameterHasValue(
                         "Used for initialisation (when init equals nndsvdar",
                         "init",
-                        "nndsvar"
+                        "nndsvdar"
                     ),
                     ParameterIsIgnored("not ignored")
                 ),
@@ -479,14 +542,62 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 )
             ]
         ),
+        # https://github.com/scikit-learn/scikit-learn/blob/93e22cdd8dff96fa3870475f40e435083bce8ad0/sklearn/decomposition/_dict_learning.py#L2013C75-L2014C31
+        (
+            "max_no_improvement",
+            "Used only if `max_iter` is not None.",
+            [
+                (
+                    "max_no_improvement",
+                    ParameterHasValue(
+                        "Used only if max_iter is not None",
+                        "max_iter",
+                        "not None"
+                    ),
+                    ParameterIsIgnored("not ignored")
+                ),
+            ]
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/93e22cdd8dff96fa3870475f40e435083bce8ad0/sklearn/decomposition/_nmf.py#L1474C1-L1475C46
+        (
+            "random_state",
+            " Used for initialisation (when ``init`` == 'nndsvdar' or 'random'), and in Coordinate Descent.",
+            [
+                (
+                    "random_state",
+                    ParameterHasValue(
+                        "Used for initialisation (when init equals nndsvdar",
+                        "init",
+                        "nndsvdar"
+                    ),
+                    ParameterIsIgnored("not ignored")
+                ),
+                (
+                    "random_state",
+                    ParameterHasValue(
+                        "Used for initialisation (when init equals random",
+                        "init",
+                        "random"
+                    ),
+                    ParameterIsIgnored("not ignored")
+                ),
+            ]
+        ),
     ],
 )
 def test_extract_param_dependencies(
     param_name: str,
     description: str,
-    expected_dependencies: list[tuple[str, Condition, Action]],
+    expected_dependencies: list[tuple[str, _CONDTION_TYPE, _ACTION_TYPE]],
 ) -> None:
-    assert extract_param_dependencies(param_name, description) == expected_dependencies
+    extracted_dependencies = extract_param_dependencies(param_name, description)
+
+    assert len(extracted_dependencies) == len(expected_dependencies)
+
+    for idx, extracted_dep in enumerate(extracted_dependencies):
+        expected_dep: tuple[str, _CONDTION_TYPE, _ACTION_TYPE] = expected_dependencies[idx]
+        _assert_condition(extracted_dep[1], expected_dep[1])
+        _assert_action(extracted_dep[2], expected_dep[2])
 
 
 @pytest.mark.parametrize(

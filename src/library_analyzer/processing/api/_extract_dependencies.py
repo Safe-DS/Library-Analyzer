@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 from spacy import Language
 from spacy.matcher import DependencyMatcher, Matcher
@@ -14,45 +14,52 @@ if TYPE_CHECKING:
     from spacy.tokens import Doc, Token
 
 current_name = ""
-log_dict = {
-    "L354": "",
-    "L356": "",
-    "L481": "",
-    "L496": "",
-    "L567": "",
-    "L590": "",
-    "L633": "",
-    "L649": "",
-    "L692": "",
-    "L694": "",
-    "L700": "",
-    "L798": "",
-    "L808": "",
-    "L850": "",
-    "L900": "",
-    "L939": "",
-    "L958": "",
-    "L1041": "",
-    "L1092": "",
-    "L1107": "",
-    "L1112": "",
-    "L1116": "",
-    "L1118": "",
-    "L1120": "",
-    "L1122": "",
-    "L1125": "",
-    "L1129": "",
-    "L1131": "",
-    "L1134": "",
-    "L1138": "",
-    "L1140": "",
-    "L1142": "",
-}
+# log_dict = {
+#     "L354": [],
+#     "L356": [],
+#     "L481": [],
+#     "L496": [],
+#     "L567": [],
+#     "L590": [],
+#     "L633": [],
+#     "L649": [],
+#     "L692": [],
+#     "L694": [],
+#     "L700": [],
+#     "L798": [],
+#     "L808": [],
+#     "L850": [],
+#     "L900": [],
+#     "L939": [],
+#     "L958": [],
+#     "L1041": [],
+#     "L1092": [],
+#     "L1107": [],
+#     "L1112": [],
+#     "L1116": [],
+#     "L1118": [],
+#     "L1120": [],
+#     "L1122": [],
+#     "L1125": [],
+#     "L1129": [],
+#     "L1131": [],
+#     "L1134": [],
+#     "L1138": [],
+#     "L1140": [],
+#     "L1142": [],
+# }
+
+log_dict = {}
 
 
-def update_log(line, c=False):
-    if log_dict[line] == "" and c:
-        log_dict[line] = current_name
+def update_log(line, c=False, p=True):
+    if c:
+        if log_dict.get(line, None) is None:
+            log_dict[line] = [current_name]
+        elif len(log_dict[line]) != 5:
+            log_dict[line].append(current_name)
+    if p:
+        print(line)
 
 
 def get_log():
@@ -522,7 +529,6 @@ def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) 
         elif token_text == ")":
             right_bracket_idx = token.i
 
-
     value_idxs_cnt = len(has_value_idxs) + len(special_value_idxs)
 
     if seperator_idxs and left_bracket_idx != -1 and right_bracket_idx != -1:
@@ -617,13 +623,13 @@ def _add_condition(dependee: str, value: str, cond_str: str, passive: bool = Fal
 
     """
     cond: Condition
+    type_ = ""
+
     if value in types:
         update_log("L567")
         type_ = value
     elif len(value.split(" ")) == 2:
         type_ = value.split(" ")[1].lower()
-    else:
-        type_ = ""
 
     if value in _none_phrases or dependee in _none_phrases:
         dependee_ = dependee if dependee not in _none_phrases else value
@@ -744,34 +750,34 @@ def _extract_only_condition_action(
     condition_string = doc[start:end].text
 
     dependee, value = _extract_dependee_value(action_token)
-    if action_token.nbor(1).text in _encoded_rel_ops:
-        update_log("L692")
-        left_dependee_token = action_token
-        rel_op_token = action_token.nbor(1)
-        right_dependee_token = action_token.nbor(2)
+    # if action_token.nbor(1).text in _encoded_rel_ops:
+    #     update_log("L692")
+    #     left_dependee_token = action_token
+    #     rel_op_token = action_token.nbor(1)
+    #     right_dependee_token = action_token.nbor(2)
+    #
+    #     update_log("L694")
+    #     cond_str = (
+    #         doc[: left_dependee_token.i + 1].text
+    #         + f" {_encoded_rel_ops[rel_op_token.text]} "
+    #         + doc[right_dependee_token.i].text
+    #     )
+    #
+    #     update_log("L700")
+    #     _condition_list.append(
+    #         ParametersInRelation(
+    #             cond_str,
+    #             left_dependee_token.text,
+    #             right_dependee_token.text,
+    #             _encoded_rel_ops[rel_op_token.text],
+    #         ),
+    #     )
+    #
+    # else:
+    if len(value.split()) == 2:
+        condition_string += " " + doc[end].text
 
-        update_log("L694")
-        cond_str = (
-            doc[: left_dependee_token.i + 1].text
-            + f" {_encoded_rel_ops[rel_op_token.text]} "
-            + doc[right_dependee_token.i].text
-        )
-
-        update_log("L700")
-        _condition_list.append(
-            ParametersInRelation(
-                cond_str,
-                left_dependee_token.text,
-                right_dependee_token.text,
-                _encoded_rel_ops[rel_op_token.text],
-            ),
-        )
-
-    else:
-        if len(value.split()) == 2:
-            condition_string += " " + doc[end].text
-
-        _add_condition(dependee, value, condition_string)
+    _add_condition(dependee, value, condition_string)
 
     _action_list.append(ParameterIsIgnored("not ignored"))
 
@@ -866,9 +872,9 @@ def _extract_ignored_condition_action(
 
         if verb_before_ignored in ["is", "are"]:
             ignored_parameter = doc[ignored_idx - 2].text
-        elif verb_before_ignored == "be":
+        elif verb_before_ignored == "will be":
             update_log("L808")
-            ignored_parameter = doc[ignored_idx - 3].text
+            ignored_parameter = doc[ignored_idx - 2].text
 
         if ignored_parameter.lower() in ["this", "it", "parameter"]:
             ignored_parameter = "this_parameter"
@@ -907,6 +913,10 @@ def _extract_pure_only_condition_action(
     action_token = doc[match[1][2]]
     start = min(match[1])
     end = max(match[1]) + 2
+
+    only_token = doc[match[1][1]]
+    if only_token.i > 0 and only_token.nbor(-1).text == "Used":
+        return None
 
     token_before_end = doc[end - 1]
     if token_before_end.text == "not" or token_before_end.pos_ == "DET":
@@ -1024,11 +1034,13 @@ def _extract_relational_condition(
     action_string_doc = doc[: match_[1][1]]
     action_string = action_string_doc.text
 
-    if action_string[0:2] == "must be" and action_string_doc[3].pos_ != "SCONJ":
-        update_log("L958")
-        _action_list.append(ParameterIsRestricted(action_string))
-    else:
-        _action_list.append(ParameterWillBeSetTo(action_string, depender, value))
+    # if action_string[0:2] == "must be" and action_string_doc[3].pos_ != "SCONJ":
+    #     update_log("L958")
+    #     _action_list.append(ParameterIsRestricted(action_string))
+    # else:
+    #     _action_list.append(ParameterWillBeSetTo(action_string, depender, value))
+
+    _action_list.append(ParameterWillBeSetTo(action_string, depender, value))
 
     return None
 
@@ -1159,12 +1171,14 @@ def _extract_cond_also_value(
     action_string_doc = doc[action_start:action_end]
     action_string = action_string_doc.text
 
-    if action_string[0:2] == "must be" and action_string_doc[3].pos_ != "SCONJ":
-        update_log("L1092")
-        action_string = doc[action_start - 1 : action_end].text
-        _action_list.append(ParameterIsRestricted(action_string))
-    else:
-        _action_list.append(ParameterWillBeSetTo(action_string, "this_parameter", set_value))
+    # if action_string[0:2] == "must be" and action_string_doc[3].pos_ != "SCONJ":
+    #     update_log("L1092")
+    #     action_string = doc[action_start - 1 : action_end].text
+    #     _action_list.append(ParameterIsRestricted(action_string))
+    # else:
+    #     _action_list.append(ParameterWillBeSetTo(action_string, "this_parameter", set_value))
+
+    _action_list.append(ParameterWillBeSetTo(action_string, "this_parameter", set_value))
 
     return None
 
@@ -1175,38 +1189,31 @@ def _extract_if_only_accepted(
     i: int,
     matches: list[tuple[Any, ...]],
 ) -> Any | None:
-    update_log("L1107")
     action: Action
     match_ = matches[i]
     prev_match = matches[i - 1]
 
     if len(matches) > 1 and _nlp.vocab.strings[prev_match[0]] == "DEPENDENCY_COND_ONLY_NOUN":
-        update_log("L1112")
         matches.pop(i - 1)
         _condition_list.pop()
         _action_list.pop()
 
-    update_log("L1116")
     cond_start = match_[1][1]
-    cond_end = _get_final_end_token_idx(doc, match_[1][0] + 2)
+    # cond_end = _get_final_end_token_idx(doc, match_[1][0] + 2)
+    cond_end = match_[1][0] + 2
     cond_verb_token = doc[match_[1][0]]
 
-    update_log("L1118")
     dependee, value = _extract_dependee_value(cond_verb_token)
 
-    update_log("L1120")
     cond_str = doc[cond_start:cond_end].text
 
-    update_log("L1122")
     _add_condition(dependee, value, cond_str)
 
-    update_log("L1125")
     action_start = match_[1][3]
     action_end = match_[1][2]
 
     # action_value_token = doc[action_start + 1]
-    update_log("L1129")
-    update_log("L1131")
+
     action_value = doc[action_start + 1].text
 
     # if action_value_token.text == "not" or action_value_token.pos_ == "DET":
@@ -1216,28 +1223,32 @@ def _extract_if_only_accepted(
     #     action_value = doc[action_start + 1].text
     #     print("CASE 2")
 
-    update_log("L1134")
     action_string_doc = doc[action_start : action_end + 1]
     action_string = action_string_doc.text
 
-    if action_string[0:2] == "must be" and action_string_doc[3].pos_ != "SCONJ":
-        update_log("L1138")
-        action_string = doc[action_start - 1 : action_end + 1].text
-        action = ParameterIsRestricted(action_string)
-    else:
-        update_log("L1140")
-        action = ParameterWillBeSetTo(action_string, "this_parameter", action_value)
+    # if action_string[0:2] == "must be" and action_string_doc[3].pos_ != "SCONJ":
+    #     update_log("L1138")
+    #     action_string = doc[action_start - 1 : action_end + 1].text
+    #     action = ParameterIsRestricted(action_string)
+    # else:
+    #     update_log("L1140")
+    #     action = ParameterWillBeSetTo(action_string, "this_parameter", action_value)
 
-    update_log("L1142")
+    action = ParameterWillBeSetTo(action_string, "this_parameter", action_value)
+
     _action_list.append(action)
 
     return None
 
 
+_CONDTION_TYPE: TypeAlias = ParametersInRelation | ParameterHasValue | ParameterHasNotValue | ParameterIsNone | ParameterHasType | ParameterDoesNotHaveType | Condition
+_ACTION_TYPE: TypeAlias = ParameterIsIgnored | ParameterIsIllegal | ParameterWillBeSetTo | ParameterIsRestricted | Action
+
+
 def extract_param_dependencies(
     param_qname: str,
     description: str,
-) -> list[tuple[str, Condition, Action]]:
+) -> list[tuple[str, _CONDTION_TYPE, _ACTION_TYPE]]:
     """Extract all dependencies.
 
     Parameters
@@ -1263,13 +1274,16 @@ def extract_param_dependencies(
 
     current_name = param_qname
 
-    dependency_tuples: list[tuple[str, Condition, Action]] = []
+    dependency_tuples: list[tuple[str, _CONDTION_TYPE, _ACTION_TYPE]] = []
 
     description_preprocessed = _preprocess_docstring(description)
     description_doc = _nlp(description_preprocessed)
     for sent in description_doc.sents:
-        print(sent)
+        # print(sent)
         ms = _dep_matcher(sent)
+        for m in ms:
+            print(_nlp.vocab.strings[m[0]])
+            print([sent[i].text for i in m[1]])
         print(ms)
         # for m in ms:
         #     if _nlp.vocab.strings[m[0]] == "DEPENDENCY_IF_ONLY_ACCEPTED":
@@ -1556,8 +1570,5 @@ _nlp.add_pipe("merger", after="tagger")
 
 
 if __name__ == '__main__':
-    s1 = ("Used for initializing the dictionary when ``dict_init`` is not specified, randomly shuffling the data when "
-          "``shuffle`` is set to ``True``, and updating the dictionary."
-          )
-
+    s1 = "Useful only when the solver 'liblinear' is used and self.fit_intercept is set to True."
     print(extract_param_dependencies("test", s1))
