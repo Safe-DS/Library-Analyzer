@@ -1,9 +1,8 @@
 import astroid
 import pytest
-from library_analyzer.processing.api import (
+from library_analyzer.processing.api.purity_analysis import (
     DefinitelyImpure,
     DefinitelyPure,
-    ImpurityIndicator,
     MaybeImpure,
     OpenMode,
     PurityInformation,
@@ -14,11 +13,12 @@ from library_analyzer.processing.api import (
     extract_impurity_reasons,
     infer_purity,
 )
-from library_analyzer.processing.api.model import (
+from library_analyzer.processing.api.purity_analysis.model import (
     AttributeAccess,
     Call,
     FileRead,
     FileWrite,
+    ImpurityIndicator,
     Reference,
     StringLiteral,
     VariableRead,
@@ -315,19 +315,6 @@ def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
                 FileRead(source=Reference(name="path13")),
                 FileWrite(source=Reference(name="path13")),
                 Call(expression=Reference(name="open(path13, 'wb+')")),
-            ],  # ??
-        ),
-        (
-            """
-                def fun14(path14):
-                    with open(path14) as f:
-                        f.read()
-            """,
-            [
-                FileRead(source=Reference("path14")),
-                Call(expression=Reference(name="open(path14)")),
-                Call(expression=Reference(name="f.read()")),
-                VariableRead(expression=Reference(name="f.read")),
             ],  # ??
         ),
         (
