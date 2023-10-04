@@ -17,8 +17,18 @@ from library_analyzer.processing.api import (
 )
 from library_analyzer.processing.api._extract_dependencies import ParameterHasNotValue
 
-_CONDTION_TYPE: TypeAlias = ParametersInRelation | ParameterHasValue | ParameterHasNotValue | ParameterIsNone | ParameterHasType | ParameterDoesNotHaveType | Condition
-_ACTION_TYPE: TypeAlias = ParameterIsIgnored | ParameterIsIllegal | ParameterWillBeSetTo | ParameterIsRestricted | Action
+_CONDTION_TYPE: TypeAlias = (
+    ParametersInRelation
+    | ParameterHasValue
+    | ParameterHasNotValue
+    | ParameterIsNone
+    | ParameterHasType
+    | ParameterDoesNotHaveType
+    | Condition
+)
+_ACTION_TYPE: TypeAlias = (
+    ParameterIsIgnored | ParameterIsIllegal | ParameterWillBeSetTo | ParameterIsRestricted | Action
+)
 
 
 def _assert_condition(extracted: Condition, expected: Condition) -> None:
@@ -514,23 +524,26 @@ def _assert_action(extracted: Action, expected: Action) -> None:
                 (
                     "affinity",
                     ParameterHasValue("If linkage is ward", "linkage", "ward"),
-                    ParameterWillBeSetTo("only euclidean is accepted", "this_parameter", "euclidean")
+                    ParameterWillBeSetTo("only euclidean is accepted", "this_parameter", "euclidean"),
                 ),
             ],
         ),
         # https://github.com/scikit-learn/scikit-learn/blob/457b02c61a2f3cd353d2997929b67a3ef890bf60/sklearn/datasets/_samples_generator.py#L915C9-L916
         (
             "centers",
-            "If n_samples is array-like, centers must be either None or an array of length equal to the length of "
-            "n_samples.",
+            (
+                "If n_samples is array-like, centers must be either None or an array of length equal to the length of "
+                "n_samples."
+            ),
             [
                 (
                     "centers",
                     ParameterHasType("If n_samples is array-like", "n_samples", "array-like"),
-                    ParameterIsRestricted("centers must be either None or an array of length equal to the length of "
-                                          "n_samples")
-                )
-            ]
+                    ParameterIsRestricted(
+                        "centers must be either None or an array of length equal to the length of n_samples",
+                    ),
+                ),
+            ],
         ),
         # https://github.com/scikit-learn/scikit-learn/blob/457b02c61a2f3cd353d2997929b67a3ef890bf60/sklearn/decomposition/_nmf.py#L1942-L1943C46
         (
@@ -539,23 +552,15 @@ def _assert_action(extracted: Action, expected: Action) -> None:
             [
                 (
                     "random_state",
-                    ParameterHasValue(
-                        "Used for initialisation (when init equals nndsvdar",
-                        "init",
-                        "nndsvdar"
-                    ),
-                    ParameterIsIgnored("not ignored")
+                    ParameterHasValue("Used for initialisation (when init equals nndsvdar", "init", "nndsvdar"),
+                    ParameterIsIgnored("not ignored"),
                 ),
                 (
                     "random_state",
-                    ParameterHasValue(
-                        "Used for initialisation (when init equals random",
-                        "init",
-                        "random"
-                    ),
-                    ParameterIsIgnored("not ignored")
-                )
-            ]
+                    ParameterHasValue("Used for initialisation (when init equals random", "init", "random"),
+                    ParameterIsIgnored("not ignored"),
+                ),
+            ],
         ),
         # https://github.com/scikit-learn/scikit-learn/blob/93e22cdd8dff96fa3870475f40e435083bce8ad0/sklearn/decomposition/_dict_learning.py#L2013C75-L2014C31
         (
@@ -564,14 +569,10 @@ def _assert_action(extracted: Action, expected: Action) -> None:
             [
                 (
                     "max_no_improvement",
-                    ParameterHasValue(
-                        "Used only if max_iter is not None",
-                        "max_iter",
-                        "not None"
-                    ),
-                    ParameterIsIgnored("not ignored")
+                    ParameterHasValue("Used only if max_iter is not None", "max_iter", "not None"),
+                    ParameterIsIgnored("not ignored"),
                 ),
-            ]
+            ],
         ),
         # https://github.com/scikit-learn/scikit-learn/blob/93e22cdd8dff96fa3870475f40e435083bce8ad0/sklearn/decomposition/_nmf.py#L1474C1-L1475C46
         (
@@ -580,23 +581,15 @@ def _assert_action(extracted: Action, expected: Action) -> None:
             [
                 (
                     "random_state",
-                    ParameterHasValue(
-                        "Used for initialisation (when init equals nndsvdar",
-                        "init",
-                        "nndsvdar"
-                    ),
-                    ParameterIsIgnored("not ignored")
+                    ParameterHasValue("Used for initialisation (when init equals nndsvdar", "init", "nndsvdar"),
+                    ParameterIsIgnored("not ignored"),
                 ),
                 (
                     "random_state",
-                    ParameterHasValue(
-                        "Used for initialisation (when init equals random",
-                        "init",
-                        "random"
-                    ),
-                    ParameterIsIgnored("not ignored")
+                    ParameterHasValue("Used for initialisation (when init equals random", "init", "random"),
+                    ParameterIsIgnored("not ignored"),
                 ),
-            ]
+            ],
         ),
         # https://github.com/scikit-learn/scikit-learn/blob/6396dcb450e1ba5f897517796432c6de9fb709f0/sklearn/metrics/pairwise.py#L2382C24-L2383C51
         (
@@ -605,14 +598,10 @@ def _assert_action(extracted: Action, expected: Action) -> None:
             [
                 (
                     "metric",
-                    ParameterHasType(
-                        cond="If metric is a string",
-                        dependee="metric",
-                        type_="string"
-                    ),
-                    ParameterIsRestricted("it must be one of the metrics in pairwise")
-                )
-            ]
+                    ParameterHasType(cond="If metric is a string", dependee="metric", type_="string"),
+                    ParameterIsRestricted("it must be one of the metrics in pairwise"),
+                ),
+            ],
         ),
         # https://github.com/scikit-learn/scikit-learn/blob/6396dcb450e1ba5f897517796432c6de9fb709f0/sklearn/feature_extraction/text.py#L1878
         (
@@ -622,13 +611,11 @@ def _assert_action(extracted: Action, expected: Action) -> None:
                 (
                     "min_df",
                     ParameterHasValue(
-                        cond="ignored if vocabulary is not None",
-                        dependee="vocabulary",
-                        value="not None"
+                        cond="ignored if vocabulary is not None", dependee="vocabulary", value="not None",
                     ),
-                    ParameterIsIgnored(dependee="this_parameter", action_="ignored")
-                )
-            ]
+                    ParameterIsIgnored(dependee="this_parameter", action_="ignored"),
+                ),
+            ],
         ),
         # https://github.com/scikit-learn/scikit-learn/blob/6396dcb450e1ba5f897517796432c6de9fb709f0/sklearn/cluster/_agglomerative.py#L1183C24-L1184C18
         (
@@ -640,11 +627,15 @@ def _assert_action(extracted: Action, expected: Action) -> None:
                     ParameterHasValue(
                         cond="must be True if distance_threshold is not None",
                         dependee="distance_threshold",
-                        value="not None"
+                        value="not None",
                     ),
-                    ParameterWillBeSetTo(depender="this_parameter", value_="True", action_="must be True if distance_threshold is not None")
-                )
-            ]
+                    ParameterWillBeSetTo(
+                        depender="this_parameter",
+                        value_="True",
+                        action_="must be True if distance_threshold is not None",
+                    ),
+                ),
+            ],
         ),
         # https://github.com/scikit-learn/scikit-learn/blob/6396dcb450e1ba5f897517796432c6de9fb709f0/sklearn/neural_network/_multilayer_perceptron.py#L1375C5-L1376C22
         (
@@ -659,16 +650,12 @@ def _assert_action(extracted: Action, expected: Action) -> None:
                         right_dependee="0",
                         rel_op=">",
                         combined=[
-                            ParameterHasValue(
-                                cond="Only used when solver equals sgd",
-                                dependee="solver",
-                                value="sgd"
-                            )
-                        ]
+                            ParameterHasValue(cond="Only used when solver equals sgd", dependee="solver", value="sgd"),
+                        ],
                     ),
-                    ParameterIsIgnored("not ignored")
-                )
-            ]
+                    ParameterIsIgnored("not ignored"),
+                ),
+            ],
         ),
     ],
 )

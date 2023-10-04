@@ -54,6 +54,7 @@ _types = [
     "array-like",
 ]
 
+
 @dataclass
 class Condition:
     class Variant(str, Enum):
@@ -109,7 +110,7 @@ class ParametersInRelation(Condition):
         left_dependee: str,
         right_dependee: str,
         rel_op: str,
-        combined: list[_CONDTION_TYPE] | None = None
+        combined: list[_CONDTION_TYPE] | None = None,
     ):
         combined_list = combined or []
         super().__init__(cond, combined_with=combined_list)
@@ -557,7 +558,7 @@ def _add_condition(
     passive: bool = False,
     also: bool = False,
     relational: bool = False,
-    **kwargs: str
+    **kwargs: str,
 ) -> None:
     """Add a condition to the global condition list.
 
@@ -957,7 +958,7 @@ def _extract_relational_condition(
         relational=True,
         left=left_dependee,
         right=right_dependee,
-        rel_op=rel_op.strip()
+        rel_op=rel_op.strip(),
     )
 
     action_string_doc = doc[: match_[1][1]]
@@ -1142,8 +1143,18 @@ def _extract_if_only_accepted(
     return None
 
 
-_CONDTION_TYPE: TypeAlias = ParametersInRelation | ParameterHasValue | ParameterHasNotValue | ParameterIsNone | ParameterHasType | ParameterDoesNotHaveType | Condition
-_ACTION_TYPE: TypeAlias = ParameterIsIgnored | ParameterIsIllegal | ParameterWillBeSetTo | ParameterIsRestricted | Action
+_CONDTION_TYPE: TypeAlias = (
+    ParametersInRelation
+    | ParameterHasValue
+    | ParameterHasNotValue
+    | ParameterIsNone
+    | ParameterHasType
+    | ParameterDoesNotHaveType
+    | Condition
+)
+_ACTION_TYPE: TypeAlias = (
+    ParameterIsIgnored | ParameterIsIllegal | ParameterWillBeSetTo | ParameterIsRestricted | Action
+)
 
 
 def extract_param_dependencies(
@@ -1172,14 +1183,12 @@ def extract_param_dependencies(
     _action_list.clear()
     _combined_condition.clear()
 
-    current_name = param_qname
 
     dependency_tuples: list[tuple[str, _CONDTION_TYPE, _ACTION_TYPE]] = []
 
     description_preprocessed = _preprocess_docstring(description)
     description_doc = _nlp(description_preprocessed)
     for sent in description_doc.sents:
-
         _dep_matcher(sent)
 
     for idx, cond in enumerate(_condition_list):
