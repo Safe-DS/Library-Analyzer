@@ -31,7 +31,6 @@ def _assert_condition(extracted: _CONDTION_TYPE, expected: _CONDTION_TYPE) -> No
             assert extracted.right_dependee == expected.right_dependee
             assert extracted.rel_op == expected.rel_op
         case ParameterHasValue():
-            print(f"EXTRACTED: {extracted.check_dependee}, EXPECTED: {expected.check_dependee}")
             assert extracted.check_dependee == expected.check_dependee
             assert extracted.value == expected.value
             assert extracted.also == expected.also

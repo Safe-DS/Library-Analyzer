@@ -486,7 +486,6 @@ def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) 
         seperator_idxs = list(filter(lambda idx: left_bracket_idx < idx < right_bracket_idx, seperator_idxs))
         for idx in seperator_idxs:
             if doc[idx].text == "and":
-                update_log("L540+")
                 _combined_condition.append(dependee)
                 break
 
@@ -504,7 +503,6 @@ def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) 
             end_phrase = doc[seperator_idx + 2 :].text
             if doc[seperator_idx].text in ["and", "or"] and doc[seperator_idx - 1].text == ",":
                 start_phrase = doc[: seperator_idx - 1].text
-                update_log("L556+")
             else:
                 start_phrase = doc[:seperator_idx].text
 
@@ -655,7 +653,6 @@ def _extract_must_be_condition(
         dependee, dependee_value = _extract_dependee_value(cond_token)
         depender, depender_value = _extract_dependee_value(action_token)
         if depender.lower() in ["it", "and"]:
-            update_log("L713+")
             depender = "this_parameter"
         restriction = ParameterWillBeSetTo(action_string, depender, depender_value)
 
@@ -785,7 +782,6 @@ def _extract_ignored_condition_action(
 
     token_before_end = doc[end - 1]
     if token_before_end.text == "not" or token_before_end.pos_ == "DET":
-        update_log("L866+")
         end += 1
 
     condition_string = doc[start:end].text
@@ -932,7 +928,6 @@ def _extract_relational_condition(
             relational_matches_cnt += 1
 
     if match_[1][0] != min(match_[1]) or relational_matches_cnt > 1:
-        update_log("L1019+")
         matches.pop(i)
         return None
 
