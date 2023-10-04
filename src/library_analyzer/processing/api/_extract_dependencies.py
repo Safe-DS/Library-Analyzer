@@ -1183,7 +1183,6 @@ def extract_param_dependencies(
     _action_list.clear()
     _combined_condition.clear()
 
-
     dependency_tuples: list[tuple[str, _CONDTION_TYPE, _ACTION_TYPE]] = []
 
     description_preprocessed = _preprocess_docstring(description)

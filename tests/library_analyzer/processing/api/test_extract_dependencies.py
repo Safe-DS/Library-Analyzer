@@ -611,7 +611,9 @@ def _assert_action(extracted: Action, expected: Action) -> None:
                 (
                     "min_df",
                     ParameterHasValue(
-                        cond="ignored if vocabulary is not None", dependee="vocabulary", value="not None",
+                        cond="ignored if vocabulary is not None",
+                        dependee="vocabulary",
+                        value="not None",
                     ),
                     ParameterIsIgnored(dependee="this_parameter", action_="ignored"),
                 ),
