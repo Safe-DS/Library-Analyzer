@@ -27,17 +27,25 @@ def _assert_condition(extracted: _CONDTION_TYPE, expected: _CONDTION_TYPE) -> No
 
     match extracted:
         case ParametersInRelation():
-            assert extracted.left_dependee == expected.left_dependee
-            assert extracted.right_dependee == expected.right_dependee
-            assert extracted.rel_op == expected.rel_op
+            extracted_rel: ParametersInRelation = extracted
+            expected_rel: ParametersInRelation = expected
+            assert extracted_rel.left_dependee == expected_rel.left_dependee
+            assert extracted_rel.right_dependee == expected_rel.right_dependee
+            assert extracted_rel.rel_op == expected_rel.rel_op
         case ParameterHasValue():
-            assert extracted.check_dependee == expected.check_dependee
-            assert extracted.value == expected.value
-            assert extracted.also == expected.also
+            extracted_has_value: ParameterHasValue = extracted
+            expected_has_value: ParameterHasValue = expected
+            assert extracted_has_value.check_dependee == expected_has_value.check_dependee
+            assert extracted_has_value.value == expected_has_value.value
+            assert extracted_has_value.also == expected_has_value.also
         case ParameterIsNone():
-            assert extracted.also == expected.also
+            extracted_none: ParameterIsNone = extracted
+            expected_none: ParameterIsNone = expected
+            assert extracted_none.also == expected_none.also
         case ParameterHasType() | ParameterDoesNotHaveType():
-            assert extracted.type_ == expected.type_
+            extracted_type: ParameterHasType = extracted
+            expected_type: ParameterHasType = expected
+            assert extracted_type.type_ == expected_type.type_
 
     if extracted.combined_with:
         assert len(extracted.combined_with) == len(expected.combined_with)
@@ -52,10 +60,14 @@ def _assert_action(extracted: _ACTION_TYPE, expected: _ACTION_TYPE) -> None:
 
     match extracted:
         case ParameterIsIgnored():
-            assert extracted.dependee == expected.dependee
+            extracted_ignored: ParameterIsIgnored = extracted
+            expected_ignored: ParameterIsIgnored = expected
+            assert extracted_ignored.dependee == expected_ignored.dependee
         case ParameterWillBeSetTo():
-            assert extracted.depender == expected.depender
-            assert extracted.value_ == expected.value_
+            expected_set_to: ParameterWillBeSetTo = expected
+            extracted_set_to: ParameterWillBeSetTo = extracted
+            assert extracted_set_to.depender == expected_set_to.depender
+            assert extracted_set_to.value_ == expected_set_to.value_
 
 
 @pytest.mark.parametrize(

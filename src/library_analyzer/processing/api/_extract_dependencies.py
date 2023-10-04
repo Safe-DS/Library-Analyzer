@@ -550,7 +550,15 @@ def _extract_dependee_value(action_token: Token, passive: bool = False) -> tuple
     return dependee, value
 
 
-def _add_condition(dependee: str, value: str, cond_str: str, passive: bool = False, also: bool = False, relational:bool=False, **kwargs) -> None:
+def _add_condition(
+    dependee: str,
+    value: str,
+    cond_str: str,
+    passive: bool = False,
+    also: bool = False,
+    relational: bool = False,
+    **kwargs: str
+) -> None:
     """Add a condition to the global condition list.
 
     Parameters
