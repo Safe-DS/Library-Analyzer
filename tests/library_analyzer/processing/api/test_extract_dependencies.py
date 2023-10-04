@@ -21,31 +21,35 @@ _CONDTION_TYPE: TypeAlias = ParametersInRelation | ParameterHasValue | Parameter
 _ACTION_TYPE: TypeAlias = ParameterIsIgnored | ParameterIsIllegal | ParameterWillBeSetTo | ParameterIsRestricted | Action
 
 
-def _assert_condition(extracted: _CONDTION_TYPE, expected: _CONDTION_TYPE) -> None:
+def _assert_condition(extracted: Condition, expected: Condition) -> None:
     assert type(extracted) is type(expected)
     assert extracted == expected
 
     match extracted:
         case ParametersInRelation():
-            extracted_rel: ParametersInRelation = extracted
-            expected_rel: ParametersInRelation = expected
-            assert extracted_rel.left_dependee == expected_rel.left_dependee
-            assert extracted_rel.right_dependee == expected_rel.right_dependee
-            assert extracted_rel.rel_op == expected_rel.rel_op
+            extracted_relation = ParametersInRelation.from_dict(extracted.to_dict())
+            expected_relation = ParametersInRelation.from_dict(expected.to_dict())
+            assert extracted_relation.left_dependee == expected_relation.left_dependee
+            assert extracted_relation.right_dependee == expected_relation.right_dependee
+            assert extracted_relation.rel_op == expected_relation.rel_op
         case ParameterHasValue():
-            extracted_has_value: ParameterHasValue = extracted
-            expected_has_value: ParameterHasValue = expected
+            extracted_has_value = ParameterHasValue.from_dict(extracted.to_dict())
+            expected_has_value = ParameterHasValue.from_dict(expected.to_dict())
             assert extracted_has_value.check_dependee == expected_has_value.check_dependee
             assert extracted_has_value.value == expected_has_value.value
             assert extracted_has_value.also == expected_has_value.also
         case ParameterIsNone():
-            extracted_none: ParameterIsNone = extracted
-            expected_none: ParameterIsNone = expected
+            extracted_none = ParameterIsNone.from_dict(extracted.to_dict())
+            expected_none = ParameterIsNone.from_dict(expected.to_dict())
             assert extracted_none.also == expected_none.also
         case ParameterHasType() | ParameterDoesNotHaveType():
-            extracted_type: ParameterHasType = extracted
-            expected_type: ParameterHasType = expected
+            extracted_type: ParameterHasType = ParameterHasType.from_dict(extracted.to_dict())
+            expected_type: ParameterHasType = ParameterHasType.from_dict(expected.to_dict())
             assert extracted_type.type_ == expected_type.type_
+        case ParameterDoesNotHaveType():
+            extracted_no_type = ParameterDoesNotHaveType.from_dict(extracted.to_dict())
+            expected_no_type = ParameterDoesNotHaveType.from_dict(expected.to_dict())
+            assert extracted_no_type.type_ == expected_no_type.type_
 
     if extracted.combined_with:
         assert len(extracted.combined_with) == len(expected.combined_with)
@@ -54,18 +58,18 @@ def _assert_condition(extracted: _CONDTION_TYPE, expected: _CONDTION_TYPE) -> No
             _assert_condition(extracted_cond, expected.combined_with[idx])
 
 
-def _assert_action(extracted: _ACTION_TYPE, expected: _ACTION_TYPE) -> None:
+def _assert_action(extracted: Action, expected: Action) -> None:
     assert type(extracted) is type(expected)
     assert extracted == expected
 
     match extracted:
         case ParameterIsIgnored():
-            extracted_ignored: ParameterIsIgnored = extracted
-            expected_ignored: ParameterIsIgnored = expected
+            extracted_ignored = ParameterIsIgnored.from_dict(extracted.to_dict())
+            expected_ignored = ParameterIsIgnored.from_dict(expected.to_dict())
             assert extracted_ignored.dependee == expected_ignored.dependee
         case ParameterWillBeSetTo():
-            expected_set_to: ParameterWillBeSetTo = expected
-            extracted_set_to: ParameterWillBeSetTo = extracted
+            expected_set_to = ParameterWillBeSetTo.from_dict(expected.to_dict())
+            extracted_set_to = ParameterWillBeSetTo.from_dict(extracted.to_dict())
             assert extracted_set_to.depender == expected_set_to.depender
             assert extracted_set_to.value_ == expected_set_to.value_
 

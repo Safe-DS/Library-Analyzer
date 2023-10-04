@@ -118,7 +118,7 @@ class ParametersInRelation(Condition):
         self.rel_op = rel_op
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> Condition:
+    def from_dict(cls, d: dict[str, Any]) -> ParametersInRelation:
         return cls(d["condition"], d["left_dependee"], d["right_dependee"], d["rel_op"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -149,7 +149,7 @@ class ParameterHasValue(Condition):
         self.also = also
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> Condition:
+    def from_dict(cls, d: dict[str, Any]) -> ParameterHasValue:
         return cls(
             d["condition"],
             d["dependee"],
@@ -176,7 +176,7 @@ class ParameterHasNotValue(Condition):
         super().__init__(cond)
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> Condition:
+    def from_dict(cls, d: dict[str, Any]) -> ParameterHasNotValue:
         return cls(d["condition"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -189,7 +189,7 @@ class ParameterIsNone(Condition):
         self.also = also
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> Condition:
+    def from_dict(cls, d: dict[str, Any]) -> ParameterIsNone:
         return cls(d["condition"], d["dependee"], d["also"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -207,7 +207,7 @@ class ParameterDoesNotHaveType(Condition):
         self.type_: str = type_
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> Condition:
+    def from_dict(cls, d: dict[str, Any]) -> ParameterDoesNotHaveType:
         return cls(d["condition"], d["dependee"], d["type"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -225,7 +225,7 @@ class ParameterHasType(Condition):
         self.type_ = type_
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> Condition:
+    def from_dict(cls, d: dict[str, Any]) -> ParameterHasType:
         return cls(d["condition"], d["dependee"], d["type"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -274,7 +274,7 @@ class ParameterIsIgnored(Action):
         self.dependee = dependee
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> Action:
+    def from_dict(cls, d: dict[str, Any]) -> ParameterIsIgnored:
         return cls(d["action"], d["dependee"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -286,7 +286,7 @@ class ParameterIsIllegal(Action):
         super().__init__(action_)
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> Action:
+    def from_dict(cls, d: dict[str, Any]) -> ParameterIsIllegal:
         return cls(d["action"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -300,7 +300,7 @@ class ParameterWillBeSetTo(Action):
         self.value_ = value_
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> Action:
+    def from_dict(cls, d: dict[str, Any]) -> ParameterWillBeSetTo:
         return cls(d["action"], d["depender"], d["value"])
 
     def to_dict(self) -> dict[str, Any]:
@@ -317,7 +317,7 @@ class ParameterIsRestricted(Action):
         super().__init__(action_)
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> Action:
+    def from_dict(cls, d: dict[str, Any]) -> ParameterIsRestricted:
         return cls(d["action"])
 
     def to_dict(self) -> dict[str, Any]:
