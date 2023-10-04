@@ -583,6 +583,78 @@ def _assert_action(extracted: _ACTION_TYPE, expected: _ACTION_TYPE) -> None:
                 ),
             ]
         ),
+        # https://github.com/scikit-learn/scikit-learn/blob/6396dcb450e1ba5f897517796432c6de9fb709f0/sklearn/metrics/pairwise.py#L2382C24-L2383C51
+        (
+            "metric",
+            "If metric is a string, it must be one of the metrics in ``pairwise.PAIRWISE_KERNEL_FUNCTIONS``.",
+            [
+                (
+                    "metric",
+                    ParameterHasType(
+                        cond="If metric is a string",
+                        dependee="metric",
+                        type_="string"
+                    ),
+                    ParameterIsRestricted("it must be one of the metrics in pairwise")
+                )
+            ]
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/6396dcb450e1ba5f897517796432c6de9fb709f0/sklearn/feature_extraction/text.py#L1878
+        (
+            "min_df",
+            "This parameter is ignored if vocabulary is not None.",
+            [
+                (
+                    "min_df",
+                    ParameterHasValue(
+                        cond="ignored if vocabulary is not None",
+                        dependee="vocabulary",
+                        value="not None"
+                    ),
+                    ParameterIsIgnored(dependee="this_parameter", action_="ignored")
+                )
+            ]
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/6396dcb450e1ba5f897517796432c6de9fb709f0/sklearn/cluster/_agglomerative.py#L1183C24-L1184C18
+        (
+            "compute_full_tree",
+            "It must be ``True`` if ``distance_threshold`` is not ``None``.",
+            [
+                (
+                    "compute_full_tree",
+                    ParameterHasValue(
+                        cond="must be True if distance_threshold is not None",
+                        dependee="distance_threshold",
+                        value="not None"
+                    ),
+                    ParameterWillBeSetTo(depender="this_parameter", value_="True", action_="must be True if distance_threshold is not None")
+                )
+            ]
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/6396dcb450e1ba5f897517796432c6de9fb709f0/sklearn/neural_network/_multilayer_perceptron.py#L1375C5-L1376C22
+        (
+            "nesterovs_momentum",
+            "Only used when solver='sgd' and momentum > 0.",
+            [
+                (
+                    "nesterovs_momentum",
+                    ParametersInRelation(
+                        cond="when momentum > 0",
+                        left_dependee="momentum",
+                        right_dependee="0",
+                        rel_op=">",
+                        combined=[
+                            ParameterHasValue(
+                                cond="Only used when solver equals sgd",
+                                dependee="solver",
+                                value="sgd"
+                            )
+                        ]
+                    ),
+                    ParameterIsIgnored("not ignored")
+                )
+            ]
+        ),
     ],
 )
 def test_extract_param_dependencies(
