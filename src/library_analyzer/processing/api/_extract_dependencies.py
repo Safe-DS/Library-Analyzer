@@ -110,7 +110,7 @@ class ParametersInRelation(Condition):
         left_dependee: str,
         right_dependee: str,
         rel_op: str,
-        combined: list[_CONDTION_TYPE] | None = None
+        combined: list[_CONDTION_TYPE] | None = None,
     ):
         combined_list = combined or []
         super().__init__(cond, combined_with=combined_list)
@@ -551,7 +551,7 @@ def _add_condition(
     passive: bool = False,
     also: bool = False,
     relational: bool = False,
-    **kwargs: str
+    **kwargs: str,
 ) -> None:
     """Add a condition to the global condition list.
 
@@ -951,7 +951,7 @@ def _extract_relational_condition(
         relational=True,
         left=left_dependee,
         right=right_dependee,
-        rel_op=rel_op.strip()
+        rel_op=rel_op.strip(),
     )
 
     action_string_doc = doc[: match_[1][1]]
