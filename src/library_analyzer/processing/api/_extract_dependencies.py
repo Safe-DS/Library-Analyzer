@@ -13,8 +13,6 @@ from library_analyzer.utils import load_language
 if TYPE_CHECKING:
     from spacy.tokens import Doc, Token
 
-current_name: str = ""
-
 _condition_list: list[Condition] = []
 _action_list: list[Action] = []
 _combined_condition: list[str] = []
@@ -1163,12 +1161,9 @@ def extract_param_dependencies(
         A dependency tuple always consists of the parameter name, the condition and the resulting action.
 
     """
-    global current_name # noqa
     _condition_list.clear()
     _action_list.clear()
     _combined_condition.clear()
-    current_name = param_qname
-
     dependency_tuples: list[tuple[str, _CONDTION_TYPE, _ACTION_TYPE]] = []
 
     description_preprocessed = _preprocess_docstring(description)
