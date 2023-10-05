@@ -54,6 +54,7 @@ _types = [
     "array-like",
 ]
 
+
 @dataclass
 class Condition:
     class Variant(str, Enum):
@@ -1135,8 +1136,18 @@ def _extract_if_only_accepted(
     return None
 
 
-_CONDTION_TYPE: TypeAlias = ParametersInRelation | ParameterHasValue | ParameterHasNotValue | ParameterIsNone | ParameterHasType | ParameterDoesNotHaveType | Condition
-_ACTION_TYPE: TypeAlias = ParameterIsIgnored | ParameterIsIllegal | ParameterWillBeSetTo | ParameterIsRestricted | Action
+_CONDTION_TYPE: TypeAlias = (
+    ParametersInRelation
+    | ParameterHasValue
+    | ParameterHasNotValue
+    | ParameterIsNone
+    | ParameterHasType
+    | ParameterDoesNotHaveType
+    | Condition
+)
+_ACTION_TYPE: TypeAlias = (
+    ParameterIsIgnored | ParameterIsIllegal | ParameterWillBeSetTo | ParameterIsRestricted | Action
+)
 
 
 def extract_param_dependencies(

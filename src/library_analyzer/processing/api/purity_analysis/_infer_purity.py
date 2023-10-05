@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 
 import astroid
 
-from library_analyzer.processing.api.model import (
+from library_analyzer.processing.api.purity_analysis.model import (
     BuiltInFunction,
     Call,
     ConcreteImpurityIndicator,
@@ -65,7 +65,7 @@ class PurityResult(ABC):  # noqa: B024
 
 @dataclass
 class DefinitelyPure(PurityResult):
-    reasons = []
+    reasons: list = field(default_factory=list)
 
 
 @dataclass
