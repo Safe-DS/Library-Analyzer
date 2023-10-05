@@ -13,6 +13,8 @@ from library_analyzer.utils import load_language
 if TYPE_CHECKING:
     from spacy.tokens import Doc, Token
 
+current_name: str = ""
+
 _condition_list: list[Condition] = []
 _action_list: list[Action] = []
 _combined_condition: list[str] = []
@@ -484,10 +486,6 @@ def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) 
 
     if seperator_idxs and left_bracket_idx != -1 and right_bracket_idx != -1:
         seperator_idxs = list(filter(lambda idx: left_bracket_idx < idx < right_bracket_idx, seperator_idxs))
-        for idx in seperator_idxs:
-            if doc[idx].text == "and":
-                _combined_condition.append(dependee)
-                break
 
     if seperator_idxs:
         # <start_phrase>...<param_with_val>, <param_with_val>, <and | or> <param_with_val> <end_phrase>
@@ -501,10 +499,7 @@ def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) 
         elif action_token_index > max(seperator_idxs):
             seperator_idx = seperator_idxs[-1]
             end_phrase = doc[seperator_idx + 2 :].text
-            if doc[seperator_idx].text in ["and", "or"] and doc[seperator_idx - 1].text == ",":
-                start_phrase = doc[: seperator_idx - 1].text
-            else:
-                start_phrase = doc[:seperator_idx].text
+            start_phrase = doc[:seperator_idx].text
 
         # <start_phrase with param> ... <val>, <val>, <and | or> <val> <end_phrase>
         elif action_token_index < min(seperator_idxs):
@@ -514,8 +509,8 @@ def _shorten_and_check_string(dependee: str, action_token_index: int, doc: Doc) 
 
     shortened_sent = start_phrase + " " + end_phrase
     shortened_doc = _nlp(shortened_sent)
-
-    _dep_matcher(shortened_doc)
+    if len(shortened_doc) < len(doc):
+        _dep_matcher(shortened_doc)
 
 
 def _extract_dependee_value(action_token: Token, passive: bool = False) -> tuple[str, str]:
@@ -1168,10 +1163,10 @@ def extract_param_dependencies(
         A dependency tuple always consists of the parameter name, the condition and the resulting action.
 
     """
+    global current_name # noqa
     _condition_list.clear()
     _action_list.clear()
     _combined_condition.clear()
-
     current_name = param_qname
 
     dependency_tuples: list[tuple[str, _CONDTION_TYPE, _ACTION_TYPE]] = []
@@ -1179,7 +1174,6 @@ def extract_param_dependencies(
     description_preprocessed = _preprocess_docstring(description)
     description_doc = _nlp(description_preprocessed)
     for sent in description_doc.sents:
-
         _dep_matcher(sent)
 
     for idx, cond in enumerate(_condition_list):
@@ -1227,12 +1221,6 @@ _dep_cond_only_adj = [
 _dep_cond_only = [
     {"RIGHT_ID": "condition_head", "RIGHT_ATTRS": {"POS": "SCONJ", "DEP": {"IN": ["mark", "advmod"]}}},
     {"LEFT_ID": "condition_head", "REL_OP": ";", "RIGHT_ID": "conditional_only", "RIGHT_ATTRS": {"LOWER": "only"}},
-    # {
-    #     "LEFT_ID": "condition_head",
-    #     "REL_OP": "<",
-    #     "RIGHT_ID": "action_head",
-    #     "RIGHT_ATTRS": {"POS": {"IN": ["VERB", "AUX"]}},
-    # },
     {
         "LEFT_ID": "condition_head",
         "REL_OP": "<",
