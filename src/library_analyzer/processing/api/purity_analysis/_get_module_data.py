@@ -483,6 +483,10 @@ class ModuleDataBuilder:
             )
             self.children.append(scope_node)
 
+            # detect global assignments and add them to the global_variables dict
+            if isinstance(node.parent.parent, astroid.Module) and node.name in node.parent.parent.globals.keys():
+                self.global_variables[node.name] = scope_node
+
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
         member_access = _construct_member_access_target(node.expr, node)
