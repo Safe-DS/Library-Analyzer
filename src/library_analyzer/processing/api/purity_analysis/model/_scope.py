@@ -42,6 +42,7 @@ class ModuleData:
     ]  # TODO: dict[str, list[Scope]]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
     function_calls: dict[astroid.Call, Scope | ClassScope]
+    function_references: dict[str, set[dict[str, str]]]
 
 
 @dataclass

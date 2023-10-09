@@ -7,6 +7,7 @@ import astroid
 from library_analyzer.processing.api.purity_analysis.model import (
     ClassScope,
     ClassVariable,
+    FunctionScope,
     GlobalVariable,
     Import,
     InstanceVariable,
@@ -46,8 +47,9 @@ class ModuleDataBuilder:
 
     current_node_stack: list[Scope | ClassScope] = field(default_factory=list)
     children: list[Scope | ClassScope] = field(default_factory=list)
+    names: list[Scope | ClassScope] = field(default_factory=list)
     classes: dict[str, ClassScope] = field(default_factory=dict)
-    functions: dict[str, list[Scope]] = field(default_factory=dict)
+    functions: dict[str, list[FunctionScope]] = field(default_factory=dict)
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope] = field(default_factory=dict)
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope] = field(
         default_factory=dict,
@@ -57,6 +59,7 @@ class ModuleDataBuilder:
         default_factory=dict,
     )
     function_calls: dict[astroid.Call, Scope | ClassScope] = field(default_factory=dict)
+    function_references: dict[str, set[frozenset[tuple[str, str]]]] = field(default_factory=dict)
 
     def _detect_scope(self, node: astroid.NodeNG) -> None:
         """
@@ -72,6 +75,53 @@ class ModuleDataBuilder:
         # this speeds up the process of finding the scope of the children and guarantees that no child is lost
         if isinstance(node, astroid.Module):
             inner_scope_children = self.children
+
+            # add all symbols of a function to the function_references dict
+            for function_name, scopes in self.functions.items():
+                for target in self.target_nodes:  # look at all target nodes
+                    # only look at global variables (for global reads)
+                    if target.name in self.global_variables.keys():  # filter out all non-global variables
+                        for nod in scopes:
+                            for c in nod.children:
+                                if target.name == c.symbol.name and c in nod.children:
+                                    ref = {"name": f"{target}", "kind": f"{self.get_kind(target)}"}
+                                    ref_set = frozenset(ref.items())
+
+                                    if function_name in self.function_references:
+                                        self.function_references[function_name].add(ref_set)
+                                    else:
+                                        self.function_references[function_name] = {ref_set}
+
+                for value in self.value_nodes:
+                    function_values = [val.symbol.node.name for val in self.functions[function_name][0].values]
+                    if value.name in function_values: # since we do not differentiate between functions with the same name, we can choose the first one
+                        if value.name in self.global_variables.keys():
+                            ref = {"name": f"{value}", "kind": f"{self.get_kind(value)}"}
+                            ref_set = frozenset(ref.items())
+
+                            if function_name in self.function_references:
+                                self.function_references[function_name].add(ref_set)
+                            else:
+                                self.function_references[function_name] = {ref_set}
+
+                for call in self.function_calls:
+                    if call.parent.parent.name == function_name:
+                        ref = {"name": f"{call}", "kind": f"{self.get_kind(call)}"}
+                        ref_set = frozenset(ref.items())
+
+                        if function_name in self.function_references:
+                            self.function_references[function_name].add(ref_set)
+                        else:
+                            self.function_references[function_name] = {ref_set}
+
+                if function_name not in self.function_references:
+                    self.function_references[function_name] = set()
+
+                # TODO: make function_references work for MemberAccessTarget and MemberAccessValue
+
+            # TODO: make function_references return: dict[str, set[dict[str, str]]]
+            for ref in self.function_references:
+                pass
 
         # If we deal with a With node, we differentiate between the children that belong inside the scope
         # of the With node (everything that is inside the With items), and the children that belong outside the With scope.
@@ -119,6 +169,11 @@ class ModuleDataBuilder:
             if node.name == "__init__":
                 self._analyze_constructor()
 
+            if self.names:
+                for function in self.functions[node.name]:
+                    function.values = self.names
+                self.names = []
+
         # add lambda functions that are assigned to a name (and therefor are callable) to the functions dict
         if isinstance(node, astroid.Lambda) and isinstance(node.parent, astroid.Assign):
             node_name = node.parent.targets[0].name
@@ -151,6 +206,15 @@ class ModuleDataBuilder:
                 else:
                     self.current_node_stack[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
 
+    @staticmethod
+    def get_kind(node: astroid.NodeNG) -> str:
+        if isinstance(node, astroid.AssignName):
+            return "write"
+        if isinstance(node, astroid.Name):
+            return "read"
+        if isinstance(node, astroid.Call):
+            return "call"
+
     def enter_module(self, node: astroid.Module) -> None:
         """
         Enter a module node.
@@ -182,10 +246,11 @@ class ModuleDataBuilder:
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
         self.current_node_stack.append(
-            Scope(
+            FunctionScope(
                 _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
                 _children=[],
                 _parent=self.current_node_stack[-1],
+                values={},
             ),
         )
 
@@ -281,6 +346,9 @@ class ModuleDataBuilder:
                 # special cases for nodes inside functions that we defined as LocalVariables but which do not have a name
                 if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally):
                     return LocalVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__)
+
+                if isinstance(node, astroid.Name) and node.name in self.global_variables.keys():
+                    return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
 
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
@@ -431,12 +499,21 @@ class ModuleDataBuilder:
             # append a node only then when it is not the name node of the function
             self.value_nodes[node] = self.current_node_stack[-1]
 
+        if isinstance(node.parent.parent, astroid.FunctionDef):
+            parent = self.current_node_stack[-1]
+            scope_node = Scope(
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                _children=[],
+                _parent=parent,
+            )
+            self.names.append(scope_node)
+
     def enter_assignname(self, node: astroid.AssignName) -> None:
         # we do not want lambda assignments to be added to the target_nodes dict because they are handled as functions
         if isinstance(node.parent, astroid.Assign) and isinstance(node.parent.value, astroid.Lambda):
             return
 
-        # The following nodes are not added to the target_nodes dict because they are real assignments and therefore targets
+        # The following nodes are added to the target_nodes dict because they are real assignments and therefore targets
         if isinstance(
             node.parent,
             astroid.Assign
@@ -715,7 +792,7 @@ def get_module_data(code: str) -> ModuleData:
     module_data_handler = ModuleDataBuilder()
     walker = ASTWalker(module_data_handler)
     module = astroid.parse(code)
-    # print(module.repr_tree())
+    print(module.repr_tree())
     walker.walk(module)
 
     scope = module_data_handler.children[0]  # get the children of the root node, which are the scopes of the module
@@ -729,4 +806,5 @@ def get_module_data(code: str) -> ModuleData:
         target_nodes=module_data_handler.target_nodes,
         parameters=module_data_handler.parameters,
         function_calls=module_data_handler.function_calls,
+        function_references=module_data_handler.function_references,
     )
