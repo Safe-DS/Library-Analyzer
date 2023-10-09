@@ -326,9 +326,9 @@ def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
         (  # language=Python "Pure function"
             """
 def fun():
-    return 2  # Pure
+    pass  # Pure
 
-a = fun()
+fun()
             """,  # language= None
             [],
         ),

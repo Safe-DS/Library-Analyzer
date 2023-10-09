@@ -1429,6 +1429,58 @@ def transform_member_access(member_access: MemberAccess) -> str:
 
 @pytest.mark.parametrize(("code", "expected"), [])
 def test_get_module_data_function_calls(code: str, expected: str) -> None:
-    function_calls = get_module_data(code).classes
+    function_calls = get_module_data(code).function_calls
     raise NotImplementedError("TODO: implement test")
     assert function_calls == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "class instantiation"
+            """
+b = 1
+c = 2
+d = 3
+def g():
+    pass
+
+def f():
+    a = 1  # LocaleWrite
+    b = 2  # GlobalWrite
+    a      # LocaleRead
+    c      # GlobalRead
+    b = d  # GlobalRead, GlobalWrite
+    g()    # Call
+            """,  # language=none
+            {"f": (
+                {"name": "AssignName.b", "kind": "write"},
+                {"name": "Name.c", "kind": "read"},
+                {"name": "Name.d", "kind": "read"},
+                {"name": "Call.g", "kind": "call"}
+            ),
+             "g": (),
+             }
+        ),
+    ],
+    ids=[
+        "functions"
+    ]
+)
+def test_get_module_data_function_calls(code: str, expected: dict[str, tuple[dict[str, str]]]) -> None:
+    function_calls = get_module_data(code).function_references
+
+    # transformed_function_calls = transform_function_calls(function_calls)
+    assert function_calls == expected
+    #
+    # assert transformed_function_calls == expected
+
+
+# def transform_function_calls(function_calls: dict[str, set[frozenset[tuple[str, str]]]]) -> dict[str, tuple[dict[str, str]]]:
+#     transformed_function_calls = {}
+#     for call in function_calls:
+#         transformed_function_calls[call] = tuple(
+#             {"name": name[1], "kind": kind[1]} for kind, name in function_calls[call]
+#         )
+#
+#     return transformed_function_calls
