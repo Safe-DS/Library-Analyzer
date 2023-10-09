@@ -244,3 +244,16 @@ class ClassScope(Scope):
     class_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     instance_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     super_classes: list[ClassScope] = field(default_factory=list)
+
+
+@dataclass
+class FunctionScope(Scope):
+    """Represents a Scope that defines the scope of a function.
+
+    Attributes
+    ----------
+        parameters  a dict of parameters and their Symbols
+    """
+
+    # parameters: dict[str, list[Symbol]] = field(default_factory=dict)
+    values: list[Scope| ClassScope] = field(default_factory=set)

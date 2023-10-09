@@ -32,6 +32,7 @@ from library_analyzer.processing.api.purity_analysis.model._reference import (
 from library_analyzer.processing.api.purity_analysis.model._scope import (
     Builtin,
     ClassScope,
+    FunctionScope,
     ClassVariable,
     GlobalVariable,
     Import,
@@ -51,6 +52,7 @@ __all__ = [
     "ModuleData",
     "Scope",
     "ClassScope",
+    "FunctionScope",
     "MemberAccess",
     "MemberAccessTarget",
     "MemberAccessValue",
