@@ -20,6 +20,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Parameter,
     Scope,
     Symbol,
+    FunctionReference,
 )
 from library_analyzer.utils import ASTWalker
 
@@ -59,7 +60,7 @@ class ModuleDataBuilder:
         default_factory=dict,
     )
     function_calls: dict[astroid.Call, Scope | ClassScope] = field(default_factory=dict)
-    function_references: dict[str, set[frozenset[tuple[str, str]]]] = field(default_factory=dict)
+    function_references: dict[str, set[FunctionReference]] = field(default_factory=dict)
 
     def _detect_scope(self, node: astroid.NodeNG) -> None:
         """
@@ -84,44 +85,39 @@ class ModuleDataBuilder:
                         for nod in scopes:
                             for c in nod.children:
                                 if target.name == c.symbol.name and c in nod.children:
-                                    ref = {"name": f"{target}", "kind": f"{self.get_kind(target)}"}
-                                    ref_set = frozenset(ref.items())
+                                    ref = FunctionReference(c.symbol.node, self.get_kind(c.symbol.node))
 
                                     if function_name in self.function_references:
-                                        self.function_references[function_name].add(ref_set)
+                                        if ref not in self.function_references[function_name]:
+                                            self.function_references[function_name].add(ref)
                                     else:
-                                        self.function_references[function_name] = {ref_set}
+                                        self.function_references[function_name] = {ref}
 
                 for value in self.value_nodes:
                     function_values = [val.symbol.node.name for val in self.functions[function_name][0].values]
                     if value.name in function_values: # since we do not differentiate between functions with the same name, we can choose the first one
                         if value.name in self.global_variables.keys():
-                            ref = {"name": f"{value}", "kind": f"{self.get_kind(value)}"}
-                            ref_set = frozenset(ref.items())
+                            ref = FunctionReference(value, self.get_kind(value))
 
                             if function_name in self.function_references:
-                                self.function_references[function_name].add(ref_set)
+                                self.function_references[function_name].add(ref)
                             else:
-                                self.function_references[function_name] = {ref_set}
+                                self.function_references[function_name] = {ref}
 
                 for call in self.function_calls:
                     if call.parent.parent.name == function_name:
-                        ref = {"name": f"{call}", "kind": f"{self.get_kind(call)}"}
-                        ref_set = frozenset(ref.items())
+                        ref = FunctionReference(call, self.get_kind(call))
 
                         if function_name in self.function_references:
-                            self.function_references[function_name].add(ref_set)
+                            self.function_references[function_name].add(ref)
                         else:
-                            self.function_references[function_name] = {ref_set}
+                            self.function_references[function_name] = {ref}
 
                 if function_name not in self.function_references:
                     self.function_references[function_name] = set()
 
-                # TODO: make function_references work for MemberAccessTarget and MemberAccessValue
+                # TODO: add MemberAccessTarget and MemberAccessValue detection
 
-            # TODO: make function_references return: dict[str, set[dict[str, str]]]
-            for ref in self.function_references:
-                pass
 
         # If we deal with a With node, we differentiate between the children that belong inside the scope
         # of the With node (everything that is inside the With items), and the children that belong outside the With scope.

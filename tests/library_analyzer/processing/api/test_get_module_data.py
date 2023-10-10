@@ -15,6 +15,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     MemberAccessValue,
     Scope,
     Symbol,
+    FunctionReference,
 )
 
 
@@ -29,6 +30,15 @@ class SimpleClassScope(SimpleScope):
     class_variables: list[str]
     instance_variables: list[str]
     super_class: list[str] = field(default_factory=list)
+
+
+@dataclass
+class SimpleFunctionReference:
+    node: str
+    kind: str
+
+    def __hash__(self) -> int:
+        return hash((self.node, self.kind))
 
 
 @pytest.mark.parametrize(
@@ -1450,17 +1460,16 @@ def f():
     b = 2  # GlobalWrite
     a      # LocaleRead
     c      # GlobalRead
-    b = d  # GlobalRead, GlobalWrite
+    b = d  # GlobalWrite, GlobalRead
     g()    # Call
             """,  # language=none
-            {"f": (
-                {"name": "AssignName.b", "kind": "write"},
-                {"name": "Name.c", "kind": "read"},
-                {"name": "Name.d", "kind": "read"},
-                {"name": "Call.g", "kind": "call"}
-            ),
-             "g": (),
-             }
+            {"f": {SimpleFunctionReference("AssignName.b.line10", "write"),
+                   SimpleFunctionReference("AssignName.b.line13", "write"),
+                   SimpleFunctionReference("Name.c.line12", "read"),
+                   SimpleFunctionReference("Name.d.line13", "read"),
+                   SimpleFunctionReference("Call.g.line14", "call")},
+             "g": set()
+             },
         ),
     ],
     ids=[
@@ -1470,17 +1479,30 @@ def f():
 def test_get_module_data_function_calls(code: str, expected: dict[str, tuple[dict[str, str]]]) -> None:
     function_calls = get_module_data(code).function_references
 
-    # transformed_function_calls = transform_function_calls(function_calls)
-    assert function_calls == expected
-    #
-    # assert transformed_function_calls == expected
+    transformed_function_calls = transform_function_calls(function_calls)
+    # assert function_calls == expected
+
+    assert transformed_function_calls == expected
 
 
-# def transform_function_calls(function_calls: dict[str, set[frozenset[tuple[str, str]]]]) -> dict[str, tuple[dict[str, str]]]:
-#     transformed_function_calls = {}
-#     for call in function_calls:
-#         transformed_function_calls[call] = tuple(
-#             {"name": name[1], "kind": kind[1]} for kind, name in function_calls[call]
-#         )
-#
-#     return transformed_function_calls
+def transform_function_calls(function_calls: dict[str, set[FunctionReference]]) -> dict[str, set[SimpleFunctionReference]]:
+    transformed_function_calls = {}
+    for function_name, function_references in function_calls.items():
+        transformed_function_calls.update(
+            {
+                function_name: {
+                    SimpleFunctionReference(
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.func.name}.line{function_reference.node.fromlineno}",
+                        function_reference.kind,
+                    )
+                    if isinstance(function_reference.node, astroid.Call)
+                    else SimpleFunctionReference(
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                        function_reference.kind,
+                    )
+                    for function_reference in function_references
+                }
+            }
+        )
+
+    return transformed_function_calls

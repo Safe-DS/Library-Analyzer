@@ -42,7 +42,7 @@ class ModuleData:
     ]  # TODO: dict[str, list[Scope]]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
     function_calls: dict[astroid.Call, Scope | ClassScope]
-    function_references: dict[str, set[dict[str, str]]]
+    function_references: dict[str, set[FunctionReference]]
 
 
 @dataclass
@@ -257,4 +257,13 @@ class FunctionScope(Scope):
     """
 
     # parameters: dict[str, list[Symbol]] = field(default_factory=dict)
-    values: list[Scope| ClassScope] = field(default_factory=set)
+    values: list[Scope | ClassScope] = field(default_factory=set)
+
+
+@dataclass
+class FunctionReference:
+    node: astroid.NodeNG
+    kind: str
+
+    def __hash__(self) -> int:
+        return hash(str(self))
