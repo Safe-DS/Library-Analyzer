@@ -94,18 +94,19 @@ class ModuleDataBuilder:
                                         self.function_references[function_name] = {ref}
 
                 for value in self.value_nodes:
-                    function_values = [val.symbol.node.name for val in self.functions[function_name][0].values]
-                    if value.name in function_values: # since we do not differentiate between functions with the same name, we can choose the first one
-                        if value.name in self.global_variables.keys():
-                            ref = FunctionReference(value, self.get_kind(value))
+                    if isinstance(self.functions[function_name][0], FunctionScope):
+                        function_values = [val.symbol.node.name for val in self.functions[function_name][0].values]  # since we do not differentiate between functions with the same name, we can choose the first one
+                        if value.name in function_values:
+                            if value.name in self.global_variables.keys():
+                                ref = FunctionReference(value, self.get_kind(value))
 
-                            if function_name in self.function_references:
-                                self.function_references[function_name].add(ref)
-                            else:
-                                self.function_references[function_name] = {ref}
+                                if function_name in self.function_references:
+                                    self.function_references[function_name].add(ref)
+                                else:
+                                    self.function_references[function_name] = {ref}
 
                 for call in self.function_calls:
-                    if call.parent.parent.name == function_name:
+                    if isinstance(call.parent.parent, astroid.FunctionDef) and call.parent.parent.name == function_name:
                         ref = FunctionReference(call, self.get_kind(call))
 
                         if function_name in self.function_references:

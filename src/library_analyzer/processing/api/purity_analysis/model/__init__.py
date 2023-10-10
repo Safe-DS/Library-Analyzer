@@ -19,6 +19,12 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (  # T
     UnknownCallTarget,
     VariableRead,
     VariableWrite,
+    FunctionID,
+    PurityInformation,
+    PurityResult,
+    DefinitelyImpure,
+    DefinitelyPure,
+    MaybeImpure,
 )
 from library_analyzer.processing.api.purity_analysis.model._reference import (
     ReferenceNode,
@@ -80,4 +86,10 @@ __all__ = [
     "UnknownCallTarget",
     "Call",
     "BuiltInFunction",
+    "FunctionID",
+    "PurityInformation",
+    "PurityResult",
+    "DefinitelyPure",
+    "MaybeImpure",
+    "DefinitelyImpure",
 ]

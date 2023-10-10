@@ -1,13 +1,7 @@
 import astroid
 import pytest
 from library_analyzer.processing.api.purity_analysis import (
-    DefinitelyImpure,
-    DefinitelyPure,
-    MaybeImpure,
     OpenMode,
-    PurityInformation,
-    PurityResult,
-    calc_function_id,
     determine_open_mode,
     determine_purity,
     extract_impurity_reasons,
@@ -25,6 +19,11 @@ from library_analyzer.processing.api.purity_analysis.model import (
     StringLiteral,
     VariableRead,
     VariableWrite,
+    DefinitelyImpure,
+    DefinitelyPure,
+    MaybeImpure,
+    PurityInformation,
+    PurityResult,
 )
 
 
