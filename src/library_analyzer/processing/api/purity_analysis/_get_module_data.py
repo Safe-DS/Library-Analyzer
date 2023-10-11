@@ -78,47 +78,48 @@ class ModuleDataBuilder:
             inner_scope_children = self.children
 
             # add all symbols of a function to the function_references dict
-            for function_name, scopes in self.functions.items():
-                for target in self.target_nodes:  # look at all target nodes
-                    # only look at global variables (for global reads)
-                    if target.name in self.global_variables.keys():  # filter out all non-global variables
-                        for nod in scopes:
-                            for c in nod.children:
-                                if target.name == c.symbol.name and c in nod.children:
-                                    ref = FunctionReference(c.symbol.node, self.get_kind(c.symbol.node))
-
-                                    if function_name in self.function_references:
-                                        if ref not in self.function_references[function_name]:
-                                            self.function_references[function_name].add(ref)
-                                    else:
-                                        self.function_references[function_name] = {ref}
-
-                for value in self.value_nodes:
-                    if isinstance(self.functions[function_name][0], FunctionScope):
-                        function_values = [val.symbol.node.name for val in self.functions[function_name][0].values]  # since we do not differentiate between functions with the same name, we can choose the first one
-                        if value.name in function_values:
-                            if value.name in self.global_variables.keys():
-                                ref = FunctionReference(value, self.get_kind(value))
-
-                                if function_name in self.function_references:
-                                    self.function_references[function_name].add(ref)
-                                else:
-                                    self.function_references[function_name] = {ref}
-
-                for call in self.function_calls:
-                    if isinstance(call.parent.parent, astroid.FunctionDef) and call.parent.parent.name == function_name:
-                        ref = FunctionReference(call, self.get_kind(call))
-
-                        if function_name in self.function_references:
-                            self.function_references[function_name].add(ref)
-                        else:
-                            self.function_references[function_name] = {ref}
-
-                if function_name not in self.function_references:
-                    self.function_references[function_name] = set()
-
-                # TODO: add MemberAccessTarget and MemberAccessValue detection
-
+            self.collect_function_references()
+            # # add all symbols of a function to the function_references dict
+            # for function_name, scopes in self.functions.items():
+            #     for target in self.target_nodes:  # look at all target nodes
+            #         # only look at global variables (for global reads)
+            #         if target.name in self.global_variables.keys():  # filter out all non-global variables
+            #             for nod in scopes:
+            #                 for c in nod.children:
+            #                     if target.name == c.symbol.name and c in nod.children:
+            #                         ref = FunctionReference(c.symbol.node, self.get_kind(c.symbol.node))
+            #
+            #                         if function_name in self.function_references:
+            #                             if ref not in self.function_references[function_name]:
+            #                                 self.function_references[function_name].add(ref)
+            #                         else:
+            #                             self.function_references[function_name] = {ref}
+            #
+            #     for value in self.value_nodes:
+            #         if isinstance(self.functions[function_name][0], FunctionScope):
+            #             function_values = [val.symbol.node.name for val in self.functions[function_name][0].values]  # since we do not differentiate between functions with the same name, we can choose the first one
+            #             if value.name in function_values:
+            #                 if value.name in self.global_variables.keys():
+            #                     ref = FunctionReference(value, self.get_kind(value))
+            #
+            #                     if function_name in self.function_references:
+            #                         self.function_references[function_name].add(ref)
+            #                     else:
+            #                         self.function_references[function_name] = {ref}
+            #
+            #     for call in self.function_calls:
+            #         if isinstance(call.parent.parent, astroid.FunctionDef) and call.parent.parent.name == function_name:
+            #             ref = FunctionReference(call, self.get_kind(call))
+            #
+            #             if function_name in self.function_references:
+            #                 self.function_references[function_name].add(ref)
+            #             else:
+            #                 self.function_references[function_name] = {ref}
+            #
+            #     if function_name not in self.function_references:
+            #         self.function_references[function_name] = set()
+            #
+            #     # TODO: add MemberAccessTarget and MemberAccessValue detection
 
         # If we deal with a With node, we differentiate between the children that belong inside the scope
         # of the With node (everything that is inside the With items), and the children that belong outside the With scope.
@@ -202,6 +203,49 @@ class ModuleDataBuilder:
                     self.current_node_stack[-1].parent.instance_variables[child.symbol.name].append(child.symbol)
                 else:
                     self.current_node_stack[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
+
+    def collect_function_references(self):
+        for function_name, scopes in self.functions.items():
+            for target in self.target_nodes:  # look at all target nodes
+                # only look at global variables (for global reads)
+                if target.name in self.global_variables.keys():  # filter out all non-global variables
+                    for nod in scopes:
+                        for c in nod.children:
+                            if target.name == c.symbol.name and c in nod.children:
+                                ref = FunctionReference(c.symbol.node, self.get_kind(c.symbol.node))
+
+                                if function_name in self.function_references:
+                                    if ref not in self.function_references[function_name]:
+                                        self.function_references[function_name].add(ref)
+                                else:
+                                    self.function_references[function_name] = {ref}
+
+            for value in self.value_nodes:
+                if isinstance(self.functions[function_name][0], FunctionScope):
+                    function_values = [val.symbol.node.name for val in self.functions[function_name][
+                        0].values]  # since we do not differentiate between functions with the same name, we can choose the first one
+                    if value.name in function_values:
+                        if value.name in self.global_variables.keys():
+                            ref = FunctionReference(value, self.get_kind(value))
+
+                            if function_name in self.function_references:
+                                self.function_references[function_name].add(ref)
+                            else:
+                                self.function_references[function_name] = {ref}
+
+            for call in self.function_calls:
+                if isinstance(call.parent.parent, astroid.FunctionDef) and call.parent.parent.name == function_name:
+                    ref = FunctionReference(call, self.get_kind(call))
+
+                    if function_name in self.function_references:
+                        self.function_references[function_name].add(ref)
+                    else:
+                        self.function_references[function_name] = {ref}
+
+            if function_name not in self.function_references:
+                self.function_references[function_name] = set()
+
+            # TODO: add MemberAccessTarget and MemberAccessValue detection
 
     @staticmethod
     def get_kind(node: astroid.NodeNG) -> str:
