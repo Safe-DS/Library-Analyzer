@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 from dataclasses import dataclass, field
 
 import astroid
@@ -21,6 +22,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Scope,
     Symbol,
     FunctionReference,
+    Builtin,
 )
 from library_analyzer.utils import ASTWalker
 
@@ -79,47 +81,6 @@ class ModuleDataBuilder:
 
             # add all symbols of a function to the function_references dict
             self.collect_function_references()
-            # # add all symbols of a function to the function_references dict
-            # for function_name, scopes in self.functions.items():
-            #     for target in self.target_nodes:  # look at all target nodes
-            #         # only look at global variables (for global reads)
-            #         if target.name in self.global_variables.keys():  # filter out all non-global variables
-            #             for nod in scopes:
-            #                 for c in nod.children:
-            #                     if target.name == c.symbol.name and c in nod.children:
-            #                         ref = FunctionReference(c.symbol.node, self.get_kind(c.symbol.node))
-            #
-            #                         if function_name in self.function_references:
-            #                             if ref not in self.function_references[function_name]:
-            #                                 self.function_references[function_name].add(ref)
-            #                         else:
-            #                             self.function_references[function_name] = {ref}
-            #
-            #     for value in self.value_nodes:
-            #         if isinstance(self.functions[function_name][0], FunctionScope):
-            #             function_values = [val.symbol.node.name for val in self.functions[function_name][0].values]  # since we do not differentiate between functions with the same name, we can choose the first one
-            #             if value.name in function_values:
-            #                 if value.name in self.global_variables.keys():
-            #                     ref = FunctionReference(value, self.get_kind(value))
-            #
-            #                     if function_name in self.function_references:
-            #                         self.function_references[function_name].add(ref)
-            #                     else:
-            #                         self.function_references[function_name] = {ref}
-            #
-            #     for call in self.function_calls:
-            #         if isinstance(call.parent.parent, astroid.FunctionDef) and call.parent.parent.name == function_name:
-            #             ref = FunctionReference(call, self.get_kind(call))
-            #
-            #             if function_name in self.function_references:
-            #                 self.function_references[function_name].add(ref)
-            #             else:
-            #                 self.function_references[function_name] = {ref}
-            #
-            #     if function_name not in self.function_references:
-            #         self.function_references[function_name] = set()
-            #
-            #     # TODO: add MemberAccessTarget and MemberAccessValue detection
 
         # If we deal with a With node, we differentiate between the children that belong inside the scope
         # of the With node (everything that is inside the With items), and the children that belong outside the With scope.
@@ -205,14 +166,16 @@ class ModuleDataBuilder:
                     self.current_node_stack[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
 
     def collect_function_references(self):
+        python_builtins = dir(builtins)
+
         for function_name, scopes in self.functions.items():
             for target in self.target_nodes:  # look at all target nodes
                 # only look at global variables (for global reads)
                 if target.name in self.global_variables.keys():  # filter out all non-global variables
-                    for nod in scopes:
-                        for c in nod.children:
-                            if target.name == c.symbol.name and c in nod.children:
-                                ref = FunctionReference(c.symbol.node, self.get_kind(c.symbol.node))
+                    for node in scopes:
+                        for child in node.children:
+                            if target.name == child.symbol.name and child in node.children:
+                                ref = FunctionReference(child.symbol.node, self.get_kind(child.symbol))
 
                                 if function_name in self.function_references:
                                     if ref not in self.function_references[function_name]:
@@ -226,7 +189,14 @@ class ModuleDataBuilder:
                         0].values]  # since we do not differentiate between functions with the same name, we can choose the first one
                     if value.name in function_values:
                         if value.name in self.global_variables.keys():
-                            ref = FunctionReference(value, self.get_kind(value))
+                            # get the correct symbol
+                            sym = None
+                            if isinstance(self.value_nodes[value], FunctionScope):
+                                for v in self.value_nodes[value].values:
+                                    if v.symbol.node == value:
+                                        sym = v.symbol
+
+                            ref = FunctionReference(value, self.get_kind(sym))
 
                             if function_name in self.function_references:
                                 self.function_references[function_name].add(ref)
@@ -235,7 +205,14 @@ class ModuleDataBuilder:
 
             for call in self.function_calls:
                 if isinstance(call.parent.parent, astroid.FunctionDef) and call.parent.parent.name == function_name:
-                    ref = FunctionReference(call, self.get_kind(call))
+                    # get the correct symbol
+                    sym = None
+                    if call.func.name in self.functions:
+                        sym = self.functions[call.func.name][0].symbol
+                    elif call.func.name in python_builtins:
+                        sym = Builtin(call, NodeID("builtins", call.func.name, 0, 0), call.func.name)
+
+                    ref = FunctionReference(call, self.get_kind(sym))
 
                     if function_name in self.function_references:
                         self.function_references[function_name].add(ref)
@@ -248,13 +225,21 @@ class ModuleDataBuilder:
             # TODO: add MemberAccessTarget and MemberAccessValue detection
 
     @staticmethod
-    def get_kind(node: astroid.NodeNG) -> str:
-        if isinstance(node, astroid.AssignName):
-            return "write"
-        if isinstance(node, astroid.Name):
-            return "read"
-        if isinstance(node, astroid.Call):
-            return "call"
+    def get_kind(symbol: Symbol | None) -> str:
+        if symbol is None:
+            return "None"  # TODO: make sure this never happens
+        if isinstance(symbol.node, astroid.AssignName):
+            if isinstance(symbol, LocalVariable):
+                return "LocalWrite"  # this should never happen
+            if isinstance(symbol, GlobalVariable):
+                return "InternalWrite"
+        if isinstance(symbol.node, astroid.Name):
+            if isinstance(symbol, LocalVariable):
+                return "LocalRead"  # this should never happen
+            if isinstance(symbol, GlobalVariable):
+                return "InternalRead"
+        if isinstance(symbol.node, astroid.FunctionDef) or isinstance(symbol, Builtin):
+            return "Call"
 
     def enter_module(self, node: astroid.Module) -> None:
         """
@@ -388,7 +373,7 @@ class ModuleDataBuilder:
                 if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally):
                     return LocalVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__)
 
-                if isinstance(node, astroid.Name) and node.name in self.global_variables.keys():
+                if isinstance(node, astroid.Name | astroid.AssignName) and node.name in self.global_variables.keys():
                     return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
 
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)

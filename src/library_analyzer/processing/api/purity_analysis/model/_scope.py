@@ -257,7 +257,7 @@ class FunctionScope(Scope):
 
 
 @dataclass
-class FunctionReference:
+class FunctionReference:  # TODO: find a better name for this class
     node: astroid.NodeNG
     kind: str
 

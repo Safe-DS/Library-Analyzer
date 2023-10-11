@@ -1447,7 +1447,7 @@ def test_get_module_data_function_calls(code: str, expected: str) -> None:
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        (  # language=Python "class instantiation"
+        (  # language=Python "internal stuff"
             """
 b = 1
 c = 2
@@ -1456,24 +1456,27 @@ def g():
     pass
 
 def f():
-    a = 1  # LocaleWrite
-    b = 2  # GlobalWrite
-    a      # LocaleRead
-    c      # GlobalRead
-    b = d  # GlobalWrite, GlobalRead
+    a = 1  # LocaleWrite / -
+    b = 2  # GlobalWrite / InternalWrite
+    a      # LocaleRead / -
+    c      # GlobalRead / InternalRead
+    b = d  # GlobalWrite, GlobalRead / InternalWrite, InternalRead
     g()    # Call
+    x = open("text.txt") # LocalWrite, Call / - , Call
             """,  # language=none
-            {"f": {SimpleFunctionReference("AssignName.b.line10", "write"),
-                   SimpleFunctionReference("AssignName.b.line13", "write"),
-                   SimpleFunctionReference("Name.c.line12", "read"),
-                   SimpleFunctionReference("Name.d.line13", "read"),
-                   SimpleFunctionReference("Call.g.line14", "call")},
+            {"f": {SimpleFunctionReference("AssignName.b.line10", "InternalWrite"),
+                   SimpleFunctionReference("AssignName.b.line13", "InternalWrite"),
+                   SimpleFunctionReference("Name.c.line12", "InternalRead"),
+                   SimpleFunctionReference("Name.d.line13", "InternalRead"),
+                   SimpleFunctionReference("Call.g.line14", "Call"),
+                   SimpleFunctionReference("Call.open.line15", "Call"),
+                   },
              "g": set()
              },
         ),
     ],
     ids=[
-        "functions"
+        "internal stuff"
     ]
 )
 def test_get_module_data_function_calls(code: str, expected: dict[str, tuple[dict[str, str]]]) -> None:

@@ -311,7 +311,7 @@ def _find_call_reference(
         # Find builtins that are called
         if reference.node.func.name in python_builtins:
             builtin_call = Builtin(
-                reference.scope,
+                reference.node,
                 NodeID("builtins", reference.node.func.name, 0, 0),
                 reference.node.func.name,
             )

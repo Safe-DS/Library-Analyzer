@@ -212,7 +212,7 @@ def local_global_shadow():
                 ReferenceTestNode(
                     "glob1.line6",
                     "FunctionDef.local_global_shadow",
-                    ["GlobalVariable.glob1.line2", "LocalVariable.glob1.line4"],
+                    ["GlobalVariable.glob1.line2", "LocalVariable.glob1.line4"],  # TODO: ask Lars how we want to handle this
                 ),
             ],
         ),
