@@ -334,7 +334,7 @@ fun()
         (  # language=Python "Pure function with parameter"
             """
 def fun(x):
-    return 2 * x  # Pure
+    return 2 * x  # Pure: VariableRead from LocalVariable
 
 a = fun(1)
             """,  # language= None
@@ -383,6 +383,16 @@ a = fun1()
             """,  # language= None
             [],
         ),
+        (  # language=Python "Call of Pure Builtin Function"
+            """
+def fun1():
+    res = range(2)  # Pure: Call of Pure Builtin Function
+    return res
+
+a = fun1()
+            """,  # language= None
+            [],
+        ),
     ],
     ids=[
         "pure function",
@@ -391,12 +401,13 @@ a = fun1()
         "VariableWrite to LocalVariable with parameter",
         "VariableRead from LocalVariable",
         "Call of Pure Function",
+        "Call of Pure Builtin Function"
     ],
 )
 def test_infer_purity_pure(code: str, expected: list[ImpurityIndicator]) -> None:
-    references = resolve_references(code)
+    references, function_references = resolve_references(code)
 
-    purity_results = infer_purity_new(references)
+    purity_results = infer_purity_new(references, function_references)
 
     assert purity_results == expected
 
@@ -461,6 +472,16 @@ a = fun1()
             """,  # language= None
             [],
         ),
+        (  # language=Python "Call of Impure Builtin Function"
+            """
+def fun1():
+    res = open("test.txt")  # Impure: Call of Impure Builtin Function
+    return res
+
+a = fun1()
+            """,  # language= None
+            [],
+        ),
     ],
     ids=[
         "SystemInteraction",
@@ -468,11 +489,12 @@ a = fun1()
         "VariableWrite to GlobalVariable",
         "VariableRead from GlobalVariable",
         "Call of Impure Function",
+        "Call of Impure Builtin Function"
     ],
 )
 def test_infer_purity_impure(code: str, expected: list[ImpurityIndicator]) -> None:
-    references = resolve_references(code)
+    references, function_references = resolve_references(code)
 
-    purity_results = infer_purity_new(references)
+    purity_results = infer_purity_new(references, function_references)
 
     assert purity_results == expected
