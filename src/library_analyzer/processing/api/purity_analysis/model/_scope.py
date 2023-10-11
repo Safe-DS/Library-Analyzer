@@ -6,10 +6,6 @@ from typing import TYPE_CHECKING
 
 import astroid
 
-from library_analyzer.processing.api.purity_analysis.model._purity import (
-    Expression,
-)
-
 if TYPE_CHECKING:
     from collections.abc import Generator
 
@@ -46,7 +42,7 @@ class ModuleData:
 
 
 @dataclass
-class MemberAccess(Expression):
+class MemberAccess(astroid.NodeNG):
     receiver: MemberAccess | astroid.NodeNG
     member: astroid.NodeNG
     parent: astroid.NodeNG | None = field(default=None)

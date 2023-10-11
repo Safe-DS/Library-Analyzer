@@ -6,6 +6,8 @@ from enum import Enum, auto
 
 import astroid
 
+from library_analyzer.processing.api.purity_analysis.model._scope import NodeID
+
 
 # Type of access
 class Expression(astroid.NodeNG, ABC):
@@ -185,17 +187,6 @@ class BuiltInFunction(ImpurityIndicator):
         return False
 
 
-@dataclass
-class FunctionID:
-    module: str
-    name: str
-    line: int
-    col: int
-
-    def __str__(self) -> str:
-        return f"{self.module}.{self.name}.{self.line}.{self.col}"
-
-
 class PurityResult(ABC):  # noqa: B024
     def __init__(self) -> None:
         self.reasons: list[ImpurityIndicator] = []
@@ -222,7 +213,7 @@ class DefinitelyImpure(PurityResult):
 
 @dataclass
 class PurityInformation:
-    id: FunctionID
+    id: NodeID
     reasons: list[ImpurityIndicator]
 
     # def __hash__(self) -> int:

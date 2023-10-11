@@ -17,13 +17,14 @@ from library_analyzer.processing.api.purity_analysis.model import (
     SystemInteraction,
     VariableRead,
     VariableWrite,
-    FunctionID,
+    NodeID,
     PurityInformation,
     PurityResult,
     DefinitelyImpure,
     DefinitelyPure,
     MaybeImpure,
     ReferenceNode,
+    FunctionReference,
 )
 from library_analyzer.utils import ASTWalker
 
@@ -103,30 +104,6 @@ class PurityHandler:
                 self.append_reason(impurity_indicator)
         else:
             self.append_reason([Call(Reference(node.as_string()))])
-
-    def enter_arguments(self, node: astroid.Arguments) -> None:
-        # Handle the Arguments node here
-        pass
-
-    def enter_expr(self, node: astroid.Expr) -> None:
-        # Handle the Expr node here
-        pass
-
-    def enter_name(self, node: astroid.Name) -> None:
-        # Handle the Name node here
-        pass
-
-    def enter_const(self, node: astroid.Const) -> None:
-        # Handle the Const node here
-        pass
-
-    def enter_assignname(self, node: astroid.AssignName) -> None:
-        # Handle the AssignName node here
-        pass
-
-    def enter_with(self, node: astroid.With) -> None:
-        # Handle the With node here
-        pass
 
 
 class OpenMode(Enum):
@@ -243,9 +220,6 @@ def determine_purity(indicators: list[ImpurityIndicator]) -> PurityResult:
 
     return MaybeImpure(reasons=indicators)
 
-    # if any(reason.is_reason_for_impurity() for reason in purity_reasons):
-    #     if any(isinstance(reason, Call) for reason in purity_reasons):
-
 
 def get_function_defs(code: str) -> list[astroid.FunctionDef]:
     try:
@@ -273,7 +247,7 @@ def generate_purity_information(function: astroid.FunctionDef, purity_result: Pu
     return PurityInformation(function_id, reasons)
 
 
-def calc_function_id(node: astroid.NodeNG) -> FunctionID:
+def calc_function_id(node: astroid.NodeNG) -> NodeID:
     if not isinstance(node, astroid.FunctionDef):
         raise TypeError("Node is not a function")
     module = node.root().name
@@ -281,7 +255,7 @@ def calc_function_id(node: astroid.NodeNG) -> FunctionID:
     name = node.name
     line = node.position.lineno
     col = node.position.col_offset
-    return FunctionID(module, name, line, col)
+    return NodeID(module, name, line, col)
 
 
 # this function is only for visualization purposes
@@ -294,8 +268,15 @@ def get_purity_result_str(indicators: list[ImpurityIndicator]) -> str:
     return "Maybe Impure"
 
 
-def infer_purity_new(references: list[ReferenceNode]):
+def infer_purity_new(references: list[ReferenceNode], function_references: dict[str, set[FunctionReference]]) -> PurityResult:
     purity_cache = {}
     for reference in references:
-        if isinstance(reference, Call):
-            pass
+        if isinstance(reference.node, astroid.Call):
+            try:
+                ref = function_references[reference.node.func.name]
+                if not ref:
+                    return DefinitelyPure()
+
+            except KeyError:
+                raise KeyError(f"Function {reference.node.func.name} not found in function_references")
+
