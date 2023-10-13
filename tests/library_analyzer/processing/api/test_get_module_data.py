@@ -126,7 +126,7 @@ def test_calc_node_id(
                     def __init__(self):
                         self.value = 10
                         self.test = 20
-                    def f():
+                    def f(self):
                         var1 = 1
                 def g():
                     var2 = 2
@@ -149,7 +149,8 @@ def test_calc_node_id(
                                 ),
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.f",
-                                    [SimpleScope("LocalVariable.AssignName.var1", [])],
+                                    [SimpleScope("Parameter.AssignName.self", []),
+                                     SimpleScope("LocalVariable.AssignName.var1", [])],
                                 ),
                             ],
                             ["FunctionDef.__init__", "FunctionDef.f"],
@@ -245,7 +246,7 @@ def test_calc_node_id(
                 class A:
                     class_attr1 = 20
 
-                    def local_class_attr():
+                    def local_class_attr(self):
                         var1 = A.class_attr1
                         return var1
             """,
@@ -259,7 +260,8 @@ def test_calc_node_id(
                                 SimpleScope("ClassVariable.AssignName.class_attr1", []),
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.local_class_attr",
-                                    [SimpleScope("LocalVariable.AssignName.var1", [])],
+                                    [SimpleScope("Parameter.AssignName.self", []),
+                                     SimpleScope("LocalVariable.AssignName.var1", [])],
                                 ),
                             ],
                             ["AssignName.class_attr1", "FunctionDef.local_class_attr"],
@@ -278,7 +280,7 @@ def test_calc_node_id(
                     def __init__(self):
                         self.instance_attr1 = 10
 
-                    def local_instance_attr():
+                    def local_instance_attr(self):
                         var1 = self.instance_attr1
                         return var1
             """,
@@ -300,7 +302,8 @@ def test_calc_node_id(
                                 ),
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.local_instance_attr",
-                                    [SimpleScope("LocalVariable.AssignName.var1", [])],
+                                    [SimpleScope("Parameter.AssignName.self", []),
+                                     SimpleScope("LocalVariable.AssignName.var1", [])],
                                 ),
                             ],
                             [
@@ -484,7 +487,7 @@ def test_calc_node_id(
                         class local_class_scope:
                             var3 = 30
 
-                            def local_class_function_scope():
+                            def local_class_function_scope(self):
                                 var4 = 40
             """,
             [
@@ -506,6 +509,7 @@ def test_calc_node_id(
                                                 SimpleScope(
                                                     "ClassVariable.FunctionDef.local_class_function_scope",
                                                     [
+                                                        SimpleScope("Parameter.AssignName.self", []),
                                                         SimpleScope(
                                                             "LocalVariable.AssignName.var4",
                                                             [],
@@ -1456,28 +1460,31 @@ def g():
     pass
 
 def f():
-    a = 1  # LocaleWrite / -
-    b = 2  # GlobalWrite / InternalWrite
-    a      # LocaleRead / -
-    c      # GlobalRead / InternalRead
-    b = d  # GlobalWrite, GlobalRead / InternalWrite, InternalRead
+    # global b  # TODO: [LATER] to detect this case, we need to collect the global statements on function level
+    a = 1  # LocaleWrite
+    b = 2  # NonLocalVariableWrite
+    a      # LocaleRead
+    c      # NonLocalVariableRead
+    b = d  # NonLocalVariableWrite, NonLocalVariableRead
     g()    # Call
-    x = open("text.txt") # LocalWrite, Call / - , Call
+    x = open("text.txt") # LocalWrite, Call
             """,  # language=none
-            {"f": {SimpleFunctionReference("AssignName.b.line10", "InternalWrite"),
-                   SimpleFunctionReference("AssignName.b.line13", "InternalWrite"),
-                   SimpleFunctionReference("Name.c.line12", "InternalRead"),
-                   SimpleFunctionReference("Name.d.line13", "InternalRead"),
-                   SimpleFunctionReference("Call.g.line14", "Call"),
-                   SimpleFunctionReference("Call.open.line15", "Call"),
-                   },
+            {"f": {SimpleFunctionReference("AssignName.b.line11", "InternalWrite"),
+                   SimpleFunctionReference("AssignName.b.line14", "InternalWrite"),
+                   SimpleFunctionReference("Name.c.line13", "InternalRead"),
+                   SimpleFunctionReference("Name.d.line14", "InternalRead"),
+                   SimpleFunctionReference("Call.g.line15", "Call"),
+                   SimpleFunctionReference("Call.open.line16", "Call"),
+                   },  # TODO: separate calls, assignments and names into three dicts, maybe add extra classes for
+                       #  each type of function reference (add further infos, if needed)
+                       # TODO: maybe add extra class for the data structure ("Reasons"("fname", {},{},{}))
              "g": set()
              },
         ),
     ],
     ids=[
         "internal stuff"
-    ]
+    ]  # TODO: add cases for control flow statements and other cases
 )
 def test_get_module_data_function_calls(code: str, expected: dict[str, tuple[dict[str, str]]]) -> None:
     function_calls = get_module_data(code).function_references

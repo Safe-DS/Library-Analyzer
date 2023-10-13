@@ -25,6 +25,7 @@ class ModuleData:
         target_nodes        All target nodes and their scope.
         parameters          All parameters of functions and their scope.
         function_calls      All function calls and their scope.
+        function_references All for reference resolving relevant nodes inside of functions
     """
 
     scope: Scope | ClassScope
@@ -104,7 +105,7 @@ class Symbol(ABC):
 
 
 @dataclass
-class Parameter(Symbol):  # TODO: find correct node type and add fields with further infos for each subclass
+class Parameter(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
@@ -257,7 +258,7 @@ class FunctionScope(Scope):
 
 
 @dataclass
-class FunctionReference:  # TODO: find a better name for this class
+class FunctionReference:  # TODO: find a better name for this class  # FunctionPointer?
     node: astroid.NodeNG
     kind: str
 

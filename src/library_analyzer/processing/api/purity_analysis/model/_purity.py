@@ -6,13 +6,12 @@ from enum import Enum, auto
 
 import astroid
 
-from library_analyzer.processing.api.purity_analysis.model._scope import NodeID
+from library_analyzer.processing.api.purity_analysis.model._scope import NodeID, GlobalVariable, ClassVariable, \
+    InstanceVariable, Parameter
 
 
-@dataclass
 class PurityResult(ABC):
     """Class for purity results."""
-    reasons: list[ImpurityReason]
 
 
 @dataclass
@@ -22,7 +21,6 @@ class Pure(PurityResult):
     A function is pure if it has no (External-, Internal-)Read nor (External-, Internal-)Write side effects.
     A pure function must also have no unknown reasons.
     """
-    reasons: list = field(default_factory=list)
 
 
 @dataclass
@@ -39,59 +37,63 @@ class Impure(PurityResult):
     reasons: list[ImpurityReason]
 
 
-@dataclass
 class ImpurityReason(ABC):
     """Class for impurity reasons.
 
     If a funtion is impure it is because of one or more impurity reasons.
     """
-    pass
+
+
+class Read(ImpurityReason, ABC):
+    """Class for external variable reads (File / Database)."""
 
 
 @dataclass
-class InternalRead(ImpurityReason):  # VariableRead
+class NonLocalVariableRead(Read):
     """Class for internal variable reads (GlobalVariable / global Fields)."""
-    source: Expression
+    symbol: GlobalVariable | ClassVariable | InstanceVariable
 
 
 @dataclass
-class ExternalRead(ImpurityReason):  # FileRead
+class FileRead(Read):
     """Class for external variable reads (File / Database)."""
     source: Expression
 
 
+class Write(ImpurityReason, ABC):
+    """Class for external variable writes (File / Database)."""
+
+
 @dataclass
-class InternalWrite(ImpurityReason):  # VariableWrite
+class NonLocalVariableWrite(Write):
     """Class for internal variable writes (GlobalVariable / global Fields)."""
-    expression: Expression
+    symbol: GlobalVariable | ClassVariable | InstanceVariable
 
 
 @dataclass
-class ExternalWrite(ImpurityReason):  # FileWrite
+class FileWrite(Write):
     """Class for external variable writes (File / Database)."""
     source: Expression
 
 
+class Unknown(ImpurityReason, ABC):
+    """Class for unknown impurity reasons."""
+
+
 @dataclass
-class Call(ImpurityReason):
+class NativeCall(Unknown):  # ExternalCall
     """Class for impure function calls."""
     expression: Expression
 
 
 @dataclass
-class SystemInteraction(ImpurityReason):
-    """Class for system interactions (e.g. print)."""
-    kind = str  # SystemIn / SystemOut / SystemErr
-
-
-@dataclass
-class Unknown(ImpurityReason):
-    """Class for unknown impurity reasons."""
-    kind = str
+class CallOfParameter(Unknown):  # ExternalCall
+    """Class for impure function calls."""
+    expression: Expression
 
 
 # Type of access
-class Expression(astroid.NodeNG, ABC):
+class Expression(ABC):
     # @abstractmethod
     # def __hash__(self) -> int:
     #    pass
@@ -99,42 +101,13 @@ class Expression(astroid.NodeNG, ABC):
 
 
 @dataclass
-class AttributeAccess(Expression):
-    """Class for class attribute access."""
-
-    name: str
-
-
-@dataclass
-class GlobalAccess(Expression):
-    """Class for global variable access."""
-
-    name: str
-    module: str = "None"
-
-
-@dataclass
 class ParameterAccess(Expression):
     """Class for function parameter access."""
-
-    name: str
-    function: str
-
-
-@dataclass
-class InstanceAccess(Expression):
-    """Class for field access of an instance attribute (receiver.target)."""
-    receiver: Expression
-    target: Expression
-
+    parameter: Parameter
 
 
 @dataclass
 class StringLiteral(Expression):
     value: str
 
-
-@dataclass
-class Reference(Expression):
-    name: str
 

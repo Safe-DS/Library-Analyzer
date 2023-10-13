@@ -175,6 +175,7 @@ class ModuleDataBuilder:
                     for node in scopes:
                         for child in node.children:
                             if target.name == child.symbol.name and child in node.children:
+                                # TODO: optimize that
                                 ref = FunctionReference(child.symbol.node, self.get_kind(child.symbol))
 
                                 if function_name in self.function_references:
@@ -195,7 +196,7 @@ class ModuleDataBuilder:
                                 for v in self.value_nodes[value].values:
                                     if v.symbol.node == value:
                                         sym = v.symbol
-
+                            # TODO: optimize that
                             ref = FunctionReference(value, self.get_kind(sym))
 
                             if function_name in self.function_references:
@@ -212,6 +213,7 @@ class ModuleDataBuilder:
                     elif call.func.name in python_builtins:
                         sym = Builtin(call, NodeID("builtins", call.func.name, 0, 0), call.func.name)
 
+                    # TODO: optimize that
                     ref = FunctionReference(call, self.get_kind(sym))
 
                     if function_name in self.function_references:

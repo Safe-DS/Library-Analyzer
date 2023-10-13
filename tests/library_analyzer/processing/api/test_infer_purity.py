@@ -1,6 +1,9 @@
+from dataclasses import dataclass
+
 import astroid
 import pytest
 
+from library_analyzer.processing.api.purity_analysis.model._purity import NonLocalVariableRead, Expression
 from tests.library_analyzer.processing.api import SimpleFunctionReference
 from library_analyzer.processing.api.purity_analysis import (
     # OpenMode,
@@ -12,19 +15,16 @@ from library_analyzer.processing.api.purity_analysis import (
     infer_purity_new,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
-    AttributeAccess,
-    Call,
-    ExternalRead,
-    ExternalWrite,
+    NonLocalVariableRead,
+    NonLocalVariableWrite,
+    FileRead,
+    FileWrite,
     ImpurityReason,
-    Reference,
     StringLiteral,
-    InternalRead,
-    InternalWrite,
     Impure,
     Pure,
-    PurityResult,
-    SystemInteraction,
+    ParameterAccess,
+    GlobalVariable,
 )
 
 
@@ -418,26 +418,49 @@ def to_string_call(call: astroid.Call) -> str:
     return f"Call.{call.func.name}.line{call.lineno}"
 
 
+@dataclass
+class SimpleImpure:
+    reasons: list[str]
+
+
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
         (  # language=Python "SystemInteraction"
             """
 def fun():
-    print("text")  # Impure: SystemInteraction
+    print("text.txt")  # Impure: FileWrite
 
 fun()
             """,  # language= None
-            {"Call.fun.line5": Impure([SystemInteraction()])}
+            {"Call.fun.line5": SimpleImpure(["FileWrite.StringLiteral.stdout"])}
         ),
         (  # language=Python "SystemInteraction with parameter"
             """
 def local_parameter(pos_arg):
-    print(pos_arg)  # Impure: SystemInteraction
+    print(pos_arg)  # Impure: FileWrite
 
 local_parameter(1)
             """,  # language= None
-            []
+            {"Call.fun.line5": SimpleImpure(["FileWrite.StringLiteral.stdout"])}
+        ),
+        (  # language=Python "SystemInteraction"
+            """
+def fun():
+    open("text.txt")  # Impure: FileWrite
+
+fun()
+            """,  # language= None
+            {"Call.fun.line5": SimpleImpure(["FileWrite.StringLiteral.text.txt"])}
+        ),
+        (  # language=Python "SystemInteraction with parameter"
+            """
+def local_parameter(pos_arg):
+    open(pos_arg)  # Impure: FileWrite
+
+local_parameter(1)
+            """,  # language= None
+            {"Call.fun.line5": Impure([FileWrite("ParameterAccess.pos_arg")])}
         ),
         (  # language=Python "VariableWrite to GlobalVariable"
             """
@@ -449,19 +472,19 @@ def fun():
 
 a = fun()
             """,  # language= None
-            [],
+            {"Call.fun.line8": Impure([NonLocalVariableWrite("GlobalVaraible.var1")])},
         ),
         (  # language=Python "VariableRead from GlobalVariable"
             """
 var1 = 1
 def fun():
     global var1
-    res = var1  # Impure: VariableWrite to GlobalVariable
+    res = var1  # Impure: VariableRead from GlobalVariable
     return res
 
 a = fun()
             """,  # language= None
-            [],
+            {"Call.fun.line8": Impure([NonLocalVariableRead("GlobalVaraible.var1")])}
         ),
         (  # language=Python "Call of Impure Function"
             """
@@ -476,26 +499,18 @@ def fun2():
 
 a = fun1()
             """,  # language= None
-            [],
-        ),
-        (  # language=Python "Call of Impure Builtin Function"
-            """
-def fun1():
-    res = open("test.txt")  # Impure: Call of Impure Builtin Function
-    return res
-
-a = fun1()
-            """,  # language= None
-            [],
-        ),
+            {"Call.fun1.line11": Impure([NonLocalVariableRead("GlobalVaraible.var1")]),
+             "Call.fun2.line4": Impure([NonLocalVariableRead("GlobalVaraible.var1")])},
+        ),   # here the reason of impurity for fun2 is propagated to fun1, therefore fun1 is impure
     ],
     ids=[
-        "SystemInteraction",
-        "SystemInteraction with parameter",
+        "Print with str",
+        "Print with parameter",
+        "Open with str",
+        "Open with parameter",
         "VariableWrite to GlobalVariable",
         "VariableRead from GlobalVariable",
         "Call of Impure Function",
-        "Call of Impure Builtin Function"
     ],
 )
 def test_infer_purity_impure(code: str, expected: list[ImpurityReason]) -> None:

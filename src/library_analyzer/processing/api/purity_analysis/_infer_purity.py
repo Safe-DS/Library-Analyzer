@@ -6,15 +6,10 @@ import astroid
 
 from library_analyzer.processing.api.purity_analysis import calc_node_id
 from library_analyzer.processing.api.purity_analysis.model import (
-    Call,
-    ExternalRead,
-    ExternalWrite,
+    FileWrite,
     ImpurityReason,
-    Reference,
     StringLiteral,
-    SystemInteraction,
-    InternalRead,
-    InternalWrite,
+    NonLocalVariableWrite,
     NodeID,
     PurityResult,
     Impure,
@@ -241,6 +236,19 @@ from library_analyzer.utils import ASTWalker
 #     function_id = calc_node_id(function)
 #     reasons = extract_impurity_reasons(purity_result)
 #     return PurityInformation(function_id, reasons)
+
+# print(): Used to print objects to the standard output device.
+# open(): Used to open files for reading, writing, or appending.
+# read(): Reads the content of a file.
+# write(): Writes data to a file.
+# close(): Closes the opened file.
+# seek(): Moves the file pointer to a specific position in the file.
+# tell(): Returns the current file pointer position.
+# readline(): Reads a single line from a file.
+# readlines(): Reads all lines from a file into a list.
+# writelines(): Writes a list of lines to a file.
+# flush(): Flushes the internal buffer to the file.
+# with: Provides a context manager for file operations, ensuring the file is properly closed.
 
 
 def infer_purity_new(references: list[ReferenceNode], function_references: dict[str, set[FunctionReference]]) -> dict[astroid.Call, PurityResult]:
