@@ -34,6 +34,7 @@ from library_analyzer.processing.api.purity_analysis.model._scope import (
     Parameter,
     Scope,
     Symbol,
+    Reasons
 )
 
 __all__ = [
@@ -66,4 +67,5 @@ __all__ = [
     "PurityResult",
     "Pure",
     "Impure",
+    "Reasons",
 ]

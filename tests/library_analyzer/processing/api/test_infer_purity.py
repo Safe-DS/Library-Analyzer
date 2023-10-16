@@ -460,7 +460,7 @@ def local_parameter(pos_arg):
 
 local_parameter(1)
             """,  # language= None
-            {"Call.fun.line5": Impure([FileWrite("ParameterAccess.pos_arg")])}
+            {"Call.fun.line5": SimpleImpure(["FileWrite.ParameterAccess.pos_arg"])}
         ),
         (  # language=Python "VariableWrite to GlobalVariable"
             """
@@ -472,7 +472,7 @@ def fun():
 
 a = fun()
             """,  # language= None
-            {"Call.fun.line8": Impure([NonLocalVariableWrite("GlobalVaraible.var1")])},
+            {"Call.fun.line8": SimpleImpure(["NonLocalVariableWrite.GlobalVariable.var1"])},
         ),
         (  # language=Python "VariableRead from GlobalVariable"
             """
@@ -484,7 +484,7 @@ def fun():
 
 a = fun()
             """,  # language= None
-            {"Call.fun.line8": Impure([NonLocalVariableRead("GlobalVaraible.var1")])}
+            {"Call.fun.line8": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"])}
         ),
         (  # language=Python "Call of Impure Function"
             """
@@ -499,8 +499,8 @@ def fun2():
 
 a = fun1()
             """,  # language= None
-            {"Call.fun1.line11": Impure([NonLocalVariableRead("GlobalVaraible.var1")]),
-             "Call.fun2.line4": Impure([NonLocalVariableRead("GlobalVaraible.var1")])},
+            {"Call.fun1.line11": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"]),
+             "Call.fun2.line4": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"])},
         ),   # here the reason of impurity for fun2 is propagated to fun1, therefore fun1 is impure
     ],
     ids=[

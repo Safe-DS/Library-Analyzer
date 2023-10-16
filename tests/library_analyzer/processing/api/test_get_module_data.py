@@ -15,7 +15,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     MemberAccessValue,
     Scope,
     Symbol,
-    FunctionReference,
+    Reasons,
 )
 
 
@@ -30,6 +30,17 @@ class SimpleClassScope(SimpleScope):
     class_variables: list[str]
     instance_variables: list[str]
     super_class: list[str] = field(default_factory=list)
+
+
+@dataclass
+class SimpleReasons:
+    function_name: str
+    writes: set[SimpleFunctionReference] = field(default_factory=set)
+    reads: set[SimpleFunctionReference] = field(default_factory=set)
+    calls: set[SimpleFunctionReference] = field(default_factory=set)
+
+    def __hash__(self) -> int:
+        return hash(self.function_name)
 
 
 @dataclass
@@ -1469,24 +1480,20 @@ def f():
     g()    # Call
     x = open("text.txt") # LocalWrite, Call
             """,  # language=none
-            {"f": {SimpleFunctionReference("AssignName.b.line11", "InternalWrite"),
-                   SimpleFunctionReference("AssignName.b.line14", "InternalWrite"),
-                   SimpleFunctionReference("Name.c.line13", "InternalRead"),
-                   SimpleFunctionReference("Name.d.line14", "InternalRead"),
-                   SimpleFunctionReference("Call.g.line15", "Call"),
-                   SimpleFunctionReference("Call.open.line16", "Call"),
-                   },  # TODO: separate calls, assignments and names into three dicts, maybe add extra classes for
-                       #  each type of function reference (add further infos, if needed)
-                       # TODO: maybe add extra class for the data structure ("Reasons"("fname", {},{},{}))
-             "g": set()
-             },
+            {"f": SimpleReasons("f", {SimpleFunctionReference("AssignName.b.line11", "InternalWrite"),
+                                      SimpleFunctionReference("AssignName.b.line14", "InternalWrite")},
+                                     {SimpleFunctionReference("Name.c.line13", "InternalRead"),
+                                      SimpleFunctionReference("Name.d.line14", "InternalRead")},
+                                     {SimpleFunctionReference("Call.g.line15", "Call"),
+                                      SimpleFunctionReference("Call.open.line16", "Call")}),
+             "g": SimpleReasons("g", set(), set(), set())},
         ),
     ],
     ids=[
         "internal stuff"
     ]  # TODO: add cases for control flow statements and other cases
 )
-def test_get_module_data_function_calls(code: str, expected: dict[str, tuple[dict[str, str]]]) -> None:
+def test_get_module_data_function_calls(code: str, expected: dict[str, SimpleReasons]) -> None:
     function_calls = get_module_data(code).function_references
 
     transformed_function_calls = transform_function_calls(function_calls)
@@ -1495,23 +1502,35 @@ def test_get_module_data_function_calls(code: str, expected: dict[str, tuple[dic
     assert transformed_function_calls == expected
 
 
-def transform_function_calls(function_calls: dict[str, set[FunctionReference]]) -> dict[str, set[SimpleFunctionReference]]:
+def transform_function_calls(function_calls: dict[str, Reasons]) -> dict[str, SimpleReasons]:
     transformed_function_calls = {}
     for function_name, function_references in function_calls.items():
         transformed_function_calls.update(
             {
-                function_name: {
-                    SimpleFunctionReference(
-                        f"{function_reference.node.__class__.__name__}.{function_reference.node.func.name}.line{function_reference.node.fromlineno}",
-                        function_reference.kind,
-                    )
-                    if isinstance(function_reference.node, astroid.Call)
-                    else SimpleFunctionReference(
-                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
-                        function_reference.kind,
-                    )
-                    for function_reference in function_references
-                }
+                function_name: SimpleReasons(
+                    function_name,
+                    {
+                        SimpleFunctionReference(
+                            f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                            function_reference.kind,
+                        )
+                        for function_reference in function_references.writes
+                    },
+                    {
+                        SimpleFunctionReference(
+                            f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                            function_reference.kind,
+                        )
+                        for function_reference in function_references.reads
+                    },
+                    {
+                        SimpleFunctionReference(
+                            f"{function_reference.node.__class__.__name__}.{function_reference.node.func.name}.line{function_reference.node.fromlineno}",
+                            function_reference.kind,
+                        )
+                        for function_reference in function_references.calls
+                    },
+                )
             }
         )
 

@@ -17,6 +17,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ReferenceNode,
     FunctionReference,
     Builtin,
+    Reasons,
 )
 from library_analyzer.utils import ASTWalker
 
@@ -251,7 +252,7 @@ from library_analyzer.utils import ASTWalker
 # with: Provides a context manager for file operations, ensuring the file is properly closed.
 
 
-def infer_purity_new(references: list[ReferenceNode], function_references: dict[str, set[FunctionReference]]) -> dict[astroid.Call, PurityResult]:
+def infer_purity_new(references: list[ReferenceNode], function_references: dict[str, Reasons]) -> dict[astroid.Call, PurityResult]:
     # TODO: add a real cache to this functon wich can store results over multiple calls
     purity_results: dict[astroid.Call, PurityResult] = {}
     for reference in references:
@@ -268,7 +269,7 @@ def infer_purity_new(references: list[ReferenceNode], function_references: dict[
                         if symbol.name in function_references.keys():
                             fun_ref = function_references[symbol.name]
                             # if no function reference is found, we assume the function is pure
-                            if not fun_ref:
+                            if not fun_ref.has_reasons():
                                 purity_results[reference.node] = Pure()
                                 # TODO: add the function def (not the call) to the cache
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 
 import astroid
 
@@ -39,7 +39,7 @@ class ModuleData:
     ]  # TODO: dict[str, list[Scope]]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
     function_calls: dict[astroid.Call, Scope | ClassScope]
-    function_references: dict[str, set[FunctionReference]]
+    function_references: dict[str, Reasons]
 
 
 @dataclass
@@ -255,6 +255,23 @@ class FunctionScope(Scope):
 
     # parameters: dict[str, list[Symbol]] = field(default_factory=dict)
     values: list[Scope | ClassScope] = field(default_factory=set)
+
+
+@dataclass
+class Reasons:
+    function_name: astroid.FunctionDef
+    writes: set[FunctionReference] = field(default_factory=set)
+    reads: set[FunctionReference] = field(default_factory=set)
+    calls: set[FunctionReference] = field(default_factory=set)
+
+    def __iter__(self) -> Iterable[FunctionReference]:
+        return iter(self.writes.union(self.reads).union(self.calls))
+
+    def has_reasons(self) -> bool:
+        return len(self.writes) > 0 or len(self.reads) > 0 or len(self.calls) > 0
+
+    def has_calls(self) -> bool:
+        return len(self.calls) > 0
 
 
 @dataclass

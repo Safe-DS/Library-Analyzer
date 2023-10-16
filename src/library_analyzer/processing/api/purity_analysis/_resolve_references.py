@@ -16,7 +16,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ReferenceNode,
     Scope,
     Symbol,
-    FunctionReference,
+    Reasons,
 )
 
 
@@ -335,7 +335,7 @@ def _find_call_reference(
     return final_call_references
 
 
-def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, set[FunctionReference]]]:
+def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, Reasons]]:
     """
     Resolve all references in a module.
 

@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from enum import Enum, auto
+from abc import ABC
+from dataclasses import dataclass
 
-import astroid
-
-from library_analyzer.processing.api.purity_analysis.model._scope import NodeID, GlobalVariable, ClassVariable, \
+from library_analyzer.processing.api.purity_analysis.model._scope import GlobalVariable, ClassVariable, \
     InstanceVariable, Parameter
 
 
@@ -45,7 +42,7 @@ class ImpurityReason(ABC):
 
 
 class Read(ImpurityReason, ABC):
-    """Class for external variable reads (File / Database)."""
+    """Class for read type impurity reasons."""
 
 
 @dataclass
@@ -61,7 +58,7 @@ class FileRead(Read):
 
 
 class Write(ImpurityReason, ABC):
-    """Class for external variable writes (File / Database)."""
+    """Class for write type impurity reasons."""
 
 
 @dataclass
@@ -77,18 +74,21 @@ class FileWrite(Write):
 
 
 class Unknown(ImpurityReason, ABC):
-    """Class for unknown impurity reasons."""
+    """Class for unknown type impurity reasons."""
 
 
 @dataclass
 class NativeCall(Unknown):  # ExternalCall
-    """Class for impure function calls."""
+    """Class for calling native code.
+
+    Since we can not analyze native code, we mark it as unknown.
+    """
     expression: Expression
 
 
 @dataclass
-class CallOfParameter(Unknown):  # ExternalCall
-    """Class for impure function calls."""
+class CallOfParameter(Unknown):  # ParameterCall
+    """Class for parameter calls."""
     expression: Expression
 
 
@@ -108,6 +108,7 @@ class ParameterAccess(Expression):
 
 @dataclass
 class StringLiteral(Expression):
+    """Class for string literals."""
     value: str
 
 

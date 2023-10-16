@@ -23,6 +23,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Symbol,
     FunctionReference,
     Builtin,
+    Reasons,
 )
 from library_analyzer.utils import ASTWalker
 
@@ -62,7 +63,7 @@ class ModuleDataBuilder:
         default_factory=dict,
     )
     function_calls: dict[astroid.Call, Scope | ClassScope] = field(default_factory=dict)
-    function_references: dict[str, set[FunctionReference]] = field(default_factory=dict)
+    function_references: dict[str, Reasons] = field(default_factory=dict)
 
     def _detect_scope(self, node: astroid.NodeNG) -> None:
         """
@@ -165,10 +166,11 @@ class ModuleDataBuilder:
                 else:
                     self.current_node_stack[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
 
-    def collect_function_references(self):
+    def collect_function_references(self) -> None:
         python_builtins = dir(builtins)
 
         for function_name, scopes in self.functions.items():
+            function_node = scopes[0].symbol.node
             for target in self.target_nodes:  # look at all target nodes
                 # only look at global variables (for global reads)
                 if target.name in self.global_variables.keys():  # filter out all non-global variables
@@ -180,9 +182,9 @@ class ModuleDataBuilder:
 
                                 if function_name in self.function_references:
                                     if ref not in self.function_references[function_name]:
-                                        self.function_references[function_name].add(ref)
+                                        self.function_references[function_name].writes.add(ref)
                                 else:
-                                    self.function_references[function_name] = {ref}
+                                    self.function_references[function_name] = Reasons(function_node, {ref}, set(), set())
 
             for value in self.value_nodes:
                 if isinstance(self.functions[function_name][0], FunctionScope):
@@ -200,9 +202,9 @@ class ModuleDataBuilder:
                             ref = FunctionReference(value, self.get_kind(sym))
 
                             if function_name in self.function_references:
-                                self.function_references[function_name].add(ref)
+                                self.function_references[function_name].reads.add(ref)
                             else:
-                                self.function_references[function_name] = {ref}
+                                self.function_references[function_name] = Reasons(function_node, set(), {ref}, set())
 
             for call in self.function_calls:
                 if isinstance(call.parent.parent, astroid.FunctionDef) and call.parent.parent.name == function_name:
@@ -217,12 +219,12 @@ class ModuleDataBuilder:
                     ref = FunctionReference(call, self.get_kind(sym))
 
                     if function_name in self.function_references:
-                        self.function_references[function_name].add(ref)
+                        self.function_references[function_name].calls.add(ref)
                     else:
-                        self.function_references[function_name] = {ref}
+                        self.function_references[function_name] = Reasons(function_node, set(), set(), {ref})
 
             if function_name not in self.function_references:
-                self.function_references[function_name] = set()
+                self.function_references[function_name] = Reasons(function_node, set(), set(), set())
 
             # TODO: add MemberAccessTarget and MemberAccessValue detection
 
