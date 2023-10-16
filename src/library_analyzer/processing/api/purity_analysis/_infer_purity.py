@@ -251,41 +251,52 @@ from library_analyzer.utils import ASTWalker
 # flush(): Flushes the internal buffer to the file.
 # with: Provides a context manager for file operations, ensuring the file is properly closed.
 
+purity_cache: dict[str, PurityResult] = {}
+
 
 def infer_purity_new(references: list[ReferenceNode], function_references: dict[str, Reasons]) -> dict[astroid.Call, PurityResult]:
-    # TODO: add a real cache to this functon wich can store results over multiple calls
+    global purity_cache
     purity_results: dict[astroid.Call, PurityResult] = {}
+
     for reference in references:
-        if isinstance(reference.node, astroid.Call):
-            # TODO: check the cache for the purity_result
-            try:
-                # check if function is builtin function: we can look up the impurity reasons
-                if any(isinstance(symbol, Builtin) for symbol in reference.referenced_symbols):
-                    # TODO: check builtin for impurity
-                    continue  # for now, we just skip builtins
-                # look at all function references and check if they match the function (call) reference
-                else:
-                    for symbol in reference.referenced_symbols:
-                        if symbol.name in function_references.keys():
-                            fun_ref = function_references[symbol.name]
-                            # if no function reference is found, we assume the function is pure
-                            if not fun_ref.has_reasons():
-                                purity_results[reference.node] = Pure()
-                                # TODO: add the function def (not the call) to the cache
+        if not isinstance(reference.node, astroid.Call):
+            continue
 
-                            # if there is a function reference, we check if it is pure or impure and only return impure
-                            # if one or more references are impure
-                            else:
-                                for ref in fun_ref:
-                                    impurity_reasons = get_impurity_reasons(ref)
-                                    if impurity_reasons:
-                                        purity_results[reference.node] = Impure(impurity_reasons)
-                                    else:
-                                        purity_results[reference.node] = Pure()
-                return purity_results
+        # check the cache for the purity result of the function
+        if reference.node.func.name in purity_cache.keys():
+            purity_results[reference.node] = purity_cache[reference.node.func.name]
+            continue
 
-            except KeyError:
-                raise KeyError(f"Function {reference.node.func.name} not found in function_references")
+        try:
+            # check if function is builtin function: we can look up the impurity reasons
+            if any(isinstance(symbol, Builtin) for symbol in reference.referenced_symbols):
+                # TODO: check builtin for impurity
+                continue  # for now, we just skip builtins
+            # look at all function references and check if they match the function (call) reference
+            else:
+                for symbol in reference.referenced_symbols:
+                    if symbol.name in function_references.keys():
+                        fun_ref = function_references[symbol.name]
+                        # if no function reference is found, we assume the function is pure
+                        if not fun_ref.has_reasons():
+                            purity_results[reference.node] = Pure()
+                            # add the function def to the cache
+                            purity_cache[reference.node.func.name] = Pure()
+
+                        # if there is a function reference, we check if it is pure or impure and only return impure
+                        # if one or more references are impure
+                        else:
+                            for ref in fun_ref:
+                                impurity_reasons = get_impurity_reasons(ref)
+                                if impurity_reasons:
+                                    purity_results[reference.node] = Impure(impurity_reasons)
+                                else:
+                                    purity_results[reference.node] = Pure()
+
+        except KeyError:
+            raise KeyError(f"Function {reference.node.func.name} not found in function_references")
+
+    return purity_results
 
 
 def get_impurity_reasons(fun_ref: FunctionReference) -> list[ImpurityReason]:

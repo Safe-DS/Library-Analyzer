@@ -3,8 +3,6 @@ from dataclasses import dataclass
 import astroid
 import pytest
 
-from library_analyzer.processing.api.purity_analysis.model._purity import NonLocalVariableRead, Expression
-from tests.library_analyzer.processing.api import SimpleFunctionReference
 from library_analyzer.processing.api.purity_analysis import (
     # OpenMode,
     # determine_open_mode,
@@ -15,18 +13,14 @@ from library_analyzer.processing.api.purity_analysis import (
     infer_purity_new,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
-    NonLocalVariableRead,
-    NonLocalVariableWrite,
-    FileRead,
-    FileWrite,
     ImpurityReason,
-    StringLiteral,
-    Impure,
     Pure,
-    ParameterAccess,
-    GlobalVariable,
 )
 
+
+@dataclass
+class SimpleImpure:
+    reasons: list[str]
 
 # @pytest.mark.parametrize(
 #     ("purity_result", "expected"),
@@ -319,6 +313,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
 #         purity_info: list[PurityInformation] = infer_purity(code)
 #         assert purity_info[0].reasons == expected
 
+
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
@@ -394,6 +389,19 @@ a = fun()
             """,  # language= None
             {"Call.fun.line6": Pure()},
         ),
+        (  # language=Python "Multiple Calls of same Pure function (Caching)"
+            """
+def fun1():
+    return 1
+
+a = fun1()
+b = fun1()
+c = fun1()
+            """,  # language= None
+            {"Call.fun1.line5": Pure(),
+             "Call.fun1.line6": Pure(),
+             "Call.fun1.line7": Pure()},
+        ),  # here the purity for fun1 can be cached for the other calls
     ],
     ids=[
         "pure function",
@@ -402,7 +410,8 @@ a = fun()
         "VariableWrite to LocalVariable with parameter",
         "VariableRead from LocalVariable",
         "Call of Pure Function",
-        "Call of Pure Builtin Function"
+        "Call of Pure Builtin Function",
+        "Multiple Calls of same Pure function (Caching)"
     ],
 )
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
@@ -416,11 +425,6 @@ def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
 
 def to_string_call(call: astroid.Call) -> str:
     return f"Call.{call.func.name}.line{call.lineno}"
-
-
-@dataclass
-class SimpleImpure:
-    reasons: list[str]
 
 
 @pytest.mark.parametrize(
@@ -502,6 +506,22 @@ a = fun1()
             {"Call.fun1.line11": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"]),
              "Call.fun2.line4": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"])},
         ),   # here the reason of impurity for fun2 is propagated to fun1, therefore fun1 is impure
+        (  # language=Python "Multiple Calls of same Impure function (Caching)"
+            """
+var1 = 1
+def fun1():
+    global var1
+    res = var1  # Impure: VariableRead from GlobalVariable
+    return res
+
+a = fun1()
+b = fun1()
+c = fun1()
+            """,  # language= None
+            {"Call.fun1.line8": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"]),
+             "Call.fun2.line9": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"]),
+             "Call.fun3.line10": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"])},
+        ),  # here the reason of impurity for fun1 can be cached for the other calls
     ],
     ids=[
         "Print with str",
@@ -511,9 +531,10 @@ a = fun1()
         "VariableWrite to GlobalVariable",
         "VariableRead from GlobalVariable",
         "Call of Impure Function",
+        "Multiple Calls of same Impure function (Caching)",
     ],
 )
-def test_infer_purity_impure(code: str, expected: list[ImpurityReason]) -> None:
+def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
     references, function_references = resolve_references(code)
 
     purity_results = infer_purity_new(references, function_references)
