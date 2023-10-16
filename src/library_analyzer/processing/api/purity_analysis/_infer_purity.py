@@ -19,31 +19,169 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Builtin,
     Reasons,
 )
-from library_analyzer.utils import ASTWalker
 
-# BUILTIN_FUNCTIONS = {
-#     "open": BuiltInFunction(Reference("open"), ConcreteImpurityReason(), ImpurityCertainty.DEFINITELY_IMPURE),
-#     # TODO: how to replace the ... with the correct type?
-#     "print": BuiltInFunction(Reference("print"), SystemInteraction(), ImpurityCertainty.DEFINITELY_IMPURE),
-#     "read": BuiltInFunction(Reference("read"), ConcreteImpurityReason(), ImpurityCertainty.DEFINITELY_IMPURE),
-#     "write": BuiltInFunction(Reference("write"), ConcreteImpurityReason(), ImpurityCertainty.DEFINITELY_IMPURE),
-#     "readline": BuiltInFunction(
-#         Reference("readline"),
-#         ConcreteImpurityReason(),
-#         ImpurityCertainty.DEFINITELY_IMPURE,
-#     ),
-#     "readlines": BuiltInFunction(
-#         Reference("readlines"),
-#         ConcreteImpurityReason(),
-#         ImpurityCertainty.DEFINITELY_IMPURE,
-#     ),
-#     "writelines": BuiltInFunction(
-#         Reference("writelines"),
-#         ConcreteImpurityReason(),
-#         ImpurityCertainty.DEFINITELY_IMPURE,
-#     ),
-#     "close": BuiltInFunction(Reference("close"), ConcreteImpurityReason(), ImpurityCertainty.DEFINITELY_PURE),
-# }
+# TODO: check these for correctness and add reasons for impurity
+BUILTIN_FUNCTIONS = {
+    "ArithmeticError": Impure([]),
+    "AssertionError": Impure([]),
+    "AttributeError": Impure([]),
+    "BaseException": Impure([]),
+    "BaseExceptionGroup": Impure([]),
+    "BlockingIOError": Impure([]),
+    "BrokenPipeError": Impure([]),
+    "BufferError": Impure([]),
+    "BytesWarning": Impure([]),
+    "ChildProcessError": Impure([]),
+    "ConnectionAbortedError": Impure([]),
+    "ConnectionError": Impure([]),
+    "ConnectionRefusedError": Impure([]),
+    "ConnectionResetError": Impure([]),
+    "DeprecationWarning": Impure([]),
+    "EOFError": Impure([]),
+    "Ellipsis": Impure([]),
+    "EncodingWarning": Impure([]),
+    "EnvironmentError": Impure([]),
+    "Exception": Impure([]),
+    "ExceptionGroup": Impure([]),
+    "False": Impure([]),
+    "FileExistsError": Impure([]),
+    "FileNotFoundError": Impure([]),
+    "FloatingPointError": Impure([]),
+    "FutureWarning": Impure([]),
+    "GeneratorExit": Impure([]),
+    "IOError": Impure([]),
+    "ImportError": Impure([]),
+    "ImportWarning": Impure([]),
+    "IndentationError": Impure([]),
+    "IndexError": Impure([]),
+    "InterruptedError": Impure([]),
+    "IsADirectoryError": Impure([]),
+    "KeyError": Impure([]),
+    "KeyboardInterrupt": Impure([]),
+    "LookupError": Impure([]),
+    "MemoryError": Impure([]),
+    "ModuleNotFoundError": Impure([]),
+    "NameError": Impure([]),
+    "None": Impure([]),
+    "NotADirectoryError": Impure([]),
+    "NotImplemented": Impure([]),
+    "NotImplementedError": Impure([]),
+    "OSError": Impure([]),
+    "OverflowError": Impure([]),
+    "PendingDeprecationWarning": Impure([]),
+    "PermissionError": Impure([]),
+    "ProcessLookupError": Impure([]),
+    "RecursionError": Impure([]),
+    "ReferenceError": Impure([]),
+    "ResourceWarning": Impure([]),
+    "RuntimeError": Impure([]),
+    "RuntimeWarning": Impure([]),
+    "StopAsyncIteration": Impure([]),
+    "StopIteration": Impure([]),
+    "SyntaxError": Impure([]),
+    "SyntaxWarning": Impure([]),
+    "SystemError": Impure([]),
+    "SystemExit": Impure([]),
+    "TabError": Impure([]),
+    "TimeoutError": Impure([]),
+    "True": Impure([]),
+    "TypeError": Impure([]),
+    "UnboundLocalError": Impure([]),
+    "UnicodeDecodeError": Impure([]),
+    "UnicodeEncodeError": Impure([]),
+    "UnicodeError": Impure([]),
+    "UnicodeTranslateError": Impure([]),
+    "UnicodeWarning": Impure([]),
+    "UserWarning": Impure([]),
+    "ValueError": Impure([]),
+    "Warning": Impure([]),
+    "WindowsError": Impure([]),
+    "ZeroDivisionError": Impure([]),
+    "__build_class__": Impure([]),
+    "__debug__": Impure([]),
+    "__doc__": Impure([]),
+    "__import__": Impure([]),
+    "__loader__": Impure([]),
+    "__name__": Impure([]),
+    "__package__": Impure([]),
+    "__spec__": Impure([]),
+    "abs": Pure(),
+    "aiter": Impure([]),  # May raise exceptions or interact with external resources
+    "all": Pure(),
+    "anext": Impure([]),  # May raise exceptions or interact with external resources
+    "any": Pure(),
+    "ascii": Pure(),
+    "bin": Pure(),
+    "bool": Pure(),
+    "breakpoint": Impure([]),  # Debugger-related, doesn't affect program behavior
+    "bytearray": Impure([]),  # Can be modified
+    "bytes": Impure([]),  # Can be modified
+    "callable": Pure(),
+    "chr": Pure(),
+    "classmethod": Pure(),
+    "compile": Impure([]),  # Can execute arbitrary code
+    "complex": Pure(),
+    "copyright": Impure([]),  # May interact with external resources
+    "credits": Impure([]),  # May interact with external resources
+    "delattr": Impure([]),  # Can modify objects
+    "dict": Impure([]),  # Can be modified
+    "dir": Impure([]),  # May interact with external resources
+    "divmod": Pure(),
+    "enumerate": Pure(),
+    "eval": Impure([]),  # Can execute arbitrary code
+    "exec": Impure([]),  # Can execute arbitrary code
+    "exit": Impure([]),  # Exits the program
+    "filter": Pure(),
+    "float": Pure(),
+    "format": Impure([]),  # Can produce variable output
+    "frozenset": Pure(),
+    "getattr": Impure([]),  # Can raise exceptions or interact with external resources
+    "globals": Impure([]),  # May interact with external resources
+    "hasattr": Pure(),
+    "hash": Pure(),
+    "help": Impure([]),  # May interact with external resources
+    "hex": Pure(),
+    "id": Pure(),
+    "input": Impure([]),  # Reads user input
+    "int": Pure(),
+    "isinstance": Pure(),
+    "issubclass": Pure(),
+    "iter": Pure(),
+    "len": Pure(),
+    "license": Impure([]),  # May interact with external resources
+    "list": Impure([]),  # Can be modified
+    "locals": Impure([]),  # May interact with external resources
+    "map": Pure(),
+    "max": Pure(),
+    "memoryview": Impure([]),  # Can be modified
+    "min": Pure(),
+    "next": Impure([]),  # May raise exceptions or interact with external resources
+    "object": Pure(),
+    "oct": Pure(),
+    "ord": Pure(),
+    "pow": Pure(),
+    "print": Impure([FileWrite(StringLiteral("stdout"))]),
+    "property": Pure(),
+    "quit": Impure([]),  # Exits the program
+    "range": Pure(),
+    "repr": Pure(),
+    "reversed": Pure(),
+    "round": Pure(),
+    "set": Impure([]),  # Can be modified
+    "setattr": Impure([]),  # Can modify objects
+    "slice": Pure(),
+    "sorted": Impure([]),  # Can produce variable output
+    "staticmethod": Pure(),
+    "str": Impure([]),  # Can be modified
+    "sum": Pure(),
+    "super": Impure([]),  # Can interact with classes
+    "tuple": Impure([]),  # Can be modified
+    "type": Pure(),
+    "vars": Impure([]),  # May interact with external resources
+    "zip": Pure(),
+}
+PURITY_CACHE: dict[str, PurityResult] = {}
+
 #
 #
 # class PurityHandler:
@@ -251,27 +389,34 @@ from library_analyzer.utils import ASTWalker
 # flush(): Flushes the internal buffer to the file.
 # with: Provides a context manager for file operations, ensuring the file is properly closed.
 
-purity_cache: dict[str, PurityResult] = {}
-
 
 def infer_purity_new(references: list[ReferenceNode], function_references: dict[str, Reasons]) -> dict[astroid.Call, PurityResult]:
-    global purity_cache
+    global PURITY_CACHE
+    global BUILTIN_FUNCTIONS
     purity_results: dict[astroid.Call, PurityResult] = {}
+
+    # TODO: build call graph for the module
+    #  start purity analysis at the leaves of this graph
+    #  propagate the results upwards
 
     for reference in references:
         if not isinstance(reference.node, astroid.Call):
             continue
 
         # check the cache for the purity result of the function
-        if reference.node.func.name in purity_cache.keys():
-            purity_results[reference.node] = purity_cache[reference.node.func.name]
+        if reference.node.func.name in PURITY_CACHE.keys():
+            purity_results[reference.node] = PURITY_CACHE[reference.node.func.name]
             continue
 
         try:
             # check if function is builtin function: we can look up the impurity reasons
             if any(isinstance(symbol, Builtin) for symbol in reference.referenced_symbols):
-                # TODO: check builtin for impurity
-                continue  # for now, we just skip builtins
+                # check builtin functions for impurity
+                if reference.node.func.name in BUILTIN_FUNCTIONS.keys():
+                    if isinstance(BUILTIN_FUNCTIONS[reference.node.func.name], Impure):
+                        purity_results[reference.node] = BUILTIN_FUNCTIONS[reference.node.func.name]
+                        # TODO: add checks for open - like functions to determine if they are read or write
+
             # look at all function references and check if they match the function (call) reference
             else:
                 for symbol in reference.referenced_symbols:
@@ -281,7 +426,7 @@ def infer_purity_new(references: list[ReferenceNode], function_references: dict[
                         if not fun_ref.has_reasons():
                             purity_results[reference.node] = Pure()
                             # add the function def to the cache
-                            purity_cache[reference.node.func.name] = Pure()
+                            PURITY_CACHE[reference.node.func.name] = Pure()
 
                         # if there is a function reference, we check if it is pure or impure and only return impure
                         # if one or more references are impure

@@ -470,7 +470,6 @@ local_parameter(1)
             """
 var1 = 1
 def fun():
-    global var1
     var1 = 2  # Impure: VariableWrite to GlobalVariable
     return var1
 
@@ -482,7 +481,6 @@ a = fun()
             """
 var1 = 1
 def fun():
-    global var1
     res = var1  # Impure: VariableRead from GlobalVariable
     return res
 
