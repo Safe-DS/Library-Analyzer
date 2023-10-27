@@ -1,6 +1,6 @@
 """Data model for purity analysis."""
 
-from library_analyzer.processing.api.purity_analysis.model._purity import (  # TODO: rework this
+from library_analyzer.processing.api.purity_analysis.model._purity import (
     Expression,
     FileRead,
     FileWrite,
@@ -34,7 +34,8 @@ from library_analyzer.processing.api.purity_analysis.model._scope import (
     Parameter,
     Scope,
     Symbol,
-    Reasons
+    Reasons,
+    CallGraphNode,
 )
 
 __all__ = [
@@ -68,4 +69,5 @@ __all__ = [
     "Pure",
     "Impure",
     "Reasons",
+    "CallGraphNode",
 ]

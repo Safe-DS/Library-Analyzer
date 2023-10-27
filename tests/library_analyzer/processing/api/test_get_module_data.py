@@ -824,6 +824,7 @@ def test_calc_node_id(
         "With Statement File",
         "With Statement Class",
     ],  # TODO: add tests for lambda, match, try except and generator expressions
+    # TODO: add SimpleFunctionScope and adapt the tests
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
     scope = get_module_data(code).scope
@@ -1535,3 +1536,6 @@ def transform_function_calls(function_calls: dict[str, Reasons]) -> dict[str, Si
         )
 
     return transformed_function_calls
+
+
+# TODO: testcases for cyclic calls and recursive calls

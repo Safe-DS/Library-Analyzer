@@ -40,6 +40,8 @@ class ModuleDataBuilder:
     ----------
         current_node_stack      stack of nodes that are currently visited by the ASTWalker.
         children:               All found children nodes are stored in children until their scope is determined.
+        names:                  All found names are stored in names until their scope is determined.
+        calls:                  All found calls on function level are stored in calls until their scope is determined.
         classes:                dict of all classes in the module and their corresponding ClassScope instance.
         functions:              dict of all functions in the module and their corresponding Scope or ClassScope instance.
         value_nodes:            dict of all nodes that are used as a value and their corresponding Scope or ClassScope instance.
@@ -52,6 +54,7 @@ class ModuleDataBuilder:
     current_node_stack: list[Scope | ClassScope] = field(default_factory=list)
     children: list[Scope | ClassScope] = field(default_factory=list)
     names: list[Scope | ClassScope] = field(default_factory=list)
+    calls: list[Scope | ClassScope] = field(default_factory=list)
     classes: dict[str, ClassScope] = field(default_factory=dict)
     functions: dict[str, list[FunctionScope]] = field(default_factory=dict)
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope] = field(default_factory=dict)
@@ -129,10 +132,17 @@ class ModuleDataBuilder:
             if node.name == "__init__":
                 self._analyze_constructor()
 
+            # add all values that are used inside the function body to its values list
             if self.names:
                 for function in self.functions[node.name]:
                     function.values = self.names
                 self.names = []
+
+            # add all calls that are used inside the function body to its calls list
+            if self.calls:
+                for function in self.functions[node.name]:
+                    function.calls = self.calls
+                self.calls = []
 
         # add lambda functions that are assigned to a name (and therefor are callable) to the functions dict
         if isinstance(node, astroid.Lambda) and isinstance(node.parent, astroid.Assign):
@@ -168,8 +178,8 @@ class ModuleDataBuilder:
 
     def collect_function_references(self) -> None:
         python_builtins = dir(builtins)
-        for f in python_builtins:
-            print(f"\"{f}\": Impure([]),")
+        # for f in python_builtins:
+        #     print(f"\"{f}\": Impure([]),")
 
         for function_name, scopes in self.functions.items():
             function_node = scopes[0].symbol.node
@@ -179,7 +189,7 @@ class ModuleDataBuilder:
                     for node in scopes:
                         for child in node.children:
                             if target.name == child.symbol.name and child in node.children:
-                                # TODO: optimize that
+
                                 ref = FunctionReference(child.symbol.node, self.get_kind(child.symbol))
 
                                 if function_name in self.function_references:
@@ -200,7 +210,7 @@ class ModuleDataBuilder:
                                 for v in self.value_nodes[value].values:
                                     if v.symbol.node == value:
                                         sym = v.symbol
-                            # TODO: optimize that
+
                             ref = FunctionReference(value, self.get_kind(sym))
 
                             if function_name in self.function_references:
@@ -217,7 +227,6 @@ class ModuleDataBuilder:
                     elif call.func.name in python_builtins:
                         sym = Builtin(call, NodeID("builtins", call.func.name, 0, 0), call.func.name)
 
-                    # TODO: optimize that
                     ref = FunctionReference(call, self.get_kind(sym))
 
                     if function_name in self.function_references:
@@ -282,7 +291,6 @@ class ModuleDataBuilder:
                 _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
                 _children=[],
                 _parent=self.current_node_stack[-1],
-                values={},
             ),
         )
 
@@ -381,6 +389,9 @@ class ModuleDataBuilder:
 
                 if isinstance(node, astroid.Name | astroid.AssignName) and node.name in self.global_variables.keys():
                     return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
+
+                if isinstance(node, astroid.Call):
+                    return LocalVariable(node=node, id=calc_node_id(node), name=node.func.name)
 
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
@@ -533,12 +544,12 @@ class ModuleDataBuilder:
 
         if isinstance(node.parent.parent, astroid.FunctionDef):
             parent = self.current_node_stack[-1]
-            scope_node = Scope(
+            name_node = Scope(
                 _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
                 _children=[],
                 _parent=parent,
             )
-            self.names.append(scope_node)
+            self.names.append(name_node)
 
     def enter_assignname(self, node: astroid.AssignName) -> None:
         # we do not want lambda assignments to be added to the target_nodes dict because they are handled as functions
@@ -647,6 +658,15 @@ class ModuleDataBuilder:
     def enter_call(self, node: astroid.Call) -> None:
         if isinstance(node.func, astroid.Name):
             self.function_calls[node] = self.current_node_stack[-1]
+
+            # add the call node to the calls
+            if isinstance(self.current_node_stack[-1], FunctionScope):
+                call_node = Scope(
+                    _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                    _children=[],
+                    _parent=self.current_node_stack[-1],
+                )
+                self.calls.append(call_node)
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]

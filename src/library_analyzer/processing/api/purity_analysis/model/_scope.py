@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Iterable, TypeVar, Generic
 
 import astroid
 
@@ -250,11 +250,13 @@ class FunctionScope(Scope):
 
     Attributes
     ----------
-        parameters  a dict of parameters and their Symbols
+        values      a list of all value nodes in the scope
+        calls       a set of all called functions in the scope
     """
 
     # parameters: dict[str, list[Symbol]] = field(default_factory=dict)
     values: list[Scope | ClassScope] = field(default_factory=set)
+    calls: set[Scope | ClassScope] = field(default_factory=set)
 
 
 @dataclass
@@ -281,3 +283,21 @@ class FunctionReference:  # TODO: find a better name for this class  # FunctionP
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+
+_T = TypeVar("_T")
+
+
+@dataclass
+class CallGraphNode(Generic[_T]):
+    data: _T | None = field(default=None)
+    children: set[CallGraphNode] = field(default_factory=set)
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def add_child(self, child: CallGraphNode) -> None:
+        self.children.add(child)
+
+    def is_leaf(self) -> bool:
+        return len(self.children) == 0

@@ -21,7 +21,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
 )
 
 # TODO: check these for correctness and add reasons for impurity
-BUILTIN_FUNCTIONS = {
+BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "ArithmeticError": Impure([]),
     "AssertionError": Impure([]),
     "AttributeError": Impure([]),
@@ -400,6 +400,7 @@ def infer_purity_new(references: list[ReferenceNode], function_references: dict[
     #  propagate the results upwards
 
     for reference in references:
+        # guard clause for non function calls (should not happen)
         if not isinstance(reference.node, astroid.Call):
             continue
 
