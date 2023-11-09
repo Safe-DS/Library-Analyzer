@@ -9,7 +9,7 @@ from library_analyzer.processing.api.purity_analysis.model._scope import (
     MemberAccessTarget,
     MemberAccessValue,
     Scope,
-    Symbol,
+    Symbol, FunctionScope,
 )
 
 
@@ -34,10 +34,14 @@ _T = TypeVar("_T")
 class CallGraphNode(Generic[_T]):
     data: _T | None = field(default=None)
     children: set[CallGraphNode] = field(default_factory=set)
-    missing_children: bool = field(default=False)
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    def __repr__(self) -> str:
+        if isinstance(self.data, FunctionScope):
+            return f"{self.data.symbol.name}"
+        return f"{self.data}"
 
     def add_child(self, child: CallGraphNode) -> None:
         self.children.add(child)
@@ -48,13 +52,13 @@ class CallGraphNode(Generic[_T]):
 
 @dataclass
 class CallGraphForest:
-    trees: dict[str, CallGraphNode] = field(default_factory=dict)
+    graphs: dict[str, CallGraphNode] = field(default_factory=dict)
 
-    def add_tree(self, tree_name, tree):
-        self.trees[tree_name] = tree
+    def add_graph(self, graph_name, graph):
+        self.graphs[graph_name] = graph
 
-    def get_tree(self, tree_name):
-        return self.trees.get(tree_name)
+    def get_graph(self, graph_name):
+        return self.graphs.get(graph_name)
 
-    def delete_tree(self, tree_name):
-        del self.trees[tree_name]
+    def delete_graph(self, graph_name):
+        del self.graphs[graph_name]
