@@ -15,6 +15,8 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
 )
 from library_analyzer.processing.api.purity_analysis.model._reference import (
     ReferenceNode,
+    CallGraphNode,
+    CallGraphForest,
 )
 from library_analyzer.processing.api.purity_analysis.model._scope import (
     Builtin,
@@ -35,7 +37,6 @@ from library_analyzer.processing.api.purity_analysis.model._scope import (
     Scope,
     Symbol,
     Reasons,
-    CallGraphNode,
 )
 
 __all__ = [
@@ -70,4 +71,5 @@ __all__ = [
     "Impure",
     "Reasons",
     "CallGraphNode",
+    "CallGraphForest",
 ]

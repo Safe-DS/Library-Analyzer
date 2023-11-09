@@ -5,6 +5,7 @@ import builtins
 import astroid
 
 from library_analyzer.processing.api.purity_analysis import get_module_data
+from library_analyzer.processing.api.purity_analysis._build_call_graph import build_call_graph
 from library_analyzer.processing.api.purity_analysis.model import (
     Builtin,
     ClassScope,
@@ -365,5 +366,7 @@ def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, Reason
             module_data.parameters,
         )
         resolved_references.extend(references_call)
+
+    call_graph = build_call_graph(module_data.functions)
 
     return resolved_references, module_data.function_references

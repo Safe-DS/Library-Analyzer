@@ -1359,6 +1359,7 @@ call_function(fun2)
         (  # language=Python "functon conditional with branching"
             """
 def fun1():
+    fun2()
     return "Function 1"
 
 def fun2():

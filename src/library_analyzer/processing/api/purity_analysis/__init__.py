@@ -22,6 +22,10 @@ from ._resolve_references import (
     resolve_references,
 )
 
+from ._build_call_graph import (
+    build_call_graph,
+)
+
 __all__ = [
     "get_module_data",
     "calc_node_id",
@@ -38,4 +42,5 @@ __all__ = [
     # "get_purity_result_str",
     # "infer_purity",
     "infer_purity_new",
+    "build_call_graph",
 ]
