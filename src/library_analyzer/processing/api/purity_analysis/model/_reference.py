@@ -32,7 +32,7 @@ _T = TypeVar("_T")
 
 @dataclass
 class CallGraphNode(Generic[_T]):
-    data: _T | None = field(default=None)
+    data: _T | None = field(default=None)  # TODO: save purity information here too: cache result of purity analysis for each function
     children: set[CallGraphNode] = field(default_factory=set)
 
     def __hash__(self) -> int:

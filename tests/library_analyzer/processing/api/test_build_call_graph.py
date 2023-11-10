@@ -11,7 +11,7 @@ from library_analyzer.processing.api.purity_analysis import get_module_data, bui
         (  # language=Python "function call - in declaration order"
             """
 def fun1():
-    pass
+    print("Function 1")
 
 def fun2():
     fun1()
@@ -99,6 +99,7 @@ entry()
                 "cycle1": {"cycle2"},
                 "cycle2": {"cycle3"},
                 "cycle3": {"cycle1"},
+                "c1c2c3": {"cycle1", "cycle2", "cycle3"},  # TODO: combine the cycle nodes into one node with a new name
                 "entry": {"cycle1"},
             },
         ),
@@ -158,6 +159,7 @@ entry()
                 "cycle1": {"cycle2"},
                 "cycle2": {"cycle3", "other"},
                 "cycle3": {"cycle1"},
+                "c1c2c3": {"cycle1", "cycle2", "cycle3"},
                 "entry": {"cycle1"},
                 "other": set(),
             },
@@ -197,7 +199,6 @@ entry()
         (  # language=Python "recursive function call",
             """
 def f(a):
-    print(a)
     if a > 0:
         f(a - 1)
 
@@ -205,7 +206,7 @@ x = 10
 f(x)
             """,  # language=none
             {
-                "f": {"f"},
+                "f": {"f"},  # TODO: this should be an empty set
             },
         ),
     ],
