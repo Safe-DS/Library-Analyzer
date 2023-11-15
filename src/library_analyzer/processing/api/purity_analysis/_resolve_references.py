@@ -50,17 +50,17 @@ def _find_name_references(
     target_references = [ReferenceNode(node, scope, []) for node, scope in target_nodes.items()]
     value_references = [ReferenceNode(node, scope, []) for node, scope in value_nodes.items()]
 
-    # detect all value references: references that are used as values (e.g. sth = value, return value)
+    # Detect all value references: references that are used as values (e.g. sth = value, return value)
     for value_ref in value_references:
         if isinstance(value_ref.node, astroid.Name | MemberAccessValue):
             value_ref_complete = _find_references(value_ref, target_references, classes, functions, parameters)
             final_references.append(value_ref_complete)
 
-    # detect all target references: references that are used as targets (e.g. target = sth)
+    # Detect all target references: references that are used as targets (e.g. target = sth)
     for target_ref in target_references:
         if isinstance(target_ref.node, astroid.AssignName | astroid.Name | MemberAccessTarget):
             target_ref_complete = _find_references_target(target_ref, target_references, classes)
-            # remove all references that are never referenced
+            # Remove all references that are never referenced
             if target_ref_complete.referenced_symbols:
                 final_references.append(target_ref_complete)
 
@@ -259,7 +259,7 @@ def _get_symbols(node: ReferenceNode) -> list[Symbol]:
     current_scope = node.scope
 
     for child in current_scope.children:
-        # this excludes ListComps, because they are not referenced
+        # This excludes ListComps, because they are not referenced
         if isinstance(child.symbol.node, astroid.ListComp):
             continue
         elif child.symbol.node.name == node.node.name:
