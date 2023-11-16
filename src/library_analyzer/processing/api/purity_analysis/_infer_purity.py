@@ -18,6 +18,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     FunctionReference,
     Builtin,
     Reasons,
+    CallGraphForest,
 )
 
 # TODO: check these for correctness and add reasons for impurity
@@ -390,7 +391,7 @@ PURITY_CACHE: dict[str, PurityResult] = {}
 # with: Provides a context manager for file operations, ensuring the file is properly closed.
 
 
-def infer_purity_new(references: list[ReferenceNode], function_references: dict[str, Reasons]) -> dict[astroid.Call, PurityResult]:
+def infer_purity_new(references: list[ReferenceNode], function_references: dict[str, Reasons], call_graph: CallGraphForest) -> dict[astroid.Call, PurityResult]:
     global PURITY_CACHE
     global BUILTIN_FUNCTIONS
     purity_results: dict[astroid.Call, PurityResult] = {}

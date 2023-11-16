@@ -197,6 +197,9 @@ class Scope:
     def __repr__(self) -> str:
         return f"{self.symbol.name}.line{self.symbol.id.line}"
 
+    def __hash__(self) -> int:
+        return hash(str(self))
+
     @property
     def symbol(self) -> Symbol:
         return self._symbol
@@ -255,11 +258,17 @@ class FunctionScope(Scope):
     """
 
     # parameters: dict[str, list[Symbol]] = field(default_factory=dict)
-    values: list[Scope | ClassScope] = field(default_factory=set)
-    calls: set[Scope | ClassScope] = field(default_factory=set)
+    values: list[Scope | ClassScope] = field(default_factory=list)
+    calls: list[Scope | ClassScope] = field(default_factory=list)
 
     def __getitem__(self, item):
         return self.values[item]
+
+    def remove_call_node_by_name(self, name: str) -> None:
+        for call in self.calls:
+            if call.symbol.name == name:
+                self.calls.remove(call)
+                break
 
 
 @dataclass

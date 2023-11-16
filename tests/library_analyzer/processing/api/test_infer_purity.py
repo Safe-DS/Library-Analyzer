@@ -415,9 +415,9 @@ c = fun1()
     ],
 )
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
-    references, function_references = resolve_references(code)
+    references, function_references, call_graph = resolve_references(code)
 
-    purity_results = infer_purity_new(references, function_references)
+    purity_results = infer_purity_new(references, function_references, call_graph)
     transformed_purity_results = {to_string_call(call): purity_result for call, purity_result in purity_results.items()}
 
     assert transformed_purity_results == expected
@@ -533,8 +533,8 @@ c = fun1()
     ],
 )
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
-    references, function_references = resolve_references(code)
+    references, function_references, call_graph= resolve_references(code)
 
-    purity_results = infer_purity_new(references, function_references)
+    purity_results = infer_purity_new(references, function_references, call_graph)
 
     assert purity_results == expected

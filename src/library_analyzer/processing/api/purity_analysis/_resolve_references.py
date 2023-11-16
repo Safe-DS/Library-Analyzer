@@ -18,6 +18,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Scope,
     Symbol,
     Reasons,
+    CallGraphForest,
 )
 
 
@@ -336,7 +337,7 @@ def _find_call_reference(
     return final_call_references
 
 
-def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, Reasons]]:
+def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, Reasons], CallGraphForest]:
     """
     Resolve all references in a module.
 
@@ -369,4 +370,4 @@ def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, Reason
 
     call_graph = build_call_graph(module_data.functions)
 
-    return resolved_references, module_data.function_references
+    return resolved_references, module_data.function_references, call_graph
