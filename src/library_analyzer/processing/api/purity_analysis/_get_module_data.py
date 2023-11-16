@@ -134,14 +134,12 @@ class ModuleDataBuilder:
 
             # Add all values that are used inside the function body to its values list
             if self.names:
-                for function in self.functions[node.name]:
-                    function.values = self.names
+                self.functions[node.name][-1].values = self.names
                 self.names = []
 
             # Add all calls that are used inside the function body to its calls list
             if self.calls:
-                for function in self.functions[node.name]:
-                    function.calls = self.calls
+                self.functions[node.name][-1].calls = self.calls
                 self.calls = []
 
         # Add lambda functions that are assigned to a name (and therefor are callable) to the functions dict
@@ -196,7 +194,7 @@ class ModuleDataBuilder:
                                     if ref not in self.function_references[function_name]:
                                         self.function_references[function_name].writes.add(ref)
                                 else:
-                                    self.function_references[function_name] = Reasons(function_node, {ref}, set(), set())
+                                    self.function_references[function_name] = Reasons(function_node, {ref}, set(), set())  # Add writes
 
             for value in self.value_nodes:
                 if isinstance(self.functions[function_name][0], FunctionScope):
@@ -216,7 +214,7 @@ class ModuleDataBuilder:
                             if function_name in self.function_references:
                                 self.function_references[function_name].reads.add(ref)
                             else:
-                                self.function_references[function_name] = Reasons(function_node, set(), {ref}, set())
+                                self.function_references[function_name] = Reasons(function_node, set(), {ref}, set())  # Add reads
 
             for call in self.function_calls:
                 if isinstance(call.parent.parent, astroid.FunctionDef) and call.parent.parent.name == function_name:
@@ -232,7 +230,7 @@ class ModuleDataBuilder:
                     if function_name in self.function_references:
                         self.function_references[function_name].calls.add(ref)
                     else:
-                        self.function_references[function_name] = Reasons(function_node, set(), set(), {ref})
+                        self.function_references[function_name] = Reasons(function_node, set(), set(), {ref})  # Add calls
 
             if function_name not in self.function_references:
                 self.function_references[function_name] = Reasons(function_node, set(), set(), set())
