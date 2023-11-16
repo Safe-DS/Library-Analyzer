@@ -368,6 +368,6 @@ def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, Reason
         )
         resolved_references.extend(references_call)
 
-    call_graph = build_call_graph(module_data.functions)
+    call_graph = build_call_graph(module_data.functions, module_data.function_references)
 
     return resolved_references, module_data.function_references, call_graph

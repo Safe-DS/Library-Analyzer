@@ -79,6 +79,22 @@ call_function(1)
                 "call_function": {"fun1", "fun2"},
             },
         ),
+        (  # language=Python "function call with cycle - direct entry"
+            """
+def fun1(count):
+    if count > 0:
+        fun2(count - 1)
+
+def fun2(count):
+    if count > 0:
+        fun1(count - 1)
+
+fun1(3)
+            """,  # language=none
+            {
+                "fun1.fun2": set(),
+            },
+        ),
         (  # language=Python "function call with cycle - one entry point"
             """
 def cycle1():
@@ -96,11 +112,10 @@ def entry():
 entry()
             """,  # language=none
             {
-                "cycle1.cycle2.cycle3": set(),  # TODO: combine the cycle nodes into one node with a new name
+                "cycle1.cycle2.cycle3": set(),
                 "entry": {"cycle1.cycle2.cycle3"},
             },
         ),
-
         (  # language=Python "function call with cycle - many entry points"
             """
 def cycle1():
@@ -124,7 +139,7 @@ def entry3():
 entry1()
             """,  # language=none
             {
-                "cycle1.cycle2.cycle3": set(),  # TODO: combine the cycle nodes into one node with a new name
+                "cycle1.cycle2.cycle3": set(),
                 "entry1": {"cycle1.cycle2.cycle3"},
                 "entry2": {"cycle1.cycle2.cycle3"},
                 "entry3": {"cycle1.cycle2.cycle3"},
@@ -293,6 +308,7 @@ x.add(1, 2)
         "function call - against declaration flow",
         "function call - against declaration flow with multiple calls",
         "function conditional with branching",
+        "function call with cycle - direct entry",
         "function call with cycle - one entry point",
         "function call with cycle - many entry points",
         "function call with cycle - other call in cycle",

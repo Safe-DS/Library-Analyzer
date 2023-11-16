@@ -3,8 +3,12 @@ from __future__ import annotations
 from abc import ABC
 from dataclasses import dataclass
 
-from library_analyzer.processing.api.purity_analysis.model._scope import GlobalVariable, ClassVariable, \
-    InstanceVariable, Parameter
+from library_analyzer.processing.api.purity_analysis.model._scope import (
+    GlobalVariable,
+    ClassVariable,
+    InstanceVariable,
+    Parameter
+)
 
 
 class PurityResult(ABC):

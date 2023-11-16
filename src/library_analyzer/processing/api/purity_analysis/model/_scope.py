@@ -273,6 +273,16 @@ class FunctionScope(Scope):
 
 @dataclass
 class Reasons:
+    """
+    Contains all reasons why a function is not pure.
+
+    Attributes
+    ----------
+        function_name   the name of the function
+        writes          a set of all nodes that are written to
+        reads           a set of all nodes that are read from
+        calls           a set of all nodes that are called
+    """
     function_name: astroid.FunctionDef
     writes: set[FunctionReference] = field(default_factory=set)
     reads: set[FunctionReference] = field(default_factory=set)
@@ -286,6 +296,21 @@ class Reasons:
 
     def has_calls(self) -> bool:
         return len(self.calls) > 0
+
+    def join_reasons(self, other: Reasons) -> Reasons:
+        self.writes.update(other.writes)
+        self.reads.update(other.reads)
+        self.calls.update(other.calls)
+        return self
+
+    @staticmethod
+    def join_reasons_list(reasons_list: list[Reasons]) -> Reasons:
+        if not reasons_list:
+            raise ValueError("List of Reasons is empty.")
+
+        for reason in reasons_list:
+            reasons_list[0].join_reasons(reason)
+        return reasons_list[0]
 
 
 @dataclass

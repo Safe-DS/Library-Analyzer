@@ -9,7 +9,9 @@ from library_analyzer.processing.api.purity_analysis.model._scope import (
     MemberAccessTarget,
     MemberAccessValue,
     Scope,
-    Symbol, FunctionScope,
+    Symbol,
+    FunctionScope,
+    Reasons,
 )
 
 
@@ -34,6 +36,7 @@ _T = TypeVar("_T")
 class CallGraphNode(Generic[_T]):
     data: _T | None = field(default=None)  # TODO: save purity information here too: cache result of purity analysis for each function
     children: set[CallGraphNode] = field(default_factory=set)
+    reasons: Reasons | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))

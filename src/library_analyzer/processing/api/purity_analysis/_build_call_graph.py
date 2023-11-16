@@ -26,7 +26,11 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
 
     for function_name, function_scopes in functions.items():
         for function_scope in function_scopes:
-            function_node = CallGraphNode(data=function_scope)  # TODO: add reasons from function_references
+            # Add reasons for impurity to the corresponding function
+            if function_references[function_name]:
+                function_node = CallGraphNode(data=function_scope, reasons=function_references[function_name])
+            else:
+                function_node = CallGraphNode(data=function_scope)
 
             # Case where the function is not called before by any other function
             if function_name not in call_graph_forest.graphs.keys():
@@ -45,10 +49,13 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
                         # We need to check if the called function is already in the tree
                         if call_graph_forest.get_graph(call.symbol.name):
                             current_tree_node.add_child(call_graph_forest.get_graph(call.symbol.name))
-                        # If the called function is not in the tree, we need to compute it first and then connect it to the current tree
+                        # If the called function is not in the forest, we need to compute it first and then connect it to the current tree
                         else:
                             for called_function_scope in functions[call.symbol.name]:
-                                call_graph_forest.add_graph(call.symbol.name, CallGraphNode(called_function_scope))
+                                if function_references[call.symbol.name]:
+                                    call_graph_forest.add_graph(call.symbol.name, CallGraphNode(data=called_function_scope, reasons=function_references[call.symbol.name]))
+                                else:
+                                    call_graph_forest.add_graph(call.symbol.name, CallGraphNode(data=called_function_scope))
                                 current_tree_node.add_child(call_graph_forest.get_graph(call.symbol.name))
 
                     # Handle builtins: builtins are not in the functions dict, and therefore we need to handle them separately
@@ -61,12 +68,12 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
                            #  -> this scenario happens when the function is external code or parameter call
                         current_tree_node.add_child(CallGraphNode())
 
-    handle_cycles(call_graph_forest)
+    handle_cycles(call_graph_forest, function_references)
 
     return call_graph_forest
 
 
-def handle_cycles(call_graph_forest: CallGraphForest) -> CallGraphForest:
+def handle_cycles(call_graph_forest: CallGraphForest, function_references: dict[str, Reasons]) -> CallGraphForest:
     """Handles cycles in the call graph.
 
     This function checks for cycles in the call graph forest and contracts them into a single node.
@@ -74,6 +81,7 @@ def handle_cycles(call_graph_forest: CallGraphForest) -> CallGraphForest:
     Parameters
     ----------
         * call_graph_forest: the call graph forest
+        * function_references: a dict of function references - contains the reasons for impurity
 
     Returns
     -------
@@ -86,7 +94,7 @@ def handle_cycles(call_graph_forest: CallGraphForest) -> CallGraphForest:
         cycle = test_for_cycles(graph, visited_nodes, path)
         if cycle:
             print("cycle found", cycle)
-            contract_cycle(call_graph_forest, cycle)
+            contract_cycle(call_graph_forest, cycle, function_references)
             # TODO: check if other cycles exists
         else:
             print("no cycles found")
@@ -132,7 +140,7 @@ def test_for_cycles(graph: CallGraphNode, visited_nodes: set, path: list) -> lis
     return cycle
 
 
-def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode]) -> None:
+def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function_references: dict[str, Reasons]) -> None:
     """Contracts a cycle in the call graph.
 
     Given a cycle in the call graph, this function contracts the cycle into a single node.
@@ -141,19 +149,20 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode]) -> None:
     ----------
         * forest: the call graph forest
         * cycle: a list of nodes in the cycle
+        * function_references: a dict of function references - contains the reasons for impurity
     """
-
     # Create the new combined node
     cycle_names = [node.data.symbol.name for node in cycle]
     combined_node_name = ".".join(sorted(cycle_names))
     combined_node_data = FunctionScope(Symbol("", "", combined_node_name))  # TODO: what do we use for the other parameters?
-    combined_node = CallGraphNode(combined_node_data)
+    combined_reasons = Reasons.join_reasons_list([node.reasons for node in cycle])
+    combined_node = CallGraphNode(data=combined_node_data, reasons=combined_reasons)
 
     # Add children to combined node if they are not in the cycle (other calls)
     if any([isinstance(node.data, FunctionScope) and hasattr(node.data, 'calls') for node in cycle]):
         other_calls = [call for node in cycle for call in node.data.calls if call.symbol.name not in cycle_names]
         combined_node_data.calls = other_calls
-        combined_node.children = [CallGraphNode(call) for call in other_calls]
+        combined_node.children = [CallGraphNode(data=call, reasons=function_references[call.symbol.name]) for call in other_calls]
 
     # Remove all nodes in the cycle from the forest and add the combined node instead
     for node in cycle:
@@ -192,6 +201,10 @@ def update_pointers(node: CallGraphNode, cycle: list[str], combined_node: CallGr
             if isinstance(node.data, FunctionScope):
                 node.data.remove_call_node_by_name(child.data.symbol.name)
                 node.data.calls.append(combined_node.data)
+            # Remove the call from the reasons (reasons need to be updated later)
+            for call in node.reasons.calls.copy():
+                if call.node.func.name == child.data.symbol.name:
+                    node.reasons.calls.remove(call)
 
         else:
             update_pointers(child, cycle, combined_node)
