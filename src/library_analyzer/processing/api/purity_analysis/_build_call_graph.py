@@ -1,54 +1,65 @@
 import builtins
 
-from library_analyzer.processing.api.purity_analysis.model import FunctionScope, CallGraphNode, CallGraphForest, Symbol
+from library_analyzer.processing.api.purity_analysis.model import FunctionScope, CallGraphNode, CallGraphForest, Symbol, \
+    Reasons
 
 BUILTINS = dir(builtins)
 
 
-def build_call_graph(functions: dict[str, list[FunctionScope]]) -> CallGraphForest:
+def build_call_graph(functions: dict[str, list[FunctionScope]], function_references: dict[str, Reasons]) -> CallGraphForest:
+    """Builds a call graph from a list of functions.
+
+    Parameters
+    ----------
+        * functions: a dict of functions
+        * function_references: a dict of function references - contains the reasons for impurity
+
+    Returns
+    -------
+        * call_graph_forest: the call graph forest with cycles contracted
+    """
+
     global BUILTINS
 
     current_tree_node = CallGraphNode()
     call_graph_forest = CallGraphForest()
 
-    for function_name, function_scope in functions.items():
-        # TODO: how do we deal with functions with the same name?
-        #  - use a loop to add all of them to the tree but add a warning to indicate this inaccuracy
-        # right now we use the first one we find
-        function_scope = function_scope[0]
-        function_node = CallGraphNode(data=function_scope)
+    for function_name, function_scopes in functions.items():
+        for function_scope in function_scopes:
+            function_node = CallGraphNode(data=function_scope)  # TODO: add reasons from function_references
 
-        # case where the function is not called before by any other function
-        if function_name not in call_graph_forest.graphs.keys():
-            call_graph_forest.add_graph(function_name, function_node)  # we save the tree in the forest by the name of the root function call
+            # Case where the function is not called before by any other function
+            if function_name not in call_graph_forest.graphs.keys():
+                call_graph_forest.add_graph(function_name, function_node)  # We save the tree in the forest by the name of the root function
 
-        # default case where a function calls no other functions in its body - therefore the tree has just one node
-        if not function_scope.calls:
-            continue
+            # Default case where a function calls no other functions in its body - therefore the tree has just one node
+            if not function_scope.calls:
+                continue
 
-        # if the function calls other functions in its body we need to build a tree
-        else:
-            for call in function_scope.calls:
-                if call.symbol.name in functions.keys():
-                    current_tree_node = call_graph_forest.get_graph(function_name)
+            # If the function calls other functions in its body we need to build a tree
+            else:
+                for call in function_scope.calls:
+                    if call.symbol.name in functions.keys():
+                        current_tree_node = call_graph_forest.get_graph(function_name)
 
-                    # we need to check if the called function is already in the tree
-                    if call_graph_forest.get_graph(call.symbol.name):
-                        current_tree_node.add_child(call_graph_forest.get_graph(call.symbol.name))
-                    # if the called function is not in the tree we need to compute it first and then connect it to the current tree
-                    else:
-                        call_graph_forest.add_graph(call.symbol.name, CallGraphNode(functions[call.symbol.name][0]))
-                        current_tree_node.add_child(call_graph_forest.get_graph(call.symbol.name))
+                        # We need to check if the called function is already in the tree
+                        if call_graph_forest.get_graph(call.symbol.name):
+                            current_tree_node.add_child(call_graph_forest.get_graph(call.symbol.name))
+                        # If the called function is not in the tree, we need to compute it first and then connect it to the current tree
+                        else:
+                            for called_function_scope in functions[call.symbol.name]:
+                                call_graph_forest.add_graph(call.symbol.name, CallGraphNode(called_function_scope))
+                                current_tree_node.add_child(call_graph_forest.get_graph(call.symbol.name))
 
-                # handle builtins: builtins are not in the functions dict and therefore we need to handle them separately
-                # since we do not analyse builtins any further at this stage, we can simply add them as a child to the current tree node
-                elif call.symbol.name in BUILTINS:
-                    current_tree_node = call_graph_forest.get_graph(function_name)
-                    current_tree_node.add_child(CallGraphNode(call))
+                    # Handle builtins: builtins are not in the functions dict, and therefore we need to handle them separately
+                    # since we do not analyze builtins any further at this stage, we can simply add them as a child to the current tree node
+                    elif call.symbol.name in BUILTINS:
+                        current_tree_node = call_graph_forest.get_graph(function_name)
+                        current_tree_node.add_child(CallGraphNode(call))
 
-                else:  # TODO: what if the function is not in the functions dict?
-                       #  -> this scenario happens when the function is external code or parameter call
-                    current_tree_node.add_child(CallGraphNode())
+                    else:  # TODO: what if the function is not in the functions dict?
+                           #  -> this scenario happens when the function is external code or parameter call
+                        current_tree_node.add_child(CallGraphNode())
 
     handle_cycles(call_graph_forest)
 
@@ -56,6 +67,19 @@ def build_call_graph(functions: dict[str, list[FunctionScope]]) -> CallGraphFore
 
 
 def handle_cycles(call_graph_forest: CallGraphForest) -> CallGraphForest:
+    """Handles cycles in the call graph.
+
+    This function checks for cycles in the call graph forest and contracts them into a single node.
+
+    Parameters
+    ----------
+        * call_graph_forest: the call graph forest
+
+    Returns
+    -------
+        * call_graph_forest: the call graph forest with contracted cycles
+    """
+
     for name, graph in call_graph_forest.graphs.copy().items():
         visited_nodes = set()
         path = []
@@ -71,6 +95,20 @@ def handle_cycles(call_graph_forest: CallGraphForest) -> CallGraphForest:
 
 
 def test_for_cycles(graph: CallGraphNode, visited_nodes: set, path: list) -> list[CallGraphNode]:
+    """Tests for cycles in the call graph.
+
+    This function recursively traverses the call graph and checks for cycles.
+    It uses a DFS approach to traverse the graph.
+    If a cycle is found, the cycle is returned.
+    It is possible that multiple cycles exist, but only one is returned.
+
+    Parameters
+    ----------
+        * graph: the current node in the call graph
+        * visited_nodes: a set of all visited nodes
+        * path: a list of all nodes in the current path
+    """
+
     # If a node has no children, it is a leaf node, and we can return an empty list
     if not graph.children:
         return []
@@ -94,7 +132,17 @@ def test_for_cycles(graph: CallGraphNode, visited_nodes: set, path: list) -> lis
     return cycle
 
 
-def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode]):
+def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode]) -> None:
+    """Contracts a cycle in the call graph.
+
+    Given a cycle in the call graph, this function contracts the cycle into a single node.
+
+    Parameters
+    ----------
+        * forest: the call graph forest
+        * cycle: a list of nodes in the cycle
+    """
+
     # Create the new combined node
     cycle_names = [node.data.symbol.name for node in cycle]
     combined_node_name = ".".join(sorted(cycle_names))
@@ -110,9 +158,11 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode]):
     # Remove all nodes in the cycle from the forest and add the combined node instead
     for node in cycle:
         if node.data.symbol.name in BUILTINS:
-            continue
+            continue  # This should not happen since builtins never call self defined functions
         if node.data.symbol.name in forest.graphs.keys():
             forest.delete_graph(node.data.symbol.name)
+
+    # Only add the combined node once - (it is possible that the same cycle is found multiple times)
     if combined_node_name not in forest.graphs.keys():
         forest.add_graph(combined_node_name, combined_node)
 
@@ -121,7 +171,7 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode]):
         update_pointers(graph, cycle_names, combined_node)
 
 
-def update_pointers(node: CallGraphNode, cycle: list[str], combined_node: CallGraphNode):
+def update_pointers(node: CallGraphNode, cycle: list[str], combined_node: CallGraphNode) -> None:
     """Replaces all pointers to nodes in the cycle with the combined node.
 
     Recursively traverses the tree and replaces all pointers to nodes in the cycle with the combined node.

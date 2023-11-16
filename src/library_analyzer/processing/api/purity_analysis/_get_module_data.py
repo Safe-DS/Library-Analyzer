@@ -394,6 +394,8 @@ class ModuleDataBuilder:
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
             case astroid.Lambda() | astroid.ListComp():
+                if isinstance(node, astroid.Call):
+                    return LocalVariable(node=node, id=calc_node_id(node), name=node.func.name)
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
             case astroid.TryExcept() | astroid.TryFinally():  # TODO: can we summarize Lambda and ListComp here? -> only if nodes in try except are not global
@@ -410,7 +412,7 @@ class ModuleDataBuilder:
 
     def enter_lambda(self, node: astroid.Lambda) -> None:
         self.current_node_stack.append(
-            Scope(
+            FunctionScope(
                 _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
                 _children=[],
                 _parent=self.current_node_stack[-1],

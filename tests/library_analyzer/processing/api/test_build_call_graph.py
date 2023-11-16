@@ -255,7 +255,7 @@ def fun1():
     pass
             """,  # language=none
             {
-                "fun1": set(),
+                "fun1": "TODO",
             },
         ),
         (  # language=Python "recursive function call",
@@ -284,7 +284,7 @@ x.add(1, 2)
             {
                 "fun1": set(),
                 "fun2": {"print"},
-                "add": {"fun1, fun2"},
+                "add": {"fun1", "fun2"},
             },
         ),
     ],
@@ -306,7 +306,7 @@ x.add(1, 2)
 )
 def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
     module_data = get_module_data(code)
-    call_graph_forest = build_call_graph(module_data.functions)
+    call_graph_forest = build_call_graph(module_data.functions, module_data.function_references)
 
     transformed_call_graph_forest: dict = {}
     for tree_name, tree in call_graph_forest.graphs.items():
