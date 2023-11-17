@@ -379,6 +379,38 @@ a = fun1()
             {"Call.fun1.line9": Pure(),
              "Call.fun2.line3": Pure()},
         ),
+        (  # language=Python "Call of Pure Chain of Functions"
+            """
+def fun1():
+    res = fun2()  # Pure: Call of Pure Function
+    return res
+
+def fun2():
+    return fun3()  # Pure: Call of Pure Function
+
+def fun3():
+    return 1  # Pure
+
+a = fun1()
+            """,  # language= None
+            {"Call.fun1.line9": Pure(),
+             "Call.fun2.line3": Pure()},
+        ),
+        (  # language=Python "Call of Pure Chain of Functions with cycle"
+            """
+def fun1(count):
+    if count > 0:
+        fun2(count - 1)
+
+def fun2(count):
+    if count > 0:
+        fun1(count - 1)
+
+fun1(3)
+            """,  # language= None
+            {"Call.fun1.line9": Pure(),
+             "Call.fun2.line3": Pure()},
+        ),
         (  # language=Python "Call of Pure Builtin Function"
             """
 def fun():
@@ -410,8 +442,10 @@ c = fun1()
         "VariableWrite to LocalVariable with parameter",
         "VariableRead from LocalVariable",
         "Call of Pure Function",
+        "Call of Pure Chain of Functions",
+        "Call of Pure Chain of Functions with cycle",
         "Call of Pure Builtin Function",
-        "Multiple Calls of same Pure function (Caching)"
+        "Multiple Calls of same Pure function (Caching)",
     ],
 )
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
@@ -530,10 +564,11 @@ c = fun1()
         "VariableRead from GlobalVariable",
         "Call of Impure Function",
         "Multiple Calls of same Impure function (Caching)",
+        # TODO: "Unknown", impure Builtin, cycles, chain of functions
     ],
 )
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
-    references, function_references, call_graph= resolve_references(code)
+    references, function_references, call_graph = resolve_references(code)
 
     purity_results = infer_purity_new(references, function_references, call_graph)
 

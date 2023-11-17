@@ -406,7 +406,7 @@ def infer_purity_new(references: list[ReferenceNode], function_references: dict[
             continue
 
         # check the cache for the purity result of the function
-        if reference.node.func.name in PURITY_CACHE.keys():
+        if reference.node.func.name in PURITY_CACHE.keys():  # TODO: check if the result is already computed (in the call graph forest)
             purity_results[reference.node] = PURITY_CACHE[reference.node.func.name]
             continue
 
@@ -422,23 +422,42 @@ def infer_purity_new(references: list[ReferenceNode], function_references: dict[
             # look at all function references and check if they match the function (call) reference
             else:
                 for symbol in reference.referenced_symbols:
-                    if symbol.name in function_references.keys():
-                        fun_ref = function_references[symbol.name]
-                        # if no function reference is found, we assume the function is pure
-                        if not fun_ref.has_reasons():
-                            purity_results[reference.node] = Pure()
-                            # add the function def to the cache
-                            PURITY_CACHE[reference.node.func.name] = Pure()
-
-                        # if there is a function reference, we check if it is pure or impure and only return impure
-                        # if one or more references are impure
-                        else:
-                            for ref in fun_ref:
-                                impurity_reasons = get_impurity_reasons(ref)
-                                if impurity_reasons:
-                                    purity_results[reference.node] = Impure(impurity_reasons)
+                    # check if we deal with a self defined function
+                    if isinstance(symbol.node, astroid.FunctionDef) and symbol.node.name in call_graph.graphs.keys():
+                        # check if the function calls other functions
+                        if call_graph.graphs[symbol.node.name].is_leaf():
+                            # if the function does not call other functions (it is a leaf), we can check its reasons for impurity directly
+                            if call_graph.graphs[symbol.node.name].reasons:
+                                reasons = transform_reasons_to_impurity_result(call_graph.graphs[symbol.node.name].reasons)
+                                if reasons:
+                                    purity = Impure(reasons)
                                 else:
-                                    purity_results[reference.node] = Pure()
+                                    purity = Pure()
+                            # add the function def to the cache
+                            purity_results[reference.node] = purity
+                            PURITY_CACHE[reference.node.func.name] = purity # TODO: store the results in the forest, add a flag to the node to indicate that the result is already computed completely
+                        else:
+                            # otherwise we need to calculate the purity of the called functions first
+                            pass  # TODO: implement this
+
+                    # # This deals with simple function references (functions that do not call other functions)
+                    # elif symbol.name in function_references.keys():
+                    #     fun_ref = function_references[symbol.name]
+                    #     # if no function reference is found, we assume the function is pure
+                    #     if not fun_ref.has_reasons():
+                    #         purity_results[reference.node] = Pure()
+                    #         # add the function def to the cache
+                    #         PURITY_CACHE[reference.node.func.name] = Pure()
+                    #
+                    #     # if there is a function reference, we check if it is pure or impure and only return impure
+                    #     # if one or more references are impure
+                    #     else:
+                    #         for ref in fun_ref:
+                    #             impurity_reasons = get_impurity_reasons(ref)
+                    #             if impurity_reasons:
+                    #                 purity_results[reference.node] = Impure(impurity_reasons)
+                    #             else:
+                    #                 purity_results[reference.node] = Pure()
 
         except KeyError:
             raise KeyError(f"Function {reference.node.func.name} not found in function_references")
@@ -446,5 +465,7 @@ def infer_purity_new(references: list[ReferenceNode], function_references: dict[
     return purity_results
 
 
-def get_impurity_reasons(fun_ref: FunctionReference) -> list[ImpurityReason]:
-    return fun_ref.kind
+def transform_reasons_to_impurity_result(reasons: Reasons) -> list[ImpurityReason]:
+    if not reasons:
+        return []
+    # TODO: transform reasons to impurity reason

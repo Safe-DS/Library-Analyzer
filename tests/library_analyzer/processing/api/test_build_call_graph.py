@@ -264,10 +264,10 @@ fun1()
                 "fun2": {"print"},
             },
         ),
-        (  # language=Python "recursive function call",
+        (  # language=Python "external function call",
             """
 def fun1():
-    pass
+    call()
             """,  # language=none
             {
                 "fun1": "TODO",

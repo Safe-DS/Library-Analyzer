@@ -66,6 +66,7 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
 
                     else:  # TODO: what if the function is not in the functions dict?
                            #  -> this scenario happens when the function is external code or parameter call
+                           #  These functions will get an unknown flag
                         current_tree_node.add_child(CallGraphNode())
 
     handle_cycles(call_graph_forest, function_references)
@@ -153,8 +154,8 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function
     """
     # Create the new combined node
     cycle_names = [node.data.symbol.name for node in cycle]
-    combined_node_name = ".".join(sorted(cycle_names))
-    combined_node_data = FunctionScope(Symbol("", "", combined_node_name))  # TODO: what do we use for the other parameters?
+    combined_node_name = ".".join(sorted(cycle_names))  # TODO: +
+    combined_node_data = FunctionScope(Symbol("", "", combined_node_name))  # TODO: what do we use for the other parameters? - make them none
     combined_reasons = Reasons.join_reasons_list([node.reasons for node in cycle])
     combined_node = CallGraphNode(data=combined_node_data, reasons=combined_reasons)
 
