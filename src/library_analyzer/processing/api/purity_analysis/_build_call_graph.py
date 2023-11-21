@@ -62,7 +62,7 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
                     # since we do not analyze builtins any further at this stage, we can simply add them as a child to the current tree node
                     elif call.symbol.name in BUILTINS:
                         current_tree_node = call_graph_forest.get_graph(function_name)
-                        current_tree_node.add_child(CallGraphNode(call))
+                        current_tree_node.add_child(CallGraphNode(data=call, reasons=Reasons()))
 
                     else:  # TODO: what if the function is not in the functions dict?
                            #  -> this scenario happens when the function is external code or parameter call

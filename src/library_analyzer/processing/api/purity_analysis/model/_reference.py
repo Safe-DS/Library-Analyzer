@@ -5,6 +5,7 @@ from typing import TypeVar, Generic
 
 import astroid
 
+from library_analyzer.processing.api.purity_analysis.model import PurityResult
 from library_analyzer.processing.api.purity_analysis.model._scope import (
     MemberAccessTarget,
     MemberAccessValue,
@@ -34,10 +35,22 @@ _T = TypeVar("_T")
 
 @dataclass
 class CallGraphNode(Generic[_T]):
+    """Class for call graph nodes.
+
+    A call graph node represents a function call.
+
+    Parameters
+    ----------
+        * data:
+        * children: a set of call graph nodes that are called by this node
+        * reasons: a Reasons or PurityResult object that represents the reasons why this node is impure
+                   if the purity analysis has been performed on this node reasons is a PurityResult object otherwise it is a Reasons object
+    """
+
     data: _T | None = field(default=None)
     children: set[CallGraphNode] = field(default_factory=set)
     reasons: Reasons | PurityResult | None = field(default=None) # TODO: save purity information here too: cache result of purity analysis for each function
-    is_done: bool = field(default=False)
+    # is_done: bool = field(default=False)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -58,11 +71,11 @@ class CallGraphNode(Generic[_T]):
 class CallGraphForest:
     graphs: dict[str, CallGraphNode] = field(default_factory=dict)
 
-    def add_graph(self, graph_name, graph):
+    def add_graph(self, graph_name, graph) -> None:
         self.graphs[graph_name] = graph
 
-    def get_graph(self, graph_name):
+    def get_graph(self, graph_name) -> CallGraphNode:
         return self.graphs.get(graph_name)
 
-    def delete_graph(self, graph_name):
+    def delete_graph(self, graph_name) -> None:
         del self.graphs[graph_name]

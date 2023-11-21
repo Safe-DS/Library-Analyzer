@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Iterable
 
 import astroid
 
+import library_analyzer.processing.api.purity_analysis.model._purity as purity  # TODO: find a better way to import this
+
 if TYPE_CHECKING:
     from collections.abc import Generator
 
@@ -283,10 +285,11 @@ class Reasons:
         reads           a set of all nodes that are read from
         calls           a set of all nodes that are called
     """
-    function_name: astroid.FunctionDef
+    function_name: astroid.FunctionDef | None = field(default=None)
     writes: set[FunctionReference] = field(default_factory=set)
     reads: set[FunctionReference] = field(default_factory=set)
     calls: set[FunctionReference] = field(default_factory=set)
+    result: purity.PurityResult | None = field(default=None)
 
     def __iter__(self) -> Iterable[FunctionReference]:
         return iter(self.writes.union(self.reads).union(self.calls))
