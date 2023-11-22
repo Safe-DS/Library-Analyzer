@@ -1481,10 +1481,10 @@ def f():
     g()    # Call
     x = open("text.txt") # LocalWrite, Call
             """,  # language=none
-            {"f": SimpleReasons("f", {SimpleFunctionReference("AssignName.b.line11", "InternalWrite"),
-                                      SimpleFunctionReference("AssignName.b.line14", "InternalWrite")},
-                                     {SimpleFunctionReference("Name.c.line13", "InternalRead"),
-                                      SimpleFunctionReference("Name.d.line14", "InternalRead")},
+            {"f": SimpleReasons("f", {SimpleFunctionReference("AssignName.b.line11", "NonLocalVariableWrite"),
+                                      SimpleFunctionReference("AssignName.b.line14", "NonLocalVariableWrite")},
+                                     {SimpleFunctionReference("Name.c.line13", "NonLocalVariableRead"),
+                                      SimpleFunctionReference("Name.d.line14", "NonLocalVariableRead")},
                                      {SimpleFunctionReference("Call.g.line15", "Call"),
                                       SimpleFunctionReference("Call.open.line16", "Call")}),
              "g": SimpleReasons("g", set(), set(), set())},

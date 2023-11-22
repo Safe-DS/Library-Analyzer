@@ -245,12 +245,12 @@ class ModuleDataBuilder:
             if isinstance(symbol, LocalVariable):
                 return "LocalWrite"  # this should never happen
             if isinstance(symbol, GlobalVariable):
-                return "InternalWrite"
+                return "NonLocalVariableWrite"
         if isinstance(symbol.node, astroid.Name):
             if isinstance(symbol, LocalVariable):
                 return "LocalRead"  # this should never happen
             if isinstance(symbol, GlobalVariable):
-                return "InternalRead"
+                return "NonLocalVariableRead"
         if isinstance(symbol.node, astroid.FunctionDef) or isinstance(symbol, Builtin):
             return "Call"
 
