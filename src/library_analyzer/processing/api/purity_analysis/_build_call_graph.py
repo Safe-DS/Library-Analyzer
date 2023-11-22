@@ -152,6 +152,8 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function
         * cycle: a list of nodes in the cycle
         * function_references: a dict of function references - contains the reasons for impurity
     """
+    global BUILTINS
+
     # Create the new combined node
     cycle_names = [node.data.symbol.name for node in cycle]
     combined_node_name = "+".join(sorted(cycle_names))
@@ -161,9 +163,11 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function
 
     # Add children to combined node if they are not in the cycle (other calls)
     if any([isinstance(node.data, FunctionScope) and hasattr(node.data, 'calls') for node in cycle]):
-        other_calls = [call for node in cycle for call in node.data.calls if call.symbol.name not in cycle_names]
-        combined_node_data.calls = other_calls
-        combined_node.children = [CallGraphNode(data=call, reasons=function_references[call.symbol.name]) for call in other_calls]
+        other_calls = [call for node in cycle for call in node.data.calls if call.symbol.name not in cycle_names and call.symbol.name not in BUILTINS]
+        builtin_calls = [call for node in cycle for call in node.data.calls if call.symbol.name in BUILTINS]
+        combined_node_data.calls = other_calls + builtin_calls
+        combined_node.children = {CallGraphNode(data=call, reasons=function_references[call.symbol.name]) for call in other_calls}
+        combined_node.children.update({CallGraphNode(data=call, reasons=Reasons()) for call in builtin_calls})
 
     # Remove all nodes in the cycle from the forest and add the combined node instead
     for node in cycle:
