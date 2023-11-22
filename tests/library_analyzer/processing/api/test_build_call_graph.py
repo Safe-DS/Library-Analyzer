@@ -92,7 +92,7 @@ def fun2(count):
 fun1(3)
             """,  # language=none
             {
-                "fun1.fun2": set(),
+                "fun1+fun2": set(),
             },
         ),
         (  # language=Python "function call with cycle - one entry point"
@@ -112,8 +112,8 @@ def entry():
 entry()
             """,  # language=none
             {
-                "cycle1.cycle2.cycle3": set(),
-                "entry": {"cycle1.cycle2.cycle3"},
+                "cycle1+cycle2+cycle3": set(),
+                "entry": {"cycle1+cycle2+cycle3"},
             },
         ),
         (  # language=Python "function call with cycle - many entry points"
@@ -139,10 +139,10 @@ def entry3():
 entry1()
             """,  # language=none
             {
-                "cycle1.cycle2.cycle3": set(),
-                "entry1": {"cycle1.cycle2.cycle3"},
-                "entry2": {"cycle1.cycle2.cycle3"},
-                "entry3": {"cycle1.cycle2.cycle3"},
+                "cycle1+cycle2+cycle3": set(),
+                "entry1": {"cycle1+cycle2+cycle3"},
+                "entry2": {"cycle1+cycle2+cycle3"},
+                "entry3": {"cycle1+cycle2+cycle3"},
             },
         ),
         (  # language=Python "function call with cycle - other call in cycle"
@@ -166,8 +166,8 @@ def other():
 entry()
             """,  # language=none
             {
-                "cycle1.cycle2.cycle3": {"other"},
-                "entry": {"cycle1.cycle2.cycle3"},
+                "cycle1+cycle2+cycle3": {"other"},
+                "entry": {"cycle1+cycle2+cycle3"},
                 "other": set(),
             },
         ),
@@ -200,8 +200,8 @@ def other3():
 entry()
             """,  # language=none
             {
-                "cycle1.cycle2.cycle3": {"other1", "other3"},
-                "entry": {"cycle1.cycle2.cycle3", "other2"},
+                "cycle1+cycle2+cycle3": {"other1", "other3"},
+                "entry": {"cycle1+cycle2+cycle3", "other2"},
                 "other1": set(),
                 "other2": set(),
                 "other3": set(),
@@ -231,9 +231,9 @@ def entry():
 entry()
             """,  # language=none
             {
-                "cycle1.cycle2.cycle3": {"inner_cycle1.inner_cycle2"},
-                "inner_cycle1.inner_cycle2": set(),
-                "entry": {"cycle1.cycle2.cycle3"},
+                "cycle1+cycle2+cycle3": {"inner_cycle1+inner_cycle2"},
+                "inner_cycle1+inner_cycle2": set(),
+                "entry": {"cycle1+cycle2+cycle3"},
             },
         ),
         (  # language=Python "recursive function call",

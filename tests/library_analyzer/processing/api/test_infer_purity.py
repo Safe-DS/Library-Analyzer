@@ -393,10 +393,29 @@ def fun3():
 
 a = fun1()
             """,  # language= None
-            {"Call.fun1.line9": Pure(),
-             "Call.fun2.line3": Pure()},
+            {"Call.fun1.line12": Pure(),
+             "Call.fun2.line3": Pure(),
+             "Call.fun3.line7": Pure()},
         ),
-        (  # language=Python "Call of Pure Chain of Functions with cycle"
+        (  # language=Python "Call of Pure Chain of Functions with cycle - one entry point"
+            """
+def cycle1():
+    cycle2()
+
+def cycle2():
+    cycle3()
+
+def cycle3():
+    cycle1()
+
+def entry():
+    cycle1()
+
+entry()
+            """,  # language= None
+            {},  # TODO: LARS how should the results look here? do we want the functions inside of cycles to be returned
+        ),
+        (  # language=Python "Call of Pure Chain of Functions with cycle - direct entry"
             """
 def fun1(count):
     if count > 0:
@@ -408,8 +427,9 @@ def fun2(count):
 
 fun1(3)
             """,  # language= None
-            {"Call.fun1.line9": Pure(),
-             "Call.fun2.line3": Pure()},
+            {"Call.fun1.line8": Pure(),
+             "Call.fun1.line10": Pure(),
+             "Call.fun2.line4": Pure()},
         ),
         (  # language=Python "Call of Pure Builtin Function"
             """
@@ -419,7 +439,7 @@ def fun():
 
 a = fun()
             """,  # language= None
-            {"Call.fun.line6": Pure()},
+            {"Call.fun.line6": Pure()},  # TODO: LARS do we want builtins in the result? -> if not do a cleanup and remove them before returning the result
         ),
         (  # language=Python "Multiple Calls of same Pure function (Caching)"
             """
@@ -432,7 +452,7 @@ c = fun1()
             """,  # language= None
             {"Call.fun1.line5": Pure(),
              "Call.fun1.line6": Pure(),
-             "Call.fun1.line7": Pure()},
+             "Call.fun1.line7": Pure()},  # TODO: LARS do we want to get multiple outputs for multiple calls - since the function is always pure/impure
         ),  # here the purity for fun1 can be cached for the other calls
     ],
     ids=[
@@ -443,7 +463,8 @@ c = fun1()
         "VariableRead from LocalVariable",
         "Call of Pure Function",
         "Call of Pure Chain of Functions",
-        "Call of Pure Chain of Functions with cycle",
+        "Call of Pure Chain of Functions with cycle - one entry point",
+        "Call of Pure Chain of Functions with cycle - direct entry",
         "Call of Pure Builtin Function",
         "Multiple Calls of same Pure function (Caching)",
     ],
@@ -458,6 +479,8 @@ def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
 
 
 def to_string_call(call: astroid.Call) -> str:
+    if isinstance(call, str):
+        return f"{call}"
     return f"Call.{call.func.name}.line{call.lineno}"
 
 

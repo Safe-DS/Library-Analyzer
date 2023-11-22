@@ -79,8 +79,8 @@ class MemberAccessValue(MemberAccess):
 class NodeID:
     module: astroid.Module | str
     name: str
-    line: int
-    col: int
+    line: int | None
+    col: int | None
 
     def __repr__(self) -> str:
         return f"{self.module}.{self.name}.{self.line}.{self.col}"
@@ -98,7 +98,7 @@ class Symbol(ABC):
 
     """
 
-    node: astroid.NodeNG | MemberAccess
+    node: astroid.NodeNG | MemberAccess | None
     id: NodeID
     name: str
 
@@ -284,6 +284,8 @@ class Reasons:
         writes          a set of all nodes that are written to
         reads           a set of all nodes that are read from
         calls           a set of all nodes that are called
+        result          the result of the purity analysis (this also works as a flag to determine if the purity analysis has been performed)
+                        if it is None, the purity analysis has not been performed
     """
     function_name: astroid.FunctionDef | None = field(default=None)
     writes: set[FunctionReference] = field(default_factory=set)

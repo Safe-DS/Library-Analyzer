@@ -1,7 +1,7 @@
 import builtins
 
 from library_analyzer.processing.api.purity_analysis.model import FunctionScope, CallGraphNode, CallGraphForest, Symbol, \
-    Reasons
+    Reasons, NodeID
 
 BUILTINS = dir(builtins)
 
@@ -154,10 +154,10 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function
     """
     # Create the new combined node
     cycle_names = [node.data.symbol.name for node in cycle]
-    combined_node_name = ".".join(sorted(cycle_names))  # TODO: +
-    combined_node_data = FunctionScope(Symbol("", "", combined_node_name))  # TODO: what do we use for the other parameters? - make them none
+    combined_node_name = "+".join(sorted(cycle_names))
+    combined_node_data = FunctionScope(Symbol(None, NodeID("COMBINED", combined_node_name, None, None), combined_node_name))  # TODO: what do we use for the other parameters? - make them none
     combined_reasons = Reasons.join_reasons_list([node.reasons for node in cycle])
-    combined_node = CallGraphNode(data=combined_node_data, reasons=combined_reasons)
+    combined_node = CallGraphNode(data=combined_node_data, reasons=combined_reasons, combined_node_names=cycle_names)
 
     # Add children to combined node if they are not in the cycle (other calls)
     if any([isinstance(node.data, FunctionScope) and hasattr(node.data, 'calls') for node in cycle]):
