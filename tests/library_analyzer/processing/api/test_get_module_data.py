@@ -1494,19 +1494,19 @@ def f():
         "internal stuff"
     ]  # TODO: add cases for control flow statements and other cases
 )
-def test_get_module_data_function_calls(code: str, expected: dict[str, SimpleReasons]) -> None:
-    function_calls = get_module_data(code).function_references
+def test_get_module_data_function_references(code: str, expected: dict[str, SimpleReasons]) -> None:
+    function_references = get_module_data(code).function_references
 
-    transformed_function_calls = transform_function_calls(function_calls)
-    # assert function_calls == expected
+    transformed_function_references = transform_function_references(function_references)
+    # assert function_references == expected
 
-    assert transformed_function_calls == expected
+    assert transformed_function_references == expected
 
 
-def transform_function_calls(function_calls: dict[str, Reasons]) -> dict[str, SimpleReasons]:
-    transformed_function_calls = {}
+def transform_function_references(function_calls: dict[str, Reasons]) -> dict[str, SimpleReasons]:
+    transformed_function_references = {}
     for function_name, function_references in function_calls.items():
-        transformed_function_calls.update(
+        transformed_function_references.update(
             {
                 function_name: SimpleReasons(
                     function_name,
@@ -1535,7 +1535,7 @@ def transform_function_calls(function_calls: dict[str, Reasons]) -> dict[str, Si
             }
         )
 
-    return transformed_function_calls
+    return transformed_function_references
 
 
 # TODO: testcases for cyclic calls and recursive calls

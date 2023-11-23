@@ -258,7 +258,7 @@ class SimpleImpure:
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        (  # language=Python "Pure function"
+        (  # language=Python "Trivial function"
             """
 def fun():
     pass  # Pure
@@ -267,7 +267,7 @@ fun()
             """,  # language= None
             {"Call.fun.line5": Pure()},
         ),
-        (  # language=Python "Pure function with parameter"
+        (  # language=Python "Trivial function with parameter and return"
             """
 def fun(x):
     return 2 * x  # Pure: VariableRead from LocalVariable
@@ -397,8 +397,8 @@ c = fun1()
         ),  # here the purity for fun1 can be cached for the other calls
     ],
     ids=[
-        "pure function",
-        "pure function with parameter",
+        "Trivial function",
+        "Trivial function with parameter and return",
         "VariableWrite to LocalVariable",
         "VariableWrite to LocalVariable with parameter",
         "VariableRead from LocalVariable",
@@ -408,7 +408,7 @@ c = fun1()
         "Call of Pure Chain of Functions with cycle - direct entry",
         "Call of Pure Builtin Function",
         "Multiple Calls of same Pure function (Caching)",
-    ],  # TODO: ClassVariables, InstanceVariables,
+    ],  # TODO: ClassVariables, InstanceVariables, Lambda with name
 )
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     references, function_references, call_graph = resolve_references(code)
@@ -422,7 +422,7 @@ def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        (  # language=Python "SystemInteraction"
+        (  # language=Python "Print with str"
             """
 def fun():
     print("text.txt")  # Impure: FileWrite
@@ -431,16 +431,16 @@ fun()
             """,  # language= None
             {"Call.fun.line5": SimpleImpure(["FileWrite.StringLiteral.stdout"])}
         ),
-        (  # language=Python "SystemInteraction with parameter"
+        (  # language=Python "Print with parameter"
             """
 def fun(pos_arg):
     print(pos_arg)  # Impure: FileWrite
 
 fun(1)
             """,  # language= None
-            {"Call.fun.line5": SimpleImpure(["FileWrite.StringLiteral.stdout"])}  # TODO: LARS  FileWrite.ParameterAccess.pos_arg ??
+            {"Call.fun.line5": SimpleImpure(["FileWrite.StringLiteral.stdout"])}
         ),
-        (  # language=Python "SystemInteraction"
+        (  # language=Python "Open with str"
             """
 def fun():
     open("text.txt")  # Impure: FileWrite
@@ -449,10 +449,20 @@ fun()
             """,  # language= None
             {"Call.fun.line5": SimpleImpure(["FileWrite.StringLiteral.text.txt"])}
         ),
-        (  # language=Python "SystemInteraction with parameter"
+        (  # language=Python "Open with parameter"
             """
 def fun(pos_arg):
     open(pos_arg)  # Impure: FileWrite
+
+fun(1)
+            """,  # language= None
+            {"Call.fun.line5": SimpleImpure(["FileWrite.ParameterAccess.pos_arg"])}
+        ),
+        (  # language=Python "With open"
+            """
+def fun(pos_arg):
+    with open(pos_arg) as f:  # Impure: FileWrite
+        f.read()
 
 fun(1)
             """,  # language= None
@@ -490,6 +500,60 @@ def fun():
 a = fun()
             """,  # language= None
             {"Call.fun.line7": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"])}
+        ),
+        (  # language=Python "VariableWrite to ClassVariable"
+            """
+class A:
+    class_attr1 = 20
+
+def fun():
+    A.class_attr1 = 30  # Impure: VariableWrite to ClassVariable
+
+fun()
+            """,  # language= None
+            {},
+        ),
+        (  # language=Python "VariableRead from ClassVariable"
+            """
+class A:
+    class_attr1 = 20
+
+def fun():
+    res = A.class_attr1  # Impure: VariableRead from ClassVariable
+    return res
+
+a = fun()
+            """,  # language= None
+            {},
+        ),
+        (  # language=Python "VariableWrite to InstanceVariable"
+            """
+class B:
+    def __init__(self):
+        self.instance_attr1 = 10
+
+def fun():
+    b = B()
+    b.instance_attr1 = 20  # Impure: VariableWrite to InstanceVariable
+
+fun()
+            """,  # language= None
+            {},  # TODO: LARS is this really impure?
+        ),
+        (  # language=Python "VariableRead from InstanceVariable"
+            """
+class B:
+    def __init__(self):
+        self.instance_attr1 = 10
+
+def fun():
+    b = B()
+    res = b.instance_attr1  # Impure: VariableWrite to InstanceVariable
+    return res
+
+a = fun()
+            """,  # language= None
+            {},  # TODO: LARS is this really impure?
         ),
         (  # language=Python "Call of Impure Function"
             """
@@ -591,22 +655,80 @@ c = fun1()
              "Call.fun2.line9": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"]),
              "Call.fun3.line10": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"])},
         ),  # here the reason of impurity for fun1 can be cached for the other calls
+        (  # language=Python "Multiple Classes with same name and different purity"
+            """
+class A:
+    @staticmethod
+    def add(a, b):
+        return a + b
+
+class B:
+    @staticmethod
+    def add(a, b):
+        return a + 2 * b
+
+A.add(1, 2)
+B.add(1, 2)
+            """,  # language=none
+            {"TODO"}
+        ),
+        (  # language=Python "Different Reasons for Impurity",
+            """
+var1 = 1
+
+def fun1():
+    global var1
+    if var1 > 0:
+        var1 = fun2()  # Impure: Call of Impure Function / VariableWrite to GlobalVariable
+    var1 = 2   # Impure: VariableWrite to GlobalVariable
+    print("test")  # Impure: FileWrite
+    return var1  # Impure: VariableRead from GlobalVariable
+
+def fun2():
+    res = input()
+    return res  # Impure: Call of Impure Builtin Function - User input is requested
+
+a = fun1()
+            """,  # language=none
+            {
+            },
+        ),
+        (  # language=Python "Unknown Call",
+            """
+def fun1():
+    call()
+
+fun1()
+            """,  # language=none
+            {
+                "fun1": "Unknown([])",
+                "call": "Unknown([])",
+            },
+        ),
     ],
     ids=[
         "Print with str",
         "Print with parameter",
         "Open with str",
         "Open with parameter",
+        "With open",
         "VariableWrite to GlobalVariable",
         "VariableWrite to GlobalVariable with parameter",
         "VariableRead from GlobalVariable",
+        "VariableWrite to ClassVariable",
+        "VariableRead from ClassVariable",
+        "VariableWrite to InstanceVariable",
+        "VariableRead from InstanceVariable",
         "Call of Impure Function",
         "Call of Impure Chain of Functions",
         "Call of Impure Chain of Functions with cycle - one entry point",
         "Call of Impure Chain of Functions with cycle - direct entry",
         "Call of Impure BuiltIn Function",
         "Multiple Calls of same Impure function (Caching)",
-        # TODO: "Unknown" pure cycle within impure cycle, many reasons in one function, ClassVariables, InstanceVariables, Multiple Classes with same name and different purity
+        "Multiple Classes with same name and different purity",
+        "Different Reasons for Impurity",
+        "Unknown Call",
+        # TODO: pure cycle within impure cycle, Lambda with name, chained instance variables/ classVariables
     ],
 )
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:

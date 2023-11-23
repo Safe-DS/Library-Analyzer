@@ -321,6 +321,7 @@ def process_node(reference: ReferenceNode, references: dict[str, ReferenceNode],
             return purity_results[reference.node]
     # Check if the referenced function is a builtin function
     elif reference.node.func.name in BUILTIN_FUNCTIONS.keys():  # TODO: check if this works correctly in all cases
+        # TODO: Deal with open - like functions separately to determine if they are read or write
         purity_results[reference.node] = BUILTIN_FUNCTIONS[reference.node.func.name]
         return purity_results[reference.node]
 
@@ -396,7 +397,7 @@ def process_node(reference: ReferenceNode, references: dict[str, ReferenceNode],
                         else:
                             purity = Pure()
 
-                    # store the results in the forest, this also deals as a flag to indicate that the result is already computed completely
+                    # Store the results in the forest, this also deals as a flag to indicate that the result is already computed completely
                     call_graph.get_graph(reference.node.func.name).reasons.result = purity
 
                     purity_results[reference.node] = purity
