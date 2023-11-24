@@ -337,18 +337,21 @@ def _find_call_reference(
     return final_call_references
 
 
+# TODO: resolved_references should be a dict of str and ReferenceNode
 def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, Reasons], CallGraphForest]:
     """
     Resolve all references in a module.
 
     This function is the entry point for the reference resolving.
     It calls all other functions that are needed to resolve the references.
-    First we get the module data for the given (module) code.
+    First, we get the module data for the given (module) code.
     Then we call the functions to find all references in the module.
 
     Returns
     -------
         * resolved_references: a list of all resolved references in the module
+        * function_references: a dict of all function references in the module and their Reasons object
+        * call_graph: a CallGraphForest object that represents the call graph of the module
     """
     module_data = get_module_data(code)
     resolved_references = _find_name_references(

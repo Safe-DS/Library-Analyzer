@@ -280,14 +280,14 @@ class Reasons:
 
     Attributes
     ----------
-        function_name   the name of the function
+        function        the function node
         writes          a set of all nodes that are written to
         reads           a set of all nodes that are read from
         calls           a set of all nodes that are called
         result          the result of the purity analysis (this also works as a flag to determine if the purity analysis has been performed)
                         if it is None, the purity analysis has not been performed
     """
-    function_name: astroid.FunctionDef | None = field(default=None)
+    function: astroid.FunctionDef | None = field(default=None)
     writes: set[FunctionReference] = field(default_factory=set)
     reads: set[FunctionReference] = field(default_factory=set)
     calls: set[FunctionReference] = field(default_factory=set)

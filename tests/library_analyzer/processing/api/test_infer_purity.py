@@ -262,49 +262,39 @@ class SimpleImpure:
             """
 def fun():
     pass  # Pure
-
-fun()
             """,  # language= None
-            {"Call.fun.line5": Pure()},
+            {"fun.line2": Pure()},
         ),
         (  # language=Python "Trivial function with parameter and return"
             """
 def fun(x):
     return 2 * x  # Pure: VariableRead from LocalVariable
-
-a = fun(1)
             """,  # language= None
-            {"Call.fun.line5": Pure()},
+            {"fun.line2": Pure()},
         ),
         (  # language=Python "VariableWrite to LocalVariable"
             """
 def fun():
     var1 = 2  # Pure: VariableWrite to LocalVariable
     return var1
-
-a = fun()
             """,  # language= None
-            {"Call.fun.line6": Pure()},
+            {"fun.line2": Pure()},
         ),
         (  # language=Python "VariableWrite to LocalVariable with parameter"
             """
 def fun(x):
     var1 = x  # Pure: VariableWrite to LocalVariable
     return var1
-
-a = fun(2)
             """,  # language= None
-            {"Call.fun.line6": Pure()},
+            {"fun.line2": Pure()},
         ),
         (  # language=Python "VariableRead from LocalVariable"
             """
 def fun():
     var1 = 1  # Pure: VariableRead from LocalVariable
     return var1
-
-a = fun()
             """,  # language= None
-            {"Call.fun.line6": Pure()},
+            {"fun.line2": Pure()},
         ),
         (  # language=Python "Call of Pure Function"
             """
@@ -314,11 +304,9 @@ def fun1():
 
 def fun2():
     return 1  # Pure
-
-a = fun1()
             """,  # language= None
-            {"Call.fun1.line9": Pure(),
-             "Call.fun2.line3": Pure()},
+            {"fun1.line2": Pure(),
+             "fun2.line6": Pure()},
         ),
         (  # language=Python "Call of Pure Chain of Functions"
             """
@@ -331,12 +319,10 @@ def fun2():
 
 def fun3():
     return 1  # Pure
-
-a = fun1()
             """,  # language= None
-            {"Call.fun1.line12": Pure(),
-             "Call.fun2.line3": Pure(),
-             "Call.fun3.line7": Pure()},
+            {"fun1.line2": Pure(),
+             "fun2.line6": Pure(),
+             "fun3.line9": Pure()},
         ),
         (  # language=Python "Call of Pure Chain of Functions with cycle - one entry point"
             """
@@ -351,10 +337,13 @@ def cycle3():
 
 def entry():
     cycle1()
-
-entry()
             """,  # language= None
-            {},  # TODO: LARS how should the results look here? do we want the functions inside of cycles to be returned
+            {"cycle1.line2": Pure(),
+             "cycle2.line5": Pure(),
+             "cycle3.line8": Pure(),
+             "entry.line11": Pure()
+             },  # for cycles, we want to propagate the purity of the cycle to all functions in the cycle
+            # but only return the results for the real functions
         ),
         (  # language=Python "Call of Pure Chain of Functions with cycle - direct entry"
             """
@@ -365,24 +354,19 @@ def fun1(count):
 def fun2(count):
     if count > 0:
         fun1(count - 1)
-
-fun1(3)
             """,  # language= None
-            {"Call.fun1.line8": Pure(),
-             "Call.fun1.line10": Pure(),
-             "Call.fun2.line4": Pure()},
+            {"fun1.line2": Pure(),
+             "fun2.line6": Pure()},
         ),
         (  # language=Python "Call of Pure Builtin Function"
             """
 def fun():
     res = range(2)  # Pure: Call of Pure Builtin Function and write to LocalVariable
     return res
-
-a = fun()
             """,  # language= None
-            {"Call.fun.line6": Pure()},  # TODO: LARS do we want builtins in the result? -> if not do a cleanup and remove them before returning the result
+            {"fun.line2": Pure()},
         ),
-        (  # language=Python "Multiple Calls of same Pure function (Caching)"
+        (  # language=Python "Multiple Calls of the same Pure function (Caching)"
             """
 def fun1():
     return 1
@@ -391,9 +375,7 @@ a = fun1()
 b = fun1()
 c = fun1()
             """,  # language= None
-            {"Call.fun1.line5": Pure(),
-             "Call.fun1.line6": Pure(),
-             "Call.fun1.line7": Pure()},  # TODO: LARS do we want to get multiple outputs for multiple calls - since the function is always pure/impure
+            {"fun1.line2": Pure()},
         ),  # here the purity for fun1 can be cached for the other calls
     ],
     ids=[
@@ -413,7 +395,7 @@ c = fun1()
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     references, function_references, call_graph = resolve_references(code)
 
-    purity_results = infer_purity_new(references, call_graph)
+    purity_results = infer_purity_new(references, function_references, call_graph)
     transformed_purity_results = {to_string_call(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()}
 
     assert transformed_purity_results == expected
@@ -426,69 +408,55 @@ def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
             """
 def fun():
     print("text.txt")  # Impure: FileWrite
-
-fun()
             """,  # language= None
-            {"Call.fun.line5": SimpleImpure(["FileWrite.StringLiteral.stdout"])}
+            {"fun.line2": SimpleImpure(["FileWrite.StringLiteral.stdout"])}
         ),
         (  # language=Python "Print with parameter"
             """
 def fun(pos_arg):
     print(pos_arg)  # Impure: FileWrite
-
-fun(1)
             """,  # language= None
-            {"Call.fun.line5": SimpleImpure(["FileWrite.StringLiteral.stdout"])}
+            {"fun.line2": SimpleImpure(["FileWrite.StringLiteral.stdout"])}
         ),
         (  # language=Python "Open with str"
             """
 def fun():
     open("text.txt")  # Impure: FileWrite
-
-fun()
             """,  # language= None
-            {"Call.fun.line5": SimpleImpure(["FileWrite.StringLiteral.text.txt"])}
+            {"fun.line2": SimpleImpure(["FileWrite.StringLiteral.text.txt"])}
         ),
         (  # language=Python "Open with parameter"
             """
 def fun(pos_arg):
     open(pos_arg)  # Impure: FileWrite
-
-fun(1)
             """,  # language= None
-            {"Call.fun.line5": SimpleImpure(["FileWrite.ParameterAccess.pos_arg"])}
+            {"fun.line2": SimpleImpure(["FileWrite.ParameterAccess.pos_arg"])}
         ),
         (  # language=Python "With open"
             """
 def fun(pos_arg):
     with open(pos_arg) as f:  # Impure: FileWrite
         f.read()
-
-fun(1)
             """,  # language= None
-            {"Call.fun.line5": SimpleImpure(["FileWrite.ParameterAccess.pos_arg"])}
+            {"fun.line2": SimpleImpure(["FileWrite.ParameterAccess.pos_arg"])}
         ),
         (  # language=Python "VariableWrite to GlobalVariable"
             """
 var1 = 1
 def fun():
     var1 = 2  # Impure: VariableWrite to GlobalVariable
-    return var1
-
-a = fun()
+    return var1  # Impure: VariableRead from GlobalVariable  # TODO: [Later] technically this is a local variable read but we handle var1 as global for now
             """,  # language= None
-            {"Call.fun.line7": SimpleImpure(["NonLocalVariableWrite.GlobalVariable.var1"])},
+            {"fun.line3": SimpleImpure(["NonLocalVariableWrite.GlobalVariable.var1"])},
         ),
         (  # language=Python "VariableWrite to GlobalVariable with parameter"
             """
 var1 = 1
 def fun(x):
     var1 = x  # Impure: VariableWrite to GlobalVariable
-    return var1
-
-a = fun(2)
+    return var1  # Impure: VariableRead from GlobalVariable  # TODO: [Later] technically this is a local variable read but we handle var1 as global for now
             """,  # language= None
-            {"Call.fun.line7": SimpleImpure(["NonLocalVariableWrite.GlobalVariable.var1"])},
+            {"fun.line3": SimpleImpure(["NonLocalVariableWrite.GlobalVariable.var1"])},
         ),
         (  # language=Python "VariableRead from GlobalVariable"
             """
@@ -496,10 +464,8 @@ var1 = 1
 def fun():
     res = var1  # Impure: VariableRead from GlobalVariable
     return res
-
-a = fun()
             """,  # language= None
-            {"Call.fun.line7": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"])}
+            {"fun.line3": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"])}
         ),
         (  # language=Python "VariableWrite to ClassVariable"
             """
@@ -508,10 +474,8 @@ class A:
 
 def fun():
     A.class_attr1 = 30  # Impure: VariableWrite to ClassVariable
-
-fun()
             """,  # language= None
-            {},
+            {"fun.line5": SimpleImpure(["NonLocalVariableWrite.ClassVariable.A.class_attr1"])},
         ),
         (  # language=Python "VariableRead from ClassVariable"
             """
@@ -521,10 +485,8 @@ class A:
 def fun():
     res = A.class_attr1  # Impure: VariableRead from ClassVariable
     return res
-
-a = fun()
             """,  # language= None
-            {},
+            {"fun.line5": SimpleImpure(["NonLocalVariableRead.ClassVariable.A.class_attr1"])},
         ),
         (  # language=Python "VariableWrite to InstanceVariable"
             """
@@ -532,13 +494,13 @@ class B:
     def __init__(self):
         self.instance_attr1 = 10
 
-def fun():
-    b = B()
-    b.instance_attr1 = 20  # Impure: VariableWrite to InstanceVariable
+def fun(c):
+    c.instance_attr1 = 20  # Impure: VariableWrite to InstanceVariable
 
-fun()
+b = B()
+fun(b)
             """,  # language= None
-            {},  # TODO: LARS is this really impure?
+            {"fun.line6": SimpleImpure(["NonLocalVariableWrite.InstanceVariable.B.instance_attr1"])},
         ),
         (  # language=Python "VariableRead from InstanceVariable"
             """
@@ -546,14 +508,14 @@ class B:
     def __init__(self):
         self.instance_attr1 = 10
 
-def fun():
-    b = B()
-    res = b.instance_attr1  # Impure: VariableWrite to InstanceVariable
+def fun(c):
+    res = c.instance_attr1  # Impure: VariableRead from InstanceVariable
     return res
 
-a = fun()
+b = B()
+a = fun(b)
             """,  # language= None
-            {},  # TODO: LARS is this really impure?
+            {"fun.line6": SimpleImpure(["NonLocalVariableRead.InstanceVariable.B.instance_attr1"])},
         ),
         (  # language=Python "Call of Impure Function"
             """
@@ -565,12 +527,10 @@ def fun1():
 def fun2():
     global var1
     return var1  # Impure: VariableRead from GlobalVariable
-
-a = fun1()
             """,  # language= None
-            {"Call.fun1.line11": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"]),
-             "Call.fun2.line4": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"])},
-        ),   # here the reason of impurity for fun2 is propagated to fun1, therefore fun1 is impure
+            {"fun1.line3": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"]),
+             "fun2.line7": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"])},
+        ),   # here the reason of impurity for fun2 is propagated to fun1, therefore, fun1 is impure
 
         (  # language=Python "Call of Impure Chain of Functions"
             """
@@ -585,12 +545,10 @@ def fun2():
 def fun3():
     res = var1
     return res  # Impure: VariableRead from GlobalVariable
-
-a = fun1()
             """,  # language= None
-            {"Call.fun1.line14": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"]),
-             "Call.fun2.line4": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"]),
-             "Call.fun3.line8": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"])},
+            {"fun1.line3": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"]),
+             "fun2.line7": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"]),
+             "fun3.line10": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"])},
         ),
         (  # language=Python "Call of Impure Chain of Functions with cycle - one entry point"
             """
@@ -606,10 +564,13 @@ def cycle3():
 
 def entry():
     cycle1()
-
-entry()
             """,  # language= None
-            {},  # TODO: LARS how should the results look here? do we want the functions inside of cycles to be returned
+            {"cycle1.line2": SimpleImpure(["FileWrite.StringLiteral.stdout"]),
+             "cycle2.line5": SimpleImpure(["FileWrite.StringLiteral.stdout"]),
+             "cycle3.line8": SimpleImpure(["FileWrite.StringLiteral.stdout"]),
+             "entry.line12": SimpleImpure(["FileWrite.StringLiteral.stdout"])
+             },  # for cycles, we want to propagate the impurity of the cycle to all functions in the cycle
+            # but only return the results for the real functions
         ),
         (  # language=Python "Call of Impure Chain of Functions with cycle - direct entry"
             """
@@ -624,22 +585,19 @@ def fun2(count):
         fun1(count - 1)
     else:
         print("end")  # Impure: FileWrite
-
-fun1(3)
             """,  # language= None
-            {},
+            {"fun1.line2": SimpleImpure(["FileWrite.StringLiteral.stdout"]),
+             "fun2.line8": SimpleImpure(["FileWrite.StringLiteral.stdout"])},
         ),
         (  # language=Python "Call of Impure Builtin Function"
             """
 def fun():
     res = input()  # Impure: Call of Impure Builtin Function - User input is requested
     return res
-
-a = fun()
             """,  # language= None
-            {"Call.fun.line6": SimpleImpure(["FileRead.StringLiteral.stdin"])},  # TODO: LARS what is this - since we no longer have User interaction
+            {"fun.line2": SimpleImpure(["FileRead.StringLiteral.stdin"])},
         ),
-        (  # language=Python "Multiple Calls of same Impure function (Caching)"
+        (  # language=Python "Multiple Calls of the same Impure function (Caching)"
             """
 var1 = 1
 def fun1():
@@ -651,11 +609,9 @@ a = fun1()
 b = fun1()
 c = fun1()
             """,  # language= None
-            {"Call.fun1.line8": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"]),
-             "Call.fun2.line9": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"]),
-             "Call.fun3.line10": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"])},
+            {"fun1.line3": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1"])},
         ),  # here the reason of impurity for fun1 can be cached for the other calls
-        (  # language=Python "Multiple Classes with same name and different purity"
+        (  # language=Python "Multiple Classes with the same name and different purity"
             """
 class A:
     @staticmethod
@@ -687,18 +643,17 @@ def fun1():
 def fun2():
     res = input()
     return res  # Impure: Call of Impure Builtin Function - User input is requested
-
-a = fun1()
             """,  # language=none
-            {
-            },
+            {"fun1.line4": SimpleImpure(["NonLocalVariableRead.GlobalVariable.var1",
+                                         "NonLocalVariableWrite.GlobalVariable.var1",
+                                         "FileWrite.StringLiteral.stdout",
+                                         "FileRead.StringLiteral.stdin"]), # this is propagated from fun2
+             "fun2.line12": SimpleImpure(["FileRead.StringLiteral.stdin"])}
         ),
         (  # language=Python "Unknown Call",
             """
 def fun1():
     call()
-
-fun1()
             """,  # language=none
             {
                 "fun1": "Unknown([])",
@@ -734,17 +689,17 @@ fun1()
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
     references, function_references, call_graph = resolve_references(code)
 
-    purity_results = infer_purity_new(references, call_graph)
+    purity_results = infer_purity_new(references, function_references, call_graph)
 
     transformed_purity_results = {to_string_call(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()}
 
     assert transformed_purity_results == expected
 
 
-def to_string_call(call: astroid.Call) -> str:
-    if isinstance(call, str):
-        return f"{call}"
-    return f"Call.{call.func.name}.line{call.lineno}"
+def to_string_call(func: astroid.FunctionDef | str) -> str:
+    if isinstance(func, str):
+        return f"{func}"
+    return f"{func.name}.line{func.lineno}"
 
 
 def to_simple_result(purity_result: PurityResult) -> Pure | SimpleImpure:
