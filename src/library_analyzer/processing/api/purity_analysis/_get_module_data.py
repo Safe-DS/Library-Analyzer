@@ -96,7 +96,7 @@ class ModuleDataBuilder:
                 else:
                     outer_scope_children.append(child)  # Add the child to the outer scope
 
-        # For every other node Type we only need to look at its parent node to determine if it is in the scope of the current node.
+        # For every other node type we only need to look at its parent node to determine if it is in the scope of the current node.
         else:
             for child in self.children:
                 if (
@@ -132,12 +132,12 @@ class ModuleDataBuilder:
             if node.name == "__init__":
                 self._analyze_constructor()
 
-            # Add all values that are used inside the function body to its values list
+            # Add all values that are used inside the function body to its values' list
             if self.names:
                 self.functions[node.name][-1].values = self.names
                 self.names = []
 
-            # Add all calls that are used inside the function body to its calls list
+            # Add all calls that are used inside the function body to its calls' list
             if self.calls:
                 self.functions[node.name][-1].calls = self.calls
                 self.calls = []
@@ -160,7 +160,7 @@ class ModuleDataBuilder:
     def _analyze_constructor(self) -> None:
         """Analyze the constructor of a class.
 
-        The constructor of a class is a special function that is called when an instance of the class is created.
+        The constructor of a class is a special function called when an instance of the class is created.
         This function only is called when the name of the FunctionDef node is `__init__`.
         """
         # add instance variables to the instance_variables list of the class
@@ -792,7 +792,7 @@ def _construct_member_access_target(
     """Construct a MemberAccessTarget node.
 
     Constructing a MemberAccessTarget node means constructing a MemberAccessTarget node with the given receiver and member.
-    The receiver is the node that is accessed and the member is the node that accesses the receiver. The receiver can be nested.
+    The receiver is the node that is accessed, and the member is the node that accesses the receiver. The receiver can be nested.
     """
     try:
         if isinstance(receiver, astroid.Name):
@@ -801,7 +801,7 @@ def _construct_member_access_target(
             return MemberAccessTarget(receiver=receiver.func, member=member)
         else:
             return MemberAccessTarget(receiver=_construct_member_access_target(receiver.expr, receiver), member=member)
-    # Since it is tedious to add testcases for this function we ignore the coverage for now
+    # Since it is tedious to add testcases for this function, we ignore the coverage for now
     except TypeError as err:  # pragma: no cover
         raise TypeError(f"Unexpected node type {type(member)}") from err  # pragma: no cover
 
@@ -813,7 +813,7 @@ def _construct_member_access_value(
     """Construct a MemberAccessValue node.
 
     Constructing a MemberAccessValue node means constructing a MemberAccessValue node with the given receiver and member.
-    The receiver is the node that is accessed and the member is the node that accesses the receiver. The receiver can be nested.
+    The receiver is the node that is accessed, and the member is the node that accesses the receiver. The receiver can be nested.
     """
     try:
         if isinstance(receiver, astroid.Name):
@@ -822,7 +822,7 @@ def _construct_member_access_value(
             return MemberAccessValue(receiver=receiver.func, member=member)
         else:
             return MemberAccessValue(receiver=_construct_member_access_value(receiver.expr, receiver), member=member)
-    # Since it is tedious to add testcases for this function we ignore the coverage for now
+    # Since it is tedious to add testcases for this function, we ignore the coverage for now
     except TypeError as err:  # pragma: no cover
         raise TypeError(f"Unexpected node type {type(member)}") from err  # pragma: no cover
 
@@ -837,7 +837,7 @@ def get_base_expression(node: MemberAccess) -> astroid.NodeNG:
 def get_module_data(code: str) -> ModuleData:
     """Get the module data of the given code.
 
-    In order to get the module data of the given code, the code is parsed into an AST and then walked by an ASTWalker.
+    To get the module data of the given code, the code is parsed into an AST and then walked by an ASTWalker.
     The ModuleDataBuilder detects the scope of each node and builds a scope tree by using an instance of ScopeFinder.
     The ScopeFinder also collects all name nodes, parameters, global variables, classes and functions of the module.
     """

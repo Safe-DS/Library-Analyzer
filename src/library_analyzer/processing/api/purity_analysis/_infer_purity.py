@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum, auto
+from types import NoneType
 
 import astroid
 
@@ -27,7 +28,7 @@ BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "AssertionError": Pure(),
     "AttributeError": Pure(),
     "BaseException": Impure([]),
-    "BaseExceptionGroup": Impure([]),
+    "BaseExceptionGroup": Impure({}),
     "BlockingIOError": Pure(),
     "BrokenPipeError": Pure(),
     "BufferError": Pure(),
@@ -39,17 +40,17 @@ BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "ConnectionResetError": Pure(),
     "DeprecationWarning": Pure(),
     "EOFError": Pure(),
-    "Ellipsis": Impure([]),
+    "Ellipsis": Impure({}),
     "EncodingWarning": Pure(),
     "EnvironmentError": Pure(),
-    "Exception": Impure([]),
-    "ExceptionGroup": Impure([]),
-    "False": Impure([]),
+    "Exception": Impure({}),
+    "ExceptionGroup": Impure({}),
+    "False": Impure({}),
     "FileExistsError": Pure(),
     "FileNotFoundError": Pure(),
     "FloatingPointError": Pure(),
     "FutureWarning": Pure(),
-    "GeneratorExit": Impure([]),
+    "GeneratorExit": Impure({}),
     "IOError": Pure(),
     "ImportError": Pure(),
     "ImportWarning": Pure(),
@@ -58,14 +59,14 @@ BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "InterruptedError": Pure(),
     "IsADirectoryError": Pure(),
     "KeyError": Pure(),
-    "KeyboardInterrupt": Impure([]),
+    "KeyboardInterrupt": Impure({}),
     "LookupError": Pure(),
     "MemoryError": Pure(),
     "ModuleNotFoundError": Pure(),
     "NameError": Pure(),
-    "None": Impure([]),
+    "None": Impure({}),
     "NotADirectoryError": Pure(),
-    "NotImplemented": Impure([]),
+    "NotImplemented": Impure({}),
     "NotImplementedError": Pure(),
     "OSError": Pure(),
     "OverflowError": Pure(),
@@ -77,15 +78,15 @@ BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "ResourceWarning": Pure(),
     "RuntimeError": Pure(),
     "RuntimeWarning": Pure(),
-    "StopAsyncIteration": Impure([]),
-    "StopIteration": Impure([]),
+    "StopAsyncIteration": Impure({}),
+    "StopIteration": Impure({}),
     "SyntaxError": Pure(),
     "SyntaxWarning": Pure(),
     "SystemError": Pure(),
-    "SystemExit": Impure([]),
+    "SystemExit": Impure({}),
     "TabError": Pure(),
     "TimeoutError": Pure(),
-    "True": Impure([]),
+    "True": Impure({}),
     "TypeError": Pure(),
     "UnboundLocalError": Pure(),
     "UnicodeDecodeError": Pure(),
@@ -98,88 +99,88 @@ BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "Warning": Pure(),
     "WindowsError": Pure(),
     "ZeroDivisionError": Pure(),
-    "__build_class__": Impure([]),
-    "__debug__": Impure([]),
-    "__doc__": Impure([]),
-    "__import__": Impure([]),
-    "__loader__": Impure([]),
-    "__name__": Impure([]),
-    "__package__": Impure([]),
-    "__spec__": Impure([]),
+    "__build_class__": Impure({}),
+    "__debug__": Impure({}),
+    "__doc__": Impure({}),
+    "__import__": Impure({}),
+    "__loader__": Impure({}),
+    "__name__": Impure({}),
+    "__package__": Impure({}),
+    "__spec__": Impure({}),
     "abs": Pure(),
-    "aiter": Impure([]),  # May raise exceptions or interact with external resources
+    "aiter": Impure({}),  # May raise exceptions or interact with external resources
     "all": Pure(),
-    "anext": Impure([]),  # May raise exceptions or interact with external resources
+    "anext": Impure({}),  # May raise exceptions or interact with external resources
     "any": Pure(),
     "ascii": Pure(),
     "bin": Pure(),
     "bool": Pure(),
-    "breakpoint": Impure([]),  # Debugger-related, doesn't affect program behavior
-    "bytearray": Impure([]),  # Can be modified
-    "bytes": Impure([]),  # Can be modified
+    "breakpoint": Impure({}),  # Debugger-related, doesn't affect program behavior
+    "bytearray": Impure({}),  # Can be modified
+    "bytes": Impure({}),  # Can be modified
     "callable": Pure(),
     "chr": Pure(),
     "classmethod": Pure(),
-    "compile": Impure([]),  # Can execute arbitrary code
+    "compile": Impure({}),  # Can execute arbitrary code
     "complex": Pure(),
-    "copyright": Impure([]),  # May interact with external resources
-    "credits": Impure([]),  # May interact with external resources
-    "delattr": Impure([]),  # Can modify objects
-    "dict": Impure([]),  # Can be modified
-    "dir": Impure([]),  # May interact with external resources
+    "copyright": Impure({}),  # May interact with external resources
+    "credits": Impure({}),  # May interact with external resources
+    "delattr": Impure({}),  # Can modify objects
+    "dict": Impure({}),  # Can be modified
+    "dir": Impure({}),  # May interact with external resources
     "divmod": Pure(),
     "enumerate": Pure(),
-    "eval": Impure([]),  # Can execute arbitrary code
-    "exec": Impure([]),  # Can execute arbitrary code
-    "exit": Impure([]),  # Exits the program
+    "eval": Impure({}),  # Can execute arbitrary code
+    "exec": Impure({}),  # Can execute arbitrary code
+    "exit": Impure({}),  # Exits the program
     "filter": Pure(),
     "float": Pure(),
-    "format": Impure([]),  # Can produce variable output
+    "format": Impure({}),  # Can produce variable output
     "frozenset": Pure(),
-    "getattr": Impure([]),  # Can raise exceptions or interact with external resources
-    "globals": Impure([]),  # May interact with external resources
+    "getattr": Impure({}),  # Can raise exceptions or interact with external resources
+    "globals": Impure({}),  # May interact with external resources
     "hasattr": Pure(),
     "hash": Pure(),
-    "help": Impure([]),  # May interact with external resources
+    "help": Impure({}),  # May interact with external resources
     "hex": Pure(),
     "id": Pure(),
-    "input": Impure([FileRead(StringLiteral("stdin"))]),  # Reads user input
+    "input": Impure({FileRead(StringLiteral("stdin"))}),  # Reads user input
     "int": Pure(),
     "isinstance": Pure(),
     "issubclass": Pure(),
     "iter": Pure(),
     "len": Pure(),
-    "license": Impure([]),  # May interact with external resources
-    "list": Impure([]),  # Can be modified
-    "locals": Impure([]),  # May interact with external resources
+    "license": Impure({}),  # May interact with external resources
+    "list": Impure({}),  # Can be modified
+    "locals": Impure({}),  # May interact with external resources
     "map": Pure(),
     "max": Pure(),
-    "memoryview": Impure([]),  # Can be modified
+    "memoryview": Impure({}),  # Can be modified
     "min": Pure(),
-    "next": Impure([]),  # May raise exceptions or interact with external resources
+    "next": Impure({}),  # May raise exceptions or interact with external resources
     "object": Pure(),
     "oct": Pure(),
-    "open": Impure([]),  # Can interact with external resources (write and read)
+    "open": Impure({}),  # Can interact with external resources (write and read)
     "ord": Pure(),
     "pow": Pure(),
-    "print": Impure([FileWrite(StringLiteral("stdout"))]),
+    "print": Impure({FileWrite(StringLiteral("stdout"))}),
     "property": Pure(),
-    "quit": Impure([]),  # Exits the program
+    "quit": Impure({}),  # Exits the program
     "range": Pure(),
     "repr": Pure(),
     "reversed": Pure(),
     "round": Pure(),
-    "set": Impure([]),  # Can be modified
-    "setattr": Impure([]),  # Can modify objects
+    "set": Impure({}),  # Can be modified
+    "setattr": Impure({}),  # Can modify objects
     "slice": Pure(),
-    "sorted": Impure([]),  # Can produce variable output
+    "sorted": Impure({}),  # Can produce variable output
     "staticmethod": Pure(),
-    "str": Impure([]),  # Can be modified
+    "str": Impure({}),  # Can be modified
     "sum": Pure(),
-    "super": Impure([]),  # Can interact with classes
-    "tuple": Impure([]),  # Can be modified
+    "super": Impure({}),  # Can interact with classes
+    "tuple": Impure({}),  # Can be modified
     "type": Pure(),
-    "vars": Impure([]),  # May interact with external resources
+    "vars": Impure({}),  # May interact with external resources
     "zip": Pure(),
 }
 PURITY_CACHE: dict[str, PurityResult] = {}
@@ -292,21 +293,14 @@ PURITY_CACHE: dict[str, PurityResult] = {}
 # with: Provides a context manager for file operations, ensuring the file is properly closed.
 
 
-def infer_purity_new(references: list[ReferenceNode], function_references: dict[str, Reasons], call_graph: CallGraphForest) -> dict[astroid.FunctionDef, list[PurityResult]]:
+def infer_purity_new(references: list[ReferenceNode], function_references: dict[str, Reasons], call_graph: CallGraphForest) -> dict[astroid.FunctionDef, PurityResult]:
     global BUILTIN_FUNCTIONS
-    purity_results: dict[astroid.FunctionDef, list[PurityResult]] = {}  # We use astroid.FunctionDef as a key so we can access the node later
+    purity_results: dict[astroid.FunctionDef, PurityResult] = {}  # We use astroid.FunctionDef as a key so we can access the node later
 
     references = {
         reference.node.func.name if isinstance(reference.node, astroid.Call) else reference.node.name: reference
         for reference in references  # TODO: MemberAccessTarget and MemberAccessValue are not handled here
     }  # TODO: return a dict of references instead of a list in resolve_references
-
-    # for reference in references.values():
-    #     # Guard clause for non-function calls: We only want to analyze function calls
-    #     if not isinstance(reference.node, astroid.Call):
-    #         continue
-    #
-    #     process_node(reference, references, call_graph, purity_results)
 
     for reasons in function_references.values():
         process_node(reasons, references, function_references, call_graph, purity_results)
@@ -317,9 +311,8 @@ def infer_purity_new(references: list[ReferenceNode], function_references: dict[
     return purity_results
 
 
-# TODO: GET PURITY RESULTS FOR FUNCTIONS NOT FUNCTION CALLS (use function references to "store" results)
 def process_node(reason: Reasons, references: dict[str, ReferenceNode], function_references: dict[str, Reasons], call_graph: CallGraphForest,
-                 purity_results: dict[astroid.FunctionDef, list[PurityResult]]) -> list[PurityResult]:
+                 purity_results: dict[astroid.FunctionDef, PurityResult]) -> PurityResult:
     # Check the forest if the purity of the function is already determined
     if reason.function.name in call_graph.graphs.keys():
         if call_graph.get_graph(reason.function.name).reasons.result:
@@ -340,23 +333,23 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
             # If the node is part of the call graph, we can check if it has any children (called functions) = not a leaf
             if not call_graph.get_graph(reason.function.name).is_leaf():
                 for child in call_graph.get_graph(reason.function.name).children:
-                    # Check if we deal with a combined node (would throw a KeyError otherwise)
+                    # Check if we deal with a combined node (would throw a KeyError otherwise)  # TODO: check if combined nodes are still a problem with the new approach
                     if not child.combined_node_names:
                         if child.data.symbol.name in BUILTIN_FUNCTIONS:
-                            purity_results_child = BUILTIN_FUNCTIONS[child.data.symbol.name]
+                            purity_result_child = BUILTIN_FUNCTIONS[child.data.symbol.name]
                         else:
-                            purity_results_child = process_node(function_references[child.data.symbol.name], references, function_references, call_graph, purity_results)
-                        if purity_results_child:
+                            purity_result_child = process_node(function_references[child.data.symbol.name], references, function_references, call_graph, purity_results)
+                        if purity_result_child:
                             if reason.function not in purity_results.keys():
-                                purity_results[reason.function] = purity_results_child
+                                purity_results[reason.function] = purity_result_child
                             else:
-                                purity_results[reason.function].extend(purity_results_child)
+                                purity_results[reason.function] = purity_results[reason.function].update(purity_result_child)
                     # The child is a combined node and therefore not part of the reference dict
                     else:
                         if reason.function not in purity_results.keys():
                             purity_results[reason.function] = child.reasons.result
                         else:
-                            purity_results[reason.function].extend(child.reasons.result)
+                            purity_results[reason.function] = purity_results[reason.function].update(child.reasons.result)
 
                 # After all children are handled, we can propagate the purity of the called functions to the calling function
                 call_graph.get_graph(reason.function.name).reasons.result = purity_results[reason.function]
@@ -386,37 +379,44 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
         # Check if we deal with a self-defined function
         if isinstance(reason.function, astroid.FunctionDef) and reason.function.name in call_graph.graphs.keys():
             # Check if the function does not call other functions (it is a leaf), we can check its (reasons for) impurity directly
-            if call_graph.graphs[reason.function.name].is_leaf():
+            # also check that all children are handled (have a result)
+            if call_graph.graphs[reason.function.name].is_leaf() or all(c.reasons.result for c in call_graph.graphs[reason.function.name].children if c.data.symbol.name not in BUILTIN_FUNCTIONS):
+                purity: PurityResult = Pure()
                 if call_graph.graphs[reason.function.name].reasons:
                     reasons = transform_reasons_to_impurity_result(call_graph.graphs[reason.function.name].reasons, references)
                     if reasons:
                         purity = Impure(reasons)
-                    else:
-                        purity = Pure()
+
+                # If a result was propagated from the children it needs to be kept and updated with more reasons if the function itself has more reasons
+                if isinstance(call_graph.get_graph(reason.function.name).reasons.result, NoneType):  # TODO: this should never happen - check that and remove if statement
+                    purity_results[reason.function] = purity
+                else:
+                    purity_results[reason.function] = purity_results[reason.function].update(purity)
 
                 # Store the results in the forest, this also deals as a flag to indicate that the result is already computed completely
-                call_graph.get_graph(reason.function.name).reasons.result = purity
+                call_graph.get_graph(reason.function.name).reasons.result = purity_results[reason.function]
 
-                purity_results[reason.function] = purity
-
+                return purity_results[reason.function]
+            else:
                 return purity_results[reason.function]
 
     except KeyError:
         raise KeyError(f"Function {reason.function.name} not found in function_references")
 
 
-def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str, ReferenceNode]) -> list[ImpurityReason]:
-    impurity_reasons: list[ImpurityReason] = []  # TODO: LARS should this be a set, since we dont need to know how many times a reference is accessed - if it is impure it stays impure
+# TODO: this is not working correctly: whenever a variable is referenced, it is marked as read/written if its is not inside the current function
+def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str, ReferenceNode]) -> set[ImpurityReason]:
+    impurity_reasons: set[ImpurityReason] = set()
 
     if not reasons:
-        return []
+        return impurity_reasons
     else:
         if reasons.writes:
             for write in reasons.writes:
                 write_ref = references[write.node.name]
                 for sym_ref in write_ref.referenced_symbols:
                     if isinstance(sym_ref, GlobalVariable | ClassVariable | InstanceVariable):
-                        impurity_reasons.append(NonLocalVariableWrite(sym_ref))
+                        impurity_reasons.add(NonLocalVariableWrite(sym_ref))
                     else:
                         raise TypeError(f"Unknown symbol reference type: {sym_ref.__class__.__name__}")
         if reasons.reads:
@@ -424,7 +424,7 @@ def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str,
                 read_ref = references[read.node.name]
                 for sym_ref in read_ref.referenced_symbols:
                     if isinstance(sym_ref, GlobalVariable | ClassVariable | InstanceVariable):
-                        impurity_reasons.append(NonLocalVariableRead(sym_ref))
+                        impurity_reasons.add(NonLocalVariableRead(sym_ref))
                     else:
                         raise TypeError(f"Unknown symbol reference type: {sym_ref.__class__.__name__}")
 

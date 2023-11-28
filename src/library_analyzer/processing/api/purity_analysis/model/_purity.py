@@ -14,6 +14,33 @@ from library_analyzer.processing.api.purity_analysis.model._scope import (
 class PurityResult(ABC):
     """Class for purity results."""
 
+    def update(self, other: PurityResult) -> PurityResult:
+        """Update the current result with another result.
+
+        Parameters
+        ----------
+        other : PurityResult
+            The other result.
+
+        Returns
+        -------
+        PurityResult
+            The updated result.
+        """
+        if isinstance(self, Pure):
+            if isinstance(other, Pure):
+                return self
+            elif isinstance(other, Impure):
+                return other
+        elif isinstance(self, Impure):
+            if isinstance(other, Pure):
+                return self
+            elif isinstance(other, Impure):
+                res = Impure(reasons=self.reasons | other.reasons)
+                return res
+        else:
+            raise TypeError(f"Cannot update {self} with {other}")
+
 
 @dataclass
 class Pure(PurityResult):
@@ -35,7 +62,7 @@ class Impure(PurityResult):
     Also, Impure != Pure since: not Pure would mean a function is either unknown or has at least one
     (External-, Internal-)Read (External-, Internal-) or Write side effect.
     """
-    reasons: list[ImpurityReason]
+    reasons: set[ImpurityReason]
 
 
 class ImpurityReason(ABC):
@@ -43,6 +70,9 @@ class ImpurityReason(ABC):
 
     If a funtion is impure it is because of one or more impurity reasons.
     """
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 class Read(ImpurityReason, ABC):
@@ -54,11 +84,17 @@ class NonLocalVariableRead(Read):
     """Class for internal variable reads (GlobalVariable / global Fields)."""
     symbol: GlobalVariable | ClassVariable | InstanceVariable
 
+    def __hash__(self) -> int:
+        return hash(str(self))
+
 
 @dataclass
 class FileRead(Read):
     """Class for external variable reads (File / Database)."""
     source: Expression
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 class Write(ImpurityReason, ABC):
@@ -70,11 +106,17 @@ class NonLocalVariableWrite(Write):
     """Class for internal variable writes (GlobalVariable / global Fields)."""
     symbol: GlobalVariable | ClassVariable | InstanceVariable
 
+    def __hash__(self) -> int:
+        return hash(str(self))
+
 
 @dataclass
 class FileWrite(Write):
     """Class for external variable writes (File / Database)."""
     source: Expression
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 class Unknown(ImpurityReason, ABC):
@@ -85,15 +127,21 @@ class Unknown(ImpurityReason, ABC):
 class NativeCall(Unknown):  # ExternalCall
     """Class for calling native code.
 
-    Since we can not analyze native code, we mark it as unknown.
+    Since we cannot analyze native code, we mark it as unknown.
     """
     expression: Expression
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 @dataclass
 class CallOfParameter(Unknown):  # ParameterCall
     """Class for parameter calls."""
     expression: Expression
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 # Type of access
