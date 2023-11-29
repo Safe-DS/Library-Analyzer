@@ -418,28 +418,6 @@ def fun(pos_arg):
             """,  # language= None
             {"fun.line2": SimpleImpure({"FileWrite.StringLiteral.stdout"})}
         ),
-        (  # language=Python "Open with str"
-            """
-def fun():
-    open("text.txt")  # Impure: FileWrite
-            """,  # language= None
-            {"fun.line2": SimpleImpure({"FileWrite.StringLiteral.text.txt"})}
-        ),
-        (  # language=Python "Open with parameter"
-            """
-def fun(pos_arg):
-    open(pos_arg)  # Impure: FileWrite
-            """,  # language= None
-            {"fun.line2": SimpleImpure({"FileWrite.ParameterAccess.pos_arg"})}
-        ),
-        (  # language=Python "With open"
-            """
-def fun(pos_arg):
-    with open(pos_arg) as f:  # Impure: FileWrite
-        f.read()
-            """,  # language= None
-            {"fun.line2": SimpleImpure({"FileWrite.ParameterAccess.pos_arg"})}
-        ),
         (  # language=Python "VariableWrite to GlobalVariable"
             """
 var1 = 1
@@ -667,9 +645,6 @@ def fun1():
     ids=[
         "Print with str",
         "Print with parameter",
-        "Open with str",
-        "Open with parameter",
-        "With open",
         "VariableWrite to GlobalVariable",  # TODO: this just passes due to the conversion to a set
         "VariableWrite to GlobalVariable with parameter",  # TODO: this just passes due to the conversion a set
         "VariableRead from GlobalVariable",
@@ -723,3 +698,155 @@ def to_string_reason(reason: ImpurityReason) -> str:
         return f"FileWrite.{reason.source.__class__.__name__}.{reason.source.value}"
     else:
         raise NotImplementedError(f"Unknown reason: {reason}")
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "Open with str default"
+            """
+def fun():
+    open("text.txt")  # Impure: FileRead
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})}
+        ),
+        (  # language=Python "Open with str read"
+            """
+def fun():
+    open("text.txt", "r")  # Impure: FileRead
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})}
+        ),
+        (  # language=Python "Open with str write"
+            """
+def fun():
+    open("text.txt", "wb")  # Impure: FileWrite
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileWrite.StringLiteral.text.txt"})}
+        ),
+        (  # language=Python "Open with str read and write"
+            """
+def fun():
+    open("text.txt", "a+")  # Impure: FileRead and FileWrite
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt",
+                                        "FileWrite.StringLiteral.text.txt"})}
+        ),
+        (  # language=Python "Open with parameter default"
+            """
+def fun(pos_arg):
+    open(pos_arg)  # Impure: FileRead
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.ParameterAccess.pos_arg"})}
+        ),
+        (  # language=Python "Open with parameter write"
+            """
+def fun(pos_arg):
+    open(pos_arg, "a")  # Impure: FileWrite
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileWrite.ParameterAccess.pos_arg"})}
+        ),
+        (  # language=Python "With open str default"
+            """
+def fun():
+    with open("text.txt") as f:  # Impure: FileRead
+        f.read()
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})}
+        ),
+        (  # language=Python "With open parameter default"
+            """
+def fun(pos_arg):
+    with open(pos_arg) as f:  # Impure: FileRead
+        f.read()
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.ParameterAccess.pos_arg"})}
+        ),
+        (  # language=Python "With open parameter read and write"
+            """
+def fun(pos_arg):
+    with open(pos_arg, "wb+") as f:  # Impure: FileRead and FileWrite
+        f.read()
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.ParameterAccess.pos_arg",
+                                        "FileWrite.ParameterAccess.pos_arg"})}
+        ),
+        (  # language=Python "With open parameter and variable mode"
+            """
+def fun(pos_arg, mode):
+    with open(pos_arg, mode) as f:  # Impure: FileRead and FileWrite
+        f.read()
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.ParameterAccess.pos_arg",
+                                        "FileWrite.ParameterAccess.pos_arg"})}
+        ),  # TODO: do we want to expect the worst case here?
+        (  # language=Python "With open close"
+            """
+def fun():
+    with open("text.txt") as f:  # Impure: FileRead
+        f.read()
+        f.close()  # TODO: what do we want here?
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})}
+        ),
+        (  # language=Python "Read"
+            """
+def fun():
+    f = open("text.txt")  # Impure: FileRead
+    f.read()  # TODO: what do we want here?
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})}
+        ),
+        (  # language=Python "Readline/ Readlines"
+            """
+def fun():
+    f = open("text.txt")  # Impure: FileRead
+    f.readline()  # TODO: what do we want here?
+    f.readlines()  # TODO: what do we want here?
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})}
+        ),
+        (  # language=Python "Write"
+            """
+def fun():
+    f = open("text.txt", "w")  # Impure: FileWrite
+    f.write("test")  # TODO: what do we want here?
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileWrite.StringLiteral.text.txt"})}
+        ),
+        (  # language=Python "Writelines"
+            """
+def fun():
+    f = open("text.txt", "w")  # Impure: FileWrite
+    f.writelines(["test1", "test2"])  # TODO: what do we want here?
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileWrite.StringLiteral.text.txt"})}
+        ),
+    ],
+    ids=[
+        "Open with str default",
+        "Open with str read",
+        "Open with str write",
+        "Open with str read and write",
+        "Open with parameter default",
+        "Open with parameter write",
+        "With open str default",
+        "With open parameter default",
+        "With open parameter read and write",
+        "With open parameter and variable mode",
+        "With open close",
+        "Read",
+        "Readline/ Readlines",
+        "Write",
+        "Writelines",
+    ],
+)
+def test_infer_purity_open(code: str, expected: dict[str, SimpleImpure]) -> None:
+    references, function_references, call_graph = resolve_references(code)
+
+    purity_results = infer_purity_new(references, function_references, call_graph)
+
+    transformed_purity_results = {to_string_call(call): to_simple_result(purity_result) for call, purity_result in
+                                  purity_results.items()}
+
+    assert transformed_purity_results == expected
