@@ -12,7 +12,9 @@ nav:
   - API Reference: reference/
   - Development:
       - Environment: development/environment.md
+      - Project Guidelines: development/project_guidelines.md
       - Architecture: development/architecture.md
+      - Contributing 🌐: https://github.com/Safe-DS/Library-Analyzer/contribute
 
 # Configuration of MkDocs & Material for MkDocs --------------------------------
 
