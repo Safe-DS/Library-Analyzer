@@ -43,6 +43,7 @@ You can find the full documentation [here](https://library-analyzer.safeds.com).
 We welcome contributions from everyone. As a starting point, check the following resources:
 
 * [Setting up a development environment](https://library-analyzer.safeds.com/en/latest/development/environment/)
+* [Project guidelines](https://library-analyzer.safeds.com/en/latest/development/project_guidelines/)
 * [Contributing page](https://github.com/Safe-DS/Library-Analyzer/contribute)
 
 If you need further help, please [use our discussion forum][forum].
