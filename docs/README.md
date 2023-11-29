@@ -15,10 +15,6 @@ Get the latest version from [PyPI](https://pypi.org/project/library-analyzer):
 pip install library-analyzer
 ```
 
-## Documentation
-
-You can find the full documentation [here](https://library-analyzer.safeds.com).
-
 ## Example usage
 
 1. Analyze the API of a library:
@@ -37,6 +33,10 @@ You can find the full documentation [here](https://library-analyzer.safeds.com).
     ```shell
     analyze-library migrate -a1 data/api/scikit-learn_v0.24.2_api.json -a2 data/api/sklearn__apiv2.json -a data/annotations/annotations.json -o out
     ```
+
+## Documentation
+
+You can find the full documentation [here](https://library-analyzer.safeds.com).
 
 ## Contributing
 
