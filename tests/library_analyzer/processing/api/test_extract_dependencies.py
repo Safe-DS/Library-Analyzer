@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TypeAlias
 
 import pytest
 from library_analyzer.processing.api import (
@@ -16,6 +16,72 @@ from library_analyzer.processing.api import (
     extract_param_dependencies,
 )
 from library_analyzer.processing.api._extract_dependencies import ParameterHasNotValue
+
+_CONDTION_TYPE: TypeAlias = (
+    ParametersInRelation
+    | ParameterHasValue
+    | ParameterHasNotValue
+    | ParameterIsNone
+    | ParameterHasType
+    | ParameterDoesNotHaveType
+    | Condition
+)
+_ACTION_TYPE: TypeAlias = (
+    ParameterIsIgnored | ParameterIsIllegal | ParameterWillBeSetTo | ParameterIsRestricted | Action
+)
+
+
+def _assert_condition(extracted: Condition, expected: Condition) -> None:
+    assert type(extracted) is type(expected)
+    assert extracted == expected
+
+    match extracted:
+        case ParametersInRelation():
+            extracted_relation = ParametersInRelation.from_dict(extracted.to_dict())
+            expected_relation = ParametersInRelation.from_dict(expected.to_dict())
+            assert extracted_relation.left_dependee == expected_relation.left_dependee
+            assert extracted_relation.right_dependee == expected_relation.right_dependee
+            assert extracted_relation.rel_op == expected_relation.rel_op
+        case ParameterHasValue():
+            extracted_has_value = ParameterHasValue.from_dict(extracted.to_dict())
+            expected_has_value = ParameterHasValue.from_dict(expected.to_dict())
+            assert extracted_has_value.check_dependee == expected_has_value.check_dependee
+            assert extracted_has_value.value == expected_has_value.value
+            assert extracted_has_value.also == expected_has_value.also
+        case ParameterIsNone():
+            extracted_none = ParameterIsNone.from_dict(extracted.to_dict())
+            expected_none = ParameterIsNone.from_dict(expected.to_dict())
+            assert extracted_none.also == expected_none.also
+        case ParameterHasType() | ParameterDoesNotHaveType():
+            extracted_type: ParameterHasType = ParameterHasType.from_dict(extracted.to_dict())
+            expected_type: ParameterHasType = ParameterHasType.from_dict(expected.to_dict())
+            assert extracted_type.type_ == expected_type.type_
+        case ParameterDoesNotHaveType():
+            extracted_no_type = ParameterDoesNotHaveType.from_dict(extracted.to_dict())
+            expected_no_type = ParameterDoesNotHaveType.from_dict(expected.to_dict())
+            assert extracted_no_type.type_ == expected_no_type.type_
+
+    if extracted.combined_with:
+        assert len(extracted.combined_with) == len(expected.combined_with)
+
+        for idx, extracted_cond in enumerate(extracted.combined_with):
+            _assert_condition(extracted_cond, expected.combined_with[idx])
+
+
+def _assert_action(extracted: Action, expected: Action) -> None:
+    assert type(extracted) is type(expected)
+    assert extracted == expected
+
+    match extracted:
+        case ParameterIsIgnored():
+            extracted_ignored = ParameterIsIgnored.from_dict(extracted.to_dict())
+            expected_ignored = ParameterIsIgnored.from_dict(expected.to_dict())
+            assert extracted_ignored.dependee == expected_ignored.dependee
+        case ParameterWillBeSetTo():
+            expected_set_to = ParameterWillBeSetTo.from_dict(expected.to_dict())
+            extracted_set_to = ParameterWillBeSetTo.from_dict(extracted.to_dict())
+            assert extracted_set_to.depender == expected_set_to.depender
+            assert extracted_set_to.value_ == expected_set_to.value_
 
 
 @pytest.mark.parametrize(
@@ -52,7 +118,7 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
             [
                 (
                     "penalty",
-                    ParameterHasValue("Only used when solver is lbfgs", "solver", "lbfgs"),
+                    ParameterHasValue("Only used when solver equals lbfgs", "solver", "lbfgs"),
                     ParameterIsIgnored("not ignored"),
                 ),
             ],
@@ -88,7 +154,7 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
             [
                 (
                     "validation_fraction",
-                    ParameterHasType("Only used if n_iter_no_change is an integer", "n_iter_no_change", "integer"),
+                    ParameterHasType("Only used if n_iter_no_change equals an integer", "n_iter_no_change", "integer"),
                     ParameterIsIgnored("not ignored"),
                 ),
             ],
@@ -101,7 +167,7 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 (
                     "intercept_scaling",
                     ParameterHasValue(
-                        "only when self.fit_intercept is True",
+                        "only when self.fit_intercept equals True",
                         "self.fit_intercept",
                         "True",
                         [
@@ -109,9 +175,9 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                                 "only when the solver liblinear is used",
                                 "solver",
                                 "liblinear",
+                                check_dependee=True,
                             ),
                         ],
-                        check_dependee=True,
                     ),
                     ParameterIsIgnored("not ignored"),
                 ),
@@ -156,7 +222,7 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
             [
                 (
                     "n_jobs",
-                    ParameterHasValue("ignored when the solver is liblinear", "solver", "liblinear"),
+                    ParameterHasValue("ignored when the solver equals liblinear", "solver", "liblinear"),
                     ParameterIsIgnored("ignored"),
                 ),
             ],
@@ -180,7 +246,7 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
             [
                 (
                     "random_state",
-                    ParameterHasValue("Used for shuffling the data, when shuffle is True", "shuffle", "True"),
+                    ParameterHasValue("Used for shuffling the data, when shuffle equals True", "shuffle", "True"),
                     ParameterIsIgnored("not ignored"),
                 ),
             ],
@@ -205,6 +271,28 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 (
                     "random_state",
                     ParameterHasValue("Used when solver equals sag", "solver", "sag"),
+                    ParameterIsIgnored("not ignored"),
+                ),
+                (
+                    "random_state",
+                    ParameterHasValue("Used when solver equals saga", "solver", "saga"),
+                    ParameterIsIgnored("not ignored"),
+                ),
+            ],
+        ),
+        # test was derived from the previous test case
+        (
+            "random_state",
+            "Used when solver == 'sag', 'adam', or 'saga' to shuffle the data.",
+            [
+                (
+                    "random_state",
+                    ParameterHasValue("Used when solver equals sag", "solver", "sag"),
+                    ParameterIsIgnored("not ignored"),
+                ),
+                (
+                    "random_state",
+                    ParameterHasValue("Used when solver equals adam", "solver", "adam"),
                     ParameterIsIgnored("not ignored"),
                 ),
                 (
@@ -300,7 +388,7 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 (
                     "n_components",
                     ParameterHasValue("If algorithm equals arpack", "algorithm", "arpack"),
-                    ParameterIsRestricted("must be strictly less than the number of features"),
+                    ParameterIsRestricted(", must be strictly less than the number of features"),
                 ),
             ],
         ),
@@ -392,44 +480,181 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
                 ),
             ],
         ),
-        # https://github.com/scikit-learn/scikit-learn/blob/702316c2718d07b7f51d1cf8ce96d5270a2db1e4/sklearn/linear_model/_ridge.py#L499-L500
+        # https://github.com/scikit-learn/scikit-learn/blob/4b352163d555d85f721e68a520a4b19b7a406637/sklearn/decomposition/_dict_learning.py#L1904
         (
-            "positive",
-            (
-                "When set to ``True``, forces the coefficients to be positive. Only 'lbfgs' solver is supported in this"
-                " case."
-            ),
+            "max_iter",
+            "If ``max_iter`` is not None, ``n_iter`` is ignored.",
             [
                 (
-                    "positive",
-                    ParameterHasValue("When set to True", "this_parameter", "True"),
-                    ParameterWillBeSetTo("Only lbfgs solver is supported", "solver", "lbfgs"),
+                    "max_iter",
+                    ParameterHasValue("If max_iter is not None, n_iter is ignored", "max_iter", "not None"),
+                    ParameterIsIgnored("ignored", "n_iter"),
                 ),
             ],
         ),
-        # test case was derived from the previous one
+        # this case was derived from the previous one
         (
-            "positive",
-            (
-                "When x is ``True``, forces the coefficients to be positive. Only 'lbfgs' solver is supported in this"
-                " case."
-            ),
+            "max_iter",
+            "If ``max_iter`` is not None, ``n_iter`` will be ignored.",
             [
                 (
-                    "positive",
-                    ParameterHasValue("When x is True", "x", "True"),
-                    ParameterWillBeSetTo("Only lbfgs solver is supported", "solver", "lbfgs"),
+                    "max_iter",
+                    ParameterHasValue("If max_iter is not None, n_iter will be ignored", "max_iter", "not None"),
+                    ParameterIsIgnored("ignored", "n_iter"),
                 ),
             ],
         ),
-        # test case was derived from the previous one
+        # https://github.com/scikit-learn/scikit-learn/blob/4b352163d555d85f721e68a520a4b19b7a406637/sklearn/cluster/_spectral.py#L450
         (
-            "positive",
-            "When set to ``True``, forces the coefficients to be positive. Only 'lbfgs' solver is supported.",
+            "n_neighbors",
+            "Ignored for ``affinity='rbf'``.",
             [
                 (
-                    "positive",
-                    ParameterHasValue("Only lbfgs solver is supported", "solver", "lbfgs"),
+                    "n_neighbors",
+                    ParameterHasValue("Ignored for affinity equals rbf", "affinity", "rbf"),
+                    ParameterIsIgnored("ignored", "this_parameter"),
+                ),
+            ],
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/457b02c61a2f3cd353d2997929b67a3ef890bf60/sklearn/cluster/_agglomerative.py#L782
+        (
+            "affinity",
+            "If linkage is 'ward', only 'euclidean' is accepted.",
+            [
+                (
+                    "affinity",
+                    ParameterHasValue("If linkage is ward", "linkage", "ward"),
+                    ParameterWillBeSetTo("only euclidean is accepted", "this_parameter", "euclidean"),
+                ),
+            ],
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/457b02c61a2f3cd353d2997929b67a3ef890bf60/sklearn/datasets/_samples_generator.py#L915C9-L916
+        (
+            "centers",
+            (
+                "If n_samples is array-like, centers must be either None or an array of length equal to the length of "
+                "n_samples."
+            ),
+            [
+                (
+                    "centers",
+                    ParameterHasType("If n_samples is array-like", "n_samples", "array-like"),
+                    ParameterIsRestricted(
+                        "centers must be either None or an array of length equal to the length of n_samples",
+                    ),
+                ),
+            ],
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/457b02c61a2f3cd353d2997929b67a3ef890bf60/sklearn/decomposition/_nmf.py#L1942-L1943C46
+        (
+            "random_state",
+            "Used for initialisation (when ``init`` == 'nndsvdar' or 'random'), and in Coordinate Descent.",
+            [
+                (
+                    "random_state",
+                    ParameterHasValue("Used for initialisation (when init equals nndsvdar", "init", "nndsvdar"),
+                    ParameterIsIgnored("not ignored"),
+                ),
+                (
+                    "random_state",
+                    ParameterHasValue("Used for initialisation (when init equals random", "init", "random"),
+                    ParameterIsIgnored("not ignored"),
+                ),
+            ],
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/93e22cdd8dff96fa3870475f40e435083bce8ad0/sklearn/decomposition/_dict_learning.py#L2013C75-L2014C31
+        (
+            "max_no_improvement",
+            "Used only if `max_iter` is not None.",
+            [
+                (
+                    "max_no_improvement",
+                    ParameterHasValue("Used only if max_iter is not None", "max_iter", "not None"),
+                    ParameterIsIgnored("not ignored"),
+                ),
+            ],
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/93e22cdd8dff96fa3870475f40e435083bce8ad0/sklearn/decomposition/_nmf.py#L1474C1-L1475C46
+        (
+            "random_state",
+            " Used for initialisation (when ``init`` == 'nndsvdar' or 'random'), and in Coordinate Descent.",
+            [
+                (
+                    "random_state",
+                    ParameterHasValue("Used for initialisation (when init equals nndsvdar", "init", "nndsvdar"),
+                    ParameterIsIgnored("not ignored"),
+                ),
+                (
+                    "random_state",
+                    ParameterHasValue("Used for initialisation (when init equals random", "init", "random"),
+                    ParameterIsIgnored("not ignored"),
+                ),
+            ],
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/6396dcb450e1ba5f897517796432c6de9fb709f0/sklearn/metrics/pairwise.py#L2382C24-L2383C51
+        (
+            "metric",
+            "If metric is a string, it must be one of the metrics in ``pairwise.PAIRWISE_KERNEL_FUNCTIONS``.",
+            [
+                (
+                    "metric",
+                    ParameterHasType(cond="If metric is a string", dependee="metric", type_="string"),
+                    ParameterIsRestricted("it must be one of the metrics in pairwise"),
+                ),
+            ],
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/6396dcb450e1ba5f897517796432c6de9fb709f0/sklearn/feature_extraction/text.py#L1878
+        (
+            "min_df",
+            "This parameter is ignored if vocabulary is not None.",
+            [
+                (
+                    "min_df",
+                    ParameterHasValue(
+                        cond="ignored if vocabulary is not None",
+                        dependee="vocabulary",
+                        value="not None",
+                    ),
+                    ParameterIsIgnored(dependee="this_parameter", action_="ignored"),
+                ),
+            ],
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/6396dcb450e1ba5f897517796432c6de9fb709f0/sklearn/cluster/_agglomerative.py#L1183C24-L1184C18
+        (
+            "compute_full_tree",
+            "It must be ``True`` if ``distance_threshold`` is not ``None``.",
+            [
+                (
+                    "compute_full_tree",
+                    ParameterHasValue(
+                        cond="must be True if distance_threshold is not None",
+                        dependee="distance_threshold",
+                        value="not None",
+                    ),
+                    ParameterWillBeSetTo(
+                        depender="this_parameter",
+                        value_="True",
+                        action_="must be True if distance_threshold is not None",
+                    ),
+                ),
+            ],
+        ),
+        # https://github.com/scikit-learn/scikit-learn/blob/6396dcb450e1ba5f897517796432c6de9fb709f0/sklearn/neural_network/_multilayer_perceptron.py#L1375C5-L1376C22
+        (
+            "nesterovs_momentum",
+            "Only used when solver='sgd' and momentum > 0.",
+            [
+                (
+                    "nesterovs_momentum",
+                    ParametersInRelation(
+                        cond="when momentum > 0",
+                        left_dependee="momentum",
+                        right_dependee="0",
+                        rel_op=">",
+                        combined=[
+                            ParameterHasValue(cond="Only used when solver equals sgd", dependee="solver", value="sgd"),
+                        ],
+                    ),
                     ParameterIsIgnored("not ignored"),
                 ),
             ],
@@ -439,9 +664,16 @@ from library_analyzer.processing.api._extract_dependencies import ParameterHasNo
 def test_extract_param_dependencies(
     param_name: str,
     description: str,
-    expected_dependencies: list[tuple[str, Condition, Action]],
+    expected_dependencies: list[tuple[str, _CONDTION_TYPE, _ACTION_TYPE]],
 ) -> None:
-    assert extract_param_dependencies(param_name, description) == expected_dependencies
+    extracted_dependencies = extract_param_dependencies(param_name, description)
+
+    assert len(extracted_dependencies) == len(expected_dependencies)
+
+    for idx, extracted_dep in enumerate(extracted_dependencies):
+        expected_dep: tuple[str, _CONDTION_TYPE, _ACTION_TYPE] = expected_dependencies[idx]
+        _assert_condition(extracted_dep[1], expected_dep[1])
+        _assert_action(extracted_dep[2], expected_dep[2])
 
 
 @pytest.mark.parametrize(
@@ -516,7 +748,10 @@ def test_cond_dict_methods(dictionary: dict[str, Any], expected_class: Condition
     ("dictionary", "expected_class"),
     [
         ({"variant": "action", "action": "will be set to None"}, Action(action="will be set to None")),
-        ({"variant": "is_ignored", "action": "ignored"}, ParameterIsIgnored(action_="ignored")),
+        (
+            {"variant": "is_ignored", "action": "ignored", "dependee": "this_parameter"},
+            ParameterIsIgnored(action_="ignored", dependee="this_parameter"),
+        ),
         ({"variant": "is_illegal", "action": "raises KeyError"}, ParameterIsIllegal(action_="raises KeyError")),
         (
             {"variant": "will_be_set", "action": "y will be set to None", "depender": "y", "value": "None"},
