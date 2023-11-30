@@ -30,8 +30,8 @@ BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "ArithmeticError": Pure(),
     "AssertionError": Pure(),
     "AttributeError": Pure(),
-    "BaseException": Impure({}),
-    "BaseExceptionGroup": Impure({}),
+    "BaseException": Impure(set()),
+    "BaseExceptionGroup": Impure(set()),
     "BlockingIOError": Pure(),
     "BrokenPipeError": Pure(),
     "BufferError": Pure(),
@@ -43,17 +43,17 @@ BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "ConnectionResetError": Pure(),
     "DeprecationWarning": Pure(),
     "EOFError": Pure(),
-    "Ellipsis": Impure({}),
+    "Ellipsis": Impure(set()),
     "EncodingWarning": Pure(),
     "EnvironmentError": Pure(),
-    "Exception": Impure({}),
-    "ExceptionGroup": Impure({}),
-    "False": Impure({}),
+    "Exception": Impure(set()),
+    "ExceptionGroup": Impure(set()),
+    "False": Impure(set()),
     "FileExistsError": Pure(),
     "FileNotFoundError": Pure(),
     "FloatingPointError": Pure(),
     "FutureWarning": Pure(),
-    "GeneratorExit": Impure({}),
+    "GeneratorExit": Impure(set()),
     "IOError": Pure(),
     "ImportError": Pure(),
     "ImportWarning": Pure(),
@@ -62,14 +62,14 @@ BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "InterruptedError": Pure(),
     "IsADirectoryError": Pure(),
     "KeyError": Pure(),
-    "KeyboardInterrupt": Impure({}),
+    "KeyboardInterrupt": Impure(set()),
     "LookupError": Pure(),
     "MemoryError": Pure(),
     "ModuleNotFoundError": Pure(),
     "NameError": Pure(),
-    "None": Impure({}),
+    "None": Impure(set()),
     "NotADirectoryError": Pure(),
-    "NotImplemented": Impure({}),
+    "NotImplemented": Impure(set()),
     "NotImplementedError": Pure(),
     "OSError": Pure(),
     "OverflowError": Pure(),
@@ -81,15 +81,15 @@ BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "ResourceWarning": Pure(),
     "RuntimeError": Pure(),
     "RuntimeWarning": Pure(),
-    "StopAsyncIteration": Impure({}),
-    "StopIteration": Impure({}),
+    "StopAsyncIteration": Impure(set()),
+    "StopIteration": Impure(set()),
     "SyntaxError": Pure(),
     "SyntaxWarning": Pure(),
     "SystemError": Pure(),
-    "SystemExit": Impure({}),
+    "SystemExit": Impure(set()),
     "TabError": Pure(),
     "TimeoutError": Pure(),
-    "True": Impure({}),
+    "True": Impure(set()),
     "TypeError": Pure(),
     "UnboundLocalError": Pure(),
     "UnicodeDecodeError": Pure(),
@@ -102,46 +102,46 @@ BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "Warning": Pure(),
     "WindowsError": Pure(),
     "ZeroDivisionError": Pure(),
-    "__build_class__": Impure({}),
-    "__debug__": Impure({}),
-    "__doc__": Impure({}),
-    "__import__": Impure({}),
-    "__loader__": Impure({}),
-    "__name__": Impure({}),
-    "__package__": Impure({}),
-    "__spec__": Impure({}),
+    "__build_class__": Impure(set()),
+    "__debug__": Impure(set()),
+    "__doc__": Impure(set()),
+    "__import__": Impure(set()),
+    "__loader__": Impure(set()),
+    "__name__": Impure(set()),
+    "__package__": Impure(set()),
+    "__spec__": Impure(set()),
     "abs": Pure(),
-    "aiter": Impure({}),  # May raise exceptions or interact with external resources
+    "aiter": Impure(set()),  # May raise exceptions or interact with external resources
     "all": Pure(),
-    "anext": Impure({}),  # May raise exceptions or interact with external resources
+    "anext": Impure(set()),  # May raise exceptions or interact with external resources
     "any": Pure(),
     "ascii": Pure(),
     "bin": Pure(),
     "bool": Pure(),
-    "breakpoint": Impure({}),  # Debugger-related, doesn't affect program behavior
-    "bytearray": Impure({}),  # Can be modified
-    "bytes": Impure({}),  # Can be modified
+    "breakpoint": Impure(set()),  # Debugger-related, doesn't affect program behavior
+    "bytearray": Impure(set()),  # Can be modified
+    "bytes": Impure(set()),  # Can be modified
     "callable": Pure(),
     "chr": Pure(),
     "classmethod": Pure(),
-    "compile": Impure({}),  # Can execute arbitrary code
+    "compile": Impure(set()),  # Can execute arbitrary code
     "complex": Pure(),
-    "delattr": Impure({}),  # Can modify objects
-    "dict": Impure({}),  # Can be modified
-    "dir": Impure({}),  # May interact with external resources
+    "delattr": Impure(set()),  # Can modify objects
+    "dict": Impure(set()),  # Can be modified
+    "dir": Impure(set()),  # May interact with external resources
     "divmod": Pure(),
     "enumerate": Pure(),
-    "eval": Impure({}),  # Can execute arbitrary code
-    "exec": Impure({}),  # Can execute arbitrary code
+    "eval": Impure(set()),  # Can execute arbitrary code
+    "exec": Impure(set()),  # Can execute arbitrary code
     "filter": Pure(),
     "float": Pure(),
-    "format": Impure({}),  # Can produce variable output
+    "format": Impure(set()),  # Can produce variable output
     "frozenset": Pure(),
-    "getattr": Impure({}),  # Can raise exceptions or interact with external resources
-    "globals": Impure({}),  # May interact with external resources
+    "getattr": Impure(set()),  # Can raise exceptions or interact with external resources
+    "globals": Impure(set()),  # May interact with external resources
     "hasattr": Pure(),
     "hash": Pure(),
-    "help": Impure({}),  # May interact with external resources
+    "help": Impure(set()),  # May interact with external resources
     "hex": Pure(),
     "id": Pure(),
     "input": Impure({FileRead(StringLiteral("stdin"))}),  # Reads user input
@@ -150,16 +150,16 @@ BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "issubclass": Pure(),
     "iter": Pure(),
     "len": Pure(),
-    "list": Impure({}),  # Can be modified
-    "locals": Impure({}),  # May interact with external resources
+    "list": Impure(set()),  # Can be modified
+    "locals": Impure(set()),  # May interact with external resources
     "map": Pure(),
     "max": Pure(),
-    "memoryview": Impure({}),  # Can be modified
+    "memoryview": Impure(set()),  # Can be modified
     "min": Pure(),
-    "next": Impure({}),  # May raise exceptions or interact with external resources
+    "next": Impure(set()),  # May raise exceptions or interact with external resources
     "object": Pure(),
     "oct": Pure(),
-    "open": Impure({}),  # Can interact with external resources (write and read)
+    "open": Impure(set()),  # Can interact with external resources (write and read)
     "ord": Pure(),
     "pow": Pure(),
     "print": Impure({FileWrite(StringLiteral("stdout"))}),
@@ -168,17 +168,17 @@ BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "repr": Pure(),
     "reversed": Pure(),
     "round": Pure(),
-    "set": Impure({}),  # Can be modified
-    "setattr": Impure({}),  # Can modify objects
+    "set": Impure(set()),  # Can be modified
+    "setattr": Impure(set()),  # Can modify objects
     "slice": Pure(),
-    "sorted": Impure({}),  # Can produce variable output
+    "sorted": Impure(set()),  # Can produce variable output
     "staticmethod": Pure(),
-    "str": Impure({}),  # Can be modified
+    "str": Impure(set()),  # Can be modified
     "sum": Pure(),
-    "super": Impure({}),  # Can interact with classes
-    "tuple": Impure({}),  # Can be modified
+    "super": Impure(set()),  # Can interact with classes
+    "tuple": Impure(set()),  # Can be modified
     "type": Pure(),
-    "vars": Impure({}),  # May interact with external resources
+    "vars": Impure(set()),  # May interact with external resources
     "zip": Pure(),
 }
 

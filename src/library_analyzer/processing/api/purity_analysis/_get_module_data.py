@@ -86,7 +86,7 @@ class ModuleDataBuilder:
             # add all symbols of a function to the function_references dict
             self.collect_function_references()
 
-        # For every other node type we only need to look at its parent node to determine if it is in the scope of the current node.
+        # We need to look at a nodes' parent node to determine if it is in the scope of the current node.
         else:
             for child in self.children:
                 if (
@@ -124,7 +124,7 @@ class ModuleDataBuilder:
 
             # Add all values that are used inside the function body to its values' list
             if self.names:
-                self.functions[node.name][-1].values = self.names
+                self.functions[node.name][-1].values.extend(self.names)
                 self.names = []
 
             # Add all calls that are used inside the function body to its calls' list
@@ -138,12 +138,35 @@ class ModuleDataBuilder:
             # If the Lambda function is assigned to a name, it can be called just as a normal function
             # Since Lambdas normally do not have names, we need to add its assigned name manually
             self.current_node_stack[-1].symbol.name = node_name
+            self.current_node_stack[-1].symbol.node.name = node_name
 
             # Extend the list of functions with the current node or create a new list with the current node
             if node_name in self.functions:
                 self.functions[node_name].extend(self.current_node_stack[-1])
             else:
                 self.functions[node_name] = [self.current_node_stack[-1]]
+
+            # Add all values that are used inside the function body to its values' list
+            if self.names:
+                self.functions[node_name][-1].values.extend(self.names)
+                self.names = []
+
+            # Add all calls that are used inside the function body to its calls' list
+            if self.calls:
+                self.functions[node_name][-1].calls = self.calls
+                self.calls = []
+
+        # Lambda Functions that have no name are hard to deal with- therefore, we simply add all of their names/calls to the parent of the Lambda node
+        if isinstance(node, astroid.Lambda) and not isinstance(node, astroid.FunctionDef) and isinstance(node.parent, astroid.Call):
+            # Add all values that are used inside the lambda body to its parent's values' list
+            if self.names:
+                self.current_node_stack[-2].values = self.names
+                self.names = []
+
+            # Add all calls that are used inside the lambda body to its parent's calls' list
+            if self.calls:
+                self.current_node_stack[-2].calls = self.calls
+                self.calls = []
 
         self.current_node_stack.pop()  # Remove the current node from the stack
 
@@ -188,8 +211,7 @@ class ModuleDataBuilder:
 
             for value in self.value_nodes:
                 if isinstance(self.functions[function_name][0], FunctionScope):
-                    function_values = [val.symbol.node.name for val in self.functions[function_name][
-                        0].values]  # Since we do not differentiate between functions with the same name, we can choose the first one
+                    function_values = [val.symbol.node.name for val in self.functions[function_name][0].values]  # Since we do not differentiate between functions with the same name, we can choose the first one  # TODO: this is not correct
                     if value.name in function_values:
                         if value.name in self.global_variables.keys():
                             # Get the correct symbol
@@ -222,7 +244,12 @@ class ModuleDataBuilder:
                     else:
                         self.function_references[function_name] = Reasons(function_node, set(), set(), {ref})  # Add calls
 
+            # Add function to function_references dict if it is not already in there
             if function_name not in self.function_references:
+                # This deals with Lambda functions assigned a name
+                if isinstance(function_node, astroid.Lambda) and not isinstance(function_node, astroid.FunctionDef):
+                    function_node.name = function_name
+
                 self.function_references[function_name] = Reasons(function_node, set(), set(), set())
 
             # TODO: add MemberAccessTarget and MemberAccessValue detection
@@ -515,7 +542,7 @@ class ModuleDataBuilder:
             # Append a node only then when it is not the name node of the function
             self.value_nodes[node] = self.current_node_stack[-1]
 
-        if isinstance(node.parent.parent, astroid.FunctionDef):
+        if isinstance(node.parent.parent, astroid.FunctionDef | astroid.Lambda):
             parent = self.current_node_stack[-1]
             name_node = Scope(
                 _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),

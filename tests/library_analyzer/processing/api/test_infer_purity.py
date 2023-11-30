@@ -505,7 +505,7 @@ def fun2():
 var1 = 1
 double = lambda x: var1 * x  # Impure: VariableRead from GlobalVariable
             """,  # language= None
-            {"double.line2": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1"})},
+            {"double.line3": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1"})},
         ),
         (  # language=Python "Lambda as key"
             """
@@ -514,10 +514,11 @@ var1 = "x"
 def fun():
     global var1
     names = ["a", "abc", "ab", "abcd"]
-    sort = sorted(names, key=lambda x: x + var1)
+    sort = sorted(names, key=lambda x: x + var1)  # Impure: Call of Lambda Function which has VariableRead from GlobalVariable
     return sort
             """,  # language= None
-            {"fun.line4": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1"})},  # TODO: what do we want here? what is sorted?
+            {"fun.line4": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1",
+                                        "SORTED_REASON"})},  # TODO: what do we want here? what is sorted?
         ),
         (  # language=Python "Multiple Calls of the same Impure function (Caching)"
             """
