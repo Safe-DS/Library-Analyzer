@@ -449,7 +449,7 @@ def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str,
     Transforms the reasons for impurity to an impurity result.
 
     Given a Reasons object and a dict of references,
-    this function transforms the collected reasons from a Reasons object to set of ImpurityReasons.
+    this function transforms the collected reasons from a Reasons object to a set of ImpurityReasons.
 
     Parameters
     ----------

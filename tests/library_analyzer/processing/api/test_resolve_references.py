@@ -284,7 +284,7 @@ glob1 = 10
                 ReferenceTestNode("local_global.line6", "Module.", ["GlobalVariable.local_global.line2"]),
                 ReferenceTestNode("glob1.line4", "FunctionDef.local_global", ["GlobalVariable.glob1.line7"]),
             ],
-        ),  # Problem: we can not check weather a function is called before the global variable is declared since
+        ),  # Problem: we cannot check weather a function is called before the global variable is declared since
         # this would need a context-sensitive approach
         # For now we just check if the global variable is declared in the module scope at the cost of loosing precision.
     ],
@@ -573,7 +573,7 @@ a.b.c.name = "test"
                 ReferenceTestNode("A.line14", "Module.", ["GlobalVariable.A.line2"]),
             ],
         ),
-        (  # language=Python "two classes with same signature"
+        (  # language=Python "two classes with the same signature"
             """
 class A:
     name: str = ""
@@ -1437,7 +1437,7 @@ double(10)
                 ReferenceTestNode("double.line4", "Module.", ["GlobalVariable.double.line2"]),
             ],
         ),
-        (  # language=Python "two lambda function used as normal function with same name"
+        (  # language=Python "two lambda function used as normal function with the same name"
             """
 class A:
     double = lambda x: 2 * x
@@ -1465,7 +1465,7 @@ B.double(10)
                 ),
             ],
         ),  # since we only return a list of all possible references, we can't distinguish between the two functions
-        (  # language=Python "lambda function used as normal function and normal function with same name"
+        (  # language=Python "lambda function used as normal function and normal function with the same name"
             """
 class A:
     double = lambda x: 2 * x
@@ -1529,7 +1529,7 @@ for value in gen:
                 ReferenceTestNode("value.line8", "Module.", ["GlobalVariable.value.line7"]),
             ],
         ),
-        (  # language=Python "functions with same name but different classes"
+        (  # language=Python "functions with the same name but different classes"
             """
 class A:
     @staticmethod
@@ -1563,7 +1563,7 @@ B.add(1, 2)
                 ),
             ],
         ),  # since we only return a list of all possible references, we can't distinguish between the two functions
-        (  # language=Python "functions with same name but different signature"
+        (  # language=Python "functions with the same name but different signature"
             """
 class A:
     @staticmethod

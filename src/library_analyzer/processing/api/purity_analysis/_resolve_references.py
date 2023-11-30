@@ -51,13 +51,13 @@ def _find_name_references(
     target_references = [ReferenceNode(node, scope, []) for node, scope in target_nodes.items()]
     value_references = [ReferenceNode(node, scope, []) for node, scope in value_nodes.items()]
 
-    # Detect all value references: references that are used as values (e.g. sth = value, return value)
+    # Detect all value references: references that are used as values (e.g., sth = value, return value)
     for value_ref in value_references:
         if isinstance(value_ref.node, astroid.Name | MemberAccessValue):
             value_ref_complete = _find_references(value_ref, target_references, classes, functions, parameters)
             final_references.append(value_ref_complete)
 
-    # Detect all target references: references that are used as targets (e.g. target = sth)
+    # Detect all target references: references that are used as targets (e.g., target = sth)
     for target_ref in target_references:
         if isinstance(target_ref.node, astroid.AssignName | astroid.Name | MemberAccessTarget):
             target_ref_complete = _find_references_target(target_ref, target_references, classes)
@@ -96,7 +96,7 @@ def _find_references_target(
                 # Add ClassVariables if the name matches.
                 if isinstance(ref.scope, ClassScope) and ref.node.name == current_target_reference.node.member.attrname:
                     result.extend(_get_symbols(ref))
-                    # This deals with the special case where the self keyword is used.
+                    # This deals with the special case where the self-keyword is used.
                     # Self indicates that we are inside a class and therefore only want to check the class itself for references.
                     if result and current_target_reference.node.receiver.name == "self":
                         result = [symbol for symbol in result if isinstance(symbol, ClassVariable) and symbol.klass == current_target_reference.scope.parent.symbol.node]  # type: ignore[union-attr] # "None" has no attribute "symbol" but since we check for the type before, this is fine
@@ -108,7 +108,7 @@ def _find_references_target(
                 ):
                     result.extend(_get_symbols(ref))
 
-            # This deals with the receivers of the MemberAccess, e.g: self.sth  ->  self
+            # This deals with the receivers of the MemberAccess, e.g.: self.sth -> self
             # When dealing with this case of receivers we only want to check the current scope because they are bound to the current scope, which is their class.
             elif (
                 isinstance(current_target_reference.node, astroid.Name)
@@ -187,7 +187,7 @@ def _find_references(
             #     def f(self, a):
             #         self.a = a
             elif isinstance(ref.scope, ClassScope) and parameters:
-                parameters_for_value_reference = parameters.get(value_reference.scope.symbol.node)[1]  # type: ignore[index] # "None" is not indexable, but we check for it
+                parameters_for_value_reference = parameters.get(value_reference.scope.symbol.node)[1]  # type: ignore[index] # "None" is not index-able, but we check for it
                 for param in parameters_for_value_reference:
                     if ref.node.name == param.name and not isinstance(_get_symbols(ref), Parameter):
                         outer_continue = True  # the reference isn't a parameter, so don't add it
@@ -323,12 +323,12 @@ def _find_call_reference(
         # Find function parameters that are called (passed as arguments), like:
         # def f(a):
         #     a()
-        # For now: it is not possible to analyse this any further before runtime
+        # For now: it is not possible to analyze this any further before runtime
         if parameters:
             for func_def, (_scope, parameter_set) in parameters.items():
                 for param in parameter_set:
                     if reference.node.func.name == param.name and reference.scope.symbol.node == func_def:
-                        for child in parameters.get(func_def)[0].children:  # type: ignore[index] # "None" is not indexable, but we check for it
+                        for child in parameters.get(func_def)[0].children:  # type: ignore[index] # "None" is not index-able, but we check for it
                             if child.symbol.node.name == param.name:
                                 call_references[i].referenced_symbols.append(child.symbol)
                                 final_call_references.append(call_references[i])

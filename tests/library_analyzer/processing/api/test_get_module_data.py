@@ -835,7 +835,7 @@ def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleCla
 def assert_test_get_scope(result: Scope, expected: list[SimpleScope | SimpleClassScope]) -> None:
     transformed_result = [
         transform_result(node) for node in result
-    ]  # The result and the expected data is simplified to make the comparison easier
+    ]  # The result and the expected data are simplified to make the comparison easier
     assert transformed_result == expected
 
 
@@ -910,7 +910,7 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
 
 @pytest.mark.parametrize(
     ("code", "expected"),
-    # expected is a tuple of (ClassDefName, set of class variables, set of instance variables, list of super classes)
+    # expected is a tuple of (ClassDefName, set of class variables, set of instance variables, list of superclasses)
     [
         (  # ClassDef
             """
@@ -1026,7 +1026,7 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 ),
             },
         ),
-        (  # ClassDef with conditional instance attributes (instance attributes with same name)
+        (  # ClassDef with conditional instance attributes (instance attributes with the same name)
             """
                 class A:
                     def __init__(self):
@@ -1111,7 +1111,7 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [], []),
             },
         ),
-        (  # ClassDef with super class
+        (  # ClassDef with superclass
             """
                 class A:
                     pass
@@ -1148,7 +1148,7 @@ def test_get_module_data_classes(code: str, expected: dict[str, SimpleClassScope
 def assert_get_module_data_classes(classes: dict[str, ClassScope], expected: dict[str, SimpleClassScope]) -> None:
     transformed_classes = {
         klassname: transform_result(klass) for klassname, klass in classes.items()
-    }  # The result and the expected data is simplified to make the comparison easier
+    }  # The result and the expected data are simplified to make the comparison easier
     assert transformed_classes == expected
 
 

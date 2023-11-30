@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 @dataclass
 class ModuleData:
     """
-    Contains all data that is collected for a module.
+    Contains all data collected for a module.
 
     Attributes
     ----------
@@ -27,7 +27,7 @@ class ModuleData:
         target_nodes        All target nodes and their scope.
         parameters          All parameters of functions and their scope.
         function_calls      All function calls and their scope.
-        function_references All for reference resolving relevant nodes inside of functions
+        function_references All for reference resolving relevant nodes inside functions
     """
 
     scope: Scope | ClassScope
@@ -183,7 +183,7 @@ class Scope:
     ----------
         _symbol      is the symbol that defines the scope of the node.
         _children    is a list of Scope or ClassScope instances that are defined in the scope of the node, is None if the node is a leaf node.
-        _parent      is the parent node in the scope tree, is None if the node is the root node.
+        _parent      is the parent node in the scope tree, there is None if the node is the root node.
     """
 
     _symbol: Symbol

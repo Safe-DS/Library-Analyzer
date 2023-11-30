@@ -36,11 +36,11 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
             if function_name not in call_graph_forest.graphs.keys():
                 call_graph_forest.add_graph(function_name, function_node)  # We save the tree in the forest by the name of the root function
 
-            # Default case where a function calls no other functions in its body - therefore the tree has just one node
+            # Default case where a function calls no other functions in its body - therefore, the tree has just one node
             if not function_scope.calls:
                 continue
 
-            # If the function calls other functions in its body we need to build a tree
+            # If the function calls other functions in its body, we need to build a tree
             else:
                 for call in function_scope.calls:
                     if call.symbol.name in functions.keys():
@@ -136,7 +136,7 @@ def test_for_cycles(graph: CallGraphNode, visited_nodes: set, path: list) -> lis
         cycle = test_for_cycles(child, visited_nodes, path)
         if cycle:
             return cycle
-    path.pop()  # Remove the current node from path when backtracking
+    path.pop()  # Remove the current node from the path when backtracking
 
     return cycle
 
@@ -161,7 +161,7 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function
     combined_reasons = Reasons.join_reasons_list([node.reasons for node in cycle])
     combined_node = CallGraphNode(data=combined_node_data, reasons=combined_reasons, combined_node_names=cycle_names)
 
-    # Add children to combined node if they are not in the cycle (other calls)
+    # Add children to the combined node if they are not in the cycle (other calls)
     if any([isinstance(node.data, FunctionScope) and hasattr(node.data, 'calls') for node in cycle]):
         other_calls = [call for node in cycle for call in node.data.calls if call.symbol.name not in cycle_names and call.symbol.name not in BUILTINS]
         builtin_calls = [call for node in cycle for call in node.data.calls if call.symbol.name in BUILTINS]
@@ -172,7 +172,7 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function
     # Remove all nodes in the cycle from the forest and add the combined node instead
     for node in cycle:
         if node.data.symbol.name in BUILTINS:
-            continue  # This should not happen since builtins never call self defined functions
+            continue  # This should not happen since builtins never call self-defined functions
         if node.data.symbol.name in forest.graphs.keys():
             forest.delete_graph(node.data.symbol.name)
 

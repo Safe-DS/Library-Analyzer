@@ -318,7 +318,7 @@ x.add(1, 2)
         "builtin function call",
         "external function call",  # TODO: external function call
         "function call of function with same name",
-    ],
+    ],  # TODO: LARS how do we build a call graph for a.b.c.d()?
 )
 def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
     module_data = get_module_data(code)
@@ -331,4 +331,3 @@ def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
             transformed_call_graph_forest[tree_name].add(child.data.symbol.name)
 
     assert transformed_call_graph_forest == expected
-
