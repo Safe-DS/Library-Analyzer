@@ -65,6 +65,31 @@ def fun():
             """,  # language= None
             {"fun.line2": Pure()},
         ),
+        (  # language=Python "VariableWrite to InstanceVariable - but actually a LocalVariable"
+            """
+class A:
+    def __init__(self):
+        self.instance_attr1 = 10
+
+def fun():
+    a = A()
+    a.instance_attr1 = 20  # Pure: VariableWrite to InstanceVariable - but actually a LocalVariable
+            """,  # language= None
+            {"fun.line2": Pure()},
+        ),
+        (  # language=Python "VariableRead from InstanceVariable - but actually a LocalVariable"
+            """
+class A:
+    def __init__(self):
+        self.instance_attr1 = 10
+
+def fun():
+    a = A()
+    res = a.instance_attr1  # Pure: VariableRead from InstanceVariable - but actually a LocalVariable
+    return res
+            """,  # language= None
+            {"fun.line2": Pure()},
+        ),
         (  # language=Python "Call of Pure Function"
             """
 def fun1():
@@ -135,6 +160,29 @@ def fun():
             """,  # language= None
             {"fun.line2": Pure()},
         ),
+        (  # language=Python "Lambda function"
+            """
+def fun():
+    res = (lambda x, y: x + y)(10, 20)  # Pure: Call of a Lambda Function and write to LocalVariable
+    return res
+            """,  # language= None
+            {"fun.line2": Pure()},
+        ),
+        (  # language=Python "Assigned Lambda function"
+            """
+double = lambda x: 2 * x
+            """,  # language= None
+            {"double.line2": Pure()},
+        ),
+        (  # language=Python "Lambda as key"
+            """
+def fun():
+    numbers = [1, 2, 3, 4]
+    squared_numbers = map(lambda x: x**2, numbers)
+    return squared_numbers
+            """,  # language= None
+            {"fun.line2": Pure()},
+        ),
         (  # language=Python "Multiple Calls of the same Pure function (Caching)"
             """
 def fun1():
@@ -153,13 +201,18 @@ c = fun1()
         "VariableWrite to LocalVariable",
         "VariableWrite to LocalVariable with parameter",
         "VariableRead from LocalVariable",
+        "VariableWrite to InstanceVariable - but actually a LocalVariable",
+        "VariableRead from InstanceVariable - but actually a LocalVariable",
         "Call of Pure Function",
         "Call of Pure Chain of Functions",
         "Call of Pure Chain of Functions with cycle - one entry point",
         "Call of Pure Chain of Functions with cycle - direct entry",
         "Call of Pure Builtin Function",
+        "Lambda function",
+        "Assigned Lambda function",
+        "Lambda as key",
         "Multiple Calls of same Pure function (Caching)",
-    ],  # TODO: ClassVariables, InstanceVariables, Lambda with name
+    ],  # TODO: ClassVariables?, chained instance variables/ classVariables, class methods, instance methods, static methods
 )
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     references, function_references, call_graph = resolve_references(code)
@@ -321,6 +374,79 @@ def entry():
              },  # for cycles, we want to propagate the impurity of the cycle to all functions in the cycle
             # but only return the results for the real functions
         ),
+        (  # language=Python "Call of Impure Chain of Functions with cycle - other calls in cycle"
+            """
+var1 = 1
+
+def cycle1():
+    other()
+    cycle2()
+
+def cycle2():
+    cycle3()
+
+def cycle3():
+    print("test")  # Impure: FileWrite
+    cycle1()
+
+def other():
+    global var1
+    var1 = 2  # Impure: VariableWrite to GlobalVariable
+
+def entry():
+    cycle1()
+            """,  # language= None
+            {"cycle1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableWrite.GlobalVariable.var1"}),
+             "cycle2.line8": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableWrite.GlobalVariable.var1"}),
+             "cycle3.line11": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                            "NonLocalVariableWrite.GlobalVariable.var1"}),
+             "other.line15": SimpleImpure({"NonLocalVariableWrite.GlobalVariable.var1"}),
+             "entry.line19": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableWrite.GlobalVariable.var1"})
+             },  # for cycles, we want to propagate the impurity of the cycle to all functions in the cycle
+            # but only return the results for the real functions
+        ),
+        (  # language=Python "Call of Impure Chain of Functions with cycle - cycle in cycle"
+            """
+var1 = 1
+
+def cycle1():
+    cycle2()
+
+def cycle2():
+    cycle3()
+
+def cycle3():
+    inner_cycle1()
+    print("enter inner cycle")  # Impure: FileWrite
+    cycle1()
+
+def inner_cycle1():
+    inner_cycle2()
+
+def inner_cycle2():
+    inner_cycle1()
+    global var1
+    var1 = 2  # Impure: VariableWrite to GlobalVariable
+
+def entry():
+    cycle1()
+            """,  # language= None
+            {"cycle1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableWrite.GlobalVariable.var1"}),
+             "cycle2.line7": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableWrite.GlobalVariable.var1"}),
+             "cycle3.line10": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                            "NonLocalVariableWrite.GlobalVariable.var1"}),
+             "inner_cycle1.line15": SimpleImpure({"NonLocalVariableWrite.GlobalVariable.var1"}),
+             "inner_cycle2.line18": SimpleImpure({"NonLocalVariableWrite.GlobalVariable.var1"}),
+             "entry.line23": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableWrite.GlobalVariable.var1"}),
+             },  # for cycles, we want to propagate the impurity of the cycle to all functions in the cycle
+            # but only return the results for the real functions
+        ),
         (  # language=Python "Call of Impure Chain of Functions with cycle - direct entry"
             """
 def fun1(count):
@@ -345,6 +471,37 @@ def fun():
     return res
             """,  # language= None
             {"fun.line2": SimpleImpure({"FileRead.StringLiteral.stdin"})},
+        ),
+
+        (  # language=Python "Lambda function"
+            """
+var1 = 1
+
+def fun():
+    global var1
+    res = (lambda x: x + var1)(10)  # Impure: Call of Impure Function which has VariableRead from GlobalVariable
+    return res
+            """,  # language= None
+            {"fun.line4": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1"})},
+        ),
+        (  # language=Python "Assigned Lambda function"
+            """
+var1 = 1
+double = lambda x: var1 * x  # Impure: VariableRead from GlobalVariable
+            """,  # language= None
+            {"double.line2": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1"})},
+        ),
+        (  # language=Python "Lambda as key"
+            """
+var1 = "x"
+
+def fun():
+    global var1
+    names = ["a", "abc", "ab", "abcd"]
+    sort = sorted(names, key=lambda x: x + var1)
+    return sort
+            """,  # language= None
+            {"fun.line4": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1"})},  # TODO: what do we want here? what is sorted?
         ),
         (  # language=Python "Multiple Calls of the same Impure function (Caching)"
             """
@@ -424,13 +581,18 @@ def fun1():
         "Call of Impure Function",
         "Call of Impure Chain of Functions",
         "Call of Impure Chain of Functions with cycle - one entry point",
+        "Call of Impure Chain of Functions with cycle - other calls in cycle",
+        "Call of Impure Chain of Functions with cycle - cycle in cycle",
         "Call of Impure Chain of Functions with cycle - direct entry",
         "Call of Impure BuiltIn Function",
+        "Lambda function",
+        "Assigned Lambda function",
+        "Lambda as key",
         "Multiple Calls of same Impure function (Caching)",
         "Multiple Classes with same name and different purity",
         "Different Reasons for Impurity",
         "Unknown Call",
-        # TODO: pure cycle within impure cycle, Lambda with name, chained instance variables/ classVariables
+        # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods
     ],
 )
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
