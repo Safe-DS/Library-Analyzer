@@ -244,14 +244,21 @@ def check_open_like_functions(func_ref: FunctionReference) -> PurityResult:
     # Check if we deal with the open function
     if isinstance(func_ref.node, astroid.Call) and func_ref.node.func.name == "open":
         open_mode_str: str = "r"
+        open_mode: OpenMode | None = None
+        # Check if a mode is set and if the value is a string literal
         if len(func_ref.node.args) >= 2 and isinstance(func_ref.node.args[1], astroid.Const):
             if func_ref.node.args[1].value in OPEN_MODES.keys():
                 open_mode_str = func_ref.node.args[1].value
+        # We exclude the case where the mode is a variable since we cannot determine the mode in this case,
+        # therefore, we set it to be the worst case (read and write)
+        elif len(func_ref.node.args) == 2 and not isinstance(func_ref.node.args[1], astroid.Const):
+            open_mode = OpenMode.READ_WRITE
 
         # We need to check if the file name is a variable or a string literal
         if isinstance(func_ref.node.args[0], astroid.Name):
             file_var = func_ref.node.args[0].name
-            open_mode = OPEN_MODES[open_mode_str]
+            if not open_mode:
+                open_mode = OPEN_MODES[open_mode_str]
             match open_mode:
                 case OpenMode.READ:
                     return Impure({FileRead(ParameterAccess(file_var))})
@@ -271,6 +278,7 @@ def check_open_like_functions(func_ref: FunctionReference) -> PurityResult:
                     return Impure({FileWrite(StringLiteral(file_str))})
                 case OpenMode.READ_WRITE:
                     return Impure({FileRead(StringLiteral(file_str)), FileWrite(StringLiteral(file_str))})
+    # TODO: [Later] for now it is good enough to deal with open() only, but we MAYBE need to deal with the other open-like functions too
 
 
 def infer_purity(references: list[ReferenceNode], function_references: dict[str, Reasons],
@@ -346,7 +354,6 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
 
     # Check if the referenced function is a builtin function
     elif reason.function.name in BUILTIN_FUNCTIONS.keys():  # TODO: check if this works correctly in all cases
-        # TODO: Deal with open - like functions separately to determine if they are read or write
         if reason.function.name in ("open", "read", "readline", "readlines", "write", "writelines"):
             purity_results[reason.function] = check_open_like_functions(reason.get_call_by_name(reason.function.name))
         else:

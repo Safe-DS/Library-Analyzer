@@ -68,7 +68,7 @@ def fun():
         (  # language=Python "VariableWrite to InstanceVariable - but actually a LocalVariable"
             """
 class A:
-    def __init__(self):
+    def __init__(self):  # TODO: for init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
         self.instance_attr1 = 10
 
 def fun():
@@ -212,7 +212,7 @@ c = fun1()
         "Assigned Lambda function",
         "Lambda as key",
         "Multiple Calls of same Pure function (Caching)",
-    ],  # TODO: ClassVariables?, chained instance variables/ classVariables, class methods, instance methods, static methods
+    ],  # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods
 )
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     references, function_references, call_graph = resolve_references(code)
@@ -592,7 +592,7 @@ def fun1():
         "Multiple Classes with same name and different purity",
         "Different Reasons for Impurity",
         "Unknown Call",
-        # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods
+        # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods, class instantiation?
     ],
 )
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
@@ -685,7 +685,7 @@ def fun(pos_arg):
             """
 def fun():
     f = open("text.txt")  # Impure: FileRead
-    f.read()  # TODO: what do we want here?
+    f.read()  # TODO: [Later] For now open is enough
             """,  # language= None
             {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})}
         ),
@@ -693,8 +693,8 @@ def fun():
             """
 def fun():
     f = open("text.txt")  # Impure: FileRead
-    f.readline()  # TODO: what do we want here?
-    f.readlines()  # TODO: what do we want here?
+    f.readline()  # TODO: [Later] For now open is enough
+    f.readlines()  # TODO: [Later] For now open is enough
             """,  # language= None
             {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})}
         ),
@@ -702,7 +702,7 @@ def fun():
             """
 def fun():
     f = open("text.txt", "w")  # Impure: FileWrite
-    f.write("test")  # TODO: what do we want here?
+    f.write("test")  # TODO: [Later] For now open is enough
             """,  # language= None
             {"fun.line2": SimpleImpure({"FileWrite.StringLiteral.text.txt"})}
         ),
@@ -710,7 +710,7 @@ def fun():
             """
 def fun():
     f = open("text.txt", "w")  # Impure: FileWrite
-    f.writelines(["test1", "test2"])  # TODO: what do we want here?
+    f.writelines(["test1", "test2"])  # TODO: [Later] For now open is enough
             """,  # language= None
             {"fun.line2": SimpleImpure({"FileWrite.StringLiteral.text.txt"})}
         ),
@@ -753,7 +753,7 @@ def fun(pos_arg, mode):
 def fun():
     with open("text.txt") as f:  # Impure: FileRead
         f.read()
-        f.close()  # TODO: what do we want here?
+        f.close()  # TODO: [Later] For now open is enough
             """,  # language= None
             {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})}
         ),
