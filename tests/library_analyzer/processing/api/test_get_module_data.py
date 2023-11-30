@@ -742,7 +742,7 @@ def test_calc_node_id(
                 with file:
                     a = 1
             """,
-            [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.a", []), SimpleScope("With", [])])],
+            [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.a", [])])],
         ),
         (  # With Statement File
             """
@@ -756,8 +756,31 @@ def test_calc_node_id(
                     "Module",
                     [
                         SimpleScope("GlobalVariable.AssignName.file", []),
+                        SimpleScope("GlobalVariable.AssignName.f", []),
                         SimpleScope("GlobalVariable.AssignName.a", []),
-                        SimpleScope("With", [SimpleScope("LocalVariable.AssignName.f", [])]),
+                    ],
+                ),
+            ],
+        ),
+        (  # With Statement Function
+            """
+                def fun():
+                    with open("text.txt") as f:
+                        text = f.read()
+                        print(text)
+                        f.close()
+            """,
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope(
+                            "GlobalVariable.FunctionDef.fun",
+                            [
+                                SimpleScope("LocalVariable.AssignName.f", []),
+                                SimpleScope("LocalVariable.AssignName.text", []),
+                            ],
+                        )
                     ],
                 ),
             ],
@@ -795,7 +818,7 @@ def test_calc_node_id(
                             [],
                             [],
                         ),
-                        SimpleScope("With", [SimpleScope("LocalVariable.AssignName.context", [])]),
+                        SimpleScope("GlobalVariable.AssignName.context", []),
                     ],
                 ),
             ],
@@ -822,6 +845,7 @@ def test_calc_node_id(
         "List Comprehension in Function",
         "With Statement",
         "With Statement File",
+        "With Statement Function",
         "With Statement Class",
     ],  # TODO: add tests for lambda, match, try except and generator expressions
     # TODO: add SimpleFunctionScope and adapt the tests

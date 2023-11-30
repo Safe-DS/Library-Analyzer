@@ -86,16 +86,6 @@ class ModuleDataBuilder:
             # add all symbols of a function to the function_references dict
             self.collect_function_references()
 
-        # If we deal with a With node, we differentiate between the children that belong inside the scope
-        # of the With node (everything that is inside the With items), and the children that belong outside the With scope.
-        # This is the case for every node that is inside the With body.
-        elif isinstance(node, astroid.With):
-            for child in self.children:
-                if isinstance(child.symbol, LocalVariable):
-                    inner_scope_children.append(child)  # Add the child to the inner scope
-                else:
-                    outer_scope_children.append(child)  # Add the child to the outer scope
-
         # For every other node type we only need to look at its parent node to determine if it is in the scope of the current node.
         else:
             for child in self.children:
@@ -236,6 +226,7 @@ class ModuleDataBuilder:
                 self.function_references[function_name] = Reasons(function_node, set(), set(), set())
 
             # TODO: add MemberAccessTarget and MemberAccessValue detection
+            #  it should be easy to add filters later: check if a target exists inside a class before adding its impurity reasons to the impurrity result
 
     @staticmethod
     def get_kind(symbol: Symbol | None) -> str:
@@ -337,7 +328,7 @@ class ModuleDataBuilder:
                                 )
                 if isinstance(
                     node,
-                    astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally | astroid.With,
+                    astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally,
                 ) and not isinstance(node, astroid.FunctionDef):
                     return GlobalVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__)
                 return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
@@ -401,12 +392,6 @@ class ModuleDataBuilder:
             case astroid.TryExcept() | astroid.TryFinally():  # TODO: can we summarize Lambda and ListComp here? -> only if nodes in try except are not global
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
-            case astroid.With():
-                for item in current_scope.items:
-                    if node == item[1]:
-                        return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
-                return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
-
         # This line is a fallback but should never be reached
         return Symbol(node=node, id=calc_node_id(node), name=node.name)  # pragma: no cover
 
@@ -432,18 +417,6 @@ class ModuleDataBuilder:
         )
 
     def leave_listcomp(self, node: astroid.ListComp) -> None:
-        self._detect_scope(node)
-
-    def enter_with(self, node: astroid.With) -> None:
-        self.current_node_stack.append(
-            Scope(
-                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-                _children=[],
-                _parent=self.current_node_stack[-1],
-            ),
-        )
-
-    def leave_with(self, node: astroid.With) -> None:
         self._detect_scope(node)
 
     # def enter_tryfinally(self, node: astroid.TryFinally) -> None:
