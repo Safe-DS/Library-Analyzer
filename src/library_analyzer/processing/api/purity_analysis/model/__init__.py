@@ -12,6 +12,7 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
     PurityResult,
     Impure,
     Pure,
+    OpenMode,
 )
 from library_analyzer.processing.api.purity_analysis.model._reference import (
     ReferenceNode,
@@ -72,4 +73,5 @@ __all__ = [
     "Reasons",
     "CallGraphNode",
     "CallGraphForest",
+    "OpenMode",
 ]

@@ -4,13 +4,8 @@ import astroid
 import pytest
 
 from library_analyzer.processing.api.purity_analysis import (
-    # OpenMode,
-    # determine_open_mode,
-    # determine_purity,
-    # extract_impurity_reasons,
-    # infer_purity,
     resolve_references,
-    infer_purity_new,
+    infer_purity,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
     ImpurityReason,
@@ -20,239 +15,13 @@ from library_analyzer.processing.api.purity_analysis.model import (
     NonLocalVariableWrite,
     FileWrite,
     FileRead,
+    ParameterAccess,
 )
 
 
 @dataclass
 class SimpleImpure:
     reasons: set[str]
-
-
-# @pytest.mark.parametrize(
-#     ("args", "expected"),
-#     [
-#         (["test"], OpenMode.READ),
-#         (["test", "r"], OpenMode.READ),
-#         (["test", "rb"], OpenMode.READ),
-#         (["test", "rt"], OpenMode.READ),
-#         (["test", "r+"], OpenMode.READ_WRITE),
-#         (["test", "w"], OpenMode.WRITE),
-#         (["test", "wb"], OpenMode.WRITE),
-#         (["test", "wt"], OpenMode.WRITE),
-#         (["test", "w+"], OpenMode.READ_WRITE),
-#         (["test", "x"], OpenMode.WRITE),
-#         (["test", "xb"], OpenMode.WRITE),
-#         (["test", "xt"], OpenMode.WRITE),
-#         (["test", "x+"], OpenMode.READ_WRITE),
-#         (["test", "a"], OpenMode.WRITE),
-#         (["test", "ab"], OpenMode.WRITE),
-#         (["test", "at"], OpenMode.WRITE),
-#         (["test", "a+"], OpenMode.READ_WRITE),
-#         (["test", "r+b"], OpenMode.READ_WRITE),
-#         (["test", "w+b"], OpenMode.READ_WRITE),
-#         (["test", "x+b"], OpenMode.READ_WRITE),
-#         (["test", "a+b"], OpenMode.READ_WRITE),
-#         (["test", "r+t"], OpenMode.READ_WRITE),
-#         (["test", "w+t"], OpenMode.READ_WRITE),
-#         (["test", "x+t"], OpenMode.READ_WRITE),
-#         (["test", "a+t"], OpenMode.READ_WRITE),
-#         (["test", "error"], ValueError),
-#     ],
-# )
-# def test_determine_open_mode(args: list[str], expected: OpenMode) -> None:
-#     if expected is ValueError:
-#         with pytest.raises(ValueError, match="is not a valid mode for the open function"):
-#             determine_open_mode(args)
-#     else:
-#         result = determine_open_mode(args)
-#         assert result == expected
-#
-#
-# @pytest.mark.parametrize(
-#     ("code", "expected"),
-#     [
-#         (
-#             """
-#                 def fun1():
-#                     open("test1.txt") # default mode: read only
-#             """,
-#             [ExternalRead(source=StringLiteral(value="test1.txt")), Call(expression=Reference(name="open('test1.txt')"))],
-#         ),
-#         (
-#             """
-#                 def fun2():
-#                     open("test2.txt", "r") # read only
-#             """,
-#             [
-#                 ExternalRead(source=StringLiteral(value="test2.txt")),
-#                 Call(expression=Reference(name="open('test2.txt', 'r')")),
-#             ],
-#         ),
-#         (
-#             """
-#                 def fun3():
-#                     open("test3.txt", "w") # write only
-#             """,
-#             [
-#                 ExternalWrite(source=StringLiteral(value="test3.txt")),
-#                 Call(expression=Reference(name="open('test3.txt', 'w')")),
-#             ],
-#         ),
-#         (
-#             """
-#                 def fun4():
-#                     open("test4.txt", "a") # append
-#             """,
-#             [
-#                 ExternalWrite(source=StringLiteral(value="test4.txt")),
-#                 Call(expression=Reference(name="open('test4.txt', 'a')")),
-#             ],
-#         ),
-#         (
-#             """
-#                 def fun5():
-#                     open("test5.txt", "r+")  # read and write
-#             """,
-#             [
-#                 ExternalRead(source=StringLiteral(value="test5.txt")),
-#                 ExternalWrite(source=StringLiteral(value="test5.txt")),
-#                 Call(expression=Reference(name="open('test5.txt', 'r+')")),
-#             ],
-#         ),
-#         (
-#             """
-#                 def fun6():
-#                     f = open("test6.txt") # default mode: read only
-#                     f.read()
-#             """,
-#             [
-#                 InternalWrite(expression=Reference(name="f = open('test6.txt')")),
-#                 ExternalRead(source=StringLiteral(value="test6.txt")),
-#                 Call(expression=Reference(name="open('test6.txt')")),
-#                 Call(expression=Reference(name="f.read()")),
-#                 InternalRead(expression=Reference(name="f.read")),
-#             ],
-#         ),
-#         (
-#             """
-#                 def fun7():
-#                     f = open("test7.txt") # default mode: read only
-#                     f.readline([2])
-#             """,
-#             [
-#                 InternalWrite(expression=Reference(name="f = open('test7.txt')")),
-#                 ExternalRead(source=StringLiteral(value="test7.txt")),
-#                 Call(expression=Reference(name="open('test7.txt')")),
-#                 Call(expression=Reference(name="f.readline([2])")),
-#                 InternalRead(expression=Reference(name="f.readline")),
-#             ],
-#         ),
-#         (
-#             """
-#                 def fun8():
-#                     f = open("test8.txt", "w") # write only
-#                     f.write("message")
-#             """,
-#             [
-#                 InternalWrite(expression=Reference(name="f = open('test8.txt', 'w')")),
-#                 ExternalWrite(source=StringLiteral(value="test8.txt")),
-#                 Call(expression=Reference(name="open('test8.txt', 'w')")),
-#                 Call(expression=Reference(name="f.write('message')")),
-#                 InternalWrite(expression=Reference(name="f.write")),
-#             ],
-#         ),
-#         (
-#             """
-#                 def fun9():
-#                     f = open("test9.txt", "w") # write only
-#                     f.writelines(["message1", "message2"])
-#             """,
-#             [
-#                 InternalWrite(expression=Reference(name="f = open('test9.txt', 'w')")),
-#                 ExternalWrite(source=StringLiteral(value="test9.txt")),
-#                 Call(expression=Reference(name="open('test9.txt', 'w')")),
-#                 Call(expression=Reference(name="f.writelines(['message1', 'message2'])")),
-#                 InternalWrite(expression=Reference(name="f.writelines")),
-#             ],
-#         ),
-#         (
-#             """
-#                 def fun10():
-#                     with open("test10.txt") as f: # default mode: read only
-#                         f.read()
-#             """,
-#             [
-#                 ExternalRead(source=StringLiteral(value="test10.txt")),
-#                 Call(expression=Reference(name="open('test10.txt')")),
-#                 Call(expression=Reference(name="f.read()")),
-#                 InternalRead(expression=Reference(name="f.read")),
-#             ],
-#         ),
-#         (
-#             """
-#                 def fun11(path11): # open with variable
-#                     open(path11)
-#             """,
-#             [ExternalRead(source=Reference("path11")), Call(expression=Reference(name="open(path11)"))],  # ??
-#         ),
-#         (
-#             """
-#                 def fun12(path12): # open with variable write mode
-#                     open(path12, "w")
-#             """,
-#             [ExternalWrite(source=Reference(name="path12")), Call(expression=Reference(name="open(path12, 'w')"))],  # ??
-#         ),
-#         (
-#             """
-#                 def fun13(path13): # open with variable write mode
-#                     open(path13, "wb+")
-#             """,
-#             [
-#                 ExternalRead(source=Reference(name="path13")),
-#                 ExternalWrite(source=Reference(name="path13")),
-#                 Call(expression=Reference(name="open(path13, 'wb+')")),
-#             ],  # ??
-#         ),
-#         (
-#             """
-#                 def fun14(path14):
-#                     with open(path14) as f:
-#                         f.read()
-#             """,
-#             [
-#                 ExternalRead(source=Reference("path14")),
-#                 Call(expression=Reference(name="open(path14)")),
-#                 Call(expression=Reference(name="f.read()")),
-#                 InternalRead(expression=Reference(name="f.read")),
-#             ],  # ??
-#         ),
-#         (
-#             """
-#                 def fun15(path15): # open with variable and wrong mode
-#                     open(path15, "test")
-#             """,
-#             ValueError,
-#         ),
-#         (
-#             """
-#                 def fun16(): # this does not belong here but is needed for code coverage
-#                     print("test")
-#             """,
-#             TypeError,
-#         ),
-#     ],
-# )
-# # TODO: test for wrong arguments and Errors
-# def test_file_interaction(code: str, expected: list[ImpurityIndicator]) -> None:
-#     if expected is ValueError:
-#         with pytest.raises(ValueError, match="is not a valid mode for the open function"):
-#             infer_purity(code)
-#     elif expected is TypeError:
-#         with pytest.raises(TypeError):
-#             infer_purity(code)
-#     else:
-#         purity_info: list[PurityInformation] = infer_purity(code)
-#         assert purity_info[0].reasons == expected
 
 
 @pytest.mark.parametrize(
@@ -395,7 +164,7 @@ c = fun1()
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     references, function_references, call_graph = resolve_references(code)
 
-    purity_results = infer_purity_new(references, function_references, call_graph)
+    purity_results = infer_purity(references, function_references, call_graph)
     transformed_purity_results = {to_string_call(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()}
 
     assert transformed_purity_results == expected
@@ -667,7 +436,7 @@ def fun1():
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
     references, function_references, call_graph = resolve_references(code)
 
-    purity_results = infer_purity_new(references, function_references, call_graph)
+    purity_results = infer_purity(references, function_references, call_graph)
 
     transformed_purity_results = {to_string_call(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()}
 
@@ -693,8 +462,12 @@ def to_string_reason(reason: ImpurityReason) -> str:
     elif isinstance(reason, NonLocalVariableWrite):
         return f"NonLocalVariableWrite.{reason.symbol.__class__.__name__}.{reason.symbol.name}"
     elif isinstance(reason, FileRead):
+        if isinstance(reason.source, ParameterAccess):
+            return f"FileRead.ParameterAccess.{reason.source.parameter}"
         return f"FileRead.{reason.source.__class__.__name__}.{reason.source.value}"
     elif isinstance(reason, FileWrite):
+        if isinstance(reason.source, ParameterAccess):
+            return f"FileWrite.ParameterAccess.{reason.source.parameter}"
         return f"FileWrite.{reason.source.__class__.__name__}.{reason.source.value}"
     else:
         raise NotImplementedError(f"Unknown reason: {reason}")
@@ -746,6 +519,39 @@ def fun(pos_arg):
             """,  # language= None
             {"fun.line2": SimpleImpure({"FileWrite.ParameterAccess.pos_arg"})}
         ),
+        (  # language=Python "Read"
+            """
+def fun():
+    f = open("text.txt")  # Impure: FileRead
+    f.read()  # TODO: what do we want here?
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})}
+        ),
+        (  # language=Python "Readline/ Readlines"
+            """
+def fun():
+    f = open("text.txt")  # Impure: FileRead
+    f.readline()  # TODO: what do we want here?
+    f.readlines()  # TODO: what do we want here?
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})}
+        ),
+        (  # language=Python "Write"
+            """
+def fun():
+    f = open("text.txt", "w")  # Impure: FileWrite
+    f.write("test")  # TODO: what do we want here?
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileWrite.StringLiteral.text.txt"})}
+        ),
+        (  # language=Python "Writelines"
+            """
+def fun():
+    f = open("text.txt", "w")  # Impure: FileWrite
+    f.writelines(["test1", "test2"])  # TODO: what do we want here?
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileWrite.StringLiteral.text.txt"})}
+        ),
         (  # language=Python "With open str default"
             """
 def fun():
@@ -789,39 +595,6 @@ def fun():
             """,  # language= None
             {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})}
         ),
-        (  # language=Python "Read"
-            """
-def fun():
-    f = open("text.txt")  # Impure: FileRead
-    f.read()  # TODO: what do we want here?
-            """,  # language= None
-            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})}
-        ),
-        (  # language=Python "Readline/ Readlines"
-            """
-def fun():
-    f = open("text.txt")  # Impure: FileRead
-    f.readline()  # TODO: what do we want here?
-    f.readlines()  # TODO: what do we want here?
-            """,  # language= None
-            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})}
-        ),
-        (  # language=Python "Write"
-            """
-def fun():
-    f = open("text.txt", "w")  # Impure: FileWrite
-    f.write("test")  # TODO: what do we want here?
-            """,  # language= None
-            {"fun.line2": SimpleImpure({"FileWrite.StringLiteral.text.txt"})}
-        ),
-        (  # language=Python "Writelines"
-            """
-def fun():
-    f = open("text.txt", "w")  # Impure: FileWrite
-    f.writelines(["test1", "test2"])  # TODO: what do we want here?
-            """,  # language= None
-            {"fun.line2": SimpleImpure({"FileWrite.StringLiteral.text.txt"})}
-        ),
     ],
     ids=[
         "Open with str default",
@@ -830,21 +603,21 @@ def fun():
         "Open with str read and write",
         "Open with parameter default",
         "Open with parameter write",
+        "Read",
+        "Readline/ Readlines",
+        "Write",
+        "Writelines",
         "With open str default",
         "With open parameter default",
         "With open parameter read and write",
         "With open parameter and variable mode",
         "With open close",
-        "Read",
-        "Readline/ Readlines",
-        "Write",
-        "Writelines",
     ],
 )
 def test_infer_purity_open(code: str, expected: dict[str, SimpleImpure]) -> None:
     references, function_references, call_graph = resolve_references(code)
 
-    purity_results = infer_purity_new(references, function_references, call_graph)
+    purity_results = infer_purity(references, function_references, call_graph)
 
     transformed_purity_results = {to_string_call(call): to_simple_result(purity_result) for call, purity_result in
                                   purity_results.items()}

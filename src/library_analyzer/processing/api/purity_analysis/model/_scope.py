@@ -92,7 +92,7 @@ class Symbol(ABC):
 
     Attributes
     ----------
-        node    is the node which defines the symbol.
+        node    is the node that defines the symbol.
         id      is the id of the node.
         name    is the name of the symbol.
 
@@ -241,7 +241,7 @@ class ClassScope(Scope):
     ----------
         class_variables     a dict of class variables and their Symbols
         instance_variables  a dict of instance variables and their Symbols
-        super_classes       a list of ClassScope instances that represent the super classes of the class
+        super_classes       a list of ClassScope instances that represent the superclasses of the class
     """
 
     class_variables: dict[str, list[Symbol]] = field(default_factory=dict)
@@ -296,11 +296,14 @@ class Reasons:
     def __iter__(self) -> Iterable[FunctionReference]:
         return iter(self.writes.union(self.reads).union(self.calls))
 
-    def has_reasons(self) -> bool:
-        return len(self.writes) > 0 or len(self.reads) > 0 or len(self.calls) > 0
+    def get_call_by_name(self, name: str) -> FunctionReference:
+        for call in self.calls:
+            if isinstance(call.node, astroid.Call) and call.node.func.name == name:
+                return call
+            elif call.node.name == name:
+                return call
 
-    def has_calls(self) -> bool:
-        return len(self.calls) > 0
+        raise ValueError("No call to the function found.")
 
     def join_reasons(self, other: Reasons) -> Reasons:
         self.writes.update(other.writes)

@@ -16,7 +16,7 @@ from ._infer_purity import (  # TODO: rework this
     # get_function_defs,
     # get_purity_result_str,
     # infer_purity,
-    infer_purity_new,
+    infer_purity,
 )
 from ._resolve_references import (
     resolve_references,
@@ -41,6 +41,6 @@ __all__ = [
     # "get_function_defs",
     # "get_purity_result_str",
     # "infer_purity",
-    "infer_purity_new",
+    "infer_purity",
     "build_call_graph",
 ]

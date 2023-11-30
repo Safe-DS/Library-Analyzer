@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass
+from enum import Enum, auto
 
 from library_analyzer.processing.api.purity_analysis.model._scope import (
     GlobalVariable,
@@ -91,7 +92,7 @@ class NonLocalVariableRead(Read):
 @dataclass
 class FileRead(Read):
     """Class for external variable reads (File / Database)."""
-    source: Expression
+    source: Expression | None = None
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -113,7 +114,7 @@ class NonLocalVariableWrite(Write):
 @dataclass
 class FileWrite(Write):
     """Class for external variable writes (File / Database)."""
-    source: Expression
+    source: Expression | None = None
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -164,3 +165,7 @@ class StringLiteral(Expression):
     value: str
 
 
+class OpenMode(Enum):
+    READ = auto()
+    WRITE = auto()
+    READ_WRITE = auto()
