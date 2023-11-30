@@ -75,12 +75,13 @@ def fun():
     a = A()
     a.instance_attr1 = 20  # Pure: VariableWrite to InstanceVariable - but actually a LocalVariable
             """,  # language= None
-            {"fun.line2": Pure()},
+            {"__init__.line3": Pure(),
+             "fun.line6": Pure()},
         ),
         (  # language=Python "VariableRead from InstanceVariable - but actually a LocalVariable"
             """
 class A:
-    def __init__(self):
+    def __init__(self):  # TODO: for init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
         self.instance_attr1 = 10
 
 def fun():
@@ -88,7 +89,8 @@ def fun():
     res = a.instance_attr1  # Pure: VariableRead from InstanceVariable - but actually a LocalVariable
     return res
             """,  # language= None
-            {"fun.line2": Pure()},
+            {"__init__.line3": Pure(),
+             "fun.line6": Pure()},
         ),
         (  # language=Python "Call of Pure Function"
             """
@@ -293,7 +295,7 @@ def fun():
         (  # language=Python "VariableWrite to InstanceVariable"
             """
 class B:
-    def __init__(self):
+    def __init__(self):  # TODO: for init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
         self.instance_attr1 = 10
 
 def fun(c):
@@ -307,7 +309,7 @@ fun(b)
         (  # language=Python "VariableRead from InstanceVariable"
             """
 class B:
-    def __init__(self):
+    def __init__(self):  # TODO: for init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
         self.instance_attr1 = 10
 
 def fun(c):
@@ -472,17 +474,31 @@ def fun():
             """,  # language= None
             {"fun.line2": SimpleImpure({"FileRead.StringLiteral.stdin"})},
         ),
-
         (  # language=Python "Lambda function"
             """
 var1 = 1
 
 def fun():
     global var1
-    res = (lambda x: x + var1)(10)  # Impure: Call of Impure Function which has VariableRead from GlobalVariable
+    res = (lambda x: x + var1)(10)  # Impure: Call of Lambda Function which has VariableRead from GlobalVariable
     return res
             """,  # language= None
             {"fun.line4": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1"})},
+        ),
+        (  # language=Python "Lambda function with Impure Call"
+            """
+var1 = 1
+
+def fun1():
+    res = (lambda x: x + fun2())(10)  # Impure: Call of Lambda Function which calls an Impure function
+    return res
+
+def fun2():
+    global var1
+    return var1  # Impure: VariableRead from GlobalVariable
+            """,  # language= None
+            {"fun1.line4": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1"}),
+             "fun2.line8": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1"})},
         ),
         (  # language=Python "Assigned Lambda function"
             """
@@ -586,6 +602,7 @@ def fun1():
         "Call of Impure Chain of Functions with cycle - direct entry",
         "Call of Impure BuiltIn Function",
         "Lambda function",
+        "Lambda function with Impure Call",
         "Assigned Lambda function",
         "Lambda as key",
         "Multiple Calls of same Impure function (Caching)",

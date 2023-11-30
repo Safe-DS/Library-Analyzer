@@ -419,7 +419,7 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
                         return purity_results[reason.function]
 
         # Check if we deal with a self-defined function
-        if isinstance(reason.function, astroid.FunctionDef) and reason.function.name in call_graph.graphs.keys():
+        if isinstance(reason.function, astroid.FunctionDef | astroid.Lambda) and reason.function.name in call_graph.graphs.keys():
             # Check if the function does not call other functions (it is a leaf), we can check its (reasons for) impurity directly
             # also check that all children are handled (have a result)
             if call_graph.graphs[reason.function.name].is_leaf() or all(
