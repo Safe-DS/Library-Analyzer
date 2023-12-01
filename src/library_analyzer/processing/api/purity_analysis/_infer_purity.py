@@ -22,7 +22,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     NonLocalVariableRead,
     FileRead,
     OpenMode,
-    ParameterAccess
+    ParameterAccess, CallGraphNode
 )
 from library_analyzer.processing.api.purity_analysis.model._purity import NativeCall
 
@@ -371,21 +371,7 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
                 for child in call_graph.get_graph(reason.function.name).children:
                     # Check if we deal with a combined node (would throw a KeyError otherwise)  # TODO: check if combined nodes are still a problem with the new approach
                     if not child.combined_node_names:
-                        if child.data.symbol.name in ("open", "read", "readline", "readlines", "write", "writelines"):
-                            purity_result_child = check_open_like_functions(reason.get_call_by_name(child.data.symbol.name))
-                        elif child.data.symbol.name in BUILTIN_FUNCTIONS.keys():
-                            purity_result_child = BUILTIN_FUNCTIONS[child.data.symbol.name]
-                        else:
-                            purity_result_child = process_node(function_references[child.data.symbol.name], references,
-                                                               function_references, call_graph, purity_results)
-
-                        # If a result for the child was found, we need to propagate it to the parent
-                        if purity_result_child:
-                            if reason.function not in purity_results.keys():
-                                purity_results[reason.function] = purity_result_child
-                            else:
-                                purity_results[reason.function] = purity_results[reason.function].update(
-                                    purity_result_child)
+                        get_purity_of_child(child, reason, references, function_references, call_graph, purity_results)
                     # The child is a combined node and therefore not part of the reference dict
                     else:
                         if reason.function not in purity_results.keys():
@@ -410,27 +396,12 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
                         purity_results[reason.function] = combined_node.reasons.result
                         return purity_results[reason.function]
                     else:
-                        # TODO: check potential children of combined nodes here but only if they are not part of the cycle
+                        # We need to check if the combined node has any children that are not part of the cycle
+                        # By design all children of a combined node are NOT part of the cycle
                         for child_of_combined in combined_node.children:
-                            if child_of_combined.data.symbol.name in (
-                            "open", "read", "readline", "readlines", "write", "writelines"):
-                                purity_result_child = check_open_like_functions(
-                                    reason.get_call_by_name(child_of_combined.data.symbol.name))
-                            elif child_of_combined.data.symbol.name in BUILTIN_FUNCTIONS.keys():
-                                purity_result_child = BUILTIN_FUNCTIONS[child_of_combined.data.symbol.name]
-                            else:
-                                purity_result_child = process_node(function_references[child_of_combined.data.symbol.name],
-                                                                   references,
-                                                                   function_references, call_graph, purity_results)
+                            get_purity_of_child(child_of_combined, reason, references, function_references, call_graph, purity_results)
 
-                            # If a result for the child was found, we need to propagate it to the parent
-                            if purity_result_child:
-                                if reason.function not in purity_results.keys():
-                                    purity_results[reason.function] = purity_result_child
-                                else:
-                                    purity_results[reason.function] = purity_results[reason.function].update(
-                                        purity_result_child)
-
+                        # TODO: refactor this so it is cleaner
                         purity = transform_reasons_to_impurity_result(
                             call_graph.graphs[combined_node.data.symbol.name].reasons, references)
 
@@ -477,6 +448,27 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
 
     except KeyError:
         raise KeyError(f"Function {reason.function.name} not found in function_references")
+
+
+def get_purity_of_child(child: CallGraphNode, reason: Reasons, references: dict[str, ReferenceNode], function_references: dict[str, Reasons],
+                 call_graph: CallGraphForest,
+                 purity_results: dict[astroid.FunctionDef, PurityResult]):
+
+    if child.data.symbol.name in ("open", "read", "readline", "readlines", "write", "writelines"):
+        purity_result_child = check_open_like_functions(reason.get_call_by_name(child.data.symbol.name))
+    elif child.data.symbol.name in BUILTIN_FUNCTIONS.keys():
+        purity_result_child = BUILTIN_FUNCTIONS[child.data.symbol.name]
+    else:
+        purity_result_child = process_node(function_references[child.data.symbol.name], references,
+                                           function_references, call_graph, purity_results)
+
+    # If a result for the child was found, we need to propagate it to the parent
+    if purity_result_child:
+        if reason.function not in purity_results.keys():
+            purity_results[reason.function] = purity_result_child
+        else:
+            purity_results[reason.function] = purity_results[reason.function].update(
+                purity_result_child)
 
 
 # TODO: this is not working correctly: whenever a variable is referenced, it is marked as read/written if its is not inside the current function
