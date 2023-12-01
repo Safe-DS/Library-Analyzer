@@ -403,23 +403,51 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
             combined_nodes = {node.data.symbol.name: node for node in call_graph.graphs.values() if
                               node.combined_node_names}
             for combined_node in combined_nodes.values():
+                # Check if the current node is part of the combined node (therefore part of the cycle)
                 if reason.function.name in combined_node.combined_node_names:
                     # Check if the purity result was already determined
-                    if combined_node.reasons.result:
+                    if combined_node.reasons.result and reason.function in purity_results.keys():
                         purity_results[reason.function] = combined_node.reasons.result
                         return purity_results[reason.function]
                     else:
-                        reasons = transform_reasons_to_impurity_result(
-                            call_graph.graphs[combined_node.data.symbol.name].reasons, references)
-                        if reasons:
-                            purity = Impure(reasons)
-                        else:
-                            purity = Pure()
+                        # TODO: check potential children of combined nodes here but only if they are not part of the cycle
+                        for child_of_combined in combined_node.children:
+                            if child_of_combined.data.symbol.name in (
+                            "open", "read", "readline", "readlines", "write", "writelines"):
+                                purity_result_child = check_open_like_functions(
+                                    reason.get_call_by_name(child_of_combined.data.symbol.name))
+                            elif child_of_combined.data.symbol.name in BUILTIN_FUNCTIONS.keys():
+                                purity_result_child = BUILTIN_FUNCTIONS[child_of_combined.data.symbol.name]
+                            else:
+                                purity_result_child = process_node(function_references[child_of_combined.data.symbol.name],
+                                                                   references,
+                                                                   function_references, call_graph, purity_results)
 
-                        combined_node.reasons.result = purity
-                        purity_results[reason.function] = purity
-                        purity_results[combined_node.data.symbol.name] = purity
-                        return purity_results[reason.function]
+                            # If a result for the child was found, we need to propagate it to the parent
+                            if purity_result_child:
+                                if reason.function not in purity_results.keys():
+                                    purity_results[reason.function] = purity_result_child
+                                else:
+                                    purity_results[reason.function] = purity_results[reason.function].update(
+                                        purity_result_child)
+
+                        purity = transform_reasons_to_impurity_result(
+                            call_graph.graphs[combined_node.data.symbol.name].reasons, references)
+
+                        if not combined_node.reasons.result:
+                            combined_node.reasons.result = purity
+                        else:
+                            combined_node.reasons.result = combined_node.reasons.result.update(purity)
+                        if reason.function not in purity_results.keys():
+                            purity_results[reason.function] = purity
+                        else:
+                            purity_results[reason.function] = purity_results[reason.function].update(purity)
+                        if combined_node.data.symbol.name not in purity_results.keys():
+                            purity_results[combined_node.data.symbol.name] = purity
+                        else:
+                            purity_results[combined_node.data.symbol.name] = purity_results[combined_node.data.symbol.name].update(purity)
+
+                    return purity_results[reason.function]
 
         # Check if we deal with a self-defined function
         if isinstance(reason.function, astroid.FunctionDef | astroid.Lambda) and reason.function.name in call_graph.graphs.keys():
@@ -430,10 +458,8 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
                 c.data.symbol.name not in BUILTIN_FUNCTIONS.keys()):
                 purity: PurityResult = Pure()
                 if call_graph.graphs[reason.function.name].reasons:
-                    reasons = transform_reasons_to_impurity_result(call_graph.graphs[reason.function.name].reasons,
+                    purity = transform_reasons_to_impurity_result(call_graph.graphs[reason.function.name].reasons,
                                                                    references)
-                    if reasons:
-                        purity = Impure(reasons)
 
                 # If a result was propagated from the children, it needs to be kept and updated with more reasons if the function itself has more reasons
                 if isinstance(call_graph.get_graph(reason.function.name).reasons.result,
@@ -454,7 +480,7 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
 
 
 # TODO: this is not working correctly: whenever a variable is referenced, it is marked as read/written if its is not inside the current function
-def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str, ReferenceNode]) -> set[ImpurityReason]:
+def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str, ReferenceNode]) -> PurityResult:
     """
     Transforms the reasons for impurity to an impurity result.
 
@@ -474,7 +500,7 @@ def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str,
     impurity_reasons: set[ImpurityReason] = set()
 
     if not reasons:
-        return impurity_reasons
+        return Pure()
     else:
         if reasons.writes:
             for write in reasons.writes:
@@ -498,4 +524,6 @@ def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str,
             for unknown_call in reasons.unknown_calls:
                 impurity_reasons.add(NativeCall(StringLiteral(unknown_call.func.name)))
 
-        return impurity_reasons
+        if impurity_reasons:
+            return Impure(impurity_reasons)
+        return Pure()

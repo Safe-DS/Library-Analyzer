@@ -310,7 +310,13 @@ class Reasons:
         self.writes.update(other.writes)
         self.reads.update(other.reads)
         self.calls.update(other.calls)
-        self.unknown_calls.extend(other.unknown_calls)
+        if self.unknown_calls is not None and other.unknown_calls is not None:
+            self.unknown_calls.extend(other.unknown_calls)
+        elif self.unknown_calls is None and other.unknown_calls is not None:
+            self.unknown_calls = other.unknown_calls
+        elif other.unknown_calls is None:
+            pass
+
         return self
 
     @staticmethod
@@ -330,3 +336,10 @@ class FunctionReference:  # TODO: find a better name for this class  # FunctionP
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    def __repr__(self) -> str:
+        if isinstance(self.node, astroid.Call):
+            return f"{self.node.func.name}.line{self.node.lineno}"
+        if isinstance(self.node, MemberAccessTarget | MemberAccessValue):
+            return f"{self.node.name}.line{self.node.member.lineno}"
+        return f"{self.node.name}.line{self.node.lineno}"

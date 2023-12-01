@@ -357,10 +357,14 @@ def fun3():
         ),
         (  # language=Python "Call of Impure Chain of Functions with cycle - one entry point"
             """
+var1 = 1
+
 def cycle1():
     cycle2()
 
 def cycle2():
+    global var1
+    res = var1  # Impure: VariableRead from GlobalVariable
     cycle3()
 
 def cycle3():
@@ -370,10 +374,14 @@ def cycle3():
 def entry():
     cycle1()
             """,  # language= None
-            {"cycle1.line2": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-             "cycle2.line5": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-             "cycle3.line8": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-             "entry.line12": SimpleImpure({"FileWrite.StringLiteral.stdout"})
+            {"cycle1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableRead.GlobalVariable.var1"}),
+             "cycle2.line7": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableRead.GlobalVariable.var1"}),
+             "cycle3.line12": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableRead.GlobalVariable.var1"}),
+             "entry.line16": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableRead.GlobalVariable.var1"}),
              },  # for cycles, we want to propagate the impurity of the cycle to all functions in the cycle
             # but only return the results for the real functions
         ),
