@@ -17,6 +17,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     FileRead,
     ParameterAccess,
 )
+from library_analyzer.processing.api.purity_analysis.model._purity import NativeCall
 
 
 @dataclass
@@ -580,8 +581,22 @@ def fun1():
     call()
             """,  # language=none
             {
-                "fun1": "Unknown({})",
-                "call": "Unknown({})",
+                "fun1.line2": SimpleImpure({"NativeCall.StringLiteral.call"}),  # TODO: LARS is this what we want here?
+                # "call": SimpleImpure({"NativeCall.CallExpression.call"}),  # TODO: LARS we can not store this correctly in the call graph
+            },
+        ),
+        (  # language=Python "Three Unknown Call",
+            """
+def fun1():
+    call1()
+    call2()
+    call3()
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({"NativeCall.StringLiteral.call1",
+                                            "NativeCall.StringLiteral.call2",
+                                            "NativeCall.StringLiteral.call3"}),  # TODO: LARS is this what we want here?
+                # "call": SimpleImpure({"NativeCall.CallExpression.call"}),  # TODO: LARS we can not store this correctly in the call graph
             },
         ),
     ],
@@ -610,6 +625,7 @@ def fun1():
         "Multiple Classes with same name and different purity",
         "Different Reasons for Impurity",
         "Unknown Call",
+        "Three Unknown Call",
         # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods, class instantiation?
     ],
 )
@@ -649,6 +665,8 @@ def to_string_reason(reason: ImpurityReason) -> str:
         if isinstance(reason.source, ParameterAccess):
             return f"FileWrite.ParameterAccess.{reason.source.parameter}"
         return f"FileWrite.{reason.source.__class__.__name__}.{reason.source.value}"
+    elif isinstance(reason, NativeCall):
+        return f"NativeCall.{reason.expression.__class__.__name__}.{reason.expression.value}"
     else:
         raise NotImplementedError(f"Unknown reason: {reason}")
 

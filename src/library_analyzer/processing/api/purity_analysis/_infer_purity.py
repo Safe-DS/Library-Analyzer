@@ -24,6 +24,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     OpenMode,
     ParameterAccess
 )
+from library_analyzer.processing.api.purity_analysis.model._purity import NativeCall
 
 # TODO: check these for correctness and add reasons for impurity
 BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
@@ -377,6 +378,8 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
                         else:
                             purity_result_child = process_node(function_references[child.data.symbol.name], references,
                                                                function_references, call_graph, purity_results)
+
+                        # If a result for the child was found, we need to propagate it to the parent
                         if purity_result_child:
                             if reason.function not in purity_results.keys():
                                 purity_results[reason.function] = purity_result_child
@@ -434,7 +437,7 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
 
                 # If a result was propagated from the children, it needs to be kept and updated with more reasons if the function itself has more reasons
                 if isinstance(call_graph.get_graph(reason.function.name).reasons.result,
-                              NoneType):  # TODO: this should never happen - check that and remove if statement
+                              NoneType):  # TODO: this should never happen - check that and remove if statement -> this does happen... but it works
                     purity_results[reason.function] = purity
                 else:
                     purity_results[reason.function] = purity_results[reason.function].update(purity)
@@ -481,6 +484,7 @@ def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str,
                         impurity_reasons.add(NonLocalVariableWrite(sym_ref))
                     else:
                         raise TypeError(f"Unknown symbol reference type: {sym_ref.__class__.__name__}")
+
         if reasons.reads:
             for read in reasons.reads:
                 read_ref = references[read.node.name]
@@ -489,5 +493,9 @@ def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str,
                         impurity_reasons.add(NonLocalVariableRead(sym_ref))
                     else:
                         raise TypeError(f"Unknown symbol reference type: {sym_ref.__class__.__name__}")
+
+        if reasons.unknown_calls:
+            for unknown_call in reasons.unknown_calls:
+                impurity_reasons.add(NativeCall(StringLiteral(unknown_call.func.name)))
 
         return impurity_reasons

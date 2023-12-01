@@ -64,10 +64,15 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
                         current_tree_node = call_graph_forest.get_graph(function_name)
                         current_tree_node.add_child(CallGraphNode(data=call, reasons=Reasons()))
 
-                    else:  # TODO: what if the function is not in the functions dict?
-                           #  -> this scenario happens when the function is external code or parameter call
-                           #  These functions will get an unknown flag
-                        current_tree_node.add_child(CallGraphNode())
+                    # Deal with unknown calls:
+                    # - calls of external code => call node not in function_reference dict
+                    # - calls of parameters # TODO: parameter calls are not handled yet
+                    # These functions get an unknown flag
+                    else:
+                        current_tree_node = call_graph_forest.get_graph(function_name)
+                        if not isinstance(current_tree_node.reasons.unknown_calls, list):
+                            current_tree_node.reasons.unknown_calls = []
+                        current_tree_node.reasons.unknown_calls.append(call.symbol.node)
 
     handle_cycles(call_graph_forest, function_references)
 

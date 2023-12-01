@@ -292,6 +292,7 @@ class Reasons:
     reads: set[FunctionReference] = field(default_factory=set)
     calls: set[FunctionReference] = field(default_factory=set)
     result: purity.PurityResult | None = field(default=None)
+    unknown_calls: list[astroid.Call | astroid.NodeNG] | None = field(default=None)
 
     def __iter__(self) -> Iterable[FunctionReference]:
         return iter(self.writes.union(self.reads).union(self.calls))
@@ -309,6 +310,7 @@ class Reasons:
         self.writes.update(other.writes)
         self.reads.update(other.reads)
         self.calls.update(other.calls)
+        self.unknown_calls.extend(other.unknown_calls)
         return self
 
     @staticmethod
