@@ -125,6 +125,18 @@ class Unknown(ImpurityReason, ABC):
 
 
 @dataclass
+class UnknownCall(Unknown):
+    """Class for calling unknown code.
+
+    Since we cannot analyze unknown code, we mark it as unknown.
+    """
+    expression: Expression
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+
+@dataclass
 class NativeCall(Unknown):  # ExternalCall
     """Class for calling native code.
 

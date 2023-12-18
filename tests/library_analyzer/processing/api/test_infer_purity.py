@@ -17,7 +17,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     FileRead,
     ParameterAccess,
 )
-from library_analyzer.processing.api.purity_analysis.model._purity import NativeCall
+from library_analyzer.processing.api.purity_analysis.model import UnknownCall
 
 
 @dataclass
@@ -527,7 +527,7 @@ def fun():
     return sort
             """,  # language= None
             {"fun.line4": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1",
-                                        "SORTED_REASON"})},  # TODO: what do we want here? what is sorted?
+                                        "CallOfParameter.ParameterAccess.key"})},  # TODO: add this
         ),
         (  # language=Python "Multiple Calls of the same Impure function (Caching)"
             """
@@ -589,8 +589,7 @@ def fun1():
     call()
             """,  # language=none
             {
-                "fun1.line2": SimpleImpure({"NativeCall.StringLiteral.call"}),  # TODO: LARS is this what we want here?
-                # "call": SimpleImpure({"NativeCall.CallExpression.call"}),  # TODO: LARS we can not store this correctly in the call graph
+                "fun1.line2": SimpleImpure({"UnknownCall.StringLiteral.call"}),
             },
         ),
         (  # language=Python "Three Unknown Call",
@@ -601,10 +600,9 @@ def fun1():
     call3()
             """,  # language=none
             {
-                "fun1.line2": SimpleImpure({"NativeCall.StringLiteral.call1",
-                                            "NativeCall.StringLiteral.call2",
-                                            "NativeCall.StringLiteral.call3"}),  # TODO: LARS is this what we want here?
-                # "call": SimpleImpure({"NativeCall.CallExpression.call"}),  # TODO: LARS we can not store this correctly in the call graph
+                "fun1.line2": SimpleImpure({"UnknownCall.StringLiteral.call1",
+                                            "UnknownCall.StringLiteral.call2",
+                                            "UnknownCall.StringLiteral.call3"}),
             },
         ),
     ],
@@ -673,8 +671,8 @@ def to_string_reason(reason: ImpurityReason) -> str:
         if isinstance(reason.source, ParameterAccess):
             return f"FileWrite.ParameterAccess.{reason.source.parameter}"
         return f"FileWrite.{reason.source.__class__.__name__}.{reason.source.value}"
-    elif isinstance(reason, NativeCall):
-        return f"NativeCall.{reason.expression.__class__.__name__}.{reason.expression.value}"
+    elif isinstance(reason, UnknownCall):
+        return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.value}"
     else:
         raise NotImplementedError(f"Unknown reason: {reason}")
 

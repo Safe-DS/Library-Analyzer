@@ -22,9 +22,10 @@ from library_analyzer.processing.api.purity_analysis.model import (
     NonLocalVariableRead,
     FileRead,
     OpenMode,
-    ParameterAccess, CallGraphNode
+    ParameterAccess,
+    CallGraphNode
 )
-from library_analyzer.processing.api.purity_analysis.model._purity import NativeCall
+from library_analyzer.processing.api.purity_analysis.model import UnknownCall
 
 # TODO: check these for correctness and add reasons for impurity
 BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
@@ -172,7 +173,7 @@ BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "set": Impure(set()),  # Can be modified
     "setattr": Impure(set()),  # Can modify objects
     "slice": Pure(),
-    "sorted": Impure(set()),  # Can produce variable output
+    "sorted": Pure(),
     "staticmethod": Pure(),
     "str": Impure(set()),  # Can be modified
     "sum": Pure(),
@@ -214,17 +215,6 @@ OPEN_MODES = {
     "x+b": OpenMode.READ_WRITE,
     "xb+b": OpenMode.READ_WRITE,
 }
-
-# input(): Reads user input.
-# print(): Used to print objects to the standard output device.
-# open(): Used to open files for reading, writing, or appending.
-# read(): Reads the content of a file.
-# write(): Writes data to a file.
-# close(): Closes the opened file.
-# readline(): Reads a single line from a file.
-# readlines(): Reads all lines from a file into a list.
-# writelines(): Writes a list of lines to a file.
-# with: Provides a context manager for file operations, ensuring the file is properly closed.
 
 
 def check_open_like_functions(func_ref: FunctionReference) -> PurityResult:
@@ -514,7 +504,7 @@ def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str,
 
         if reasons.unknown_calls:
             for unknown_call in reasons.unknown_calls:
-                impurity_reasons.add(NativeCall(StringLiteral(unknown_call.func.name)))
+                impurity_reasons.add(UnknownCall(StringLiteral(unknown_call.func.name)))
 
         if impurity_reasons:
             return Impure(impurity_reasons)

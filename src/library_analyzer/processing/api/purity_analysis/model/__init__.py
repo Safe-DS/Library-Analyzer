@@ -13,6 +13,9 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
     Impure,
     Pure,
     OpenMode,
+    NativeCall,
+    UnknownCall,
+    CallOfParameter,
 )
 from library_analyzer.processing.api.purity_analysis.model._reference import (
     ReferenceNode,
@@ -74,4 +77,7 @@ __all__ = [
     "CallGraphNode",
     "CallGraphForest",
     "OpenMode",
+    "NativeCall",
+    "UnknownCall",
+    "CallOfParameter",
 ]
