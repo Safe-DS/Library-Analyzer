@@ -128,7 +128,7 @@ def test_for_cycles(graph: CallGraphNode, visited_nodes: set, path: list) -> lis
         return []
 
     if graph in path:
-        return path[path.index(graph):]  # A cycle is found, return the path
+        return path[path.index(graph):]  # A cycle is found, return the path containing the cycle
 
     # Mark the current node as visited
     visited_nodes.add(graph)
@@ -162,7 +162,7 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function
     # Create the new combined node
     cycle_names = [node.data.symbol.name for node in cycle]
     combined_node_name = "+".join(sorted(cycle_names))
-    combined_node_data = FunctionScope(Symbol(None, NodeID("COMBINED", combined_node_name, None, None), combined_node_name))  # TODO: what do we use for the other parameters? - make them none
+    combined_node_data = FunctionScope(Symbol(None, NodeID(cycle[0].data.parent.get_module_scope(), combined_node_name, None, None), combined_node_name))
     combined_reasons = Reasons.join_reasons_list([node.reasons for node in cycle])
     combined_node = CallGraphNode(data=combined_node_data, reasons=combined_reasons, combined_node_names=cycle_names)
 

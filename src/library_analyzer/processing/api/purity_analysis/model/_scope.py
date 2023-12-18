@@ -232,6 +232,11 @@ class Scope:
             raise TypeError("Invalid parent type.")
         self._parent = new_parent
 
+    def get_module_scope(self) -> Scope:
+        if self.parent is None:
+            return self
+        return self.parent.get_module_scope()
+
 
 @dataclass
 class ClassScope(Scope):

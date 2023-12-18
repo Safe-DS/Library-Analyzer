@@ -270,7 +270,7 @@ def fun1():
     call()
             """,  # language=none
             {
-                "fun1": "TODO",
+                "fun1": set(),
             },
         ),
         (  # language=Python "recursive function call",
@@ -316,7 +316,7 @@ x.add(1, 2)
         "function call with cycle - cycle within a cycle",
         "recursive function call",
         "builtin function call",
-        "external function call",  # TODO: external function call
+        "external function call",
         "function call of function with same name",
     ],  # TODO: LARS how do we build a call graph for a.b.c.d()?
 )
