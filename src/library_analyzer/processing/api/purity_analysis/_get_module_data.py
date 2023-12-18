@@ -196,7 +196,7 @@ class ModuleDataBuilder:
             function_node = scopes[0].symbol.node
             for target in self.target_nodes:  # Look at all target nodes
                 # Only look at global variables (for global reads)
-                if target.name in self.global_variables.keys():  # Filter out all non-global variables
+                if target.name in self.global_variables:  # Filter out all non-global variables
                     for node in scopes:
                         for child in node.children:
                             if target.name == child.symbol.name and child in node.children:
@@ -213,7 +213,7 @@ class ModuleDataBuilder:
                 if isinstance(self.functions[function_name][0], FunctionScope):
                     function_values = [val.symbol.node.name for val in self.functions[function_name][0].values]  # Since we do not differentiate between functions with the same name, we can choose the first one  # TODO: this is not correct
                     if value.name in function_values:
-                        if value.name in self.global_variables.keys():
+                        if value.name in self.global_variables:
                             # Get the correct symbol
                             sym = None
                             if isinstance(self.value_nodes[value], FunctionScope):
@@ -403,7 +403,7 @@ class ModuleDataBuilder:
                 if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally):
                     return LocalVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__)
 
-                if isinstance(node, astroid.Name | astroid.AssignName) and node.name in self.global_variables.keys():
+                if isinstance(node, astroid.Name | astroid.AssignName) and node.name in self.global_variables:
                     return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
 
                 if isinstance(node, astroid.Call):
@@ -604,7 +604,7 @@ class ModuleDataBuilder:
             self.children.append(scope_node)
 
             # Detect global assignments and add them to the global_variables dict
-            if isinstance(node.parent.parent, astroid.Module) and node.name in node.parent.parent.globals.keys():
+            if isinstance(node.parent.parent, astroid.Module) and node.name in node.parent.parent.globals:
                 self.global_variables[node.name] = scope_node
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:

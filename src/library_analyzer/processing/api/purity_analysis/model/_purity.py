@@ -1,21 +1,27 @@
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
+from typing import TYPE_CHECKING
 
-from library_analyzer.processing.api.purity_analysis.model._scope import (
-    GlobalVariable,
-    ClassVariable,
-    InstanceVariable,
-    Parameter
-)
+if TYPE_CHECKING:
+    from library_analyzer.processing.api.purity_analysis.model import (
+        GlobalVariable,
+        ClassVariable,
+        InstanceVariable,
+        Parameter
+    )
 
 
 class PurityResult(ABC):
     """Class for purity results."""
 
+    @abstractmethod
     def update(self, other: PurityResult) -> PurityResult:
+        return self._update(other)
+
+    def _update(self, other: PurityResult) -> PurityResult:
         """Update the current result with another result.
 
         Parameters
@@ -37,8 +43,7 @@ class PurityResult(ABC):
             if isinstance(other, Pure):
                 return self
             elif isinstance(other, Impure):
-                res = Impure(reasons=self.reasons | other.reasons)
-                return res
+                return Impure(reasons=self.reasons | other.reasons)
         else:
             raise TypeError(f"Cannot update {self} with {other}")
 
@@ -50,6 +55,8 @@ class Pure(PurityResult):
     A function is pure if it has no (External-, Internal-)Read nor (External-, Internal-)Write side effects.
     A pure function must also have no unknown reasons.
     """
+    def update(self, other: PurityResult) -> PurityResult:
+        return super()._update(other)
 
 
 @dataclass
@@ -64,6 +71,9 @@ class Impure(PurityResult):
     (External-, Internal-)Read (External-, Internal-) or Write side effect.
     """
     reasons: set[ImpurityReason]
+
+    def update(self, other: PurityResult) -> PurityResult:
+        return super()._update(other)
 
 
 class ImpurityReason(ABC):

@@ -7,7 +7,7 @@ BUILTINS = dir(builtins)
 
 
 def build_call_graph(functions: dict[str, list[FunctionScope]], function_references: dict[str, Reasons]) -> CallGraphForest:
-    """Builds a call graph from a list of functions.
+    """Build a call graph from a list of functions.
 
     Parameters
     ----------
@@ -18,9 +18,6 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
     -------
         * call_graph_forest: the call graph forest with cycles contracted
     """
-
-    global BUILTINS
-
     current_tree_node = CallGraphNode()
     call_graph_forest = CallGraphForest()
 
@@ -33,7 +30,7 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
                 function_node = CallGraphNode(data=function_scope)
 
             # Case where the function is not called before by any other function
-            if function_name not in call_graph_forest.graphs.keys():
+            if function_name not in call_graph_forest.graphs:
                 call_graph_forest.add_graph(function_name, function_node)  # We save the tree in the forest by the name of the root function
 
             # Default case where a function calls no other functions in its body - therefore, the tree has just one node
@@ -43,7 +40,7 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
             # If the function calls other functions in its body, we need to build a tree
             else:
                 for call in function_scope.calls:
-                    if call.symbol.name in functions.keys():
+                    if call.symbol.name in functions:
                         current_tree_node = call_graph_forest.get_graph(function_name)
 
                         # We need to check if the called function is already in the tree
@@ -80,7 +77,7 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
 
 
 def handle_cycles(call_graph_forest: CallGraphForest, function_references: dict[str, Reasons]) -> CallGraphForest:
-    """Handles cycles in the call graph.
+    """Handle cycles in the call graph.
 
     This function checks for cycles in the call graph forest and contracts them into a single node.
 
@@ -94,17 +91,17 @@ def handle_cycles(call_graph_forest: CallGraphForest, function_references: dict[
         * call_graph_forest: the call graph forest with contracted cycles
     """
 
-    for name, graph in call_graph_forest.graphs.copy().items():
+    for graph in call_graph_forest.graphs.copy().values():
         visited_nodes = set()
         path = []
         cycle = test_for_cycles(graph, visited_nodes, path)
         if cycle:
-            print("cycle found", cycle)
+            # print("cycle found", cycle)
             contract_cycle(call_graph_forest, cycle, function_references)
             # TODO: check if other cycles exists
         else:
-            print("no cycles found")
-
+            # print("no cycles found")
+            pass
     return call_graph_forest
 
 
@@ -157,8 +154,6 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function
         * cycle: a list of nodes in the cycle
         * function_references: a dict of function references - contains the reasons for impurity
     """
-    global BUILTINS
-
     # Create the new combined node
     cycle_names = [node.data.symbol.name for node in cycle]
     combined_node_name = "+".join(sorted(cycle_names))
@@ -178,20 +173,20 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function
     for node in cycle:
         if node.data.symbol.name in BUILTINS:
             continue  # This should not happen since builtins never call self-defined functions
-        if node.data.symbol.name in forest.graphs.keys():
+        if node.data.symbol.name in forest.graphs:
             forest.delete_graph(node.data.symbol.name)
 
     # Only add the combined node once - (it is possible that the same cycle is found multiple times)
-    if combined_node_name not in forest.graphs.keys():
+    if combined_node_name not in forest.graphs:
         forest.add_graph(combined_node_name, combined_node)
 
     # Set all pointers to the nodes in the cycle to the combined node
-    for node_name, graph in forest.graphs.items():
+    for graph in forest.graphs.values():
         update_pointers(graph, cycle_names, combined_node)
 
 
 def update_pointers(node: CallGraphNode, cycle: list[str], combined_node: CallGraphNode) -> None:
-    """Replaces all pointers to nodes in the cycle with the combined node.
+    """Replace all pointers to nodes in the cycle with the combined node.
 
     Recursively traverses the tree and replaces all pointers to nodes in the cycle with the combined node.
 

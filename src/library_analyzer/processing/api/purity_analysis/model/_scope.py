@@ -6,10 +6,11 @@ from typing import TYPE_CHECKING, Iterable
 
 import astroid
 
-import library_analyzer.processing.api.purity_analysis.model._purity as purity  # TODO: find a better way to import this
-
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from library_analyzer.processing.api.purity_analysis.model import (
+        PurityResult
+    )
 
 
 @dataclass
@@ -268,7 +269,7 @@ class FunctionScope(Scope):
     values: list[Scope | ClassScope] = field(default_factory=list)
     calls: list[Scope | ClassScope] = field(default_factory=list)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> Scope | ClassScope:
         return self.values[item]
 
     def remove_call_node_by_name(self, name: str) -> None:
@@ -296,7 +297,7 @@ class Reasons:
     writes: set[FunctionReference] = field(default_factory=set)
     reads: set[FunctionReference] = field(default_factory=set)
     calls: set[FunctionReference] = field(default_factory=set)
-    result: purity.PurityResult | None = field(default=None)
+    result: PurityResult | None = field(default=None)
     unknown_calls: list[astroid.Call | astroid.NodeNG] | None = field(default=None)
 
     def __iter__(self) -> Iterable[FunctionReference]:
