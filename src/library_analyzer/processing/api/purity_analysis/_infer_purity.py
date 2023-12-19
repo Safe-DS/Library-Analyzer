@@ -285,6 +285,7 @@ def infer_purity(references: list[ReferenceNode], function_references: dict[str,
     ----------
         * references: a list of all references in the module
         * function_references: a dict of function references
+        * classes: a dict of all classes in the module
         * call_graph: the call graph of the module
 
     Returns
@@ -326,6 +327,7 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
         * reason: the node to process containing the reasons for impurity collected
         * references: a dict of all references in the module
         * function_references: a dict of all function references in the module
+        * classes: a dict of all classes in the module
         * call_graph: the call graph of the module
         * purity_results: a dict of the function nodes and purity results of the functions
 
@@ -440,6 +442,21 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
 def get_purity_of_child(child: CallGraphNode, reason: Reasons, references: dict[str, ReferenceNode], function_references: dict[str, Reasons],
                  classes: dict[str, ClassScope], call_graph: CallGraphForest,
                  purity_results: dict[astroid.FunctionDef, PurityResult]) -> None:
+    """
+    Get the purity of a child node.
+
+    Given a child node, this function handles the purity of the child node.
+
+    Parameters
+    ----------
+        * child: the child node to process
+        * reason: the node to process containing the reasons for impurity collected
+        * references: a dict of all references in the module
+        * function_references: a dict of all function references in the module
+        * classes: a dict of all classes in the module
+        * call_graph: the call graph of the module
+        * purity_results: a dict of the function nodes and purity results of the functions
+    """
 
     if child.data.symbol.name in ("open", "read", "readline", "readlines", "write", "writelines"):
         purity_result_child = check_open_like_functions(reason.get_call_by_name(child.data.symbol.name))
@@ -470,6 +487,7 @@ def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str,
     ----------
         * reasons: the reasons for impurity
         * references: a dict of all references in the module
+        * classes: a dict of all classes in the module
 
     Returns
     -------

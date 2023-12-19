@@ -351,6 +351,7 @@ def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, Reason
     -------
         * resolved_references: a list of all resolved references in the module
         * function_references: a dict of all function references in the module and their Reasons object
+        * classes: a dict of all classes in the module and their scope
         * call_graph: a CallGraphForest object that represents the call graph of the module
     """
     module_data = get_module_data(code)
