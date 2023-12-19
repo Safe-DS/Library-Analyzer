@@ -338,7 +338,7 @@ def _find_call_reference(
 
 
 # TODO: resolved_references should be a dict of str and ReferenceNode
-def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, Reasons], CallGraphForest]:
+def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, Reasons], dict[str, ClassScope], CallGraphForest]:
     """
     Resolve all references in a module.
 
@@ -373,4 +373,4 @@ def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, Reason
 
     call_graph = build_call_graph(module_data.functions, module_data.function_references)
 
-    return resolved_references, module_data.function_references, call_graph
+    return resolved_references, module_data.function_references, module_data.classes, call_graph

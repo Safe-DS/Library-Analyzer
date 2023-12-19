@@ -73,7 +73,7 @@ class A:
         self.instance_attr1 = 10
 
 def fun():
-    a = A()
+    a = A()  # TODO: class instantiation must be handled separately - pure for now
     a.instance_attr1 = 20  # Pure: VariableWrite to InstanceVariable - but actually a LocalVariable
             """,  # language= None
             {"__init__.line3": Pure(),
@@ -86,7 +86,7 @@ class A:
         self.instance_attr1 = 10
 
 def fun():
-    a = A()
+    a = A()  # TODO: class instantiation must be handled separately - pure for now
     res = a.instance_attr1  # Pure: VariableRead from InstanceVariable - but actually a LocalVariable
     return res
             """,  # language= None
@@ -218,9 +218,9 @@ c = fun1()
     ],  # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods
 )
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
-    references, function_references, call_graph = resolve_references(code)
+    references, function_references, classes, call_graph = resolve_references(code)
 
-    purity_results = infer_purity(references, function_references, call_graph)
+    purity_results = infer_purity(references, function_references, classes, call_graph)
     transformed_purity_results = {to_string_call(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()}
 
     assert transformed_purity_results == expected
@@ -636,9 +636,9 @@ def fun1():
     ],
 )
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
-    references, function_references, call_graph = resolve_references(code)
+    references, function_references, classes, call_graph = resolve_references(code)
 
-    purity_results = infer_purity(references, function_references, call_graph)
+    purity_results = infer_purity(references, function_references, classes, call_graph)
 
     transformed_purity_results = {to_string_call(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()}
 
@@ -819,9 +819,9 @@ def fun():
     ],
 )
 def test_infer_purity_open(code: str, expected: dict[str, SimpleImpure]) -> None:
-    references, function_references, call_graph = resolve_references(code)
+    references, function_references, classes, call_graph = resolve_references(code)
 
-    purity_results = infer_purity(references, function_references, call_graph)
+    purity_results = infer_purity(references, function_references, classes, call_graph)
 
     transformed_purity_results = {to_string_call(call): to_simple_result(purity_result) for call, purity_result in
                                   purity_results.items()}
