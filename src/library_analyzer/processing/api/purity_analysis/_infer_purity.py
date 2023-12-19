@@ -270,10 +270,11 @@ def check_open_like_functions(func_ref: FunctionReference) -> PurityResult:
                     return Impure({FileWrite(StringLiteral(file_str))})
                 case OpenMode.READ_WRITE:
                     return Impure({FileRead(StringLiteral(file_str)), FileWrite(StringLiteral(file_str))})
-    # TODO: [Later] for now it is good enough to deal with open() only, but we MAYBE need to deal with the other open-like functions too
+    else:
+        pass  # TODO: [Later] for now it is good enough to deal with open() only, but we MAYBE need to deal with the other open-like functions too
 
 
-def infer_purity(references: list[ReferenceNode], function_references: dict[str, Reasons], classes: dict[str, ClassScope],
+def infer_purity(references: dict[str, ReferenceNode], function_references: dict[str, Reasons], classes: dict[str, ClassScope],
                  call_graph: CallGraphForest) -> dict[astroid.FunctionDef, PurityResult]:
     """
     Infer the purity of functions.
@@ -294,11 +295,6 @@ def infer_purity(references: list[ReferenceNode], function_references: dict[str,
     """
     purity_results: dict[
         astroid.FunctionDef, PurityResult] = {}  # We use astroid.FunctionDef instead of str as a key so we can access the node later
-
-    references = {
-        reference.node.func.name if isinstance(reference.node, astroid.Call) else reference.node.name: reference
-        for reference in references  # TODO: MemberAccessTarget and MemberAccessValue are not handled here
-    }  # TODO: return a dict of references instead of a list in resolve_references
 
     for reasons in function_references.values():
         process_node(reasons, references, function_references, classes, call_graph, purity_results)

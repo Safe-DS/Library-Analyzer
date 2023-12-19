@@ -41,7 +41,7 @@ def _find_name_references(
 
     Returns
     -------
-        * final_references: contains all references that are used as targets
+        * final_references: a list containing all name references (target & value references)
     """
     final_references: list[ReferenceNode] = []
 
@@ -337,8 +337,7 @@ def _find_call_reference(
     return final_call_references
 
 
-# TODO: resolved_references should be a dict of str and ReferenceNode
-def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, Reasons], dict[str, ClassScope], CallGraphForest]:
+def resolve_references(code: str) -> tuple[dict[str, ReferenceNode], dict[str, Reasons], dict[str, ClassScope], CallGraphForest]:
     """
     Resolve all references in a module.
 
@@ -349,7 +348,7 @@ def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, Reason
 
     Returns
     -------
-        * resolved_references: a list of all resolved references in the module
+        * resolved_references: a dict of all resolved references in the module
         * function_references: a dict of all function references in the module and their Reasons object
         * classes: a dict of all classes in the module and their scope
         * call_graph: a CallGraphForest object that represents the call graph of the module
@@ -371,6 +370,11 @@ def resolve_references(code: str) -> tuple[list[ReferenceNode], dict[str, Reason
             module_data.parameters,
         )
         resolved_references.extend(references_call)
+
+    resolved_references = {
+        reference.node.func.name if isinstance(reference.node, astroid.Call) else reference.node.name: reference
+        for reference in resolved_references  # TODO: MemberAccessTarget and MemberAccessValue are not handled here
+    }
 
     call_graph = build_call_graph(module_data.functions, module_data.function_references)
 
