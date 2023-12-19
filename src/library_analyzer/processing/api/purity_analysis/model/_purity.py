@@ -21,7 +21,7 @@ class PurityResult(ABC):
     def update(self, other: PurityResult) -> PurityResult:
         return self._update(other)
 
-    def _update(self, other: PurityResult) -> PurityResult:
+    def _update(self, other: PurityResult) -> PurityResult | None:
         """Update the current result with another result.
 
         Parameters

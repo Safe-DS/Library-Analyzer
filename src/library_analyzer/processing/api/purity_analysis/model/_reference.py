@@ -75,11 +75,11 @@ class CallGraphNode(Generic[_T]):
 class CallGraphForest:
     graphs: dict[str, CallGraphNode] = field(default_factory=dict)
 
-    def add_graph(self, graph_name, graph) -> None:
+    def add_graph(self, graph_name: str, graph: CallGraphNode) -> None:
         self.graphs[graph_name] = graph
 
-    def get_graph(self, graph_name) -> CallGraphNode:
+    def get_graph(self, graph_name: str) -> CallGraphNode | None:
         return self.graphs.get(graph_name)
 
-    def delete_graph(self, graph_name) -> None:
+    def delete_graph(self, graph_name: str) -> None:
         del self.graphs[graph_name]

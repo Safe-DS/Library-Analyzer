@@ -269,9 +269,6 @@ class FunctionScope(Scope):
     values: list[Scope | ClassScope] = field(default_factory=list)
     calls: list[Scope | ClassScope] = field(default_factory=list)
 
-    def __getitem__(self, item) -> Scope | ClassScope:
-        return self.values[item]
-
     def remove_call_node_by_name(self, name: str) -> None:
         for call in self.calls:
             if call.symbol.name == name:
