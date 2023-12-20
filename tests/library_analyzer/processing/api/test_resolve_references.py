@@ -120,8 +120,8 @@ def test_resolve_references_parameters(code: str, expected: list[ReferenceTestNo
     references = resolve_references(code)[0]
     transformed_references: list[ReferenceTestNode] = []
 
-    for node in references:
-        transformed_references.append(transform_reference_node(node))
+    for node in references.values():
+        transformed_references.extend(transform_reference_nodes(node))
 
     # assert references == expected
     assert set(transformed_references) == set(expected)
@@ -309,11 +309,11 @@ def test_resolve_references_local_global(code: str, expected: list[ReferenceTest
     references = resolve_references(code)[0]
     transformed_references: list[ReferenceTestNode] = []
 
-    for node in references:
-        transformed_references.append(transform_reference_node(node))
+    for node in references.values():
+        transformed_references.extend(transform_reference_nodes(node))
 
     # assert references == expected
-    assert set(transformed_references) == set(expected)
+    assert transformed_references == expected
 
 
 @pytest.mark.parametrize(
@@ -775,11 +775,11 @@ def test_resolve_references_member_access(code: str, expected: list[ReferenceTes
     references = resolve_references(code)[0]
     transformed_references: list[ReferenceTestNode] = []
 
-    for node in references:
-        transformed_references.append(transform_reference_node(node))
+    for node in references.values():
+        transformed_references.extend(transform_reference_nodes(node))
 
     # assert references == expected
-    assert transformed_references == expected
+    assert set(transformed_references) == set(expected)
 
 
 @pytest.mark.parametrize(
@@ -887,8 +887,8 @@ def test_resolve_references_conditional_statements(code: str, expected: list[Ref
     references = resolve_references(code)[0]
     transformed_references: list[ReferenceTestNode] = []
 
-    for node in references:
-        transformed_references.append(transform_reference_node(node))
+    for node in references.values():
+        transformed_references.extend(transform_reference_nodes(node))
 
     # assert references == expected
     assert set(transformed_references) == set(expected)
@@ -970,8 +970,8 @@ def test_resolve_references_loops(code: str, expected: list[ReferenceTestNode]) 
     references = resolve_references(code)[0]
     transformed_references: list[ReferenceTestNode] = []
 
-    for node in references:
-        transformed_references.append(transform_reference_node(node))
+    for node in references.values():
+        transformed_references.extend(transform_reference_nodes(node))
 
     # assert references == expected
     assert set(transformed_references) == set(expected)
@@ -1225,8 +1225,8 @@ def test_resolve_references_miscellaneous(code: str, expected: list[ReferenceTes
     references = resolve_references(code)[0]
     transformed_references: list[ReferenceTestNode] = []
 
-    for node in references:
-        transformed_references.append(transform_reference_node(node))
+    for node in references.values():
+        transformed_references.extend(transform_reference_nodes(node))
 
     # assert references == expected
     assert set(transformed_references) == set(expected)
@@ -1675,8 +1675,8 @@ def test_resolve_references_calls(code: str, expected: list[ReferenceTestNode]) 
     transformed_references: list[ReferenceTestNode] = []
 
     # assert references == expected
-    for node in references:
-        transformed_references.append(transform_reference_node(node))
+    for node in references.values():
+        transformed_references.extend(transform_reference_nodes(node))
 
     assert set(transformed_references) == set(expected)
 
@@ -1768,8 +1768,8 @@ def test_resolve_references_imports(code: str, expected: list[ReferenceTestNode]
     references = resolve_references(code)[0]
     transformed_references: list[ReferenceTestNode] = []
 
-    for node in references:
-        transformed_references.append(transform_reference_node(node))
+    for node in references.values():
+        transformed_references.extend(transform_reference_nodes(node))
 
     # assert references == expected
     assert set(transformed_references) == set(expected)
@@ -1862,11 +1862,20 @@ def test_resolve_references_dataclasses(code: str, expected: list[ReferenceTestN
     references = resolve_references(code)[0]
     transformed_references: list[ReferenceTestNode] = []
 
-    for node in references:
-        transformed_references.append(transform_reference_node(node))
+    for node in references.values():
+        transformed_references.extend(transform_reference_nodes(node))
 
     # assert references == expected
     assert set(transformed_references) == set(expected)
+
+
+def transform_reference_nodes(nodes: list[ReferenceNode]) -> list[ReferenceTestNode]:
+    transformed_nodes: list[ReferenceTestNode] = []
+
+    for node in nodes:
+        transformed_nodes.append(transform_reference_node(node))
+
+    return transformed_nodes
 
 
 def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:

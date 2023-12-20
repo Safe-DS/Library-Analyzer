@@ -28,7 +28,7 @@ def _find_name_references(
     classes: dict[str, ClassScope],
     functions: dict[str, list[Scope]],
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
-) -> list[ReferenceNode]:
+) -> dict[str, list[ReferenceNode]]:
     """Create a list of references from a list of name nodes.
 
     Parameters
@@ -41,9 +41,9 @@ def _find_name_references(
 
     Returns
     -------
-        * final_references: a list containing all name references (target & value references)
+        * final_references: a dict containing all name references (target & value references)
     """
-    final_references: list[ReferenceNode] = []
+    final_references: dict[str, list[ReferenceNode]] = {}
 
     # TODO: is it possible to do this in a more efficient way?
     # maybe we can speed up the detection of references by using a dictionary instead of a list
@@ -55,7 +55,10 @@ def _find_name_references(
     for value_ref in value_references:
         if isinstance(value_ref.node, astroid.Name | MemberAccessValue):
             value_ref_complete = _find_references(value_ref, target_references, classes, functions, parameters)
-            final_references.append(value_ref_complete)
+            if value_ref_complete.node.name in final_references:
+                final_references[value_ref_complete.node.name].append(value_ref_complete)
+            else:
+                final_references[value_ref_complete.node.name] = [value_ref_complete]
 
     # Detect all target references: references that are used as targets (e.g., target = sth)
     for target_ref in target_references:
@@ -63,7 +66,10 @@ def _find_name_references(
             target_ref_complete = _find_references_target(target_ref, target_references, classes)
             # Remove all references that are never referenced
             if target_ref_complete.referenced_symbols:
-                final_references.append(target_ref_complete)
+                if target_ref_complete.node.name in final_references:
+                    final_references[target_ref_complete.node.name].append(target_ref_complete)
+                else:
+                    final_references[target_ref_complete.node.name] = [target_ref_complete]
 
     return final_references
 
@@ -274,7 +280,7 @@ def _find_call_reference(
     classes: dict[str, ClassScope],
     functions: dict[str, list[Scope]],
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
-) -> list[ReferenceNode]:
+) -> dict[str,list[ReferenceNode]]:
     """Find all references for a function call.
 
     Parameters
@@ -286,9 +292,16 @@ def _find_call_reference(
 
     Returns
     -------
-        * final_call_references: a list of all references for a function call
+        * final_call_references: a dict of all references for a function call
     """
-    final_call_references: list[ReferenceNode] = []
+    def add_reference() -> None:
+        """Add a reference to the final_call_references dict."""
+        if call_references[i].node.func.name in final_call_references:
+            final_call_references[call_references[i].node.func.name].append(call_references[i])
+        else:
+            final_call_references[call_references[i].node.func.name] = [call_references[i]]
+
+    final_call_references: dict[str, list[ReferenceNode]] = {}
     python_builtins = dir(builtins)
 
     call_references = [ReferenceNode(call, scope, []) for call, scope in function_calls.items()]
@@ -299,16 +312,14 @@ def _find_call_reference(
             function_def = functions.get(reference.node.func.name)
             symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but we check for it
             call_references[i].referenced_symbols.extend(symbols)
-
-            final_call_references.append(call_references[i])
+            add_reference()
 
         # Find classes that are called (initialized)
         elif reference.node.func.name in classes:
             symbol = classes.get(reference.node.func.name)
             if symbol:
                 call_references[i].referenced_symbols.append(symbol.symbol)
-
-            final_call_references.append(call_references[i])
+            add_reference()
 
         # Find builtins that are called
         if reference.node.func.name in python_builtins:
@@ -318,7 +329,7 @@ def _find_call_reference(
                 reference.node.func.name,
             )
             call_references[i].referenced_symbols.append(builtin_call)
-            final_call_references.append(call_references[i])
+            add_reference()
 
         # Find function parameters that are called (passed as arguments), like:
         # def f(a):
@@ -331,13 +342,13 @@ def _find_call_reference(
                         for child in parameters.get(func_def)[0].children:  # type: ignore[index] # "None" is not index-able, but we check for it
                             if child.symbol.node.name == param.name:
                                 call_references[i].referenced_symbols.append(child.symbol)
-                                final_call_references.append(call_references[i])
+                                add_reference()
                                 break
 
     return final_call_references
 
 
-def resolve_references(code: str) -> tuple[dict[str, ReferenceNode], dict[str, Reasons], dict[str, ClassScope], CallGraphForest]:
+def resolve_references(code: str) -> tuple[dict[str, list[ReferenceNode]], dict[str, Reasons], dict[str, ClassScope], CallGraphForest]:
     """
     Resolve all references in a module.
 
@@ -354,7 +365,7 @@ def resolve_references(code: str) -> tuple[dict[str, ReferenceNode], dict[str, R
         * call_graph: a CallGraphForest object that represents the call graph of the module
     """
     module_data = get_module_data(code)
-    resolved_references = _find_name_references(
+    name_references = _find_name_references(
         module_data.target_nodes,
         module_data.value_nodes,
         module_data.classes,
@@ -363,19 +374,38 @@ def resolve_references(code: str) -> tuple[dict[str, ReferenceNode], dict[str, R
     )
 
     if module_data.function_calls:
-        references_call = _find_call_reference(
+        call_references = _find_call_reference(
             module_data.function_calls,
             module_data.classes,
             module_data.functions,
             module_data.parameters,
         )
-        resolved_references.extend(references_call)
+    else:
+        call_references = {}
 
-    resolved_references = {
-        reference.node.func.name if isinstance(reference.node, astroid.Call) else reference.node.name: reference
-        for reference in resolved_references  # TODO: MemberAccessTarget and MemberAccessValue are not handled here
-    }
+    resolved_references = merge_dicts(call_references, name_references)
 
     call_graph = build_call_graph(module_data.functions, module_data.function_references)
 
     return resolved_references, module_data.function_references, module_data.classes, call_graph
+
+
+def merge_dicts(d1: dict[str, list[ReferenceNode]], d2: dict[str, list[ReferenceNode]]) -> dict[str, list[ReferenceNode]]:
+    """Merge two dicts of lists.
+
+    Parameters
+    ----------
+        * d1: the first dict
+        * d2: the second dict
+
+    Returns
+    -------
+        * d3: the merged dict
+    """
+    d3 = d1.copy()
+    for key, value in d2.items():
+        if key in d3:
+            d3[key].extend(value)
+        else:
+            d3[key] = value
+    return d3

@@ -274,7 +274,7 @@ def check_open_like_functions(func_ref: FunctionReference) -> PurityResult:
         pass  # TODO: [Later] for now it is good enough to deal with open() only, but we MAYBE need to deal with the other open-like functions too
 
 
-def infer_purity(references: dict[str, ReferenceNode], function_references: dict[str, Reasons], classes: dict[str, ClassScope],
+def infer_purity(references: dict[str, list[ReferenceNode]], function_references: dict[str, Reasons], classes: dict[str, ClassScope],
                  call_graph: CallGraphForest) -> dict[astroid.FunctionDef, PurityResult]:
     """
     Infer the purity of functions.
@@ -284,7 +284,7 @@ def infer_purity(references: dict[str, ReferenceNode], function_references: dict
 
     Parameters
     ----------
-        * references: a list of all references in the module
+        * references: a dict of all references in the module
         * function_references: a dict of function references
         * classes: a dict of all classes in the module
         * call_graph: the call graph of the module
@@ -303,7 +303,7 @@ def infer_purity(references: dict[str, ReferenceNode], function_references: dict
     return {key: value for key, value in purity_results.items() if not isinstance(key, str)}
 
 
-def process_node(reason: Reasons, references: dict[str, ReferenceNode], function_references: dict[str, Reasons],
+def process_node(reason: Reasons, references: dict[str, list[ReferenceNode]], function_references: dict[str, Reasons],
                  classes: dict[str, ClassScope], call_graph: CallGraphForest,
                  purity_results: dict[astroid.FunctionDef, PurityResult]) -> PurityResult:
     """
@@ -435,7 +435,7 @@ def process_node(reason: Reasons, references: dict[str, ReferenceNode], function
         raise KeyError(f"Function {reason.function.name} not found in function_references") from None
 
 
-def get_purity_of_child(child: CallGraphNode, reason: Reasons, references: dict[str, ReferenceNode], function_references: dict[str, Reasons],
+def get_purity_of_child(child: CallGraphNode, reason: Reasons, references: dict[str, list[ReferenceNode]], function_references: dict[str, Reasons],
                  classes: dict[str, ClassScope], call_graph: CallGraphForest,
                  purity_results: dict[astroid.FunctionDef, PurityResult]) -> None:
     """
@@ -472,7 +472,7 @@ def get_purity_of_child(child: CallGraphNode, reason: Reasons, references: dict[
 
 
 # TODO: this is not working correctly: whenever a variable is referenced, it is marked as read/written if its is not inside the current function
-def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str, ReferenceNode], classes: dict[str, ClassScope]) -> PurityResult:
+def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str, list[ReferenceNode]], classes: dict[str, ClassScope]) -> PurityResult:
     """
     Transform the reasons for impurity to an impurity result.
 
@@ -497,21 +497,23 @@ def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str,
     else:
         if reasons.writes:
             for write in reasons.writes:
-                write_ref = references[write.node.name]
-                for sym_ref in write_ref.referenced_symbols:
-                    if isinstance(sym_ref, GlobalVariable | ClassVariable | InstanceVariable):
-                        impurity_reasons.add(NonLocalVariableWrite(sym_ref))
-                    else:
-                        raise TypeError(f"Unknown symbol reference type: {sym_ref.__class__.__name__}")
+                write_ref_list = references[write.node.name]
+                for write_ref in write_ref_list:
+                    for sym_ref in write_ref.referenced_symbols:
+                        if isinstance(sym_ref, GlobalVariable | ClassVariable | InstanceVariable):
+                            impurity_reasons.add(NonLocalVariableWrite(sym_ref))
+                        else:
+                            raise TypeError(f"Unknown symbol reference type: {sym_ref.__class__.__name__}")
 
         if reasons.reads:
             for read in reasons.reads:
-                read_ref = references[read.node.name]
-                for sym_ref in read_ref.referenced_symbols:
-                    if isinstance(sym_ref, GlobalVariable | ClassVariable | InstanceVariable):
-                        impurity_reasons.add(NonLocalVariableRead(sym_ref))
-                    else:
-                        raise TypeError(f"Unknown symbol reference type: {sym_ref.__class__.__name__}")
+                read_ref_list = references[read.node.name]
+                for read_ref in read_ref_list:
+                    for sym_ref in read_ref.referenced_symbols:
+                        if isinstance(sym_ref, GlobalVariable | ClassVariable | InstanceVariable):
+                            impurity_reasons.add(NonLocalVariableRead(sym_ref))
+                        else:
+                            raise TypeError(f"Unknown symbol reference type: {sym_ref.__class__.__name__}")
 
         if reasons.unknown_calls:
             for unknown_call in reasons.unknown_calls:
