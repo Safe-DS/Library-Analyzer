@@ -28,7 +28,7 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
             if function_references[function_name]:
                 function_node = CallGraphNode(data=function_scope, reasons=function_references[function_name])
             else:
-                function_node = CallGraphNode(data=function_scope)
+                function_node = CallGraphNode(data=function_scope, reasons=Reasons())
 
             # Case where the function is not called before by any other function
             if function_name not in call_graph_forest.graphs:
@@ -53,7 +53,7 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
                                 if function_references[call.symbol.name]:
                                     call_graph_forest.add_graph(call.symbol.name, CallGraphNode(data=called_function_scope, reasons=function_references[call.symbol.name]))
                                 else:
-                                    call_graph_forest.add_graph(call.symbol.name, CallGraphNode(data=called_function_scope))
+                                    call_graph_forest.add_graph(call.symbol.name, CallGraphNode(data=called_function_scope, reasons=Reasons()))
                                 current_tree_node.add_child(call_graph_forest.get_graph(call.symbol.name))
 
                     # Handle builtins: builtins are not in the functions dict, and therefore we need to handle them separately

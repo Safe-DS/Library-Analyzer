@@ -52,8 +52,8 @@ class CallGraphNode(Generic[_T]):
     """
 
     data: _T
+    reasons: Reasons
     children: set[CallGraphNode] = field(default_factory=set)
-    reasons: Reasons | PurityResult | None = field(default=None)
     combined_node_names: list[str] = field(default_factory=list)
 
     def __hash__(self) -> int:
