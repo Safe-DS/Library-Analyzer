@@ -302,7 +302,7 @@ class Reasons:
         for call in self.calls:
             if isinstance(call.node, astroid.Call) and call.node.func.name == name:
                 return call
-            elif call.node.name == name:
+            elif call.node.name == name:  # noqa: SIM114
                 return call
 
         raise ValueError("No call to the function found.")

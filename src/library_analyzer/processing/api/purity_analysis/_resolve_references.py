@@ -158,7 +158,7 @@ def _find_references(
     value_reference: ReferenceNode,
     all_target_list: list[ReferenceNode],
     classes: dict[str, ClassScope],
-    functions: dict[str, list[Scope]],
+    functions: dict[str, list[FunctionScope]],
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
 ) -> ReferenceNode:
     """Find all references for a node.

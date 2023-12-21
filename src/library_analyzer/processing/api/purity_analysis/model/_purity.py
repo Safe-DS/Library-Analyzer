@@ -76,7 +76,7 @@ class Impure(PurityResult):
         return super()._update(other)
 
 
-class ImpurityReason(ABC):
+class ImpurityReason(ABC):  # noqa: B024 # this is just a base class, and it is important that it cannot be instantiated
     """Class for impurity reasons.
 
     If a funtion is impure it is because of one or more impurity reasons.
@@ -168,7 +168,7 @@ class CallOfParameter(Unknown):  # ParameterCall
 
 
 # Type of access
-class Expression(ABC):
+class Expression(ABC):  # noqa: B024 # this is just a base class, and it is important that it cannot be instantiated
     # @abstractmethod
     # def __hash__(self) -> int:
     #    pass

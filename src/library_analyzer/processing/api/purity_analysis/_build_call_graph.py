@@ -165,7 +165,7 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function
 
     # Add children to the combined node if they are not in the cycle (other calls)
     if any([isinstance(node.data, FunctionScope) and hasattr(node.data, 'calls') for node in cycle]):
-        other_calls = [call for node in cycle for call in node.data.calls if call.symbol.name not in cycle_names and call.symbol.name not in BUILTINS]
+        other_calls = [call for node in cycle for call in node.data.calls if call.symbol.name not in cycle_names and call.symbol.name not in BUILTINS]  # noqa: C419
         builtin_calls = [call for node in cycle for call in node.data.calls if call.symbol.name in BUILTINS]
         combined_node_data.calls = other_calls + builtin_calls
         combined_node.children = {CallGraphNode(data=call, reasons=function_references[call.symbol.name]) for call in other_calls}
@@ -187,7 +187,7 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function
         update_pointers(graph, cycle_names, combined_node)
 
 
-def update_pointers(node: CallGraphNode, cycle: list[str], combined_node: CallGraphNode) -> None:
+def update_pointers(node: CallGraphNode, cycle_names: list[str], combined_node: CallGraphNode) -> None:
     """Replace all pointers to nodes in the cycle with the combined node.
 
     Recursively traverses the tree and replaces all pointers to nodes in the cycle with the combined node.
@@ -195,13 +195,13 @@ def update_pointers(node: CallGraphNode, cycle: list[str], combined_node: CallGr
     Parameters
     ----------
         * node: the current node in the tree
-        * cycle: a list of all names of nodes in the cycle
+        * cycle_names: a list of all names of nodes in the cycle
         * combined_node: the combined node that replaces all nodes in the cycle
     """
     for child in node.children:
         if child.data.symbol.name in BUILTINS:
             continue
-        if child.data.symbol.name in cycle:
+        if child.data.symbol.name in cycle_names:
             node.children.remove(child)
             node.children.add(combined_node)
             # Update data
@@ -215,4 +215,4 @@ def update_pointers(node: CallGraphNode, cycle: list[str], combined_node: CallGr
                         node.reasons.calls.remove(call)
 
         else:
-            update_pointers(child, cycle, combined_node)
+            update_pointers(child, cycle_names, combined_node)

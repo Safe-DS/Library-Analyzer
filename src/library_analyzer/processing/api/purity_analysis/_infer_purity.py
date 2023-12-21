@@ -334,7 +334,7 @@ def process_node(reason: Reasons, references: dict[str, list[ReferenceNode]], fu
 
     # Check the forest if the purity of the function is already determined
     if reason.function.name in call_graph.graphs:
-        if call_graph.get_graph(reason.function.name).reasons.result:
+        if call_graph.get_graph(reason.function.name).reasons.result:  # noqa: PLR5501 # better for readability
             purity_results[reason.function] = call_graph.get_graph(reason.function.name).reasons.result
             return purity_results[reason.function]
 
@@ -359,7 +359,7 @@ def process_node(reason: Reasons, references: dict[str, list[ReferenceNode]], fu
                         get_purity_of_child(child, reason, references, function_references, classes, call_graph, purity_results)
                     # The child is a combined node and therefore not part of the reference dict
                     else:
-                        if reason.function not in purity_results:
+                        if reason.function not in purity_results:  # noqa: PLR5501 # better for readability
                             purity_results[reason.function] = child.reasons.result
                         else:
                             purity_results[reason.function] = purity_results[reason.function].update(
