@@ -113,10 +113,13 @@ class ModuleDataBuilder:
 
         # Add functions to the functions dict
         if isinstance(node, astroid.FunctionDef):
+            # Extend the dict of functions with the current node or create a new list with the current node
             if node.name in self.functions:
-                self.functions[node.name].append(self.current_node_stack[-1])
+                if isinstance(self.current_node_stack[-1], FunctionScope):  # only add the current node if it is a function
+                    self.functions[node.name].append(self.current_node_stack[-1])
             else:
-                self.functions[node.name] = [self.current_node_stack[-1]]
+                if isinstance(self.current_node_stack[-1], FunctionScope):  # noqa: PLR5501 # better for readability
+                    self.functions[node.name] = [self.current_node_stack[-1]]
 
             # If we deal with a constructor, we need to analyze it to find the instance variables of the class
             if node.name == "__init__":
@@ -140,11 +143,13 @@ class ModuleDataBuilder:
             self.current_node_stack[-1].symbol.name = node_name
             self.current_node_stack[-1].symbol.node.name = node_name
 
-            # Extend the list of functions with the current node or create a new list with the current node
+            # Extend the dict of functions with the current node or create a new list with the current node
             if node_name in self.functions:
-                self.functions[node_name].append(self.current_node_stack[-1])
+                if isinstance(self.current_node_stack[-1], FunctionScope):
+                    self.functions[node_name].append(self.current_node_stack[-1])
             else:
-                self.functions[node_name] = [self.current_node_stack[-1]]
+                if isinstance(self.current_node_stack[-1], FunctionScope):  # noqa: PLR5501 # better for readability
+                    self.functions[node_name] = [self.current_node_stack[-1]]
 
             # Add all values that are used inside the function body to its values' list
             if self.names:
@@ -217,7 +222,7 @@ class ModuleDataBuilder:
                             # Get the correct symbol
                             sym = None
                             if isinstance(self.value_nodes[value], FunctionScope):
-                                for v in self.value_nodes[value].values:
+                                for v in self.value_nodes[value].values:  # type: ignore[union-attr] # we can ignore the linter error because of the if statement above
                                     if v.symbol.node == value:
                                         sym = v.symbol
 
@@ -253,7 +258,7 @@ class ModuleDataBuilder:
                 self.function_references[function_name] = Reasons(function_node, set(), set(), set())
 
             # TODO: add MemberAccessTarget and MemberAccessValue detection
-            #  it should be easy to add filters later: check if a target exists inside a class before adding its impurity reasons to the impurrity result
+            #  it should be easy to add filters later: check if a target exists inside a class before adding its impurity reasons to the impurity result
         return None
 
     @staticmethod
@@ -272,6 +277,7 @@ class ModuleDataBuilder:
                 return "NonLocalVariableRead"
         if isinstance(symbol.node, astroid.FunctionDef) or isinstance(symbol, Builtin):
             return "Call"
+        raise ValueError(f"Could not determine kind of symbol {symbol}")
 
     def enter_module(self, node: astroid.Module) -> None:
         """

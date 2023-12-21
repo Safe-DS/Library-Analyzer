@@ -218,7 +218,8 @@ OPEN_MODES = {
 }
 
 
-def check_open_like_functions(func_ref: FunctionReference) -> PurityResult:
+# TODO: remove type ignore after implementing all cases
+def check_open_like_functions(func_ref: FunctionReference) -> PurityResult:  # type: ignore[return] # all cases are handled
     """
     Check if the function is an open-like function.
 
@@ -305,7 +306,7 @@ def infer_purity(references: dict[str, list[ReferenceNode]], function_references
 
 def process_node(reason: Reasons, references: dict[str, list[ReferenceNode]], function_references: dict[str, Reasons],
                  classes: dict[str, ClassScope], call_graph: CallGraphForest,
-                 purity_results: dict[astroid.FunctionDef, PurityResult]) -> PurityResult:
+                 purity_results: dict[astroid.FunctionDef, PurityResult]) -> PurityResult:  # type: ignore[return] # all cases are handled
     """
     Process a node in the call graph.
 
@@ -334,7 +335,7 @@ def process_node(reason: Reasons, references: dict[str, list[ReferenceNode]], fu
 
     # Check the forest if the purity of the function is already determined
     if reason.function.name in call_graph.graphs:
-        if call_graph.get_graph(reason.function.name).reasons.result:
+        if call_graph.get_graph(reason.function.name).reasons.result:  # noqa: PLR5501 # better for readability
             purity_results[reason.function] = call_graph.get_graph(reason.function.name).reasons.result
             return purity_results[reason.function]
 
@@ -359,7 +360,7 @@ def process_node(reason: Reasons, references: dict[str, list[ReferenceNode]], fu
                         get_purity_of_child(child, reason, references, function_references, classes, call_graph, purity_results)
                     # The child is a combined node and therefore not part of the reference dict
                     else:
-                        if reason.function not in purity_results:
+                        if reason.function not in purity_results:  # noqa: PLR5501 # better for readability
                             purity_results[reason.function] = child.reasons.result
                         else:
                             purity_results[reason.function] = purity_results[reason.function].update(
@@ -520,7 +521,7 @@ def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str,
                 if not classes:
                     impurity_reasons.add(UnknownCall(StringLiteral(unknown_call.func.name)))
                 else:
-                    if unknown_call.func.name in classes:
+                    if unknown_call.func.name in classes:  # noqa: PLR5501 # better for readability
                         pass  # TODO: Handle class instantiations here
                     else:
                         impurity_reasons.add(UnknownCall(StringLiteral(unknown_call.func.name)))

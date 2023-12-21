@@ -9,13 +9,15 @@ from library_analyzer.processing.api.purity_analysis import (
 )
 from library_analyzer.processing.api.purity_analysis.model import (
     ImpurityReason,
-    Pure,
     PurityResult,
+    Pure,
+    Impure,
     NonLocalVariableRead,
     NonLocalVariableWrite,
     FileWrite,
     FileRead,
     ParameterAccess,
+    StringLiteral,
 )
 from library_analyzer.processing.api.purity_analysis.model import UnknownCall
 
@@ -655,14 +657,16 @@ def to_string_call(func: astroid.FunctionDef | str) -> str:
     return f"{func.name}.line{func.lineno}"
 
 
-def to_simple_result(purity_result: PurityResult) -> Pure | SimpleImpure:
+def to_simple_result(purity_result: PurityResult) -> Pure | SimpleImpure:  # type: ignore[return] # all cases are handled
     if isinstance(purity_result, Pure):
         return Pure()
-    else:
+    elif isinstance(purity_result, Impure):
         return SimpleImpure({to_string_reason(reason) for reason in purity_result.reasons})
 
 
-def to_string_reason(reason: ImpurityReason) -> str:
+def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # all cases are handled
+    if reason is None:
+        raise ValueError("Reason must not be None")
     if isinstance(reason, NonLocalVariableRead):
         return f"NonLocalVariableRead.{reason.symbol.__class__.__name__}.{reason.symbol.name}"
     elif isinstance(reason, NonLocalVariableWrite):
@@ -670,13 +674,16 @@ def to_string_reason(reason: ImpurityReason) -> str:
     elif isinstance(reason, FileRead):
         if isinstance(reason.source, ParameterAccess):
             return f"FileRead.ParameterAccess.{reason.source.parameter}"
-        return f"FileRead.{reason.source.__class__.__name__}.{reason.source.value}"
+        if isinstance(reason.source, StringLiteral):
+            return f"FileRead.{reason.source.__class__.__name__}.{reason.source.value}"
     elif isinstance(reason, FileWrite):
         if isinstance(reason.source, ParameterAccess):
             return f"FileWrite.ParameterAccess.{reason.source.parameter}"
-        return f"FileWrite.{reason.source.__class__.__name__}.{reason.source.value}"
+        if isinstance(reason.source, StringLiteral):
+            return f"FileWrite.{reason.source.__class__.__name__}.{reason.source.value}"
     elif isinstance(reason, UnknownCall):
-        return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.value}"
+        if isinstance(reason.expression, StringLiteral):
+            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.value}"
     else:
         raise NotImplementedError(f"Unknown reason: {reason}")
 

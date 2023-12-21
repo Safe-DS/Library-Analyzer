@@ -53,7 +53,7 @@ class CallGraphNode(Generic[_T]):
 
     data: _T
     children: set[CallGraphNode] = field(default_factory=set)
-    reasons: Reasons | PurityResult | None = field(default=None) # TODO: save purity information here too: cache result of purity analysis for each function
+    reasons: Reasons | PurityResult | None = field(default=None)
     combined_node_names: list[str] = field(default_factory=list)
 
     def __hash__(self) -> int:
@@ -80,9 +80,9 @@ class CallGraphForest:
 
     def get_graph(self, graph_name: str) -> CallGraphNode:
         try:
-            return self.graphs.get(graph_name)
+            return self.graphs[graph_name]
         except KeyError:
-            raise KeyError(f"Graph with name {graph_name} does not exist.")
+            raise KeyError(f"Graph with name {graph_name} does not exist.") from None
 
     def delete_graph(self, graph_name: str) -> None:
         del self.graphs[graph_name]
