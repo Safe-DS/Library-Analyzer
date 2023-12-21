@@ -51,7 +51,7 @@ class CallGraphNode(Generic[_T]):
                    if the purity analysis has been performed on this node reasons is a PurityResult object otherwise it is a Reasons object
     """
 
-    data: _T | None = field(default=None)
+    data: _T
     children: set[CallGraphNode] = field(default_factory=set)
     reasons: Reasons | PurityResult | None = field(default=None) # TODO: save purity information here too: cache result of purity analysis for each function
     combined_node_names: list[str] = field(default_factory=list)
@@ -78,8 +78,11 @@ class CallGraphForest:
     def add_graph(self, graph_name: str, graph: CallGraphNode) -> None:
         self.graphs[graph_name] = graph
 
-    def get_graph(self, graph_name: str) -> CallGraphNode | None:
-        return self.graphs.get(graph_name)
+    def get_graph(self, graph_name: str) -> CallGraphNode:
+        try:
+            return self.graphs.get(graph_name)
+        except KeyError:
+            raise KeyError(f"Graph with name {graph_name} does not exist.")
 
     def delete_graph(self, graph_name: str) -> None:
         del self.graphs[graph_name]

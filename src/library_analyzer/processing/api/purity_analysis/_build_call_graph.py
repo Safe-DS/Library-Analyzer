@@ -1,5 +1,7 @@
 import builtins
 
+import astroid
+
 from library_analyzer.processing.api.purity_analysis.model import FunctionScope, CallGraphNode, CallGraphForest, Symbol, \
     Reasons, NodeID
 
@@ -18,7 +20,6 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
     -------
         * call_graph_forest: the call graph forest with cycles contracted
     """
-    current_tree_node = CallGraphNode()
     call_graph_forest = CallGraphForest()
 
     for function_name, function_scopes in functions.items():
@@ -67,9 +68,10 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
                     # These functions get an unknown flag
                     else:
                         current_tree_node = call_graph_forest.get_graph(function_name)
-                        if not isinstance(current_tree_node.reasons.unknown_calls, list):
-                            current_tree_node.reasons.unknown_calls = []
-                        current_tree_node.reasons.unknown_calls.append(call.symbol.node)
+                        if isinstance(current_tree_node.reasons, Reasons):
+                            if not isinstance(current_tree_node.reasons.unknown_calls, list):
+                                current_tree_node.reasons.unknown_calls = []
+                            current_tree_node.reasons.unknown_calls.append(call.symbol.node)
 
     handle_cycles(call_graph_forest, function_references)
 
@@ -92,8 +94,8 @@ def handle_cycles(call_graph_forest: CallGraphForest, function_references: dict[
     """
 
     for graph in call_graph_forest.graphs.copy().values():
-        visited_nodes = set()
-        path = []
+        visited_nodes: set[CallGraphNode] = set()
+        path: list[CallGraphNode] = []
         cycle = test_for_cycles(graph, visited_nodes, path)
         if cycle:
             # print("cycle found", cycle)
@@ -105,7 +107,7 @@ def handle_cycles(call_graph_forest: CallGraphForest, function_references: dict[
     return call_graph_forest
 
 
-def test_for_cycles(graph: CallGraphNode, visited_nodes: set, path: list) -> list[CallGraphNode]:
+def test_for_cycles(graph: CallGraphNode, visited_nodes: set[CallGraphNode], path: list[CallGraphNode]) -> list[CallGraphNode]:
     """Tests for cycles in the call graph.
 
     This function recursively traverses the call graph and checks for cycles.
@@ -207,9 +209,10 @@ def update_pointers(node: CallGraphNode, cycle: list[str], combined_node: CallGr
                 node.data.remove_call_node_by_name(child.data.symbol.name)
                 node.data.calls.append(combined_node.data)
             # Remove the call from the reasons (reasons need to be updated later)
-            for call in node.reasons.calls.copy():
-                if call.node.func.name == child.data.symbol.name:
-                    node.reasons.calls.remove(call)
+            if isinstance(node.reasons, Reasons):
+                for call in node.reasons.calls.copy():
+                    if isinstance(call.node, astroid.Call) and call.node.func.name == child.data.symbol.name:
+                        node.reasons.calls.remove(call)
 
         else:
             update_pointers(child, cycle, combined_node)

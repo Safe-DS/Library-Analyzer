@@ -2,15 +2,13 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Iterable
-
+from typing import TYPE_CHECKING
 import astroid
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-    from library_analyzer.processing.api.purity_analysis.model import (
-        PurityResult
-    )
+    from library_analyzer.processing.api.purity_analysis.model import PurityResult
+    from typing import Iterator
 
 
 @dataclass
@@ -99,7 +97,7 @@ class Symbol(ABC):
 
     """
 
-    node: astroid.NodeNG | MemberAccess | None
+    node: astroid.NodeNG | MemberAccess
     id: NodeID
     name: str
 
@@ -297,7 +295,7 @@ class Reasons:
     result: PurityResult | None = field(default=None)
     unknown_calls: list[astroid.Call | astroid.NodeNG] | None = field(default=None)
 
-    def __iter__(self) -> Iterable[FunctionReference]:
+    def __iter__(self) -> Iterator[FunctionReference]:
         return iter(self.writes.union(self.reads).union(self.calls))
 
     def get_call_by_name(self, name: str) -> FunctionReference:

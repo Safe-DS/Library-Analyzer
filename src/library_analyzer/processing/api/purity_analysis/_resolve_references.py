@@ -19,6 +19,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Symbol,
     Reasons,
     CallGraphForest,
+    FunctionScope,
 )
 
 
@@ -26,7 +27,7 @@ def _find_name_references(
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope],
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope],
     classes: dict[str, ClassScope],
-    functions: dict[str, list[Scope]],
+    functions: dict[str, list[FunctionScope]],
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
 ) -> dict[str, list[ReferenceNode]]:
     """Create a list of references from a list of name nodes.
@@ -278,7 +279,7 @@ def _get_symbols(node: ReferenceNode) -> list[Symbol]:
 def _find_call_reference(
     function_calls: dict[astroid.Call, Scope | ClassScope],
     classes: dict[str, ClassScope],
-    functions: dict[str, list[Scope]],
+    functions: dict[str, list[FunctionScope]],
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
 ) -> dict[str,list[ReferenceNode]]:
     """Find all references for a function call.

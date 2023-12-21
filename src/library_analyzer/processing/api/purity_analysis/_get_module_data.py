@@ -51,21 +51,21 @@ class ModuleDataBuilder:
         function_calls:         dict of all function calls and their corresponding Scope or ClassScope instance.
     """
 
-    current_node_stack: list[Scope | ClassScope] = field(default_factory=list)
-    children: list[Scope | ClassScope] = field(default_factory=list)
-    names: list[Scope | ClassScope] = field(default_factory=list)
-    calls: list[Scope | ClassScope] = field(default_factory=list)
+    current_node_stack: list[Scope | ClassScope | FunctionScope] = field(default_factory=list)
+    children: list[Scope | ClassScope | FunctionScope] = field(default_factory=list)
+    names: list[Scope | ClassScope | FunctionScope] = field(default_factory=list)
+    calls: list[Scope | ClassScope | FunctionScope] = field(default_factory=list)
     classes: dict[str, ClassScope] = field(default_factory=dict)
     functions: dict[str, list[FunctionScope]] = field(default_factory=dict)
-    value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope] = field(default_factory=dict)
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope] = field(
+    value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope | FunctionScope] = field(
         default_factory=dict,
     )
-    global_variables: dict[str, Scope | ClassScope] = field(default_factory=dict)
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]] = field(
+    global_variables: dict[str, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
+    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope | FunctionScope, set[astroid.AssignName]]] = field(
         default_factory=dict,
     )
-    function_calls: dict[astroid.Call, Scope | ClassScope] = field(default_factory=dict)
+    function_calls: dict[astroid.Call, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
     function_references: dict[str, Reasons] = field(default_factory=dict)
 
     def _detect_scope(self, node: astroid.NodeNG) -> None:
@@ -114,7 +114,7 @@ class ModuleDataBuilder:
         # Add functions to the functions dict
         if isinstance(node, astroid.FunctionDef):
             if node.name in self.functions:
-                self.functions[node.name].extend(self.current_node_stack[-1])
+                self.functions[node.name].append(self.current_node_stack[-1])
             else:
                 self.functions[node.name] = [self.current_node_stack[-1]]
 
@@ -142,7 +142,7 @@ class ModuleDataBuilder:
 
             # Extend the list of functions with the current node or create a new list with the current node
             if node_name in self.functions:
-                self.functions[node_name].extend(self.current_node_stack[-1])
+                self.functions[node_name].append(self.current_node_stack[-1])
             else:
                 self.functions[node_name] = [self.current_node_stack[-1]]
 
@@ -159,12 +159,12 @@ class ModuleDataBuilder:
         # Lambda Functions that have no name are hard to deal with- therefore, we simply add all of their names/calls to the parent of the Lambda node
         if isinstance(node, astroid.Lambda) and not isinstance(node, astroid.FunctionDef) and isinstance(node.parent, astroid.Call):
             # Add all values that are used inside the lambda body to its parent's values' list
-            if self.names:
+            if self.names and isinstance(self.current_node_stack[-2], FunctionScope):
                 self.current_node_stack[-2].values = self.names
                 self.names = []
 
             # Add all calls that are used inside the lambda body to its parent's calls' list
-            if self.calls:
+            if self.calls and isinstance(self.current_node_stack[-2], FunctionScope):
                 self.current_node_stack[-2].calls = self.calls
                 self.calls = []
 
@@ -254,6 +254,7 @@ class ModuleDataBuilder:
 
             # TODO: add MemberAccessTarget and MemberAccessValue detection
             #  it should be easy to add filters later: check if a target exists inside a class before adding its impurity reasons to the impurrity result
+        return None
 
     @staticmethod
     def get_kind(symbol: Symbol | None) -> str:
