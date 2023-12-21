@@ -277,7 +277,6 @@ class ModuleDataBuilder:
                 return "NonLocalVariableRead"
         if isinstance(symbol.node, astroid.FunctionDef) or isinstance(symbol, Builtin):
             return "Call"
-        raise ValueError(f"Could not determine kind of symbol {symbol}")
 
     def enter_module(self, node: astroid.Module) -> None:
         """
