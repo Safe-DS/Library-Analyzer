@@ -194,8 +194,6 @@ class ModuleDataBuilder:
 
     def collect_function_references(self) -> None:
         python_builtins = dir(builtins)
-        # for f in python_builtins:
-        #     print(f"\"{f}\": Impure([]),")
 
         for function_name, scopes in self.functions.items():
             function_node = scopes[0].symbol.node

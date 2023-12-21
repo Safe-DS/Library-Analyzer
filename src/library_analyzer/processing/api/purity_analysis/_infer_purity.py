@@ -333,107 +333,109 @@ def process_node(reason: Reasons, references: dict[str, list[ReferenceNode]], fu
         * purity_results: a dict of the function nodes and purity results of the functions
     """
 
+    if isinstance(reason, Reasons):
+
     # Check the forest if the purity of the function is already determined
-    if reason.function.name in call_graph.graphs:
-        if call_graph.get_graph(reason.function.name).reasons.result:  # noqa: PLR5501 # better for readability
-            purity_results[reason.function] = call_graph.get_graph(reason.function.name).reasons.result
+        if reason.function.name in call_graph.graphs:
+            if call_graph.get_graph(reason.function.name).reasons.result:  # noqa: PLR5501 # better for readability
+                purity_results[reason.function] = call_graph.get_graph(reason.function.name).reasons.result
+                return purity_results[reason.function]
+
+        # Check if the referenced function is a builtin function
+        elif reason.function.name in BUILTIN_FUNCTIONS:  # TODO: check if this works correctly in all cases
+            if reason.function.name in ("open", "read", "readline", "readlines", "write", "writelines"):
+                purity_results[reason.function] = check_open_like_functions(reason.get_call_by_name(reason.function.name))
+            else:
+                purity_results[reason.function] = BUILTIN_FUNCTIONS[reason.function.name]
             return purity_results[reason.function]
 
-    # Check if the referenced function is a builtin function
-    elif reason.function.name in BUILTIN_FUNCTIONS:  # TODO: check if this works correctly in all cases
-        if reason.function.name in ("open", "read", "readline", "readlines", "write", "writelines"):
-            purity_results[reason.function] = check_open_like_functions(reason.get_call_by_name(reason.function.name))
-        else:
-            purity_results[reason.function] = BUILTIN_FUNCTIONS[reason.function.name]
-        return purity_results[reason.function]
-
-    # The purity of the function is not determined yet
-    try:
-        # Check if the function has any child nodes if so we need to check their purity first and propagate the results afterward
-        # First we need to check if the reference actually is inside the call graph because it might be a builtin function or a combined node
-        if reason.function.name in call_graph.graphs:
-            # If the node is part of the call graph, we can check if it has any children (called functions) = not a leaf
-            if not call_graph.get_graph(reason.function.name).is_leaf():
-                for child in call_graph.get_graph(reason.function.name).children:
-                    # Check if we deal with a combined node (would throw a KeyError otherwise)  # TODO: check if combined nodes are still a problem with the new approach
-                    if not child.combined_node_names:
-                        get_purity_of_child(child, reason, references, function_references, classes, call_graph, purity_results)
-                    # The child is a combined node and therefore not part of the reference dict
-                    else:
-                        if reason.function not in purity_results:  # noqa: PLR5501 # better for readability
-                            purity_results[reason.function] = child.reasons.result
+        # The purity of the function is not determined yet
+        try:
+            # Check if the function has any child nodes if so we need to check their purity first and propagate the results afterward
+            # First we need to check if the reference actually is inside the call graph because it might be a builtin function or a combined node
+            if reason.function.name in call_graph.graphs:
+                # If the node is part of the call graph, we can check if it has any children (called functions) = not a leaf
+                if not call_graph.get_graph(reason.function.name).is_leaf():
+                    for child in call_graph.get_graph(reason.function.name).children:
+                        # Check if we deal with a combined node (would throw a KeyError otherwise)  # TODO: check if combined nodes are still a problem with the new approach
+                        if not child.combined_node_names:
+                            get_purity_of_child(child, reason, references, function_references, classes, call_graph, purity_results)
+                        # The child is a combined node and therefore not part of the reference dict
                         else:
-                            purity_results[reason.function] = purity_results[reason.function].update(
-                                child.reasons.result)
+                            if reason.function not in purity_results:  # noqa: PLR5501 # better for readability
+                                purity_results[reason.function] = child.reasons.result
+                            else:
+                                purity_results[reason.function] = purity_results[reason.function].update(
+                                    child.reasons.result)
 
-                # After all children are handled, we can propagate the purity of the called functions to the calling function
-                call_graph.get_graph(reason.function.name).reasons.result = purity_results[reason.function]
+                    # After all children are handled, we can propagate the purity of the called functions to the calling function
+                    call_graph.get_graph(reason.function.name).reasons.result = purity_results[reason.function]
 
-        # If the node is not part of the call graph, we need to check if it is a combined node
-        else:
-            # Check if we deal with a combined node since they need to be handled differently
-            combined_nodes = {node.data.symbol.name: node for node in call_graph.graphs.values() if
-                              node.combined_node_names}
-            for combined_node in combined_nodes.values():
-                # Check if the current node is part of the combined node (therefore part of the cycle)
-                if reason.function.name in combined_node.combined_node_names:
-                    # Check if the purity result was already determined
-                    if combined_node.reasons.result and reason.function in purity_results:
-                        purity_results[reason.function] = combined_node.reasons.result
+            # If the node is not part of the call graph, we need to check if it is a combined node
+            else:
+                # Check if we deal with a combined node since they need to be handled differently
+                combined_nodes = {node.data.symbol.name: node for node in call_graph.graphs.values() if
+                                  node.combined_node_names}
+                for combined_node in combined_nodes.values():
+                    # Check if the current node is part of the combined node (therefore part of the cycle)
+                    if reason.function.name in combined_node.combined_node_names:
+                        # Check if the purity result was already determined
+                        if combined_node.reasons.result and reason.function in purity_results:
+                            purity_results[reason.function] = combined_node.reasons.result
+                            return purity_results[reason.function]
+                        else:
+                            # We need to check if the combined node has any children that are not part of the cycle
+                            # By design all children of a combined node are NOT part of the cycle
+                            for child_of_combined in combined_node.children:
+                                get_purity_of_child(child_of_combined, reason, references, function_references, classes, call_graph, purity_results)
+
+                            # TODO: refactor this so it is cleaner
+                            purity = transform_reasons_to_impurity_result(
+                                call_graph.graphs[combined_node.data.symbol.name].reasons, references, classes)
+
+                            if not combined_node.reasons.result:
+                                combined_node.reasons.result = purity
+                            else:
+                                combined_node.reasons.result = combined_node.reasons.result.update(purity)
+                            if reason.function not in purity_results:
+                                purity_results[reason.function] = purity
+                            else:
+                                purity_results[reason.function] = purity_results[reason.function].update(purity)
+                            if combined_node.data.symbol.name not in purity_results:
+                                purity_results[combined_node.data.symbol.name] = purity
+                            else:
+                                purity_results[combined_node.data.symbol.name] = purity_results[combined_node.data.symbol.name].update(purity)
+
                         return purity_results[reason.function]
+
+            # Check if we deal with a self-defined function
+            if isinstance(reason.function, astroid.FunctionDef | astroid.Lambda) and reason.function.name in call_graph.graphs:
+                # Check if the function does not call other functions (it is a leaf), we can check its (reasons for) impurity directly
+                # also check that all children are handled (have a result)
+                if call_graph.graphs[reason.function.name].is_leaf() or all(
+                    c.reasons.result for c in call_graph.graphs[reason.function.name].children if
+                    c.data.symbol.name not in BUILTIN_FUNCTIONS):
+                    purity: PurityResult = Pure()
+                    if call_graph.graphs[reason.function.name].reasons:
+                        purity = transform_reasons_to_impurity_result(call_graph.graphs[reason.function.name].reasons,
+                                                                       references, classes)
+
+                    # If a result was propagated from the children, it needs to be kept and updated with more reasons if the function itself has more reasons
+                    if isinstance(call_graph.get_graph(reason.function.name).reasons.result,
+                                  NoneType):  # TODO: this should never happen - check that and remove if statement -> this does happen... but it works
+                        purity_results[reason.function] = purity
                     else:
-                        # We need to check if the combined node has any children that are not part of the cycle
-                        # By design all children of a combined node are NOT part of the cycle
-                        for child_of_combined in combined_node.children:
-                            get_purity_of_child(child_of_combined, reason, references, function_references, classes, call_graph, purity_results)
+                        purity_results[reason.function] = purity_results[reason.function].update(purity)
 
-                        # TODO: refactor this so it is cleaner
-                        purity = transform_reasons_to_impurity_result(
-                            call_graph.graphs[combined_node.data.symbol.name].reasons, references, classes)
-
-                        if not combined_node.reasons.result:
-                            combined_node.reasons.result = purity
-                        else:
-                            combined_node.reasons.result = combined_node.reasons.result.update(purity)
-                        if reason.function not in purity_results:
-                            purity_results[reason.function] = purity
-                        else:
-                            purity_results[reason.function] = purity_results[reason.function].update(purity)
-                        if combined_node.data.symbol.name not in purity_results:
-                            purity_results[combined_node.data.symbol.name] = purity
-                        else:
-                            purity_results[combined_node.data.symbol.name] = purity_results[combined_node.data.symbol.name].update(purity)
+                    # Store the results in the forest, this also deals as a flag to indicate that the result is already computed completely
+                    call_graph.get_graph(reason.function.name).reasons.result = purity_results[reason.function]
 
                     return purity_results[reason.function]
-
-        # Check if we deal with a self-defined function
-        if isinstance(reason.function, astroid.FunctionDef | astroid.Lambda) and reason.function.name in call_graph.graphs:
-            # Check if the function does not call other functions (it is a leaf), we can check its (reasons for) impurity directly
-            # also check that all children are handled (have a result)
-            if call_graph.graphs[reason.function.name].is_leaf() or all(
-                c.reasons.result for c in call_graph.graphs[reason.function.name].children if
-                c.data.symbol.name not in BUILTIN_FUNCTIONS):
-                purity: PurityResult = Pure()
-                if call_graph.graphs[reason.function.name].reasons:
-                    purity = transform_reasons_to_impurity_result(call_graph.graphs[reason.function.name].reasons,
-                                                                   references, classes)
-
-                # If a result was propagated from the children, it needs to be kept and updated with more reasons if the function itself has more reasons
-                if isinstance(call_graph.get_graph(reason.function.name).reasons.result,
-                              NoneType):  # TODO: this should never happen - check that and remove if statement -> this does happen... but it works
-                    purity_results[reason.function] = purity
                 else:
-                    purity_results[reason.function] = purity_results[reason.function].update(purity)
+                    return purity_results[reason.function]
 
-                # Store the results in the forest, this also deals as a flag to indicate that the result is already computed completely
-                call_graph.get_graph(reason.function.name).reasons.result = purity_results[reason.function]
-
-                return purity_results[reason.function]
-            else:
-                return purity_results[reason.function]
-
-    except KeyError:
-        raise KeyError(f"Function {reason.function.name} not found in function_references") from None
+        except KeyError:
+            raise KeyError(f"Function {reason.function.name} not found in function_references") from None
 
 
 def get_purity_of_child(child: CallGraphNode, reason: Reasons, references: dict[str, list[ReferenceNode]], function_references: dict[str, Reasons],
