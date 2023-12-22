@@ -15,7 +15,6 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
     ----------
         * functions: a dict of functions
         * function_references: a dict of function references - contains the reasons for impurity
-
     Returns
     -------
         * call_graph_forest: the call graph forest with cycles contracted
@@ -166,10 +165,10 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function
     # Add children to the combined node if they are not in the cycle (other calls)
     if any([isinstance(node.data, FunctionScope) and hasattr(node.data, 'calls') for node in cycle]):
         other_calls = [call for node in cycle for call in node.data.calls if call.symbol.name not in cycle_names and call.symbol.name not in BUILTINS]  # noqa: C419
-        builtin_calls = [call for node in cycle for call in node.data.calls if call.symbol.name in BUILTINS]
+        builtin_calls = [call for node in cycle for call in node.data.calls if call.symbol.name in BUILTINS]  # noqa: C419
         combined_node_data.calls = other_calls + builtin_calls
-        combined_node.children = {CallGraphNode(data=call, reasons=function_references[call.symbol.name]) for call in other_calls}
-        combined_node.children.update({CallGraphNode(data=call, reasons=Reasons()) for call in builtin_calls})
+        combined_node.children = {CallGraphNode(data=call, reasons=function_references[call.symbol.name]) for call in other_calls}  # noqa: C419
+        combined_node.children.update({CallGraphNode(data=call, reasons=Reasons()) for call in builtin_calls})  # noqa: C419
 
     # Remove all nodes in the cycle from the forest and add the combined node instead
     for node in cycle:

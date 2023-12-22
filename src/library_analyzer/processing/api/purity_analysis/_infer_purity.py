@@ -289,7 +289,6 @@ def infer_purity(references: dict[str, list[ReferenceNode]], function_references
         * function_references: a dict of function references
         * classes: a dict of all classes in the module
         * call_graph: the call graph of the module
-
     Returns
     -------
         * purity_results: a dict of the function nodes and purity results of the functions
@@ -338,7 +337,7 @@ def process_node(reason: Reasons, references: dict[str, list[ReferenceNode]], fu
     # Check the forest if the purity of the function is already determined
         if reason.function.name in call_graph.graphs:
             if call_graph.get_graph(reason.function.name).reasons.result:  # noqa: PLR5501 # better for readability
-                purity_results[reason.function] = call_graph.get_graph(reason.function.name).reasons.result
+                purity_results[reason.function] = call_graph.get_graph(reason.function.name).reasons.result  # type: ignore[assignment] # None is not possible here
                 return purity_results[reason.function]
 
         # Check if the referenced function is a builtin function
@@ -361,9 +360,9 @@ def process_node(reason: Reasons, references: dict[str, list[ReferenceNode]], fu
                         if not child.combined_node_names:
                             get_purity_of_child(child, reason, references, function_references, classes, call_graph, purity_results)
                         # The child is a combined node and therefore not part of the reference dict
-                        else:
+                        else:  # noqa: PLR5501 # better for readability
                             if reason.function not in purity_results:  # noqa: PLR5501 # better for readability
-                                purity_results[reason.function] = child.reasons.result
+                                purity_results[reason.function] = child.reasons.result  # type: ignore[assignment] # None is not possible here
                             else:
                                 purity_results[reason.function] = purity_results[reason.function].update(
                                     child.reasons.result)
@@ -415,17 +414,16 @@ def process_node(reason: Reasons, references: dict[str, list[ReferenceNode]], fu
                 if call_graph.graphs[reason.function.name].is_leaf() or all(
                     c.reasons.result for c in call_graph.graphs[reason.function.name].children if
                     c.data.symbol.name not in BUILTIN_FUNCTIONS):
-                    purity: PurityResult = Pure()
+                    purity_self_defined: PurityResult = Pure()
                     if call_graph.graphs[reason.function.name].reasons:
-                        purity = transform_reasons_to_impurity_result(call_graph.graphs[reason.function.name].reasons,
+                        purity_self_defined = transform_reasons_to_impurity_result(call_graph.graphs[reason.function.name].reasons,
                                                                        references, classes)
 
                     # If a result was propagated from the children, it needs to be kept and updated with more reasons if the function itself has more reasons
-                    if isinstance(call_graph.get_graph(reason.function.name).reasons.result,
-                                  NoneType):  # TODO: this should never happen - check that and remove if statement -> this does happen... but it works
-                        purity_results[reason.function] = purity
+                    if call_graph.get_graph(reason.function.name).reasons.result is None:  # TODO: this should never happen - check that and remove if statement -> this does happen... but it works
+                        purity_results[reason.function] = purity_self_defined
                     else:
-                        purity_results[reason.function] = purity_results[reason.function].update(purity)
+                        purity_results[reason.function] = purity_results[reason.function].update(purity_self_defined)
 
                     # Store the results in the forest, this also deals as a flag to indicate that the result is already computed completely
                     call_graph.get_graph(reason.function.name).reasons.result = purity_results[reason.function]
@@ -522,7 +520,7 @@ def transform_reasons_to_impurity_result(reasons: Reasons, references: dict[str,
             for unknown_call in reasons.unknown_calls:
                 if not classes:
                     impurity_reasons.add(UnknownCall(StringLiteral(unknown_call.func.name)))
-                else:
+                else:  # noqa: PLR5501 # better for readability
                     if unknown_call.func.name in classes:  # noqa: PLR5501 # better for readability
                         pass  # TODO: Handle class instantiations here
                     else:

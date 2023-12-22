@@ -117,7 +117,7 @@ class ModuleDataBuilder:
             if node.name in self.functions:
                 if isinstance(self.current_node_stack[-1], FunctionScope):  # only add the current node if it is a function
                     self.functions[node.name].append(self.current_node_stack[-1])
-            else:
+            else:  # noqa: PLR5501 # better for readability
                 if isinstance(self.current_node_stack[-1], FunctionScope):  # noqa: PLR5501 # better for readability
                     self.functions[node.name] = [self.current_node_stack[-1]]
 
@@ -147,7 +147,7 @@ class ModuleDataBuilder:
             if node_name in self.functions:
                 if isinstance(self.current_node_stack[-1], FunctionScope):
                     self.functions[node_name].append(self.current_node_stack[-1])
-            else:
+            else:  # noqa: PLR5501 # better for readability
                 if isinstance(self.current_node_stack[-1], FunctionScope):  # noqa: PLR5501 # better for readability
                     self.functions[node_name] = [self.current_node_stack[-1]]
 
@@ -260,7 +260,7 @@ class ModuleDataBuilder:
         return None
 
     @staticmethod
-    def get_kind(symbol: Symbol | None) -> str:
+    def get_kind(symbol: Symbol | None) -> str:  # type: ignore[return] # all cases are handled
         if symbol is None:
             return "None"  # TODO: make sure this never happens
         if isinstance(symbol.node, astroid.AssignName):

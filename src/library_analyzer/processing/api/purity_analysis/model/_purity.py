@@ -18,10 +18,10 @@ class PurityResult(ABC):
     """Class for purity results."""
 
     @abstractmethod
-    def update(self, other: PurityResult) -> PurityResult:
+    def update(self, other: PurityResult | None) -> PurityResult:
         return self._update(other)
 
-    def _update(self, other: PurityResult) -> PurityResult:  # type: ignore[return] # all cases are handled
+    def _update(self, other: PurityResult | None) -> PurityResult:  # type: ignore[return] # all cases are handled
         """Update the current result with another result.
 
         Parameters
@@ -34,7 +34,9 @@ class PurityResult(ABC):
         PurityResult
             The updated result.
         """
-        if isinstance(self, Pure):
+        if other is None:
+            pass
+        elif isinstance(self, Pure):
             if isinstance(other, Pure):
                 return self
             elif isinstance(other, Impure):
@@ -55,7 +57,7 @@ class Pure(PurityResult):
     A function is pure if it has no (External-, Internal-)Read nor (External-, Internal-)Write side effects.
     A pure function must also have no unknown reasons.
     """
-    def update(self, other: PurityResult) -> PurityResult:
+    def update(self, other: PurityResult | None) -> PurityResult:
         return super()._update(other)
 
 
@@ -72,7 +74,7 @@ class Impure(PurityResult):
     """
     reasons: set[ImpurityReason]
 
-    def update(self, other: PurityResult) -> PurityResult:
+    def update(self, other: PurityResult | None) -> PurityResult:
         return super()._update(other)
 
 

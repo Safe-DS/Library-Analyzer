@@ -47,8 +47,7 @@ class CallGraphNode(Generic[_T]):
     ----------
         * data:
         * children: a set of call graph nodes that are called by this node
-        * reasons: a Reasons or PurityResult object that represents the reasons why this node is impure
-                   if the purity analysis has been performed on this node reasons is a PurityResult object otherwise it is a Reasons object
+        * reasons: a Reasons or PurityResult object that represents the reasons why this node is impure if the purity analysis has been performed on this node reasons is a PurityResult object otherwise it is a Reasons object
     """
 
     data: _T
@@ -78,7 +77,7 @@ class CallGraphForest:
     def add_graph(self, graph_name: str, graph: CallGraphNode) -> None:
         self.graphs[graph_name] = graph
 
-    def get_graph(self, graph_name: str) -> CallGraphNode:
+    def get_graph(self, graph_name: str) -> CallGraphNode:  # type: ignore[return] # see TODO below
         try:
             return self.graphs[graph_name]
         except KeyError:
