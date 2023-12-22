@@ -39,16 +39,16 @@ _T = TypeVar("_T")
 
 @dataclass
 class CallGraphNode(Generic[_T]):
-    """Class for call graph nodes.
-
-    A call graph node represents a function call.
-
-    Parameters
-    ----------
-        * data:
-        * children: a set of call graph nodes that are called by this node
-        * reasons: a Reasons or PurityResult object that represents the reasons why this node is impure if the purity analysis has been performed on this node reasons is a PurityResult object otherwise it is a Reasons object
-    """
+    # """Class for call graph nodes.
+    #
+    # A call graph node represents a function call.
+    #
+    # Parameters
+    # ----------
+    #     * data: the data of this node
+    #     * children: a set of call graph nodes that are called by this node
+    #     * reasons: a Reasons or PurityResult object that represents the reasons why this node is impure if the purity analysis has been performed on this node reasons is a PurityResult object otherwise it is a Reasons object
+    # """  # TODO: fix whaterver is wrong with the docstring
 
     data: _T
     reasons: Reasons

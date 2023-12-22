@@ -9,16 +9,16 @@ BUILTINS = dir(builtins)
 
 
 def build_call_graph(functions: dict[str, list[FunctionScope]], function_references: dict[str, Reasons]) -> CallGraphForest:
-    """Build a call graph from a list of functions.
-
-    Parameters
-    ----------
-        * functions: a dict of functions
-        * function_references: a dict of function references - contains the reasons for impurity
-    Returns
-    -------
-        * call_graph_forest: the call graph forest with cycles contracted
-    """
+    # """Build a call graph from a list of functions.
+    #
+    # Parameters
+    # ----------
+    #     * functions: a dict of functions
+    #     * function_references: a dict of function references - contains the reasons for impurity
+    # Returns
+    # -------
+    #     * call_graph_forest: the call graph forest with cycles contracted
+    # """  # TODO: fix whaterver is wrong with the docstring
     call_graph_forest = CallGraphForest()
 
     for function_name, function_scopes in functions.items():
@@ -163,12 +163,12 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function
     combined_node = CallGraphNode(data=combined_node_data, reasons=combined_reasons, combined_node_names=cycle_names)
 
     # Add children to the combined node if they are not in the cycle (other calls)
-    if any([isinstance(node.data, FunctionScope) and hasattr(node.data, 'calls') for node in cycle]):
-        other_calls = [call for node in cycle for call in node.data.calls if call.symbol.name not in cycle_names and call.symbol.name not in BUILTINS]  # noqa: C419
-        builtin_calls = [call for node in cycle for call in node.data.calls if call.symbol.name in BUILTINS]  # noqa: C419
+    if any([isinstance(node.data, FunctionScope) and hasattr(node.data, 'calls') for node in cycle]):  # noqa: C419
+        other_calls = [call for node in cycle for call in node.data.calls if call.symbol.name not in cycle_names and call.symbol.name not in BUILTINS]
+        builtin_calls = [call for node in cycle for call in node.data.calls if call.symbol.name in BUILTINS]
         combined_node_data.calls = other_calls + builtin_calls
-        combined_node.children = {CallGraphNode(data=call, reasons=function_references[call.symbol.name]) for call in other_calls}  # noqa: C419
-        combined_node.children.update({CallGraphNode(data=call, reasons=Reasons()) for call in builtin_calls})  # noqa: C419
+        combined_node.children = {CallGraphNode(data=call, reasons=function_references[call.symbol.name]) for call in other_calls}
+        combined_node.children.update({CallGraphNode(data=call, reasons=Reasons()) for call in builtin_calls})
 
     # Remove all nodes in the cycle from the forest and add the combined node instead
     for node in cycle:

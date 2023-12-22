@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from types import NoneType
-
 import astroid
 
 from library_analyzer.processing.api.purity_analysis.model import (
@@ -277,22 +275,22 @@ def check_open_like_functions(func_ref: FunctionReference) -> PurityResult:  # t
 
 def infer_purity(references: dict[str, list[ReferenceNode]], function_references: dict[str, Reasons], classes: dict[str, ClassScope],
                  call_graph: CallGraphForest) -> dict[astroid.FunctionDef, PurityResult]:
-    """
-    Infer the purity of functions.
-
-    Given a list of references, a dict of function references and a callgraph, this function infers the purity of the functions inside a module.
-    It therefore iterates over the function references and processes the nodes in the call graph.
-
-    Parameters
-    ----------
-        * references: a dict of all references in the module
-        * function_references: a dict of function references
-        * classes: a dict of all classes in the module
-        * call_graph: the call graph of the module
-    Returns
-    -------
-        * purity_results: a dict of the function nodes and purity results of the functions
-    """
+    # """
+    # Infer the purity of functions.
+    #
+    # Given a list of references, a dict of function references and a callgraph, this function infers the purity of the functions inside a module.
+    # It therefore iterates over the function references and processes the nodes in the call graph.
+    #
+    # Parameters
+    # ----------
+    #     * references: a dict of all references in the module
+    #     * function_references: a dict of function references
+    #     * classes: a dict of all classes in the module
+    #     * call_graph: the call graph of the module
+    # Returns
+    # -------
+    #     * purity_results: a dict of the function nodes and purity results of the functions
+    # """  # TODO: fix whaterver is wrong with the docstring
     purity_results: dict[
         astroid.FunctionDef, PurityResult] = {}  # We use astroid.FunctionDef instead of str as a key so we can access the node later
 
