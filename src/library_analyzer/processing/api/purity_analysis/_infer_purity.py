@@ -304,9 +304,9 @@ def infer_purity(references: dict[str, list[ReferenceNode]], function_references
     return {key: value for key, value in purity_results.items() if not isinstance(key, str)}
 
 
-def process_node(reason: Reasons, references: dict[str, list[ReferenceNode]], function_references: dict[str, Reasons],
+def process_node(reason: Reasons, references: dict[str, list[ReferenceNode]], function_references: dict[str, Reasons],  # type: ignore[return] # all cases are handled
                  classes: dict[str, ClassScope], call_graph: CallGraphForest,
-                 purity_results: dict[astroid.FunctionDef, PurityResult]) -> PurityResult:  # type: ignore[return] # all cases are handled
+                 purity_results: dict[astroid.FunctionDef, PurityResult]) -> PurityResult:
     """
     Process a node in the call graph.
 
@@ -333,7 +333,7 @@ def process_node(reason: Reasons, references: dict[str, list[ReferenceNode]], fu
         * purity_results: a dict of the function nodes and purity results of the functions
     """
 
-    if isinstance(reason, Reasons):
+    if isinstance(reason, Reasons) and reason is not None:
 
     # Check the forest if the purity of the function is already determined
         if reason.function.name in call_graph.graphs:

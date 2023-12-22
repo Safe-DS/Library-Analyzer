@@ -288,7 +288,7 @@ class Reasons:
         result          the result of the purity analysis (this also works as a flag to determine if the purity analysis has been performed)
                         if it is None, the purity analysis has not been performed
     """
-    function: astroid.FunctionDef | None = field(default=None)
+    function: astroid.FunctionDef | MemberAccess | None = field(default=None)
     writes: set[FunctionReference] = field(default_factory=set)
     reads: set[FunctionReference] = field(default_factory=set)
     calls: set[FunctionReference] = field(default_factory=set)
