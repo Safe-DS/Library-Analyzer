@@ -15,7 +15,8 @@ BUILTINS = dir(builtins)
 
 
 def build_call_graph(
-    functions: dict[str, list[FunctionScope]], function_references: dict[str, Reasons],
+    functions: dict[str, list[FunctionScope]],
+    function_references: dict[str, Reasons],
 ) -> CallGraphForest:
     # """Build a call graph from a list of functions.
     #
@@ -40,7 +41,8 @@ def build_call_graph(
             # Case where the function is not called before by any other function
             if function_name not in call_graph_forest.graphs:
                 call_graph_forest.add_graph(
-                    function_name, function_node,
+                    function_name,
+                    function_node,
                 )  # We save the tree in the forest by the name of the root function
 
             # Default case where a function calls no other functions in its body - therefore, the tree has just one node
@@ -63,12 +65,14 @@ def build_call_graph(
                                     call_graph_forest.add_graph(
                                         call.symbol.name,
                                         CallGraphNode(
-                                            data=called_function_scope, reasons=function_references[call.symbol.name],
+                                            data=called_function_scope,
+                                            reasons=function_references[call.symbol.name],
                                         ),
                                     )
                                 else:
                                     call_graph_forest.add_graph(
-                                        call.symbol.name, CallGraphNode(data=called_function_scope, reasons=Reasons()),
+                                        call.symbol.name,
+                                        CallGraphNode(data=called_function_scope, reasons=Reasons()),
                                     )
                                 current_tree_node.add_child(call_graph_forest.get_graph(call.symbol.name))
 
@@ -123,7 +127,9 @@ def handle_cycles(call_graph_forest: CallGraphForest, function_references: dict[
 
 
 def test_for_cycles(
-    graph: CallGraphNode, visited_nodes: set[CallGraphNode], path: list[CallGraphNode],
+    graph: CallGraphNode,
+    visited_nodes: set[CallGraphNode],
+    path: list[CallGraphNode],
 ) -> list[CallGraphNode]:
     """Tests for cycles in the call graph.
 
@@ -162,7 +168,9 @@ def test_for_cycles(
 
 
 def contract_cycle(
-    forest: CallGraphForest, cycle: list[CallGraphNode], function_references: dict[str, Reasons],
+    forest: CallGraphForest,
+    cycle: list[CallGraphNode],
+    function_references: dict[str, Reasons],
 ) -> None:
     """Contracts a cycle in the call graph.
 
@@ -179,7 +187,9 @@ def contract_cycle(
     combined_node_name = "+".join(sorted(cycle_names))
     combined_node_data = FunctionScope(
         Symbol(
-            None, NodeID(cycle[0].data.parent.get_module_scope(), combined_node_name, None, None), combined_node_name,
+            None,
+            NodeID(cycle[0].data.parent.get_module_scope(), combined_node_name, None, None),
+            combined_node_name,
         ),
     )
     combined_reasons = Reasons.join_reasons_list([node.reasons for node in cycle])

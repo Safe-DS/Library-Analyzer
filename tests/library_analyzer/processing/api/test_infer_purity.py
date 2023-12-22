@@ -250,7 +250,8 @@ def fun():
             """,  # language= None
             {
                 "fun.line3": SimpleImpure({
-                    "NonLocalVariableWrite.GlobalVariable.var1", "NonLocalVariableRead.GlobalVariable.var1",
+                    "NonLocalVariableWrite.GlobalVariable.var1",
+                    "NonLocalVariableRead.GlobalVariable.var1",
                 }),
             },
         ),
@@ -263,7 +264,8 @@ def fun(x):
             """,  # language= None
             {
                 "fun.line3": SimpleImpure({
-                    "NonLocalVariableWrite.GlobalVariable.var1", "NonLocalVariableRead.GlobalVariable.var1",
+                    "NonLocalVariableWrite.GlobalVariable.var1",
+                    "NonLocalVariableRead.GlobalVariable.var1",
                 }),
             },
         ),

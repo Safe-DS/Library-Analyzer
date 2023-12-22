@@ -395,7 +395,8 @@ def resolve_references(
 
 
 def merge_dicts(
-    d1: dict[str, list[ReferenceNode]], d2: dict[str, list[ReferenceNode]],
+    d1: dict[str, list[ReferenceNode]],
+    d2: dict[str, list[ReferenceNode]],
 ) -> dict[str, list[ReferenceNode]]:
     """Merge two dicts of lists.
 

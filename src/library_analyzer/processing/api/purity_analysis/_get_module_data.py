@@ -120,7 +120,8 @@ class ModuleDataBuilder:
             # Extend the dict of functions with the current node or create a new list with the current node
             if node.name in self.functions:
                 if isinstance(
-                    self.current_node_stack[-1], FunctionScope,
+                    self.current_node_stack[-1],
+                    FunctionScope,
                 ):  # only add the current node if it is a function
                     self.functions[node.name].append(self.current_node_stack[-1])
             else:  # noqa: PLR5501 # better for readability
@@ -220,7 +221,10 @@ class ModuleDataBuilder:
                                         self.function_references[function_name].writes.add(ref)
                                 else:
                                     self.function_references[function_name] = Reasons(
-                                        function_node, {ref}, set(), set(),
+                                        function_node,
+                                        {ref},
+                                        set(),
+                                        set(),
                                     )  # Add writes
 
             for value in self.value_nodes:
@@ -243,7 +247,10 @@ class ModuleDataBuilder:
                                 self.function_references[function_name].reads.add(ref)
                             else:
                                 self.function_references[function_name] = Reasons(
-                                    function_node, set(), {ref}, set(),
+                                    function_node,
+                                    set(),
+                                    {ref},
+                                    set(),
                                 )  # Add reads
 
             for call in self.function_calls:
@@ -261,7 +268,10 @@ class ModuleDataBuilder:
                         self.function_references[function_name].calls.add(ref)
                     else:
                         self.function_references[function_name] = Reasons(
-                            function_node, set(), set(), {ref},
+                            function_node,
+                            set(),
+                            set(),
+                            {ref},
                         )  # Add calls
 
             # Add function to function_references dict if it is not already in there
