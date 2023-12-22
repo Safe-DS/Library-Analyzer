@@ -333,7 +333,7 @@ def process_node(reason: Reasons, references: dict[str, list[ReferenceNode]], fu
         * purity_results: a dict of the function nodes and purity results of the functions
     """
 
-    if isinstance(reason, Reasons) and reason is not None:
+    if isinstance(reason, Reasons) and reason.function is not None:
 
     # Check the forest if the purity of the function is already determined
         if reason.function.name in call_graph.graphs:
