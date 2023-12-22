@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import pytest
-
-from library_analyzer.processing.api.purity_analysis import get_module_data, build_call_graph
+from library_analyzer.processing.api.purity_analysis import build_call_graph, get_module_data
 
 
 @pytest.mark.parametrize(
@@ -208,35 +207,35 @@ entry()
             },
         ),
         # TODO: this case is disabled for merging to main [ENABLE AFTER MERGE]
-#         (  # language=Python "function call with cycle - cycle within a cycle"
-#             """
-# def cycle1():
-#     cycle2()
-#
-# def cycle2():
-#     cycle3()
-#
-# def cycle3():
-#     inner_cycle1()
-#     cycle1()
-#
-# def inner_cycle1():
-#     inner_cycle2()
-#
-# def inner_cycle2():
-#     inner_cycle1()
-#
-# def entry():
-#     cycle1()
-#
-# entry()
-#             """,  # language=none
-#             {
-#                 "cycle1+cycle2+cycle3": {"inner_cycle1+inner_cycle2"},
-#                 "inner_cycle1+inner_cycle2": set(),
-#                 "entry": {"cycle1+cycle2+cycle3"},
-#             },
-#         ),
+        #         (  # language=Python "function call with cycle - cycle within a cycle"
+        #             """
+        # def cycle1():
+        #     cycle2()
+        #
+        # def cycle2():
+        #     cycle3()
+        #
+        # def cycle3():
+        #     inner_cycle1()
+        #     cycle1()
+        #
+        # def inner_cycle1():
+        #     inner_cycle2()
+        #
+        # def inner_cycle2():
+        #     inner_cycle1()
+        #
+        # def entry():
+        #     cycle1()
+        #
+        # entry()
+        #             """,  # language=none
+        #             {
+        #                 "cycle1+cycle2+cycle3": {"inner_cycle1+inner_cycle2"},
+        #                 "inner_cycle1+inner_cycle2": set(),
+        #                 "entry": {"cycle1+cycle2+cycle3"},
+        #             },
+        #         ),
         (  # language=Python "recursive function call",
             """
 def f(a):

@@ -3,12 +3,13 @@ from __future__ import annotations
 from abc import ABC
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
+
 import astroid
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Iterator
+
     from library_analyzer.processing.api.purity_analysis.model import PurityResult
-    from typing import Iterator
 
 
 @dataclass
@@ -288,6 +289,7 @@ class Reasons:
         result          the result of the purity analysis (this also works as a flag to determine if the purity analysis has been performed)
                         if it is None, the purity analysis has not been performed
     """
+
     function: astroid.FunctionDef | MemberAccess | None = field(default=None)
     writes: set[FunctionReference] = field(default_factory=set)
     reads: set[FunctionReference] = field(default_factory=set)
@@ -302,7 +304,7 @@ class Reasons:
         for call in self.calls:
             if isinstance(call.node, astroid.Call) and call.node.func.name == name:  # noqa: SIM114
                 return call
-            elif call.node.name == name:  # noqa: SIM114
+            elif call.node.name == name:
                 return call
 
         raise ValueError("No call to the function found.")

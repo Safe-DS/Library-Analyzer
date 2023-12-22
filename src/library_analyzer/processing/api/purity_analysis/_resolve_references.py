@@ -8,18 +8,18 @@ from library_analyzer.processing.api.purity_analysis import get_module_data
 from library_analyzer.processing.api.purity_analysis._build_call_graph import build_call_graph
 from library_analyzer.processing.api.purity_analysis.model import (
     Builtin,
+    CallGraphForest,
     ClassScope,
     ClassVariable,
+    FunctionScope,
     MemberAccessTarget,
     MemberAccessValue,
     NodeID,
     Parameter,
+    Reasons,
     ReferenceNode,
     Scope,
     Symbol,
-    Reasons,
-    CallGraphForest,
-    FunctionScope,
 )
 
 
@@ -281,7 +281,7 @@ def _find_call_reference(
     classes: dict[str, ClassScope],
     functions: dict[str, list[FunctionScope]],
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
-) -> dict[str,list[ReferenceNode]]:
+) -> dict[str, list[ReferenceNode]]:
     """Find all references for a function call.
 
     Parameters
@@ -295,6 +295,7 @@ def _find_call_reference(
     -------
         * final_call_references: a dict of all references for a function call
     """
+
     def add_reference() -> None:
         """Add a reference to the final_call_references dict."""
         if call_references[i].node.func.name in final_call_references:
@@ -349,7 +350,9 @@ def _find_call_reference(
     return final_call_references
 
 
-def resolve_references(code: str) -> tuple[dict[str, list[ReferenceNode]], dict[str, Reasons], dict[str, ClassScope], CallGraphForest]:
+def resolve_references(
+    code: str,
+) -> tuple[dict[str, list[ReferenceNode]], dict[str, Reasons], dict[str, ClassScope], CallGraphForest]:
     """
     Resolve all references in a module.
 
@@ -391,7 +394,9 @@ def resolve_references(code: str) -> tuple[dict[str, list[ReferenceNode]], dict[
     return resolved_references, module_data.function_references, module_data.classes, call_graph
 
 
-def merge_dicts(d1: dict[str, list[ReferenceNode]], d2: dict[str, list[ReferenceNode]]) -> dict[str, list[ReferenceNode]]:
+def merge_dicts(
+    d1: dict[str, list[ReferenceNode]], d2: dict[str, list[ReferenceNode]],
+) -> dict[str, list[ReferenceNode]]:
     """Merge two dicts of lists.
 
     Parameters

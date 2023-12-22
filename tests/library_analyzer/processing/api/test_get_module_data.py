@@ -13,9 +13,9 @@ from library_analyzer.processing.api.purity_analysis.model import (
     MemberAccess,
     MemberAccessTarget,
     MemberAccessValue,
+    Reasons,
     Scope,
     Symbol,
-    Reasons,
 )
 
 
@@ -160,8 +160,10 @@ def test_calc_node_id(
                                 ),
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.f",
-                                    [SimpleScope("Parameter.AssignName.self", []),
-                                     SimpleScope("LocalVariable.AssignName.var1", [])],
+                                    [
+                                        SimpleScope("Parameter.AssignName.self", []),
+                                        SimpleScope("LocalVariable.AssignName.var1", []),
+                                    ],
                                 ),
                             ],
                             ["FunctionDef.__init__", "FunctionDef.f"],
@@ -271,8 +273,10 @@ def test_calc_node_id(
                                 SimpleScope("ClassVariable.AssignName.class_attr1", []),
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.local_class_attr",
-                                    [SimpleScope("Parameter.AssignName.self", []),
-                                     SimpleScope("LocalVariable.AssignName.var1", [])],
+                                    [
+                                        SimpleScope("Parameter.AssignName.self", []),
+                                        SimpleScope("LocalVariable.AssignName.var1", []),
+                                    ],
                                 ),
                             ],
                             ["AssignName.class_attr1", "FunctionDef.local_class_attr"],
@@ -313,8 +317,10 @@ def test_calc_node_id(
                                 ),
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.local_instance_attr",
-                                    [SimpleScope("Parameter.AssignName.self", []),
-                                     SimpleScope("LocalVariable.AssignName.var1", [])],
+                                    [
+                                        SimpleScope("Parameter.AssignName.self", []),
+                                        SimpleScope("LocalVariable.AssignName.var1", []),
+                                    ],
                                 ),
                             ],
                             [
@@ -780,7 +786,7 @@ def test_calc_node_id(
                                 SimpleScope("LocalVariable.AssignName.f", []),
                                 SimpleScope("LocalVariable.AssignName.text", []),
                             ],
-                        )
+                        ),
                     ],
                 ),
             ],
@@ -1505,18 +1511,27 @@ def f():
     g()    # Call
     x = open("text.txt") # LocalWrite, Call
             """,  # language=none
-            {"f": SimpleReasons("f", {SimpleFunctionReference("AssignName.b.line11", "NonLocalVariableWrite"),
-                                      SimpleFunctionReference("AssignName.b.line14", "NonLocalVariableWrite")},
-                                     {SimpleFunctionReference("Name.c.line13", "NonLocalVariableRead"),
-                                      SimpleFunctionReference("Name.d.line14", "NonLocalVariableRead")},
-                                     {SimpleFunctionReference("Call.g.line15", "Call"),
-                                      SimpleFunctionReference("Call.open.line16", "Call")}),
-             "g": SimpleReasons("g", set(), set(), set())},
+            {
+                "f": SimpleReasons(
+                    "f",
+                    {
+                        SimpleFunctionReference("AssignName.b.line11", "NonLocalVariableWrite"),
+                        SimpleFunctionReference("AssignName.b.line14", "NonLocalVariableWrite"),
+                    },
+                    {
+                        SimpleFunctionReference("Name.c.line13", "NonLocalVariableRead"),
+                        SimpleFunctionReference("Name.d.line14", "NonLocalVariableRead"),
+                    },
+                    {
+                        SimpleFunctionReference("Call.g.line15", "Call"),
+                        SimpleFunctionReference("Call.open.line16", "Call"),
+                    },
+                ),
+                "g": SimpleReasons("g", set(), set(), set()),
+            },
         ),
     ],
-    ids=[
-        "internal stuff"
-    ]  # TODO: add cases for control flow statements and other cases
+    ids=["internal stuff"],  # TODO: add cases for control flow statements and other cases
 )
 def test_get_module_data_function_references(code: str, expected: dict[str, SimpleReasons]) -> None:
     function_references = get_module_data(code).function_references
@@ -1530,34 +1545,32 @@ def test_get_module_data_function_references(code: str, expected: dict[str, Simp
 def transform_function_references(function_calls: dict[str, Reasons]) -> dict[str, SimpleReasons]:
     transformed_function_references = {}
     for function_name, function_references in function_calls.items():
-        transformed_function_references.update(
-            {
-                function_name: SimpleReasons(
-                    function_name,
-                    {
-                        SimpleFunctionReference(
-                            f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
-                            function_reference.kind,
-                        )
-                        for function_reference in function_references.writes
-                    },
-                    {
-                        SimpleFunctionReference(
-                            f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
-                            function_reference.kind,
-                        )
-                        for function_reference in function_references.reads
-                    },
-                    {
-                        SimpleFunctionReference(
-                            f"{function_reference.node.__class__.__name__}.{function_reference.node.func.name}.line{function_reference.node.fromlineno}",
-                            function_reference.kind,
-                        )
-                        for function_reference in function_references.calls
-                    },
-                )
-            }
-        )
+        transformed_function_references.update({
+            function_name: SimpleReasons(
+                function_name,
+                {
+                    SimpleFunctionReference(
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                        function_reference.kind,
+                    )
+                    for function_reference in function_references.writes
+                },
+                {
+                    SimpleFunctionReference(
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                        function_reference.kind,
+                    )
+                    for function_reference in function_references.reads
+                },
+                {
+                    SimpleFunctionReference(
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.func.name}.line{function_reference.node.fromlineno}",
+                        function_reference.kind,
+                    )
+                    for function_reference in function_references.calls
+                },
+            ),
+        })
 
     return transformed_function_references
 

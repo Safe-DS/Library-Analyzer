@@ -2,13 +2,21 @@ import builtins
 
 import astroid
 
-from library_analyzer.processing.api.purity_analysis.model import FunctionScope, CallGraphNode, CallGraphForest, Symbol, \
-    Reasons, NodeID
+from library_analyzer.processing.api.purity_analysis.model import (
+    CallGraphForest,
+    CallGraphNode,
+    FunctionScope,
+    NodeID,
+    Reasons,
+    Symbol,
+)
 
 BUILTINS = dir(builtins)
 
 
-def build_call_graph(functions: dict[str, list[FunctionScope]], function_references: dict[str, Reasons]) -> CallGraphForest:
+def build_call_graph(
+    functions: dict[str, list[FunctionScope]], function_references: dict[str, Reasons],
+) -> CallGraphForest:
     # """Build a call graph from a list of functions.
     #
     # Parameters
@@ -31,7 +39,9 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
 
             # Case where the function is not called before by any other function
             if function_name not in call_graph_forest.graphs:
-                call_graph_forest.add_graph(function_name, function_node)  # We save the tree in the forest by the name of the root function
+                call_graph_forest.add_graph(
+                    function_name, function_node,
+                )  # We save the tree in the forest by the name of the root function
 
             # Default case where a function calls no other functions in its body - therefore, the tree has just one node
             if not function_scope.calls:
@@ -50,9 +60,16 @@ def build_call_graph(functions: dict[str, list[FunctionScope]], function_referen
                         else:
                             for called_function_scope in functions[call.symbol.name]:
                                 if function_references[call.symbol.name]:
-                                    call_graph_forest.add_graph(call.symbol.name, CallGraphNode(data=called_function_scope, reasons=function_references[call.symbol.name]))
+                                    call_graph_forest.add_graph(
+                                        call.symbol.name,
+                                        CallGraphNode(
+                                            data=called_function_scope, reasons=function_references[call.symbol.name],
+                                        ),
+                                    )
                                 else:
-                                    call_graph_forest.add_graph(call.symbol.name, CallGraphNode(data=called_function_scope, reasons=Reasons()))
+                                    call_graph_forest.add_graph(
+                                        call.symbol.name, CallGraphNode(data=called_function_scope, reasons=Reasons()),
+                                    )
                                 current_tree_node.add_child(call_graph_forest.get_graph(call.symbol.name))
 
                     # Handle builtins: builtins are not in the functions dict, and therefore we need to handle them separately
@@ -91,7 +108,6 @@ def handle_cycles(call_graph_forest: CallGraphForest, function_references: dict[
     -------
         * call_graph_forest: the call graph forest with contracted cycles
     """
-
     for graph in call_graph_forest.graphs.copy().values():
         visited_nodes: set[CallGraphNode] = set()
         path: list[CallGraphNode] = []
@@ -106,7 +122,9 @@ def handle_cycles(call_graph_forest: CallGraphForest, function_references: dict[
     return call_graph_forest
 
 
-def test_for_cycles(graph: CallGraphNode, visited_nodes: set[CallGraphNode], path: list[CallGraphNode]) -> list[CallGraphNode]:
+def test_for_cycles(
+    graph: CallGraphNode, visited_nodes: set[CallGraphNode], path: list[CallGraphNode],
+) -> list[CallGraphNode]:
     """Tests for cycles in the call graph.
 
     This function recursively traverses the call graph and checks for cycles.
@@ -120,13 +138,12 @@ def test_for_cycles(graph: CallGraphNode, visited_nodes: set[CallGraphNode], pat
         * visited_nodes: a set of all visited nodes
         * path: a list of all nodes in the current path
     """
-
     # If a node has no children, it is a leaf node, and we can return an empty list
     if not graph.children:
         return []
 
     if graph in path:
-        return path[path.index(graph):]  # A cycle is found, return the path containing the cycle
+        return path[path.index(graph) :]  # A cycle is found, return the path containing the cycle
 
     # Mark the current node as visited
     visited_nodes.add(graph)
@@ -144,7 +161,9 @@ def test_for_cycles(graph: CallGraphNode, visited_nodes: set[CallGraphNode], pat
     return cycle
 
 
-def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function_references: dict[str, Reasons]) -> None:
+def contract_cycle(
+    forest: CallGraphForest, cycle: list[CallGraphNode], function_references: dict[str, Reasons],
+) -> None:
     """Contracts a cycle in the call graph.
 
     Given a cycle in the call graph, this function contracts the cycle into a single node.
@@ -158,16 +177,27 @@ def contract_cycle(forest: CallGraphForest, cycle: list[CallGraphNode], function
     # Create the new combined node
     cycle_names = [node.data.symbol.name for node in cycle]
     combined_node_name = "+".join(sorted(cycle_names))
-    combined_node_data = FunctionScope(Symbol(None, NodeID(cycle[0].data.parent.get_module_scope(), combined_node_name, None, None), combined_node_name))
+    combined_node_data = FunctionScope(
+        Symbol(
+            None, NodeID(cycle[0].data.parent.get_module_scope(), combined_node_name, None, None), combined_node_name,
+        ),
+    )
     combined_reasons = Reasons.join_reasons_list([node.reasons for node in cycle])
     combined_node = CallGraphNode(data=combined_node_data, reasons=combined_reasons, combined_node_names=cycle_names)
 
     # Add children to the combined node if they are not in the cycle (other calls)
-    if any([isinstance(node.data, FunctionScope) and hasattr(node.data, 'calls') for node in cycle]):  # noqa: C419
-        other_calls = [call for node in cycle for call in node.data.calls if call.symbol.name not in cycle_names and call.symbol.name not in BUILTINS]
+    if any([isinstance(node.data, FunctionScope) and hasattr(node.data, "calls") for node in cycle]):  # noqa: C419
+        other_calls = [
+            call
+            for node in cycle
+            for call in node.data.calls
+            if call.symbol.name not in cycle_names and call.symbol.name not in BUILTINS
+        ]
         builtin_calls = [call for node in cycle for call in node.data.calls if call.symbol.name in BUILTINS]
         combined_node_data.calls = other_calls + builtin_calls
-        combined_node.children = {CallGraphNode(data=call, reasons=function_references[call.symbol.name]) for call in other_calls}
+        combined_node.children = {
+            CallGraphNode(data=call, reasons=function_references[call.symbol.name]) for call in other_calls
+        }
         combined_node.children.update({CallGraphNode(data=call, reasons=Reasons()) for call in builtin_calls})
 
     # Remove all nodes in the cycle from the forest and add the combined node instead

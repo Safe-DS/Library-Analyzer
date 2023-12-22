@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from library_analyzer.processing.api.purity_analysis.model import (
-        GlobalVariable,
         ClassVariable,
+        GlobalVariable,
         InstanceVariable,
-        Parameter
+        Parameter,
     )
 
 
@@ -57,6 +57,7 @@ class Pure(PurityResult):
     A function is pure if it has no (External-, Internal-)Read nor (External-, Internal-)Write side effects.
     A pure function must also have no unknown reasons.
     """
+
     def update(self, other: PurityResult | None) -> PurityResult:
         return super()._update(other)
 
@@ -72,6 +73,7 @@ class Impure(PurityResult):
     Also, Impure != Pure since: not Pure would mean a function is either unknown or has at least one
     (External-, Internal-)Read (External-, Internal-) or Write side effect.
     """
+
     reasons: set[ImpurityReason]
 
     def update(self, other: PurityResult | None) -> PurityResult:
@@ -95,6 +97,7 @@ class Read(ImpurityReason, ABC):
 @dataclass
 class NonLocalVariableRead(Read):
     """Class for internal variable reads (GlobalVariable / global Fields)."""
+
     symbol: GlobalVariable | ClassVariable | InstanceVariable
 
     def __hash__(self) -> int:
@@ -104,6 +107,7 @@ class NonLocalVariableRead(Read):
 @dataclass
 class FileRead(Read):
     """Class for external variable reads (File / Database)."""
+
     source: Expression | None = None
 
     def __hash__(self) -> int:
@@ -117,6 +121,7 @@ class Write(ImpurityReason, ABC):
 @dataclass
 class NonLocalVariableWrite(Write):
     """Class for internal variable writes (GlobalVariable / global Fields)."""
+
     symbol: GlobalVariable | ClassVariable | InstanceVariable
 
     def __hash__(self) -> int:
@@ -126,6 +131,7 @@ class NonLocalVariableWrite(Write):
 @dataclass
 class FileWrite(Write):
     """Class for external variable writes (File / Database)."""
+
     source: Expression | None = None
 
     def __hash__(self) -> int:
@@ -142,6 +148,7 @@ class UnknownCall(Unknown):
 
     Since we cannot analyze unknown code, we mark it as unknown.
     """
+
     expression: Expression
 
     def __hash__(self) -> int:
@@ -154,6 +161,7 @@ class NativeCall(Unknown):  # ExternalCall
 
     Since we cannot analyze native code, we mark it as unknown.
     """
+
     expression: Expression
 
     def __hash__(self) -> int:
@@ -163,6 +171,7 @@ class NativeCall(Unknown):  # ExternalCall
 @dataclass
 class CallOfParameter(Unknown):  # ParameterCall
     """Class for parameter calls."""
+
     expression: Expression
 
     def __hash__(self) -> int:
@@ -180,12 +189,14 @@ class Expression(ABC):  # noqa: B024 # this is just a base class, and it is impo
 @dataclass
 class ParameterAccess(Expression):
     """Class for function parameter access."""
+
     parameter: Parameter
 
 
 @dataclass
 class StringLiteral(Expression):
     """Class for string literals."""
+
     value: str
 
 

@@ -1,33 +1,33 @@
 """Data model for purity analysis."""
 
 from library_analyzer.processing.api.purity_analysis.model._purity import (
+    CallOfParameter,
     Expression,
     FileRead,
     FileWrite,
+    Impure,
     ImpurityReason,
-    ParameterAccess,
-    StringLiteral,
+    NativeCall,
     NonLocalVariableRead,
     NonLocalVariableWrite,
-    PurityResult,
-    Impure,
-    Pure,
     OpenMode,
-    NativeCall,
+    ParameterAccess,
+    Pure,
+    PurityResult,
+    StringLiteral,
     UnknownCall,
-    CallOfParameter,
 )
 from library_analyzer.processing.api.purity_analysis.model._reference import (
-    ReferenceNode,
-    CallGraphNode,
     CallGraphForest,
+    CallGraphNode,
+    ReferenceNode,
 )
 from library_analyzer.processing.api.purity_analysis.model._scope import (
     Builtin,
     ClassScope,
-    FunctionScope,
-    FunctionReference,
     ClassVariable,
+    FunctionReference,
+    FunctionScope,
     GlobalVariable,
     Import,
     InstanceVariable,
@@ -38,9 +38,9 @@ from library_analyzer.processing.api.purity_analysis.model._scope import (
     ModuleData,
     NodeID,
     Parameter,
+    Reasons,
     Scope,
     Symbol,
-    Reasons,
 )
 
 __all__ = [

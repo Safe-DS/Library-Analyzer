@@ -201,23 +201,23 @@ def local_global_access():
             [ReferenceTestNode("glob1.line4", "FunctionDef.local_global_access", ["GlobalVariable.glob1.line2"])],
         ),
         # TODO: this case is disabled for merging to main [ENABLE AFTER MERGE]
-#         (  # language=Python "local variable in function scope shadowing global variable without global keyword"
-#             """
-# glob1 = 10
-# def local_global_shadow():
-#     glob1 = 20
-#
-#     return glob1
-#             """,  # language= None
-#             [
-#                 ReferenceTestNode(
-#                     "glob1.line6",
-#                     "FunctionDef.local_global_shadow",
-#                     ["GlobalVariable.glob1.line2", "GlobalVariable.glob1.line4"],
-#                 ),
-#                 ReferenceTestNode("glob1.line4", "FunctionDef.local_global_shadow", ["LocalVariable.glob1.line2"]),
-#             ],
-#         ),
+        #         (  # language=Python "local variable in function scope shadowing global variable without global keyword"
+        #             """
+        # glob1 = 10
+        # def local_global_shadow():
+        #     glob1 = 20
+        #
+        #     return glob1
+        #             """,  # language= None
+        #             [
+        #                 ReferenceTestNode(
+        #                     "glob1.line6",
+        #                     "FunctionDef.local_global_shadow",
+        #                     ["GlobalVariable.glob1.line2", "GlobalVariable.glob1.line4"],
+        #                 ),
+        #                 ReferenceTestNode("glob1.line4", "FunctionDef.local_global_shadow", ["LocalVariable.glob1.line2"]),
+        #             ],
+        #         ),
         (  # language=Python "two globals in class scope"
             """
 glob1 = 10

@@ -1,23 +1,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TypeVar, Generic, TYPE_CHECKING
+from typing import Generic, TypeVar
 
 import astroid
 
 from library_analyzer.processing.api.purity_analysis.model._scope import (
+    FunctionScope,
     MemberAccessTarget,
     MemberAccessValue,
+    Reasons,
     Scope,
     Symbol,
-    FunctionScope,
-    Reasons,
 )
-
-if TYPE_CHECKING:
-    from library_analyzer.processing.api.purity_analysis.model import (
-        PurityResult,
-    )
 
 
 @dataclass

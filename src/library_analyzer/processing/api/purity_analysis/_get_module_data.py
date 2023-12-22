@@ -6,8 +6,10 @@ from dataclasses import dataclass, field
 import astroid
 
 from library_analyzer.processing.api.purity_analysis.model import (
+    Builtin,
     ClassScope,
     ClassVariable,
+    FunctionReference,
     FunctionScope,
     GlobalVariable,
     Import,
@@ -19,11 +21,9 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ModuleData,
     NodeID,
     Parameter,
+    Reasons,
     Scope,
     Symbol,
-    FunctionReference,
-    Builtin,
-    Reasons,
 )
 from library_analyzer.utils import ASTWalker
 
@@ -57,9 +57,13 @@ class ModuleDataBuilder:
     calls: list[Scope | ClassScope | FunctionScope] = field(default_factory=list)
     classes: dict[str, ClassScope] = field(default_factory=dict)
     functions: dict[str, list[FunctionScope]] = field(default_factory=dict)
-    value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope | FunctionScope] = field(
+    value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope | FunctionScope] = field(
         default_factory=dict,
+    )
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope | FunctionScope] = (
+        field(
+            default_factory=dict,
+        )
     )
     global_variables: dict[str, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope | FunctionScope, set[astroid.AssignName]]] = field(
@@ -115,10 +119,12 @@ class ModuleDataBuilder:
         if isinstance(node, astroid.FunctionDef):
             # Extend the dict of functions with the current node or create a new list with the current node
             if node.name in self.functions:
-                if isinstance(self.current_node_stack[-1], FunctionScope):  # only add the current node if it is a function
+                if isinstance(
+                    self.current_node_stack[-1], FunctionScope,
+                ):  # only add the current node if it is a function
                     self.functions[node.name].append(self.current_node_stack[-1])
             else:  # noqa: PLR5501 # better for readability
-                if isinstance(self.current_node_stack[-1], FunctionScope):  # noqa: PLR5501 # better for readability
+                if isinstance(self.current_node_stack[-1], FunctionScope):  # better for readability
                     self.functions[node.name] = [self.current_node_stack[-1]]
 
             # If we deal with a constructor, we need to analyze it to find the instance variables of the class
@@ -148,7 +154,7 @@ class ModuleDataBuilder:
                 if isinstance(self.current_node_stack[-1], FunctionScope):
                     self.functions[node_name].append(self.current_node_stack[-1])
             else:  # noqa: PLR5501 # better for readability
-                if isinstance(self.current_node_stack[-1], FunctionScope):  # noqa: PLR5501 # better for readability
+                if isinstance(self.current_node_stack[-1], FunctionScope):  # better for readability
                     self.functions[node_name] = [self.current_node_stack[-1]]
 
             # Add all values that are used inside the function body to its values' list
@@ -162,7 +168,11 @@ class ModuleDataBuilder:
                 self.calls = []
 
         # Lambda Functions that have no name are hard to deal with- therefore, we simply add all of their names/calls to the parent of the Lambda node
-        if isinstance(node, astroid.Lambda) and not isinstance(node, astroid.FunctionDef) and isinstance(node.parent, astroid.Call):
+        if (
+            isinstance(node, astroid.Lambda)
+            and not isinstance(node, astroid.FunctionDef)
+            and isinstance(node.parent, astroid.Call)
+        ):
             # Add all values that are used inside the lambda body to its parent's values' list
             if self.names and isinstance(self.current_node_stack[-2], FunctionScope):
                 self.current_node_stack[-2].values = self.names
@@ -203,18 +213,21 @@ class ModuleDataBuilder:
                     for node in scopes:
                         for child in node.children:
                             if target.name == child.symbol.name and child in node.children:
-
                                 ref = FunctionReference(child.symbol.node, self.get_kind(child.symbol))
 
                                 if function_name in self.function_references:
                                     if ref not in self.function_references[function_name]:
                                         self.function_references[function_name].writes.add(ref)
                                 else:
-                                    self.function_references[function_name] = Reasons(function_node, {ref}, set(), set())  # Add writes
+                                    self.function_references[function_name] = Reasons(
+                                        function_node, {ref}, set(), set(),
+                                    )  # Add writes
 
             for value in self.value_nodes:
                 if isinstance(self.functions[function_name][0], FunctionScope):
-                    function_values = [val.symbol.node.name for val in self.functions[function_name][0].values]  # Since we do not differentiate between functions with the same name, we can choose the first one  # TODO: this is not correct
+                    function_values = [
+                        val.symbol.node.name for val in self.functions[function_name][0].values
+                    ]  # Since we do not differentiate between functions with the same name, we can choose the first one  # TODO: this is not correct
                     if value.name in function_values:
                         if value.name in self.global_variables:
                             # Get the correct symbol
@@ -229,7 +242,9 @@ class ModuleDataBuilder:
                             if function_name in self.function_references:
                                 self.function_references[function_name].reads.add(ref)
                             else:
-                                self.function_references[function_name] = Reasons(function_node, set(), {ref}, set())  # Add reads
+                                self.function_references[function_name] = Reasons(
+                                    function_node, set(), {ref}, set(),
+                                )  # Add reads
 
             for call in self.function_calls:
                 if isinstance(call.parent.parent, astroid.FunctionDef) and call.parent.parent.name == function_name:
@@ -245,7 +260,9 @@ class ModuleDataBuilder:
                     if function_name in self.function_references:
                         self.function_references[function_name].calls.add(ref)
                     else:
-                        self.function_references[function_name] = Reasons(function_node, set(), set(), {ref})  # Add calls
+                        self.function_references[function_name] = Reasons(
+                            function_node, set(), set(), {ref},
+                        )  # Add calls
 
             # Add function to function_references dict if it is not already in there
             if function_name not in self.function_references:
@@ -257,7 +274,6 @@ class ModuleDataBuilder:
 
             # TODO: add MemberAccessTarget and MemberAccessValue detection
             #  it should be easy to add filters later: check if a target exists inside a class before adding its impurity reasons to the impurity result
-        return None
 
     @staticmethod
     def get_kind(symbol: Symbol | None) -> str:  # type: ignore[return] # all cases are handled
@@ -420,7 +436,9 @@ class ModuleDataBuilder:
                     return LocalVariable(node=node, id=calc_node_id(node), name=node.func.name)
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
-            case astroid.TryExcept() | astroid.TryFinally():  # TODO: can we summarize Lambda and ListComp here? -> only if nodes in try except are not global
+            case (
+                astroid.TryExcept() | astroid.TryFinally()
+            ):  # TODO: can we summarize Lambda and ListComp here? -> only if nodes in try except are not global
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
         # This line is a fallback but should never be reached
@@ -738,16 +756,18 @@ class ModuleDataBuilder:
 
 
 def calc_node_id(
-    node: astroid.NodeNG
-    | astroid.Module
-    | astroid.ClassDef
-    | astroid.FunctionDef
-    | astroid.AssignName
-    | astroid.Name
-    | astroid.AssignAttr
-    | astroid.Import
-    | astroid.ImportFrom
-    | MemberAccess,
+    node: (
+        astroid.NodeNG
+        | astroid.Module
+        | astroid.ClassDef
+        | astroid.FunctionDef
+        | astroid.AssignName
+        | astroid.Name
+        | astroid.AssignAttr
+        | astroid.Import
+        | astroid.ImportFrom
+        | MemberAccess
+    ),
 ) -> NodeID:
     if isinstance(node, MemberAccess):
         module = node.receiver.root().name
