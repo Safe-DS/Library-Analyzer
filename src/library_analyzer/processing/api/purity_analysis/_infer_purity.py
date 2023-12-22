@@ -306,10 +306,10 @@ def infer_purity(
     return {key: value for key, value in purity_results.items() if not isinstance(key, str)}
 
 
-def process_node(
+def process_node(  # type: ignore[return] # all cases are handled
     reason: Reasons,
     references: dict[str, list[ReferenceNode]],
-    function_references: dict[str, Reasons],  # type: ignore[return] # all cases are handled
+    function_references: dict[str, Reasons],
     classes: dict[str, ClassScope],
     call_graph: CallGraphForest,
     purity_results: dict[astroid.FunctionDef, PurityResult],
