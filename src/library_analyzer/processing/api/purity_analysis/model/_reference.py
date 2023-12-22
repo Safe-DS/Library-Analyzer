@@ -78,8 +78,11 @@ class CallGraphForest:
     def add_graph(self, graph_name: str, graph: CallGraphNode) -> None:
         self.graphs[graph_name] = graph
 
-    def get_graph(self, graph_name: str) -> CallGraphNode | None:
-        return self.graphs.get(graph_name)  # this returns None if the key does not exist
+    def get_graph(self, graph_name: str) -> CallGraphNode:
+        try:
+            return self.graphs[graph_name]
+        except KeyError:
+            pass  # TODO: this is not a good idea, but it works - change this later
 
     def delete_graph(self, graph_name: str) -> None:
         del self.graphs[graph_name]
