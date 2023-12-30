@@ -222,17 +222,18 @@ class ModuleDataBuilder:
                 else:
                     self.current_node_stack[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
 
+    # TODO: make this return the function reference instead of none and add a function to FunctionReferences that checks if any calls are duplicated in the reads or writes and removes them
     def collect_function_references(self) -> None:
         python_builtins = dir(builtins)
 
-        for function_name, scopes in self.functions.items():
-            function_node = scopes[0].symbol.node
+        for function_name, function_scopes in self.functions.items():
+            function_def_node = function_scopes[0].symbol.node  # TODO this can has more than one entry - which we skip atm
             for target in self.target_nodes:  # Look at all target nodes
                 # Only look at global variables (for global reads)
                 if target.name in self.global_variables or isinstance(target, MemberAccessTarget):  # Filter out all non-global variables
-                    for node in scopes:
-                        for child in node.children:
-                            if target.name == child.symbol.name and child in node.children:
+                    for function_node in function_scopes:
+                        for child in function_node.children:
+                            if target.name == child.symbol.name and child in function_node.children:
                                 ref = FunctionReference(child.symbol.node, self.get_kind(child.symbol))
 
                                 if function_name in self.function_references:
@@ -240,7 +241,7 @@ class ModuleDataBuilder:
                                         self.function_references[function_name].writes.add(ref)
                                 else:
                                     self.function_references[function_name] = Reasons(
-                                        function_node,
+                                        function_def_node,
                                         {ref},
                                         set(),
                                         set(),
@@ -264,25 +265,42 @@ class ModuleDataBuilder:
                                 self.function_references[function_name].reads.add(ref)
                             else:
                                 self.function_references[function_name] = Reasons(
-                                    function_node,
+                                    function_def_node,
                                     set(),
                                     {ref},
                                     set(),
                                 )  # Add reads
 
+            def find_first_parent_function(node: astroid.NodeNG) -> astroid.NodeNG:
+                """Find the first parent of a call node that is a function.
+
+                If the parent is a module, return the module.
+                """
+                if isinstance(node.parent, astroid.FunctionDef | astroid.Module | None):
+                    return node.parent
+                return find_first_parent_function(node.parent)
+
             for call in self.function_calls:
-                if isinstance(call.parent.parent, astroid.FunctionDef) and call.parent.parent.name == function_name:
+                # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+                if isinstance(call.func, astroid.Attribute):
+                    call_func_name = call.func.attrname
+                else:
+                    call_func_name = call.func.name
+
+                parent_function = find_first_parent_function(call)
+                function_scopes_calls_names = [c.symbol.name for c in function_scopes[0].calls]
+                if call_func_name in function_scopes_calls_names and parent_function.name == function_name:
                     # get the correct symbol
                     sym = None
                     # check all self defined functions
-                    if call.func.name in self.functions:
-                        sym = self.functions[call.func.name][0].symbol
+                    if call_func_name in self.functions:
+                        sym = self.functions[call_func_name][0].symbol
                     # check all self defined classes
-                    elif call.func.name in self.classes:
-                        sym = self.classes[call.func.name].symbol
+                    elif call_func_name in self.classes:
+                        sym = self.classes[call_func_name].symbol
                     # check all builtins
-                    elif call.func.name in python_builtins:
-                        sym = Builtin(call, NodeID("builtins", call.func.name, 0, 0), call.func.name)
+                    elif call_func_name in python_builtins:
+                        sym = Builtin(call, NodeID("builtins", call_func_name, 0, 0), call_func_name)
 
                     ref = FunctionReference(call, self.get_kind(sym))
 
@@ -290,19 +308,19 @@ class ModuleDataBuilder:
                         self.function_references[function_name].calls.add(ref)
                     else:
                         self.function_references[function_name] = Reasons(
-                            function_node,
+                            function_def_node,
                             set(),
                             set(),
                             {ref},
                         )  # Add calls
 
-            # Add function to function_references dict if it is not already in there
+            # Add function to function_references dict if it is not already in there  TODO: when does this happen?
             if function_name not in self.function_references:
                 # This deals with Lambda functions assigned a name
-                if isinstance(function_node, astroid.Lambda) and not isinstance(function_node, astroid.FunctionDef):
-                    function_node.name = function_name
+                if isinstance(function_def_node, astroid.Lambda) and not isinstance(function_def_node, astroid.FunctionDef):
+                    function_def_node.name = function_name
 
-                self.function_references[function_name] = Reasons(function_node, set(), set(), set())
+                self.function_references[function_name] = Reasons(function_def_node, set(), set(), set())
 
             # TODO: add MemberAccessTarget and MemberAccessValue detection
             #  it should be easy to add filters later: check if a target exists inside a class before adding its impurity reasons to the impurity result
@@ -323,6 +341,10 @@ class ModuleDataBuilder:
                 return "NonLocalVariableRead"
         elif isinstance(symbol.node, astroid.FunctionDef | astroid.ClassDef) or isinstance(symbol, Builtin):
             return "Call"
+        elif isinstance(symbol.node, MemberAccessTarget):
+            return "MemberAccessTarget"  # we need to resolve the kind of the MemberAccessTarget later
+        elif isinstance(symbol.node, MemberAccessValue):
+            return "MemberAccessValue"  # we need to resolve the kind of the MemberAccessValue later
 
     def enter_module(self, node: astroid.Module) -> None:
         """
@@ -459,6 +481,9 @@ class ModuleDataBuilder:
                     return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
 
                 if isinstance(node, astroid.Call):
+                    # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+                    if isinstance(node.func, astroid.Attribute):
+                        return LocalVariable(node=node, id=calc_node_id(node), name=node.func.attrname)
                     return LocalVariable(node=node, id=calc_node_id(node), name=node.func.name)
 
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
@@ -717,7 +742,7 @@ class ModuleDataBuilder:
                 self.global_variables[name] = self.current_node_stack[-1]
 
     def enter_call(self, node: astroid.Call) -> None:
-        if isinstance(node.func, astroid.Name):
+        if isinstance(node.func, astroid.Name | astroid.Attribute):
             self.function_calls[node] = self.current_node_stack[-1]
 
             # Add the call node to the calls
@@ -805,6 +830,7 @@ def calc_node_id(
         | astroid.AssignAttr
         | astroid.Import
         | astroid.ImportFrom
+        | astroid.Call
         | MemberAccess
     ),
 ) -> NodeID:
@@ -835,6 +861,9 @@ def calc_node_id(
         case astroid.AssignAttr():
             return NodeID(module, node.attrname, node.lineno, node.col_offset)
         case astroid.Call():
+            # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+            if isinstance(node.func, astroid.Attribute):
+                return NodeID(module, node.func.attrname, node.lineno, node.col_offset)
             return NodeID(module, node.func.name, node.lineno, node.col_offset)
         case astroid.Lambda():
             return NodeID(module, "LAMBDA", node.lineno, node.col_offset)
@@ -907,7 +936,7 @@ def get_module_data(code: str) -> ModuleData:
     module_data_handler = ModuleDataBuilder()
     walker = ASTWalker(module_data_handler)
     module = astroid.parse(code)
-    # print(module.repr_tree())
+    print(module.repr_tree())
     walker.walk(module)
 
     scope = module_data_handler.children[0]  # Get the children of the root node, which are the scopes of the module

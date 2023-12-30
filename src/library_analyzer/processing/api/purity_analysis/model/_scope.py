@@ -45,7 +45,7 @@ class ModuleData:
 
 
 @dataclass
-class MemberAccess(astroid.NodeNG):
+class MemberAccess(astroid.NodeNG):  # TODO: since this is a subclass it should implement fromlineno and tolineno since they are expected as @cached_property
     receiver: MemberAccess | astroid.NodeNG
     member: astroid.NodeNG
     parent: astroid.NodeNG | None = field(default=None)
@@ -302,10 +302,17 @@ class Reasons:
 
     def get_call_by_name(self, name: str) -> FunctionReference:
         for call in self.calls:
-            if isinstance(call.node, astroid.Call) and call.node.func.name == name:  # noqa: SIM114
+            if isinstance(call.node, astroid.Call):
+                # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+                if isinstance(call.node.func, astroid.Attribute) and call.node.func.attrname == name:
+                    return call
                 return call
-            elif call.node.name == name:
-                return call
+            else:  # noqa: PLR5501
+                # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+                if isinstance(call.node.func, astroid.Attribute) and call.node.attrname == name:  # noqa: SIM114
+                    return call
+                elif call.node.name == name:
+                    return call
 
         raise ValueError("No call to the function found.")
 
@@ -342,6 +349,8 @@ class FunctionReference:  # TODO: find a better name for this class  # FunctionP
 
     def __repr__(self) -> str:
         if isinstance(self.node, astroid.Call):
+            if isinstance(self.node.func, astroid.Attribute):
+                return f"{self.node.func.attrname}.line{self.node.lineno}"
             return f"{self.node.func.name}.line{self.node.lineno}"
         if isinstance(self.node, MemberAccessTarget | MemberAccessValue):
             return f"{self.node.name}.line{self.node.member.lineno}"

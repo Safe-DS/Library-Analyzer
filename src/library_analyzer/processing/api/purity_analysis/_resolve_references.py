@@ -309,26 +309,32 @@ def _find_call_reference(
     call_references = [ReferenceNode(call, scope, []) for call, scope in function_calls.items()]
 
     for i, reference in enumerate(call_references):
+        # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+        if isinstance(reference.node.func, astroid.Attribute):
+            reference_node_name = reference.node.func.attrname
+        else:
+            reference_node_name = reference.node.func.name
+
         # Find functions that are called
-        if isinstance(reference.node.func, astroid.Name) and reference.node.func.name in functions:
-            function_def = functions.get(reference.node.func.name)
+        if isinstance(reference.node.func, astroid.Name) and reference_node_name in functions:
+            function_def = functions.get(reference_node_name)
             symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but we check for it
             call_references[i].referenced_symbols.extend(symbols)
             add_reference()
 
         # Find classes that are called (initialized)
-        elif reference.node.func.name in classes:
-            symbol = classes.get(reference.node.func.name)
+        elif reference_node_name in classes:
+            symbol = classes.get(reference_node_name)
             if symbol:
                 call_references[i].referenced_symbols.append(symbol.symbol)
             add_reference()
 
         # Find builtins that are called
-        if reference.node.func.name in python_builtins:
+        if reference_node_name in python_builtins:
             builtin_call = Builtin(
                 reference.node,
-                NodeID("builtins", reference.node.func.name, 0, 0),
-                reference.node.func.name,
+                NodeID("builtins", reference_node_name, 0, 0),
+                reference_node_name,
             )
             call_references[i].referenced_symbols.append(builtin_call)
             add_reference()
@@ -340,7 +346,7 @@ def _find_call_reference(
         if parameters:
             for func_def, (_scope, parameter_set) in parameters.items():
                 for param in parameter_set:
-                    if reference.node.func.name == param.name and reference.scope.symbol.node == func_def:
+                    if reference_node_name == param.name and reference.scope.symbol.node == func_def:
                         for child in parameters.get(func_def)[0].children:  # type: ignore[index] # "None" is not index-able, but we check for it
                             if child.symbol.node.name == param.name:
                                 call_references[i].referenced_symbols.append(child.symbol)

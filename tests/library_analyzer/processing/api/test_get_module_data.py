@@ -1577,7 +1577,7 @@ def g():
                 "f": SimpleReasons(
                     "f",
                     {
-                        SimpleFunctionReference("MemberAccessTarget.a.class_attr1.line7", "NonLocalVariableWrite"),
+                        SimpleFunctionReference("MemberAccessTarget.a.class_attr1.line7", "MemberAccessTarget"),
                     },
                     set(),
                     {
@@ -1588,7 +1588,7 @@ def g():
                     "g",
                     set(),
                     {
-                        SimpleFunctionReference("MemberAccessValue.a.class_attr1.line11", "NonLocalVariableRead"),
+                        SimpleFunctionReference("MemberAccessValue.a.class_attr1.line11", "MemberAccessValue"),
                     },
                     {
                         SimpleFunctionReference("Call.A.line10", "Call"),
@@ -1631,7 +1631,7 @@ def g3():
                 ),
                 "f1": SimpleReasons(
                     "f1", {
-                        SimpleFunctionReference("MemberAccessTarget.a.instance_attr1.line8", "NonLocalVariableWrite"),
+                        SimpleFunctionReference("MemberAccessTarget.a.instance_attr1.line8", "MemberAccessTarget"),
                     },
                     set(),
                     {SimpleFunctionReference("Call.A.line7", "Call")}
@@ -1639,32 +1639,32 @@ def g3():
                 "f2": SimpleReasons(
                     "f2",
                     {
-                        SimpleFunctionReference("MemberAccessTarget.x.instance_attr1.line12", "NonLocalVariableWrite"),
+                        SimpleFunctionReference("MemberAccessTarget.x.instance_attr1.line12", "MemberAccessTarget"),
                     },
                 ),
                 "f3": SimpleReasons(
                     "f3",
                     {
-                        SimpleFunctionReference("MemberAccessTarget.b.instance_attr1.line16", "NonLocalVariableWrite"),
+                        SimpleFunctionReference("MemberAccessTarget.b.instance_attr1.line16", "MemberAccessTarget"),
                     },
                 ),
                 "g1": SimpleReasons(
                     "g1", set(), {
-                        SimpleFunctionReference("MemberAccessValue.a.instance_attr1.line20", "NonLocalVariableWrite"),
+                        SimpleFunctionReference("MemberAccessValue.a.instance_attr1.line20", "MemberAccessValue"),
                     }, {SimpleFunctionReference("Call.A.line19", "Call")}
                 ),
                 "g2": SimpleReasons(
                     "g2",
                     set(),
                     {
-                        SimpleFunctionReference("MemberAccessValue.x.instance_attr1.line23", "NonLocalVariableRead"),
+                        SimpleFunctionReference("MemberAccessValue.x.instance_attr1.line23", "MemberAccessValue"),
                     },
                 ),
                 "g3": SimpleReasons(
                     "g3",
                     set(),
                     {
-                        SimpleFunctionReference("MemberAccessValue.b.instance_attr1.line27", "NonLocalVariableRead"),
+                        SimpleFunctionReference("MemberAccessValue.b.instance_attr1.line27", "MemberAccessValue"),
                     },
                 ),
             },
@@ -1690,15 +1690,21 @@ def f():
                 "__init__": SimpleReasons(
                     "__init__"
                 ),
+                "set_name": SimpleReasons(
+                    "set_name",
+                    {SimpleFunctionReference("MemberAccessTarget.self.name.line7", "MemberAccessTarget")}
+                ),
                 "f": SimpleReasons(
                     "f",
-                    {
-                        SimpleFunctionReference("MemberAccessTarget.b.upper_class.name.line14", "NonLocalVariableRead"),  # TODO: LARS what do we want here?
-                    },
                     set(),
                     {
+                        SimpleFunctionReference("MemberAccessValue.b.upper_class.name.line14", "MemberAccessValue"),
+                        SimpleFunctionReference("MemberAccessValue.b.upper_class.line14", "MemberAccessValue"),
+                        SimpleFunctionReference("MemberAccessValue.b.upper_class.line15", "MemberAccessValue"),
+                    },
+                    {
                         SimpleFunctionReference("Call.B.line13", "Call"),
-                        SimpleFunctionReference("Call.b.upper_class.set_name.line15", "Call"),
+                        SimpleFunctionReference("Call.set_name.line15", "Call"),
                     }
                 ),
             }
@@ -1731,7 +1737,7 @@ def g():
                     set(),
                     {
                         SimpleFunctionReference("Call.A.line13", "Call"),
-                        SimpleFunctionReference("Call.A.class_attr1.f.line14", "Call"),
+                        SimpleFunctionReference("Call.f.line13", "Call"),
                     }
                 ),
             }
@@ -1848,6 +1854,10 @@ def transform_function_references(function_calls: dict[str, Reasons]) -> dict[st
                     for function_reference in function_references.reads
                 },
                 {
+                    SimpleFunctionReference(
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.func.attrname}.line{function_reference.node.fromlineno}",
+                        function_reference.kind,
+                    ) if isinstance(function_reference.node.func, astroid.Attribute) else
                     SimpleFunctionReference(
                         f"{function_reference.node.__class__.__name__}.{function_reference.node.func.name}.line{function_reference.node.fromlineno}",
                         function_reference.kind,

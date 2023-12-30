@@ -233,44 +233,51 @@ def check_open_like_functions(func_ref: FunctionReference) -> PurityResult:  # t
 
     """
     # Check if we deal with the open function
-    if isinstance(func_ref.node, astroid.Call) and func_ref.node.func.name == "open":
-        open_mode_str: str = "r"
-        open_mode: OpenMode | None = None
-        # Check if a mode is set and if the value is a string literal
-        if len(func_ref.node.args) >= 2 and isinstance(func_ref.node.args[1], astroid.Const):
-            if func_ref.node.args[1].value in OPEN_MODES:
-                open_mode_str = func_ref.node.args[1].value
-        # We exclude the case where the mode is a variable since we cannot determine the mode in this case,
-        # therefore, we set it to be the worst case (read and write)
-        elif len(func_ref.node.args) == 2 and not isinstance(func_ref.node.args[1], astroid.Const):
-            open_mode = OpenMode.READ_WRITE
-
-        # We need to check if the file name is a variable or a string literal
-        if isinstance(func_ref.node.args[0], astroid.Name):
-            file_var = func_ref.node.args[0].name
-            if not open_mode:
-                open_mode = OPEN_MODES[open_mode_str]
-            match open_mode:
-                case OpenMode.READ:
-                    return Impure({FileRead(ParameterAccess(file_var))})
-                case OpenMode.WRITE:
-                    return Impure({FileWrite(ParameterAccess(file_var))})
-                case OpenMode.READ_WRITE:
-                    return Impure({FileRead(ParameterAccess(file_var)), FileWrite(ParameterAccess(file_var))})
-
-        # The file name is a string literal
+    if isinstance(func_ref.node, astroid.Call):
+        # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+        if isinstance(func_ref.node.func, astroid.Attribute):
+            func_ref_node_func_name = func_ref.node.func.attrname
         else:
-            file_str = func_ref.node.args[0].value
-            open_mode = OPEN_MODES[open_mode_str]
-            match open_mode:
-                case OpenMode.READ:
-                    return Impure({FileRead(StringLiteral(file_str))})
-                case OpenMode.WRITE:
-                    return Impure({FileWrite(StringLiteral(file_str))})
-                case OpenMode.READ_WRITE:
-                    return Impure({FileRead(StringLiteral(file_str)), FileWrite(StringLiteral(file_str))})
-    else:
-        pass  # TODO: [Later] for now it is good enough to deal with open() only, but we MAYBE need to deal with the other open-like functions too
+            func_ref_node_func_name = func_ref.node.func.name
+
+        if func_ref_node_func_name == "open":
+            open_mode_str: str = "r"
+            open_mode: OpenMode | None = None
+            # Check if a mode is set and if the value is a string literal
+            if len(func_ref.node.args) >= 2 and isinstance(func_ref.node.args[1], astroid.Const):
+                if func_ref.node.args[1].value in OPEN_MODES:
+                    open_mode_str = func_ref.node.args[1].value
+            # We exclude the case where the mode is a variable since we cannot determine the mode in this case,
+            # therefore, we set it to be the worst case (read and write)
+            elif len(func_ref.node.args) == 2 and not isinstance(func_ref.node.args[1], astroid.Const):
+                open_mode = OpenMode.READ_WRITE
+
+            # We need to check if the file name is a variable or a string literal
+            if isinstance(func_ref.node.args[0], astroid.Name):
+                file_var = func_ref.node.args[0].name
+                if not open_mode:
+                    open_mode = OPEN_MODES[open_mode_str]
+                match open_mode:
+                    case OpenMode.READ:
+                        return Impure({FileRead(ParameterAccess(file_var))})
+                    case OpenMode.WRITE:
+                        return Impure({FileWrite(ParameterAccess(file_var))})
+                    case OpenMode.READ_WRITE:
+                        return Impure({FileRead(ParameterAccess(file_var)), FileWrite(ParameterAccess(file_var))})
+
+            # The file name is a string literal
+            else:
+                file_str = func_ref.node.args[0].value
+                open_mode = OPEN_MODES[open_mode_str]
+                match open_mode:
+                    case OpenMode.READ:
+                        return Impure({FileRead(StringLiteral(file_str))})
+                    case OpenMode.WRITE:
+                        return Impure({FileWrite(StringLiteral(file_str))})
+                    case OpenMode.READ_WRITE:
+                        return Impure({FileRead(StringLiteral(file_str)), FileWrite(StringLiteral(file_str))})
+        else:
+            pass  # TODO: [Later] for now it is good enough to deal with open() only, but we MAYBE need to deal with the other open-like functions too
 
 
 def infer_purity(
@@ -574,13 +581,18 @@ def transform_reasons_to_impurity_result(
 
         if reasons.unknown_calls:
             for unknown_call in reasons.unknown_calls:
+                # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+                if isinstance(unknown_call.func, astroid.Attribute):
+                    unknown_call_func_name = unknown_call.func.attrname
+                else:
+                    unknown_call_func_name = unknown_call.func.name
                 if not classes:
-                    impurity_reasons.add(UnknownCall(StringLiteral(unknown_call.func.name)))
+                    impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
                 else:  # noqa: PLR5501 # better for readability
-                    if unknown_call.func.name in classes:  # better for readability
+                    if unknown_call_func_name in classes:  # better for readability
                         pass  # TODO: Handle class instantiations here
                     else:
-                        impurity_reasons.add(UnknownCall(StringLiteral(unknown_call.func.name)))
+                        impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
 
         if impurity_reasons:
             return Impure(impurity_reasons)
