@@ -257,13 +257,16 @@ class ModuleDataBuilder:
 
         python_builtins = dir(builtins)
         function_references: dict[str, Reasons] = {}
-
+        # TODO: we store the results in a dict with a string as key
+        #  -> if there are multiple functions with the same name, we only get the results of the first one
         for function_name, function_scopes in self.functions.items():
-            function_def_node = function_scopes[0].symbol.node  # TODO this can has more than one entry - which we skip atm
-            for target in self.target_nodes:  # Look at all target nodes
-                # Only look at global variables (for global reads)
-                if target.name in self.global_variables or isinstance(target, MemberAccessTarget):  # Filter out all non-global variables
-                    for function_node in function_scopes:
+            for function_node in function_scopes:  # iterate over all functions with the same name
+                function_def_node = function_node.symbol.node
+
+                # Look at all target nodes and check if they are used in the function body
+                for target in self.target_nodes:
+                    # Only look at global variables (for global reads)
+                    if target.name in self.global_variables or isinstance(target, MemberAccessTarget):  # Filter out all non-global variables
                         for child in function_node.children:
                             if target.name == child.symbol.name and child in function_node.children:
                                 ref = FunctionReference(child.symbol.node, self.get_kind(child.symbol))
@@ -279,71 +282,73 @@ class ModuleDataBuilder:
                                         set(),
                                     )  # Add writes
 
-            for value in self.value_nodes:
-                if isinstance(self.functions[function_name][0], FunctionScope):
-                    function_values = self.get_function_values(function_name)  # Since we do not differentiate between functions with the same name, we can choose the first one  # TODO: this is not correct. also cache this since it is called multiple times
-                    if value.name in function_values:
-                        if value.name in self.global_variables or isinstance(value, MemberAccessValue):
-                            # Get the correct symbol
-                            sym = None
-                            if isinstance(self.value_nodes[value], FunctionScope):
-                                for v in self.value_nodes[value].values:  # type: ignore[union-attr] # we can ignore the linter error because of the if statement above
-                                    if v.symbol.node == value:
-                                        sym = v.symbol
+                # Look at all value nodes and check if they are used in the function body
+                for value in self.value_nodes:
+                    if isinstance(self.functions[function_name][0], FunctionScope):
+                        function_values = self.get_function_values(function_name)  # Since we do not differentiate between functions with the same name, we can choose the first one  # TODO: this is not correct. also cache this since it is called multiple times
+                        if value.name in function_values:
+                            if value.name in self.global_variables or isinstance(value, MemberAccessValue):
+                                # Get the correct symbol
+                                sym = None
+                                if isinstance(self.value_nodes[value], FunctionScope):
+                                    for v in self.value_nodes[value].values:  # type: ignore[union-attr] # we can ignore the linter error because of the if statement above
+                                        if v.symbol.node == value:
+                                            sym = v.symbol
 
-                            ref = FunctionReference(value, self.get_kind(sym))
+                                ref = FunctionReference(value, self.get_kind(sym))
 
-                            if function_name in function_references:  # check if the function is already in the dict
-                                function_references[function_name].reads.add(ref)
-                            else:  # create a new entry in the dict
-                                function_references[function_name] = Reasons(
-                                    function_def_node,
-                                    set(),
-                                    {ref},
-                                    set(),
-                                )  # Add reads
+                                if function_name in function_references:  # check if the function is already in the dict
+                                    function_references[function_name].reads.add(ref)
+                                else:  # create a new entry in the dict
+                                    function_references[function_name] = Reasons(
+                                        function_def_node,
+                                        set(),
+                                        {ref},
+                                        set(),
+                                    )  # Add reads
 
-            for call in self.function_calls:
-                # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
-                if isinstance(call.func, astroid.Attribute):
-                    call_func_name = call.func.attrname
-                else:
-                    call_func_name = call.func.name
+                # Look at all calls and check if they are used in the function body
+                for call in self.function_calls:
+                    # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+                    if isinstance(call.func, astroid.Attribute):
+                        call_func_name = call.func.attrname
+                    else:
+                        call_func_name = call.func.name
 
-                parent_function = find_first_parent_function(call)
-                function_scopes_calls_names = [c.symbol.name for c in function_scopes[0].calls]
-                if call_func_name in function_scopes_calls_names and parent_function.name == function_name:
-                    # get the correct symbol
-                    sym = None
-                    # check all self defined functions
-                    if call_func_name in self.functions:
-                        sym = self.functions[call_func_name][0].symbol
-                    # check all self defined classes
-                    elif call_func_name in self.classes:
-                        sym = self.classes[call_func_name].symbol
-                    # check all builtins
-                    elif call_func_name in python_builtins:
-                        sym = Builtin(call, NodeID("builtins", call_func_name, 0, 0), call_func_name)
+                    parent_function = find_first_parent_function(call)
+                    function_scopes_calls_names = [c.symbol.name for c in function_scopes[0].calls]
+                    if call_func_name in function_scopes_calls_names and parent_function.name == function_name:
+                        # get the correct symbol
+                        sym = None
+                        # check all self defined functions
+                        if call_func_name in self.functions:
+                            sym = self.functions[call_func_name][0].symbol
+                        # check all self defined classes
+                        elif call_func_name in self.classes:
+                            sym = self.classes[call_func_name].symbol
+                        # check all builtins
+                        elif call_func_name in python_builtins:
+                            sym = Builtin(call, NodeID("builtins", call_func_name, 0, 0), call_func_name)
 
-                    ref = FunctionReference(call, self.get_kind(sym))
+                        ref = FunctionReference(call, self.get_kind(sym))
 
-                    if function_name in function_references:  # check if the function is already in the dict
-                        function_references[function_name].calls.add(ref)
-                    else:  # create a new entry in the dict
-                        function_references[function_name] = Reasons(
-                            function_def_node,
-                            set(),
-                            set(),
-                            {ref},
-                        )  # Add calls
+                        if function_name in function_references:  # check if the function is already in the dict
+                            function_references[function_name].calls.add(ref)
+                        else:  # create a new entry in the dict
+                            function_references[function_name] = Reasons(
+                                function_def_node,
+                                set(),
+                                set(),
+                                {ref},
+                            )  # Add calls
 
-            # Add function to function_references dict if it is not already in there  TODO: when does this happen?
-            if function_name not in function_references:
-                # This deals with Lambda functions assigned a name
-                if isinstance(function_def_node, astroid.Lambda) and not isinstance(function_def_node, astroid.FunctionDef):
-                    function_def_node.name = function_name
+                # Add function to function_references dict if it is not already in there  TODO: when does this happen?
+                if function_name not in function_references:
+                    # This deals with Lambda functions assigned a name
+                    if isinstance(function_def_node, astroid.Lambda) and not isinstance(function_def_node, astroid.FunctionDef):
+                        function_def_node.name = function_name
 
-                function_references[function_name] = Reasons(function_def_node, set(), set(), set())
+                    function_references[function_name] = Reasons(function_def_node, set(), set(), set())
 
             # TODO: add MemberAccessTarget and MemberAccessValue detection
             #  it should be easy to add filters later: check if a target exists inside a class before adding its impurity reasons to the impurity result
