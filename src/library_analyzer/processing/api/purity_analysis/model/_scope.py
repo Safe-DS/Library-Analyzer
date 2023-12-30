@@ -338,6 +338,36 @@ class Reasons:
             reasons_list[0].join_reasons(reason)
         return reasons_list[0]
 
+    def remove_class_method_calls_from_reads(self) -> None:
+        """Remove all class method calls from the read set.
+
+        After all read, write and call sets have been filled, we can remove all class method calls from the read sets.
+        This is necessary because class method calls are not considered to be read operations.
+        This is achieved by comparing the call names and lines with the read names and lines and removing the reads if they match.
+        """
+        call_names_and_lines: set[tuple[str, int]] = set()
+        for call in self.calls:
+            if isinstance(call.node, astroid.Call):
+                if isinstance(call.node.func, astroid.Attribute):
+                    name_line_tuple = (call.node.func.attrname, call.node.fromlineno)
+                else:
+                    name_line_tuple = (call.node.func.name, call.node.lineno)
+
+                call_names_and_lines.add(name_line_tuple)
+
+        filtered_reads: set[FunctionReference] = set()
+
+        for read in self.reads:
+            if not any(  # check if the read is a class method call, differentiate between MemberAccessValue and normal Name
+                f".{call_name}." in f".{read.node.name}." and read.node.member.fromlineno == call_line
+                if isinstance(read.node, MemberAccessValue)
+                else f".{call_name}." in f".{read.node.name}." and read.node.lineno == call_line
+                for call_name, call_line in call_names_and_lines
+            ):
+                filtered_reads.add(read)
+
+        self.reads = filtered_reads
+
 
 @dataclass
 class FunctionReference:  # TODO: find a better name for this class  # FunctionPointer?

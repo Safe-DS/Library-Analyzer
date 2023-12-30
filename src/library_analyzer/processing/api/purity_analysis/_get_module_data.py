@@ -222,7 +222,6 @@ class ModuleDataBuilder:
                 else:
                     self.current_node_stack[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
 
-    # TODO: add a function to FunctionReferences that checks if any calls are duplicated in the reads or writes and removes them
     def collect_function_references(self) -> dict[str, Reasons]:
         """Collect all function references in the module.
 
@@ -269,10 +268,10 @@ class ModuleDataBuilder:
                             if target.name == child.symbol.name and child in function_node.children:
                                 ref = FunctionReference(child.symbol.node, self.get_kind(child.symbol))
 
-                                if function_name in function_references:
+                                if function_name in function_references:  # check if the function is already in the dict
                                     if ref not in function_references[function_name]:
                                         function_references[function_name].writes.add(ref)
-                                else:
+                                else:  # create a new entry in the dict
                                     function_references[function_name] = Reasons(
                                         function_def_node,
                                         {ref},
@@ -294,9 +293,9 @@ class ModuleDataBuilder:
 
                             ref = FunctionReference(value, self.get_kind(sym))
 
-                            if function_name in function_references:
+                            if function_name in function_references:  # check if the function is already in the dict
                                 function_references[function_name].reads.add(ref)
-                            else:
+                            else:  # create a new entry in the dict
                                 function_references[function_name] = Reasons(
                                     function_def_node,
                                     set(),
@@ -328,9 +327,9 @@ class ModuleDataBuilder:
 
                     ref = FunctionReference(call, self.get_kind(sym))
 
-                    if function_name in function_references:
+                    if function_name in function_references:  # check if the function is already in the dict
                         function_references[function_name].calls.add(ref)
-                    else:
+                    else:  # create a new entry in the dict
                         function_references[function_name] = Reasons(
                             function_def_node,
                             set(),
@@ -349,6 +348,11 @@ class ModuleDataBuilder:
             # TODO: add MemberAccessTarget and MemberAccessValue detection
             #  it should be easy to add filters later: check if a target exists inside a class before adding its impurity reasons to the impurity result
 
+        # remove duplicate calls from reads
+        if self.function_calls:
+            for ref in function_references.values():
+                if ref.calls and ref.reads:
+                    ref.remove_class_method_calls_from_reads()
         return function_references
 
     @staticmethod
