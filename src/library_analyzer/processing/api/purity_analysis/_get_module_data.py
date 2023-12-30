@@ -107,7 +107,7 @@ class ModuleDataBuilder:
             inner_scope_children = self.children
 
             # add all symbols of a function to the function_references dict
-            self.collect_function_references()
+            self.function_references = self.collect_function_references()
 
         # We need to look at a nodes' parent node to determine if it is in the scope of the current node.
         else:
@@ -222,9 +222,42 @@ class ModuleDataBuilder:
                 else:
                     self.current_node_stack[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
 
-    # TODO: make this return the function reference instead of none and add a function to FunctionReferences that checks if any calls are duplicated in the reads or writes and removes them
-    def collect_function_references(self) -> None:
+    # TODO: add a function to FunctionReferences that checks if any calls are duplicated in the reads or writes and removes them
+    def collect_function_references(self) -> dict[str, Reasons]:
+        """Collect all function references in the module.
+
+        This function must only be called after the scope of all nodes has been determined,
+        and the module scope is the current node.
+        Iterate over all functions and find all function references in the module.
+        Therefore, we loop over all target nodes and check if they are used in the function body of each function.
+        The same is done for all value nodes and all calls/class initializations.
+
+        Returns
+        -------
+        dict[str, Reasons]
+            A dict containing all function references in the module.
+            The dict is structured as follows:
+            {
+                "function_name": Reasons(
+                    function_def_node,
+                    {FunctionReference}, # writes
+                    {FunctionReference}, # reads
+                    {FunctionReference}, # calls
+                )
+                ...
+            }
+        """
+        def find_first_parent_function(node: astroid.NodeNG) -> astroid.NodeNG:
+            """Find the first parent of a call node that is a function.
+
+            If the parent is a module, return the module.
+            """
+            if isinstance(node.parent, astroid.FunctionDef | astroid.Module | None):
+                return node.parent
+            return find_first_parent_function(node.parent)
+
         python_builtins = dir(builtins)
+        function_references: dict[str, Reasons] = {}
 
         for function_name, function_scopes in self.functions.items():
             function_def_node = function_scopes[0].symbol.node  # TODO this can has more than one entry - which we skip atm
@@ -236,11 +269,11 @@ class ModuleDataBuilder:
                             if target.name == child.symbol.name and child in function_node.children:
                                 ref = FunctionReference(child.symbol.node, self.get_kind(child.symbol))
 
-                                if function_name in self.function_references:
-                                    if ref not in self.function_references[function_name]:
-                                        self.function_references[function_name].writes.add(ref)
+                                if function_name in function_references:
+                                    if ref not in function_references[function_name]:
+                                        function_references[function_name].writes.add(ref)
                                 else:
-                                    self.function_references[function_name] = Reasons(
+                                    function_references[function_name] = Reasons(
                                         function_def_node,
                                         {ref},
                                         set(),
@@ -261,24 +294,15 @@ class ModuleDataBuilder:
 
                             ref = FunctionReference(value, self.get_kind(sym))
 
-                            if function_name in self.function_references:
-                                self.function_references[function_name].reads.add(ref)
+                            if function_name in function_references:
+                                function_references[function_name].reads.add(ref)
                             else:
-                                self.function_references[function_name] = Reasons(
+                                function_references[function_name] = Reasons(
                                     function_def_node,
                                     set(),
                                     {ref},
                                     set(),
                                 )  # Add reads
-
-            def find_first_parent_function(node: astroid.NodeNG) -> astroid.NodeNG:
-                """Find the first parent of a call node that is a function.
-
-                If the parent is a module, return the module.
-                """
-                if isinstance(node.parent, astroid.FunctionDef | astroid.Module | None):
-                    return node.parent
-                return find_first_parent_function(node.parent)
 
             for call in self.function_calls:
                 # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
@@ -304,10 +328,10 @@ class ModuleDataBuilder:
 
                     ref = FunctionReference(call, self.get_kind(sym))
 
-                    if function_name in self.function_references:
-                        self.function_references[function_name].calls.add(ref)
+                    if function_name in function_references:
+                        function_references[function_name].calls.add(ref)
                     else:
-                        self.function_references[function_name] = Reasons(
+                        function_references[function_name] = Reasons(
                             function_def_node,
                             set(),
                             set(),
@@ -315,15 +339,17 @@ class ModuleDataBuilder:
                         )  # Add calls
 
             # Add function to function_references dict if it is not already in there  TODO: when does this happen?
-            if function_name not in self.function_references:
+            if function_name not in function_references:
                 # This deals with Lambda functions assigned a name
                 if isinstance(function_def_node, astroid.Lambda) and not isinstance(function_def_node, astroid.FunctionDef):
                     function_def_node.name = function_name
 
-                self.function_references[function_name] = Reasons(function_def_node, set(), set(), set())
+                function_references[function_name] = Reasons(function_def_node, set(), set(), set())
 
             # TODO: add MemberAccessTarget and MemberAccessValue detection
             #  it should be easy to add filters later: check if a target exists inside a class before adding its impurity reasons to the impurity result
+
+        return function_references
 
     @staticmethod
     def get_kind(symbol: Symbol | None) -> str:
