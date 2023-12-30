@@ -27,7 +27,7 @@ def build_call_graph(
     # Returns
     # -------
     #     * call_graph_forest: the call graph forest with cycles contracted
-    # """  # TODO: fix whaterver is wrong with the docstring
+    # """  # TODO: fix whatever is wrong with the docstring
     call_graph_forest = CallGraphForest()
 
     for function_name, function_scopes in functions.items():

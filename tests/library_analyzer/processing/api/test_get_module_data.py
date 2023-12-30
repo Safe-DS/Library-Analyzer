@@ -33,6 +33,11 @@ class SimpleClassScope(SimpleScope):
 
 
 @dataclass
+class SimpleFunctionScope(SimpleScope):
+    pass  # TODO: add function scope
+
+
+@dataclass
 class SimpleReasons:
     function_name: str
     writes: set[SimpleFunctionReference] = field(default_factory=set)
@@ -1530,8 +1535,280 @@ def f():
                 "g": SimpleReasons("g", set(), set(), set()),
             },
         ),
+        (  # language=Python "control flow statements"
+            """
+b = 1
+c = 0
+
+def f():
+    global b, c
+    if b > 1:  # we ignore all control flow statements
+        a = 1  # LocaleWrite
+    else:
+        c = 2  # NonLocalVariableWrite
+
+    while a < 10:  # we ignore all control flow statements
+        b += 1  # NonLocalVariableWrite
+            """,  # language=none
+            {
+                "f": SimpleReasons(
+                    "f",
+                    {
+                        SimpleFunctionReference("AssignName.c.line10", "NonLocalVariableWrite"),
+                        SimpleFunctionReference("AssignName.b.line13", "NonLocalVariableWrite"),
+                    },
+                ),
+            },
+        ),
+        (  # language=Python "class attribute"
+            """
+class A:
+    class_attr1 = 20
+
+def f():
+    a = A()
+    a.class_attr1 = 10  # NonLocalVariableWrite
+
+def g():
+    a = A()
+    c = a.class_attr1  # NonLocalVariableRead
+            """,  # language=none
+            {
+                "f": SimpleReasons(
+                    "f",
+                    {
+                        SimpleFunctionReference("MemberAccessTarget.a.class_attr1.line7", "NonLocalVariableWrite"),
+                    },
+                    set(),
+                    {
+                        SimpleFunctionReference("Call.A.line6", "Call"),
+                    }
+                ),
+                "g": SimpleReasons(
+                    "g",
+                    set(),
+                    {
+                        SimpleFunctionReference("MemberAccessValue.a.class_attr1.line11", "NonLocalVariableRead"),
+                    },
+                    {
+                        SimpleFunctionReference("Call.A.line10", "Call"),
+                    }
+                ),
+            },
+        ),
+        (  # language=Python "instance attribute"
+            """
+class A:
+    def __init__(self):
+        self.instance_attr1 = 20
+
+def f1():
+    a = A()
+    a.instance_attr1 = 10  # NonLocalVariableWrite  # TODO [Later] we should detect that this is a local variable
+
+b = A()
+def f2(x):
+    x.instance_attr1 = 10  # NonLocalVariableWrite
+
+def f3():
+    global b
+    b.instance_attr1 = 10  # NonLocalVariableWrite
+
+def g1():
+    a = A()
+    c = a.instance_attr1  # NonLocalVariableWrite  # TODO [Later] we should detect that this is a local variable
+
+def g2(x):
+    c = x.instance_attr1  # NonLocalVariableRead
+
+def g3():
+    global b
+    c = b.instance_attr1  # NonLocalVariableRead
+            """,  # language=none
+            {
+                "__init__": SimpleReasons(
+                    "__init__"
+                ),
+                "f1": SimpleReasons(
+                    "f1", {
+                        SimpleFunctionReference("MemberAccessTarget.a.instance_attr1.line8", "NonLocalVariableWrite"),
+                    },
+                    set(),
+                    {SimpleFunctionReference("Call.A.line7", "Call")}
+                ),
+                "f2": SimpleReasons(
+                    "f2",
+                    {
+                        SimpleFunctionReference("MemberAccessTarget.x.instance_attr1.line12", "NonLocalVariableWrite"),
+                    },
+                ),
+                "f3": SimpleReasons(
+                    "f3",
+                    {
+                        SimpleFunctionReference("MemberAccessTarget.b.instance_attr1.line16", "NonLocalVariableWrite"),
+                    },
+                ),
+                "g1": SimpleReasons(
+                    "g1", set(), {
+                        SimpleFunctionReference("MemberAccessValue.a.instance_attr1.line20", "NonLocalVariableWrite"),
+                    }, {SimpleFunctionReference("Call.A.line19", "Call")}
+                ),
+                "g2": SimpleReasons(
+                    "g2",
+                    set(),
+                    {
+                        SimpleFunctionReference("MemberAccessValue.x.instance_attr1.line23", "NonLocalVariableRead"),
+                    },
+                ),
+                "g3": SimpleReasons(
+                    "g3",
+                    set(),
+                    {
+                        SimpleFunctionReference("MemberAccessValue.b.instance_attr1.line27", "NonLocalVariableRead"),
+                    },
+                ),
+            },
+        ),
+        (  # language=Python "chained attributes"
+            """
+class A:
+    def __init__(self):
+        self.name = 10
+
+    def set_name(self, name):
+        self.name = name
+
+class B:
+    upper_class: A = A()
+
+def f():
+    b = B()
+    x = b.upper_class.name
+    b.upper_class.set_name("test")
+            """,  # language=none
+            {
+                "__init__": SimpleReasons(
+                    "__init__"
+                ),
+                "f": SimpleReasons(
+                    "f",
+                    {
+                        SimpleFunctionReference("MemberAccessTarget.b.upper_class.name.line14", "NonLocalVariableRead"),  # TODO: LARS what do we want here?
+                    },
+                    set(),
+                    {
+                        SimpleFunctionReference("Call.B.line13", "Call"),
+                        SimpleFunctionReference("Call.b.upper_class.set_name.line15", "Call"),
+                    }
+                ),
+            }
+        ),
+        (  # language=Python "chained class function call"
+            """
+class B:
+    def __init__(self):
+        self.b = 20
+
+    def f(self):
+        pass
+
+class A:
+    class_attr1 = B()
+
+def g():
+    A().class_attr1.f()
+            """,  # language=none
+            {
+                "__init__": SimpleReasons(
+                    "__init__"
+                ),
+                "f": SimpleReasons(
+                    "f", set(), set(), set()
+                ),
+                "g": SimpleReasons(
+                    "g",
+                    set(),
+                    set(),
+                    {
+                        SimpleFunctionReference("Call.A.line13", "Call"),
+                        SimpleFunctionReference("Call.A.class_attr1.f.line14", "Call"),
+                    }
+                ),
+            }
+        ),
+        (  # language=Python "two classes with same attribute name"
+            """
+class A:
+    name: str = ""
+
+    def __init__(self, name: str):
+        self.name = name
+
+class B:
+    name: str = ""
+
+    def __init__(self, name: str):
+        self.name = name
+
+a = A("value")
+b = B("test")
+a.name
+b.name
+            """,  # language=none
+            {
+
+            }
+        ),
+        (  # language=Python "multiple classes with same function name - same signature"
+            """
+class A:
+    @staticmethod
+    def add(a, b):
+        return a + b
+
+class B:
+    @staticmethod
+    def add(a, b):
+        return a + 2 * b
+
+A.add(1, 2)
+B.add(1, 2)
+            """,  # language=none
+            {
+
+            }
+        ),  # since we only return a list of all possible references, we can't distinguish between the two functions
+        (  # language=Python "multiple classes with same function name - different signature"
+            """
+class A:
+    @staticmethod
+    def add(a, b):
+        return a + b
+
+class B:
+    @staticmethod
+    def add(a, b, c):
+        return a + b + c
+
+A.add(1, 2)
+B.add(1, 2, 3)
+            """,  # language=none
+            {
+
+            }
+        ),  # TODO: [LATER] we should detect the different signatures
     ],
-    ids=["internal stuff"],  # TODO: add cases for control flow statements and other cases
+    ids=[
+        "internal stuff",
+        "control flow statements",
+        "class attribute",
+        "instance attribute",
+        "chained attributes",
+        "chained class function call",
+        "two classes with same attribute name",
+        "multiple classes with same function name - same signature",
+        "multiple classes with same function name - different signature",  # TODO: [LATER] we should detect the different signatures
+        ],
 )
 def test_get_module_data_function_references(code: str, expected: dict[str, SimpleReasons]) -> None:
     function_references = get_module_data(code).function_references
@@ -1550,15 +1827,23 @@ def transform_function_references(function_calls: dict[str, Reasons]) -> dict[st
                 function_name,
                 {
                     SimpleFunctionReference(
-                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}",
                         function_reference.kind,
+                    ) if isinstance(function_reference.node, MemberAccessTarget) else
+                    SimpleFunctionReference(
+                         f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                         function_reference.kind,
                     )
                     for function_reference in function_references.writes
                 },
                 {
                     SimpleFunctionReference(
-                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}",
                         function_reference.kind,
+                    ) if isinstance(function_reference.node, MemberAccessValue) else
+                    SimpleFunctionReference(
+                         f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                         function_reference.kind,
                     )
                     for function_reference in function_references.reads
                 },

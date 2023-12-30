@@ -38,17 +38,23 @@ class ModuleDataBuilder:
 
     Attributes
     ----------
-        current_node_stack      stack of nodes that are currently visited by the ASTWalker.
-        children:               All found children nodes are stored in children until their scope is determined.
-        names:                  All found names are stored in names until their scope is determined.
-        calls:                  All found calls on function level are stored in calls until their scope is determined.
-        classes:                dict of all classes in the module and their corresponding ClassScope instance.
-        functions:              dict of all functions in the module and their corresponding Scope or ClassScope instance.
-        value_nodes:            dict of all nodes that are used as a value and their corresponding Scope or ClassScope instance.
-        target_nodes:           dict of all nodes that are used as a target and their corresponding Scope or ClassScope instance.
-        global_variables:       dict of all global variables and their corresponding Scope or ClassScope instance.
-        parameters:             dict of all parameters and their corresponding Scope or ClassScope instance.
-        function_calls:         dict of all function calls and their corresponding Scope or ClassScope instance.
+    current_node_stack
+        stack of nodes that are currently visited by the ASTWalker.
+    children
+        All found children nodes are stored in children until their scope is determined.
+    names
+        All found names are stored in names until their scope is determined.
+    calls
+        All found calls on function level are stored in calls until their scope is determined.
+    classes
+        all classes in the module and their corresponding ClassScope instance.
+    functions
+        all functions in the module and their corresponding Scope or ClassScope instance.
+    value_nodes:            dict of all nodes that are used as a value and their corresponding Scope or ClassScope instance.
+    target_nodes:           dict of all nodes that are used as a target and their corresponding Scope or ClassScope instance.
+    global_variables:       dict of all global variables and their corresponding Scope or ClassScope instance.
+    parameters:             dict of all parameters and their corresponding Scope or ClassScope instance.
+    function_calls:         dict of all function calls and their corresponding Scope or ClassScope instance.
     """
 
     current_node_stack: list[Scope | ClassScope | FunctionScope] = field(default_factory=list)
@@ -60,17 +66,30 @@ class ModuleDataBuilder:
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope | FunctionScope] = field(
         default_factory=dict,
     )
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope | FunctionScope] = (
-        field(
-            default_factory=dict,
-        )
-    )
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
     global_variables: dict[str, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope | FunctionScope, set[astroid.AssignName]]] = field(
         default_factory=dict,
     )
     function_calls: dict[astroid.Call, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
     function_references: dict[str, Reasons] = field(default_factory=dict)
+
+    def get_function_values(self, function_name: str) -> dict[str, set[Symbol]]:
+        """Get all value nodes that are used inside the function body."""
+        values = dict()
+        if function_name in self.functions:
+            for val in self.functions[function_name][0].values:
+                if isinstance(val.symbol.node, MemberAccessValue):
+                    key = val.symbol.node.name
+                else:
+                    key = val.symbol.name
+
+                if key in values:
+                    values[key].add(val.symbol)
+                else:
+                    values[key] = {val.symbol}
+
+        return values
 
     def _detect_scope(self, node: astroid.NodeNG) -> None:
         """
@@ -210,7 +229,7 @@ class ModuleDataBuilder:
             function_node = scopes[0].symbol.node
             for target in self.target_nodes:  # Look at all target nodes
                 # Only look at global variables (for global reads)
-                if target.name in self.global_variables:  # Filter out all non-global variables
+                if target.name in self.global_variables or isinstance(target, MemberAccessTarget):  # Filter out all non-global variables
                     for node in scopes:
                         for child in node.children:
                             if target.name == child.symbol.name and child in node.children:
@@ -229,11 +248,9 @@ class ModuleDataBuilder:
 
             for value in self.value_nodes:
                 if isinstance(self.functions[function_name][0], FunctionScope):
-                    function_values = [
-                        val.symbol.node.name for val in self.functions[function_name][0].values
-                    ]  # Since we do not differentiate between functions with the same name, we can choose the first one  # TODO: this is not correct
+                    function_values = self.get_function_values(function_name)  # Since we do not differentiate between functions with the same name, we can choose the first one  # TODO: this is not correct. also cache this since it is called multiple times
                     if value.name in function_values:
-                        if value.name in self.global_variables:
+                        if value.name in self.global_variables or isinstance(value, MemberAccessValue):
                             # Get the correct symbol
                             sym = None
                             if isinstance(self.value_nodes[value], FunctionScope):
@@ -257,8 +274,13 @@ class ModuleDataBuilder:
                 if isinstance(call.parent.parent, astroid.FunctionDef) and call.parent.parent.name == function_name:
                     # get the correct symbol
                     sym = None
+                    # check all self defined functions
                     if call.func.name in self.functions:
                         sym = self.functions[call.func.name][0].symbol
+                    # check all self defined classes
+                    elif call.func.name in self.classes:
+                        sym = self.classes[call.func.name].symbol
+                    # check all builtins
                     elif call.func.name in python_builtins:
                         sym = Builtin(call, NodeID("builtins", call.func.name, 0, 0), call.func.name)
 
@@ -286,20 +308,20 @@ class ModuleDataBuilder:
             #  it should be easy to add filters later: check if a target exists inside a class before adding its impurity reasons to the impurity result
 
     @staticmethod
-    def get_kind(symbol: Symbol | None) -> str:  # type: ignore[return] # all cases are handled
+    def get_kind(symbol: Symbol | None) -> str:
         if symbol is None:
             return "None"  # TODO: make sure this never happens
-        if isinstance(symbol.node, astroid.AssignName):
+        elif isinstance(symbol.node, astroid.AssignName):
             if isinstance(symbol, LocalVariable):
                 return "LocalWrite"  # this should never happen
-            if isinstance(symbol, GlobalVariable):
+            elif isinstance(symbol, GlobalVariable):
                 return "NonLocalVariableWrite"
-        if isinstance(symbol.node, astroid.Name):
+        elif isinstance(symbol.node, astroid.Name):
             if isinstance(symbol, LocalVariable):
                 return "LocalRead"  # this should never happen
-            if isinstance(symbol, GlobalVariable):
+            elif isinstance(symbol, GlobalVariable):
                 return "NonLocalVariableRead"
-        if isinstance(symbol.node, astroid.FunctionDef) or isinstance(symbol, Builtin):
+        elif isinstance(symbol.node, astroid.FunctionDef | astroid.ClassDef) or isinstance(symbol, Builtin):
             return "Call"
 
     def enter_module(self, node: astroid.Module) -> None:
@@ -671,6 +693,13 @@ class ModuleDataBuilder:
             self.target_nodes[member_access] = self.current_node_stack[-1]
         elif isinstance(member_access, MemberAccessValue):
             self.value_nodes[member_access] = self.current_node_stack[-1]
+            parent = self.current_node_stack[-1]
+            name_node = Scope(
+                _symbol=self.get_symbol(member_access, self.current_node_stack[-1].symbol.node),  # TODO: for now we use the complete name of the attribute access as the name of the node and do not check the components for their real scoping
+                _children=[],
+                _parent=parent,
+            )
+            self.names.append(name_node)
 
     @staticmethod
     def has_assignattr_parent(node: astroid.Attribute) -> bool:
