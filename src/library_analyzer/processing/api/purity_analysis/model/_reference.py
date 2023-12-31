@@ -24,11 +24,11 @@ class ReferenceNode:
 
     Attributes
     ----------
-    node: astroid.Name | astroid.AssignName | astroid.Call | MemberAccessTarget | MemberAccessValue
+    node : astroid.Name | astroid.AssignName | astroid.Call | MemberAccessTarget | MemberAccessValue
         The node that references the symbols.
-    scope: Scope
+    scope : Scope
         The scope of the node.
-    referenced_symbols: list[Symbol]
+    referenced_symbols : list[Symbol]
         The list of referenced symbols.
         These are the symbols of the nodes that node references.
     """
@@ -56,14 +56,14 @@ class CallGraphNode(Generic[_T]):
 
     Attributes
     ----------
-    data: _T
+    data : _T
         The data of the node.
         This is normally a FunctionScope but can be any type.
-    reasons: Reasons
+    reasons : Reasons
         The raw Reasons for the node.
-    children: set[CallGraphNode]
+    children : set[CallGraphNode]
         The set of children of the node, (i.e., the set of nodes that this node calls)
-    combined_node_names: list[str]
+    combined_node_names : list[str]
         A list of the names of all nodes that are combined into this node.
         This is only set if the node is a combined node.
         This is later used for transferring the reasons of the combined node to the original nodes.
@@ -87,7 +87,7 @@ class CallGraphNode(Generic[_T]):
 
         Parameters
         ----------
-        child: CallGraphNode
+        child : CallGraphNode
             The child to add.
         """
         self.children.add(child)
@@ -111,7 +111,7 @@ class CallGraphForest:
 
     Attributes
     ----------
-    graphs: dict[str, CallGraphNode]
+    graphs : dict[str, CallGraphNode]
         The dictionary of call graph trees.
         The key is the name of the tree, the value is the root CallGraphNode of the tree.
     """
@@ -123,9 +123,9 @@ class CallGraphForest:
 
         Parameters
         ----------
-        graph_name: str
+        graph_name : str
             The name of the tree.
-        graph: CallGraphNode
+        graph : CallGraphNode
             The root of the tree.
         """
         self.graphs[graph_name] = graph
@@ -135,7 +135,7 @@ class CallGraphForest:
 
         Parameters
         ----------
-        graph_name: str
+        graph_name : str
             The name of the tree to get.
 
         Returns
@@ -153,7 +153,7 @@ class CallGraphForest:
 
         Parameters
         ----------
-        graph_name: str
+        graph_name : str
             The name of the tree to delete.
         """
         del self.graphs[graph_name]

@@ -19,27 +19,27 @@ class ModuleData:
 
     Attributes
     ----------
-    scope: Scope
+    scope : Scope
         The module's scope, this contains all child scopes.
-    classes: dict[str, ClassScope]
+    classes : dict[str, ClassScope]
         All classes and their ClassScope.
-    functions: dict[str, list[FunctionScope]]
+    functions : dict[str, list[FunctionScope]]
         All functions and a list of their FunctionScopes.
         The value is a list since there can be multiple functions with the same name.
-    global_variables: dict[str, Scope | ClassScope]
+    global_variables : dict[str, Scope | ClassScope]
         All global variables and their Scope or ClassScope.
-    value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
+    value_nodes : dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
         All value nodes and their Scope or ClassScope.
         Value nodes are nodes that are read from.
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]
+    target_nodes : dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]
         All target nodes and their Scope or ClassScope.
         Target nodes are nodes that are written to.
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
+    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
         All parameters of functions and a tuple of their Scope or ClassScope and a set of their target nodes.
         These are used to determine the scope of the parameters for each function.
-    function_calls: dict[astroid.Call, Scope | ClassScope]
+    function_calls : dict[astroid.Call, Scope | ClassScope]
         All function calls and their Scope or ClassScope.
-    function_references: dict[str, Reasons]
+    function_references : dict[str, Reasons]
         All for reference resolving relevant nodes inside functions
     """
 
@@ -66,13 +66,13 @@ class MemberAccess(astroid.NodeNG):
 
     Attributes
     ----------
-    receiver: MemberAccess | astroid.NodeNG
+    receiver : MemberAccess | astroid.NodeNG
         The receiver is the node that is accessed, it can be nested, e.g. `a` in `a.b` or `a.b` in `a.b.c`.
-    member: astroid.NodeNG
+    member : astroid.NodeNG
         The member is the node that accesses the receiver, e.g. `b` in `a.b`.
-    parent: astroid.NodeNG | None
+    parent : astroid.NodeNG | None
         The parent node of the member access.
-    name: str
+    name : str
         The name of the member access, e.g. `a.b`.
         Is set in __post_init__, after the member access has been created.
     """
@@ -122,13 +122,13 @@ class NodeID:
 
     Attributes
     ----------
-    module: astroid.Module | str
+    module : astroid.Module | str
         The module of the node.
-    name: str
+    name : str
         The name of the node.
-    line: int | None
+    line : int | None
         The line of the node in the source code.
-    col: int | None
+    col : int | None
         The column of the node in the source code.
     """
 
@@ -147,11 +147,11 @@ class Symbol(ABC):
 
     Attributes
     ----------
-    node: astroid.NodeNG | MemberAccess
+    node : astroid.NodeNG | MemberAccess
         The node that defines the symbol.
-    id: NodeID
+    id : NodeID
         The id of that node.
-    name: str
+    name : str
         The name of the symbol (for easier access).
     """
 
@@ -202,11 +202,11 @@ class ClassVariable(Symbol):
 
     Attributes
     ----------
-    klass: astroid.ClassDef | None
+    klass : astroid.ClassDef | None
         The class that defines the class variable.
     """
 
-    klass: astroid.ClassDef | None = field(default=None)
+    klass : astroid.ClassDef | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -223,7 +223,7 @@ class InstanceVariable(Symbol):
 
     Attributes
     ----------
-    klass: astroid.ClassDef | None
+    klass : astroid.ClassDef | None
         The class that defines the instance variable.
     """
 
@@ -264,12 +264,12 @@ class Scope:
 
     Attributes
     ----------
-    _symbol: Symbol
+    _symbol : Symbol
         The symbol that defines the scope.
-    _children: list[Scope | ClassScope]
+    _children : list[Scope | ClassScope]
         The list of Scope or ClassScope instances that are defined in the scope of the Symbol node.
         Is None if the node is a leaf node.
-    _parent: Scope | ClassScope | None
+    _parent : Scope | ClassScope | None
         The parent node in the scope tree, is None if the node is the root node.
     """  # TODO: Lars do we want Attributes here or in the properties?
 
@@ -291,7 +291,7 @@ class Scope:
 
     @property
     def symbol(self) -> Symbol:
-        """Symbol: The symbol that defines the scope."""
+        """Symbol : The symbol that defines the scope."""
         return self._symbol
 
     @symbol.setter
@@ -302,7 +302,7 @@ class Scope:
 
     @property
     def children(self) -> list[Scope | ClassScope]:
-        """list[Scope | ClassScope]: Children of the scope.
+        """list[Scope | ClassScope] : Children of the scope.
 
             The list of Scope or ClassScope instances that are defined in the scope of the Symbol node.
             Is None if the node is a leaf node.
@@ -317,7 +317,7 @@ class Scope:
 
     @property
     def parent(self) -> Scope | ClassScope | None:
-        """Scope | ClassScope | None: Parent of the scope.
+        """Scope | ClassScope | None : Parent of the scope.
 
         The parent node in the scope tree.
         Is None if the node is the root node.
@@ -352,14 +352,14 @@ class ClassScope(Scope):
 
     Attributes
     ----------
-    class_variables: dict[str, list[Symbol]]
+    class_variables : dict[str, list[Symbol]]
         The name of the class variable and a list of its Symbols (which represent a declaration).
         There can be multiple declarations of the same class variable, e.g. `a = 1` and `a = 2`
         since we cannot determine which one is used since we do not analyze the control flow.
         Also, it is impossible to distinguish between a declaration and a reassignment.
-    instance_variables: dict[str, list[Symbol]]
+    instance_variables : dict[str, list[Symbol]]
         The name of the instance variable and a list of its Symbols (which represent a declaration).
-    super_classes: list[ClassScope]
+    super_classes : list[ClassScope]
         The list of super classes of the class.
     """
 
@@ -374,15 +374,15 @@ class FunctionScope(Scope):
 
     Attributes
     ----------
-    values: list[Scope | ClassScope]
+    values : list[Scope | ClassScope]
         The list of all value nodes used inside the corresponding function.
-    calls: list[Scope | ClassScope]
+    calls : list[Scope | ClassScope]
         The list of all function calls inside the corresponding function.
     """
 
     # parameters: dict[str, list[Symbol]] = field(default_factory=dict)
-    values: list[Scope | ClassScope] = field(default_factory=list)
-    calls: list[Scope | ClassScope] = field(default_factory=list)
+    values : list[Scope | ClassScope] = field(default_factory=list)
+    calls : list[Scope | ClassScope] = field(default_factory=list)
 
     def remove_call_node_by_name(self, name: str) -> None:
         """Remove a call node by name.
@@ -392,7 +392,7 @@ class FunctionScope(Scope):
 
         Parameters
         ----------
-        name : str
+        name  : str
             The name of the call node to remove.
         """
         for call in self.calls:
@@ -410,19 +410,19 @@ class Reasons:
 
     Attributes
     ----------
-    function: astroid.FunctionDef | MemberAccess | None
+    function : astroid.FunctionDef | MemberAccess | None
         The function that is analyzed.
-    writes: set[FunctionReference]
+    writes : set[FunctionReference]
         A set of all nodes that are written to.
-    reads: set[FunctionReference]
+    reads : set[FunctionReference]
         A set of all nodes that are read from.
-    calls: set[FunctionReference]
+    calls : set[FunctionReference]
         A set of all nodes that are called.
-    result: PurityResult | None
+    result : PurityResult | None
         The result of the purity analysis
         This also works as a flag to determine if the purity analysis has already been performed:
         If it is None, the purity analysis has not been performed
-    unknown_calls: list[astroid.Call | astroid.NodeNG] | None
+    unknown_calls : list[astroid.Call | astroid.NodeNG] | None
         A list of all unknown calls.
         Unknown calls are calls to functions that are not defined in the module or are simply not existing.
     """
@@ -442,7 +442,7 @@ class Reasons:
 
         Parameters
         ----------
-        name : str
+        name  : str
             The name of the call to get.
 
         Returns
@@ -527,9 +527,9 @@ class FunctionReference:  # TODO: find a better name for this class  # FunctionP
 
     Attributes
     ----------
-    node: astroid.NodeNG | MemberAccess
+    node : astroid.NodeNG | MemberAccess
         The node that is referenced inside the function.
-    kind: str
+    kind : str
         The kind of the node, e.g. "LocalWrite", "NonLocalRead" or "Call".
     """
 
