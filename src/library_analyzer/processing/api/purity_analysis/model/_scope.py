@@ -25,7 +25,7 @@ class ModuleData:
         All classes and their ClassScope.
     functions: dict[str, list[FunctionScope]]
         All functions and a list of their FunctionScopes.
-        This is a list since there can be multiple functions with the same name.
+        The value is a list since there can be multiple functions with the same name.
     global_variables: dict[str, Scope | ClassScope]
         All global variables and their Scope or ClassScope.
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
