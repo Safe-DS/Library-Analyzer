@@ -206,7 +206,7 @@ class ClassVariable(Symbol):
         The class that defines the class variable.
     """
 
-    klass : astroid.ClassDef | None = field(default=None)
+    klass: astroid.ClassDef | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
