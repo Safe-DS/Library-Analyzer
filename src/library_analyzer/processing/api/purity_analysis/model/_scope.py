@@ -206,7 +206,7 @@ class ClassVariable(Symbol):
         The class that defines the class variable.
     """
 
-    klass : astroid.ClassDef | None = field(default=None)
+    klass: astroid.ClassDef | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -304,8 +304,8 @@ class Scope:
     def children(self) -> list[Scope | ClassScope]:
         """list[Scope | ClassScope] : Children of the scope.
 
-            The list of Scope or ClassScope instances that are defined in the scope of the Symbol node.
-            Is None if the node is a leaf node.
+        The list of Scope or ClassScope instances that are defined in the scope of the Symbol node.
+        Is None if the node is a leaf node.
         """
         return self._children
 
@@ -381,8 +381,8 @@ class FunctionScope(Scope):
     """
 
     # parameters: dict[str, list[Symbol]] = field(default_factory=dict)
-    values : list[Scope | ClassScope] = field(default_factory=list)
-    calls : list[Scope | ClassScope] = field(default_factory=list)
+    values: list[Scope | ClassScope] = field(default_factory=list)
+    calls: list[Scope | ClassScope] = field(default_factory=list)
 
     def remove_call_node_by_name(self, name: str) -> None:
         """Remove a call node by name.
