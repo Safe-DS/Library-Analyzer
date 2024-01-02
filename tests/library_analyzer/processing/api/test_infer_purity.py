@@ -674,7 +674,8 @@ def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> No
     purity_results = infer_purity(references, function_references, classes, call_graph)
 
     transformed_purity_results = {
-        to_string_function_def(function_def): to_simple_result(purity_result) for function_def, purity_result in purity_results.items()
+        to_string_function_def(function_def): to_simple_result(purity_result)
+        for function_def, purity_result in purity_results.items()
     }
 
     assert transformed_purity_results == expected
