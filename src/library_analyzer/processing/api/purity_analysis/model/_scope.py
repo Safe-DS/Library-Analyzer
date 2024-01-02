@@ -40,7 +40,7 @@ class ModuleData:
     function_calls : dict[astroid.Call, Scope | ClassScope]
         All function calls and their Scope or ClassScope.
     function_references : dict[str, Reasons]
-        All for reference resolving relevant nodes inside functions
+        All nodes relevant for reference resolving inside functions.
     """
 
     scope: Scope | ClassScope
