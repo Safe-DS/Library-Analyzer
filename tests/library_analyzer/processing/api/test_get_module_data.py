@@ -19,14 +19,47 @@ from library_analyzer.processing.api.purity_analysis.model import (
 )
 
 
+# TODO: refactor: move functions to top of file
 @dataclass
 class SimpleScope:
+    """Class for simple scopes.
+
+    A simplified class of the Scope class for testing purposes.
+
+    Attributes
+    ----------
+    node_name : str | None
+        The name of the node.
+    children : list[SimpleScope] | None
+        The children of the node.
+        None if the node has no children.
+    """
+
     node_name: str | None
     children: list[SimpleScope] | None
 
 
 @dataclass
 class SimpleClassScope(SimpleScope):
+    """Class for simple class scopes.
+
+    A simplified class of the ClassScope class for testing purposes.
+
+    Attributes
+    ----------
+    node_name : str | None
+        The name of the node.
+    children : list[SimpleScope] | None
+        The children of the node.
+        None if the node has no children.
+    class_variables : list[str]
+        The list of class variables.
+    instance_variables : list[str]
+        The list of instance variables.
+    super_class : list[str]
+        The list of super classes.
+    """
+
     class_variables: list[str]
     instance_variables: list[str]
     super_class: list[str] = field(default_factory=list)
@@ -39,6 +72,22 @@ class SimpleFunctionScope(SimpleScope):
 
 @dataclass
 class SimpleReasons:
+    """Class for simple reasons.
+
+    A simplified class of the Reasons class for testing purposes.
+
+    Attributes
+    ----------
+    function_name : str
+        The name of the function.
+    writes : set[SimpleFunctionReference]
+        The set of the functions writes.
+    reads : set[SimpleFunctionReference]
+        The set of the function reads.
+    calls : set[SimpleFunctionReference]
+        The set of the function calls.
+    """
+
     function_name: str
     writes: set[SimpleFunctionReference] = field(default_factory=set)
     reads: set[SimpleFunctionReference] = field(default_factory=set)
@@ -50,6 +99,18 @@ class SimpleReasons:
 
 @dataclass
 class SimpleFunctionReference:
+    """Class for simple function references.
+
+    A simplified class of the FunctionReference class for testing purposes.
+
+    Attributes
+    ----------
+    node : str
+        The name of the node.
+    kind : str
+        The kind of the Reason as string.
+    """
+
     node: str
     kind: str
 
@@ -864,17 +925,25 @@ def test_calc_node_id(
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
     scope = get_module_data(code).scope
     # assert result == expected
-    assert_test_get_scope(scope, expected)
-
-
-def assert_test_get_scope(result: Scope, expected: list[SimpleScope | SimpleClassScope]) -> None:
     transformed_result = [
-        transform_result(node) for node in result
+        transform_result(node) for node in scope
     ]  # The result and the expected data are simplified to make the comparison easier
     assert transformed_result == expected
 
 
 def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope:
+    """Transform a Scope or ClassScope instance.
+
+    Parameters
+    ----------
+    node : Scope | ClassScope
+        The node to transform.
+
+    Returns
+    -------
+    SimpleScope | SimpleClassScope
+        The transformed node.
+    """
     if node.children is not None:
         if isinstance(node, ClassScope):
             instance_vars_transformed = []
@@ -909,6 +978,18 @@ def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope
 
 
 def to_string(symbol: Symbol) -> str:
+    """Transform a Symbol instance to a string.
+
+    Parameters
+    ----------
+    symbol : Symbol
+        The Symbol instance to transform.
+
+    Returns
+    -------
+    str
+        The transformed Symbol instance as string.
+    """
     if isinstance(symbol.node, astroid.Module):
         return f"{symbol.node.__class__.__name__}"
     elif isinstance(symbol.node, astroid.ClassDef | astroid.FunctionDef | astroid.AssignName):
@@ -932,6 +1013,19 @@ def to_string(symbol: Symbol) -> str:
 
 
 def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
+    """Transform a NodeNG or ClassScope instance to a string.
+
+    Parameters
+    ----------
+    node : astroid.NodeNG | ClassScope
+        The NodeNG or ClassScope instance to transform.
+
+    Returns
+    -------
+    str | None
+        The transformed NodeNG or ClassScope instance as string.
+        None if the node is a Lambda, TryExcept, TryFinally or ListComp instance.
+    """
     if isinstance(node, astroid.AssignAttr):
         return f"{node.__class__.__name__}.{node.attrname}"
     elif isinstance(node, astroid.AssignName | astroid.FunctionDef | astroid.ClassDef):
@@ -1177,10 +1271,6 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
 def test_get_module_data_classes(code: str, expected: dict[str, SimpleClassScope]) -> None:
     classes = get_module_data(code).classes
 
-    assert_get_module_data_classes(classes, expected)
-
-
-def assert_get_module_data_classes(classes: dict[str, ClassScope], expected: dict[str, SimpleClassScope]) -> None:
     transformed_classes = {
         klassname: transform_result(klass) for klassname, klass in classes.items()
     }  # The result and the expected data are simplified to make the comparison easier
@@ -1434,20 +1524,26 @@ def test_get_module_data_value_and_target_nodes(code: str, expected: str) -> Non
     target_nodes = module_data.target_nodes
 
     # assert (value_nodes, target_nodes) == expected
-    assert_names_list(value_nodes, target_nodes, expected)
-
-
-def assert_names_list(
-    value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope],
-    target_nodes: dict[astroid.AssignName | MemberAccessTarget, Scope | ClassScope],
-    expected: str,
-) -> None:
     value_nodes_transformed = transform_value_nodes(value_nodes)
     target_nodes_transformed = transform_target_nodes(target_nodes)
     assert (value_nodes_transformed, target_nodes_transformed) == expected
 
 
 def transform_value_nodes(value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]) -> dict[str, str]:
+    """Transform the value nodes.
+
+    The value nodes are transformed to a dictionary with the name of the node as key and the transformed node as value.
+
+    Parameters
+    ----------
+    value_nodes : dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
+        The value nodes to transform.
+
+    Returns
+    -------
+    dict[str, str]
+        The transformed value nodes.
+    """
     value_nodes_transformed = {}
     for node in value_nodes:
         if isinstance(node, astroid.Name):
@@ -1462,6 +1558,19 @@ def transform_value_nodes(value_nodes: dict[astroid.Name | MemberAccessValue, Sc
 def transform_target_nodes(
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope],
 ) -> dict[str, str]:
+    """Transform the target nodes.
+
+    The target nodes are transformed to a dictionary with the name of the node as key and the transformed node as value.
+
+    Parameters
+    ----------
+    target_nodes : dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]
+
+    Returns
+    -------
+    dict[str, str]
+        The transformed target nodes.
+    """
     target_nodes_transformed = {}
     for node in target_nodes:
         if isinstance(node, astroid.AssignName | astroid.Name):
@@ -1474,6 +1583,18 @@ def transform_target_nodes(
 
 
 def transform_member_access(member_access: MemberAccess) -> str:
+    """Transform a MemberAccess instance to a string.
+
+    Parameters
+    ----------
+    member_access : MemberAccess
+        The MemberAccess instance to transform.
+
+    Returns
+    -------
+    str
+        The transformed MemberAccess instance as string.
+    """
     attribute_names = []
 
     while isinstance(member_access, MemberAccess):
@@ -1826,6 +1947,21 @@ def test_get_module_data_function_references(code: str, expected: dict[str, Simp
 
 
 def transform_function_references(function_calls: dict[str, Reasons]) -> dict[str, SimpleReasons]:
+    """Transform the function references.
+
+    The function references are transformed to a dictionary with the name of the function as key
+    and the transformed Reasons instance as value.
+
+    Parameters
+    ----------
+    function_calls : dict[str, Reasons]
+        The function references to transform.
+
+    Returns
+    -------
+    dict[str, SimpleReasons]
+        The transformed function references.
+    """
     transformed_function_references = {}
     for function_name, function_references in function_calls.items():
         transformed_function_references.update({

@@ -18,16 +18,24 @@ def build_call_graph(
     functions: dict[str, list[FunctionScope]],
     function_references: dict[str, Reasons],
 ) -> CallGraphForest:
-    # """Build a call graph from a list of functions.
-    #
-    # Parameters
-    # ----------
-    #     * functions: a dict of functions
-    #     * function_references: a dict of function references - contains the reasons for impurity
-    # Returns
-    # -------
-    #     * call_graph_forest: the call graph forest with cycles contracted
-    # """  # TODO: fix whatever is wrong with the docstring
+    """Build a call graph from a list of functions.
+
+    This function builds a CallGraphForest from a list of functions.
+    The root nodes of the trees are the functions that are called first.
+
+    Parameters
+    ----------
+    functions : dict[str, list[FunctionScope]]
+        All functions and a list of their FunctionScopes.
+        The value is a list since there can be multiple functions with the same name.
+    function_references : dict[str, Reasons]
+        All nodes relevant for reference resolving inside functions.
+
+    Returns
+    -------
+    call_graph_forest : CallGraphForest
+        The call graph forest for the given functions.
+    """
     call_graph_forest = CallGraphForest()
 
     for function_name, function_scopes in functions.items():
@@ -105,12 +113,15 @@ def handle_cycles(call_graph_forest: CallGraphForest, function_references: dict[
 
     Parameters
     ----------
-        * call_graph_forest: the call graph forest
-        * function_references: a dict of function references - contains the reasons for impurity
+    call_graph_forest : CallGraphForest
+        The call graph forest of the functions.
+    function_references : dict[str, Reasons]
+        All nodes relevant for reference resolving inside functions.
 
     Returns
     -------
-        * call_graph_forest: the call graph forest with contracted cycles
+    call_graph_forest : CallGraphForest
+        The call graph forest with contracted cycles.
     """
     for graph in call_graph_forest.graphs.copy().values():
         visited_nodes: set[CallGraphNode] = set()
@@ -140,9 +151,18 @@ def test_for_cycles(
 
     Parameters
     ----------
-        * graph: the current node in the call graph
-        * visited_nodes: a set of all visited nodes
-        * path: a list of all nodes in the current path
+    graph : CallGraphNode
+        The current node in the graph that is visited.
+    visited_nodes : set[CallGraphNode]
+        A set of all visited nodes.
+    path : list[CallGraphNode]
+        A list of all nodes in the current path.
+
+    Returns
+    -------
+    cycle : list[CallGraphNode]
+        A list of all nodes in the cycle.
+        If no cycle is found, an empty list is returned.
     """
     # If a node has no children, it is a leaf node, and we can return an empty list
     if not graph.children:
@@ -178,9 +198,12 @@ def contract_cycle(
 
     Parameters
     ----------
-        * forest: the call graph forest
-        * cycle: a list of nodes in the cycle
-        * function_references: a dict of function references - contains the reasons for impurity
+    forest : CallGraphForest
+        The call graph forest of the functions.
+    cycle : list[CallGraphNode]
+        All nodes in the cycle.
+    function_references : dict
+        All nodes relevant for reference resolving inside functions.
     """
     # Create the new combined node
     cycle_names = [node.data.symbol.name for node in cycle]
@@ -233,9 +256,12 @@ def update_pointers(node: CallGraphNode, cycle_names: list[str], combined_node: 
 
     Parameters
     ----------
-        * node: the current node in the tree
-        * cycle_names: a list of all names of nodes in the cycle
-        * combined_node: the combined node that replaces all nodes in the cycle
+    node : CallGraphNode
+        The current node in the tree.
+    cycle_names : list[str]
+        A list of all names of nodes in the cycle.
+    combined_node : CallGraphNode
+        The combined node that replaces all nodes in the cycle.
     """
     for child in node.children:
         if child.data.symbol.name in BUILTINS:

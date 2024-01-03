@@ -34,15 +34,22 @@ def _find_name_references(
 
     Parameters
     ----------
-        * target_nodes: a list of all target nodes in the module and their scope
-        * value_nodes: a list of all value nodes in the module and their scope
-        * classes: a list of all classes in the module and their scope
-        * functions: a list of all functions in the module and their scope
-        * parameters: a list of all parameters of functions in the module and their scope
+    target_nodes : dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]
+        All target nodes and their Scope or ClassScope.
+    value_nodes : dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
+        All value nodes and their Scope or ClassScope.
+    classes : dict[str, ClassScope]
+        All classes and their ClassScope.
+    functions : dict[str, list[FunctionScope]]
+        All functions and a list of their FunctionScopes.
+        The value is a list since there can be multiple functions with the same name.
+    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
+        All parameters of functions and a tuple of their Scope or ClassScope and a set of their target nodes.
 
     Returns
     -------
-        * final_references: a dict containing all name references (target & value references)
+    final_references : dict[str, list[ReferenceNode]]
+        All target and value references and a list of their ReferenceNodes.
     """
     final_references: dict[str, list[ReferenceNode]] = {}
 
@@ -55,7 +62,7 @@ def _find_name_references(
     # Detect all value references: references that are used as values (e.g., sth = value, return value)
     for value_ref in value_references:
         if isinstance(value_ref.node, astroid.Name | MemberAccessValue):
-            value_ref_complete = _find_references(value_ref, target_references, classes, functions, parameters)
+            value_ref_complete = _find_value_references(value_ref, target_references, classes, functions, parameters)
             if value_ref_complete.node.name in final_references:
                 final_references[value_ref_complete.node.name].append(value_ref_complete)
             else:
@@ -64,7 +71,7 @@ def _find_name_references(
     # Detect all target references: references that are used as targets (e.g., target = sth)
     for target_ref in target_references:
         if isinstance(target_ref.node, astroid.AssignName | astroid.Name | MemberAccessTarget):
-            target_ref_complete = _find_references_target(target_ref, target_references, classes)
+            target_ref_complete = _find_target_references(target_ref, target_references, classes)
             # Remove all references that are never referenced
             if target_ref_complete.referenced_symbols:
                 if target_ref_complete.node.name in final_references:
@@ -75,7 +82,7 @@ def _find_name_references(
     return final_references
 
 
-def _find_references_target(
+def _find_target_references(
     current_target_reference: ReferenceNode,
     all_target_list: list[ReferenceNode],
     classes: dict[str, ClassScope],
@@ -83,17 +90,22 @@ def _find_references_target(
     """Find all references for a target node.
 
     Finds all references for a target node in a list of references and adds them to the list of referenced_symbols of the node.
-    We only want to find references that are used as targets before the current target reference, because all later references are not relevant for the current target reference.
+    We only want to find references that are used as targets before the current target reference,
+    because all later references are not relevant for the current target reference.
 
     Parameters
     ----------
-        * current_target_reference: the node for which we want to find all references
-        * all_target_list: a list of target references in the module
-        * classes: a dict of all classes in the module
+    current_target_reference : ReferenceNode
+        The current target reference, for which we want to find all references.
+    all_target_list : list[ReferenceNode]
+        All target references in the module.
+    classes : dict[str, ClassScope]
+        All classes and their ClassScope.
 
     Returns
     -------
-        * current_target_reference: the reference for the given node with all references added to its referenced_symbols
+    current_target_reference : ReferenceNode
+        The reference for the given node with all its target references added to its referenced_symbols.
     """
     if current_target_reference in all_target_list:
         all_targets_before_current_target_reference = all_target_list[: all_target_list.index(current_target_reference)]
@@ -154,38 +166,45 @@ def _find_references_target(
     return current_target_reference
 
 
-def _find_references(
-    value_reference: ReferenceNode,
+def _find_value_references(
+    current_value_reference: ReferenceNode,
     all_target_list: list[ReferenceNode],
     classes: dict[str, ClassScope],
     functions: dict[str, list[FunctionScope]],
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
 ) -> ReferenceNode:
-    """Find all references for a node.
+    """Find all references for a value node.
 
     Finds all references for a node in a list of references and adds them to the list of referenced_symbols of the node.
 
     Parameters
     ----------
-        * value_reference: the node for which we want to find all references
-        * all_target_list: a list of target references in the module
-        * classes: a dict of all classes in the module
-        * functions: a dict of all functions in the module
-        * parameters: a dict of all parameters for each functions in the module
+    current_value_reference : ReferenceNode
+        The current value reference, for which we want to find all references.
+    all_target_list : list[ReferenceNode]
+        All target references in the module.
+    classes : dict[str, ClassScope]
+        All classes and their ClassScope.
+    functions : dict[str, list[FunctionScope]]
+        All functions and a list of their FunctionScopes.
+        The value is a list since there can be multiple functions with the same name.
+    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
+        All parameters of functions and a tuple of their Scope or ClassScope and a set of their target nodes.
 
     Returns
     -------
-        * complete_reference: the reference for the given node with all references added to its referenced_symbols
+    complete_reference : ReferenceNode
+        The reference for the given node with all its value references added to its referenced_symbols.
     """
-    complete_reference = value_reference
+    complete_reference = current_value_reference
     outer_continue: bool = False
 
     for ref in all_target_list:
         # Add all references (name)-nodes, that have the same name as the value_reference
         # and are not the receiver of a MemberAccess (because they are already added)
-        if ref.node.name == value_reference.node.name and not isinstance(ref.node.parent, astroid.AssignAttr):
+        if ref.node.name == current_value_reference.node.name and not isinstance(ref.node.parent, astroid.AssignAttr):
             # Add parameters only if the name parameter is declared in the same scope as the value_reference
-            if ref.scope.symbol.node in parameters and ref.scope != value_reference.scope:
+            if ref.scope.symbol.node in parameters and ref.scope != current_value_reference.scope:
                 continue
 
             # This covers the case where a parameter has the same name as a class variable:
@@ -194,7 +213,7 @@ def _find_references(
             #     def f(self, a):
             #         self.a = a
             elif isinstance(ref.scope, ClassScope) and parameters:
-                parameters_for_value_reference = parameters.get(value_reference.scope.symbol.node)[1]  # type: ignore[index] # "None" is not index-able, but we check for it
+                parameters_for_value_reference = parameters.get(current_value_reference.scope.symbol.node)[1]  # type: ignore[index] # "None" is not index-able, but we check for it
                 for param in parameters_for_value_reference:
                     if ref.node.name == param.name and not isinstance(_get_symbols(ref), Parameter):
                         outer_continue = True  # the reference isn't a parameter, so don't add it
@@ -208,9 +227,9 @@ def _find_references(
                 set(complete_reference.referenced_symbols) | set(_get_symbols(ref)),
             )
 
-        if isinstance(value_reference.node, MemberAccessValue):
+        if isinstance(current_value_reference.node, MemberAccessValue):
             # Add ClassVariables if the name matches
-            if isinstance(ref.scope, ClassScope) and ref.node.name == value_reference.node.member.attrname:
+            if isinstance(ref.scope, ClassScope) and ref.node.name == current_value_reference.node.member.attrname:
                 complete_reference.referenced_symbols = list(
                     set(complete_reference.referenced_symbols) | set(_get_symbols(ref)),
                 )
@@ -218,7 +237,7 @@ def _find_references(
             # Add InstanceVariables if the name of the MemberAccessValue is the same as the name of the InstanceVariable
             if (
                 isinstance(ref.node, MemberAccessTarget)
-                and ref.node.member.attrname == value_reference.node.member.attrname
+                and ref.node.member.attrname == current_value_reference.node.member.attrname
             ):
                 complete_reference.referenced_symbols = list(
                     set(complete_reference.referenced_symbols) | set(_get_symbols(ref)),
@@ -227,7 +246,7 @@ def _find_references(
     # Find classes that are referenced
     if classes:
         for klass in classes.values():
-            if klass.symbol.node.name == value_reference.node.name:
+            if klass.symbol.node.name == current_value_reference.node.name:
                 complete_reference.referenced_symbols.append(klass.symbol)
                 break
 
@@ -238,13 +257,13 @@ def _find_references(
     #     a()
     # g(f)
     if functions:
-        if value_reference.node.name in functions:
-            function_def = functions.get(value_reference.node.name)
+        if current_value_reference.node.name in functions:
+            function_def = functions.get(current_value_reference.node.name)
             symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but we check for it
             complete_reference.referenced_symbols.extend(symbols)
-        elif isinstance(value_reference.node, MemberAccessValue):
-            if value_reference.node.member.attrname in functions:
-                function_def = functions.get(value_reference.node.member.attrname)
+        elif isinstance(current_value_reference.node, MemberAccessValue):
+            if current_value_reference.node.member.attrname in functions:
+                function_def = functions.get(current_value_reference.node.member.attrname)
                 symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but we check for it
                 complete_reference.referenced_symbols.extend(symbols)
 
@@ -257,11 +276,13 @@ def _get_symbols(node: ReferenceNode) -> list[Symbol]:
 
     Parameters
     ----------
-        * node: the node for which we want to get all symbols
+    node : ReferenceNode
+        The node for which we want to get all symbols.
 
     Returns
     -------
-        * refined_symbol: a list of all symbols for the given node
+    refined_symbol : list[Symbol]
+        All symbols for the given node.
     """
     refined_symbol: list[Symbol] = []
     current_scope = node.scope
@@ -276,7 +297,7 @@ def _get_symbols(node: ReferenceNode) -> list[Symbol]:
     return refined_symbol
 
 
-def _find_call_reference(
+def _find_call_references(
     function_calls: dict[astroid.Call, Scope | ClassScope],
     classes: dict[str, ClassScope],
     functions: dict[str, list[FunctionScope]],
@@ -286,14 +307,20 @@ def _find_call_reference(
 
     Parameters
     ----------
-        * function_calls: a dict of all function calls in the module and their scope
-        * classes: a dict of all classes in the module and their scope
-        * functions: a dict of all functions in the module and their scope
-        * parameters: a dict of all parameters of functions in the module and their scope
+    function_calls : dict[astroid.Call, Scope | ClassScope]
+        All function calls and their Scope or ClassScope.
+    classes : dict[str, ClassScope]
+        All classes and their ClassScope.
+    functions : dict[str, list[FunctionScope]]
+        All functions and a list of their FunctionScopes.
+        The value is a list since there can be multiple functions with the same name.
+    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
+        All parameters of functions and a tuple of their Scope or ClassScope and a set of their target nodes.
 
     Returns
     -------
-        * final_call_references: a dict of all references for a function call
+    final_call_references : dict[str, list[ReferenceNode]]
+        All references for a function call.
     """
 
     def add_reference() -> None:
@@ -359,6 +386,7 @@ def _find_call_reference(
 def resolve_references(
     code: str,
 ) -> tuple[dict[str, list[ReferenceNode]], dict[str, Reasons], dict[str, ClassScope], CallGraphForest]:
+    # TODO: add a class for this return type then fix the docstring
     """
     Resolve all references in a module.
 
@@ -384,7 +412,7 @@ def resolve_references(
     )
 
     if module_data.function_calls:
-        call_references = _find_call_reference(
+        call_references = _find_call_references(
             module_data.function_calls,
             module_data.classes,
             module_data.functions,
@@ -404,16 +432,19 @@ def merge_dicts(
     d1: dict[str, list[ReferenceNode]],
     d2: dict[str, list[ReferenceNode]],
 ) -> dict[str, list[ReferenceNode]]:
-    """Merge two dicts of lists.
+    """Merge two dicts of lists of ReferenceNodes.
 
     Parameters
     ----------
-        * d1: the first dict
-        * d2: the second dict
+    d1 : dict[str, list[ReferenceNode]]
+        The first dict.
+    d2 : dict[str, list[ReferenceNode]]
+        The second dict.
 
     Returns
     -------
-        * d3: the merged dict
+    d3 : dict[str, list[ReferenceNode]]
+        The merged dict.
     """
     d3 = d1.copy()
     for key, value in d2.items():

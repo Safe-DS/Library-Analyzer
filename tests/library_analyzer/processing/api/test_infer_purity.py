@@ -23,6 +23,16 @@ from library_analyzer.processing.api.purity_analysis.model import (
 
 @dataclass
 class SimpleImpure:
+    """Class for simple impure results.
+
+    A simplified class of the Impure class for testing purposes.
+
+    Attributes
+    ----------
+    reasons : set[str]
+        The set of reasons for impurity as strings.
+    """
+
     reasons: set[str]
 
 
@@ -218,7 +228,7 @@ def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
 
     purity_results = infer_purity(references, function_references, classes, call_graph)
     transformed_purity_results = {
-        to_string_call(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()
+        to_string_function_def(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()
     }
 
     assert transformed_purity_results == expected
@@ -664,19 +674,44 @@ def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> No
     purity_results = infer_purity(references, function_references, classes, call_graph)
 
     transformed_purity_results = {
-        to_string_call(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()
+        to_string_function_def(function_def): to_simple_result(purity_result)
+        for function_def, purity_result in purity_results.items()
     }
 
     assert transformed_purity_results == expected
 
 
-def to_string_call(func: astroid.FunctionDef | str) -> str:
+def to_string_function_def(func: astroid.FunctionDef | str) -> str:
+    """Convert a function to a string representation.
+
+    Parameters
+    ----------
+    func : astroid.FunctionDef | str
+        The function to convert.
+
+    Returns
+    -------
+    str
+        The string representation of the function.
+    """
     if isinstance(func, str):
         return f"{func}"
     return f"{func.name}.line{func.lineno}"
 
 
 def to_simple_result(purity_result: PurityResult) -> Pure | SimpleImpure:  # type: ignore[return] # all cases are handled
+    """Convert a purity result to a simple result.
+
+    Parameters
+    ----------
+    purity_result : PurityResult
+        The purity result to convert, either Pure or Impure.
+
+    Returns
+    -------
+    Pure | SimpleImpure
+        The converted purity result.
+    """
     if isinstance(purity_result, Pure):
         return Pure()
     elif isinstance(purity_result, Impure):
@@ -684,6 +719,18 @@ def to_simple_result(purity_result: PurityResult) -> Pure | SimpleImpure:  # typ
 
 
 def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # all cases are handled
+    """Convert an impurity reason to a string.
+
+    Parameters
+    ----------
+    reason : ImpurityReason
+        The impurity reason to convert.
+
+    Returns
+    -------
+    str
+        The converted impurity reason.
+    """
     if reason is None:
         raise ValueError("Reason must not be None")
     if isinstance(reason, NonLocalVariableRead):
@@ -851,7 +898,7 @@ def test_infer_purity_open(code: str, expected: dict[str, SimpleImpure]) -> None
     purity_results = infer_purity(references, function_references, classes, call_graph)
 
     transformed_purity_results = {
-        to_string_call(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()
+        to_string_function_def(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()
     }
 
     assert transformed_purity_results == expected

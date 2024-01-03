@@ -218,18 +218,19 @@ OPEN_MODES = {
 
 # TODO: remove type ignore after implementing all cases
 def check_open_like_functions(func_ref: FunctionReference) -> PurityResult:  # type: ignore[return] # all cases are handled
-    """
-    Check if the function is an open-like function.
+    """Check open-like function for impurity.
 
     This includes functions like open, read, readline, readlines, write, writelines.
 
     Parameters
     ----------
-        * func_ref: the function reference
+    func_ref: FunctionReference
+        The function reference to check.
 
     Returns
     -------
-        * PurityResult: the purity result of the function
+    PurityResult
+        The purity result of the function.
 
     """
     # Check if we deal with the open function
@@ -286,22 +287,31 @@ def infer_purity(
     classes: dict[str, ClassScope],
     call_graph: CallGraphForest,
 ) -> dict[astroid.FunctionDef, PurityResult]:
-    # """
-    # Infer the purity of functions.
-    #
-    # Given a list of references, a dict of function references and a callgraph, this function infers the purity of the functions inside a module.
-    # It therefore iterates over the function references and processes the nodes in the call graph.
-    #
-    # Parameters
-    # ----------
-    #     * references: a dict of all references in the module
-    #     * function_references: a dict of function references
-    #     * classes: a dict of all classes in the module
-    #     * call_graph: the call graph of the module
-    # Returns
-    # -------
-    #     * purity_results: a dict of the function nodes and purity results of the functions
-    # """  # TODO: fix whaterver is wrong with the docstring
+    # TODO: add a class for this return type then fix the docstring, see resolve_references()
+    """
+    Infer the purity of functions.
+
+    Given a list of references, a dict of function references and a callgraph,
+    this function infers the purity of the functions inside a module.
+    It therefore iterates over the function references and processes the nodes in the call graph.
+
+    Parameters
+    ----------
+    references : dict[str, list[ReferenceNode]]
+        a dict of all references in the module
+    function_references : dict[str, Reasons]
+        a dict of function references
+    classes : dict[str, ClassScope]
+        a dict of all classes in the module
+    call_graph : CallGraphForest
+        the call graph of the module
+
+    Returns
+    -------
+    purity_results : dict[astroid.FunctionDef, PurityResult]
+        The purity results of the functions in the module.
+        Keys are the function nodes, values are the purity results.
+    """
     purity_results: dict[astroid.FunctionDef, PurityResult] = (
         {}
     )  # We use astroid.FunctionDef instead of str as a key so we can access the node later
@@ -321,6 +331,7 @@ def process_node(  # type: ignore[return] # all cases are handled
     call_graph: CallGraphForest,
     purity_results: dict[astroid.FunctionDef, PurityResult],
 ) -> PurityResult:
+    # TODO: add a class for this return type then fix the docstring, see resolve_references()
     """
     Process a node in the call graph.
 
@@ -344,7 +355,8 @@ def process_node(  # type: ignore[return] # all cases are handled
 
     Returns
     -------
-        * purity_results: a dict of the function nodes and purity results of the functions
+    PurityResult
+        The purity result of the function node.
     """
     if isinstance(reason, Reasons) and reason.function is not None:
 
@@ -494,6 +506,7 @@ def get_purity_of_child(
     call_graph: CallGraphForest,
     purity_results: dict[astroid.FunctionDef, PurityResult],
 ) -> None:
+    # TODO: add a class for this return type then fix the docstring, see resolve_references()
     """
     Get the purity of a child node.
 
@@ -537,6 +550,7 @@ def transform_reasons_to_impurity_result(
     references: dict[str, list[ReferenceNode]],
     classes: dict[str, ClassScope],
 ) -> PurityResult:
+    # TODO: add a class for this return type then fix the docstring, see resolve_references()
     """
     Transform the reasons for impurity to an impurity result.
 
