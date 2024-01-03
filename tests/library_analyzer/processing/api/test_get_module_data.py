@@ -13,6 +13,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     MemberAccess,
     MemberAccessTarget,
     MemberAccessValue,
+    Reasons,
     Scope,
     Symbol,
 )
@@ -29,6 +30,26 @@ class SimpleClassScope(SimpleScope):
     class_variables: list[str]
     instance_variables: list[str]
     super_class: list[str] = field(default_factory=list)
+
+
+@dataclass
+class SimpleReasons:
+    function_name: str
+    writes: set[SimpleFunctionReference] = field(default_factory=set)
+    reads: set[SimpleFunctionReference] = field(default_factory=set)
+    calls: set[SimpleFunctionReference] = field(default_factory=set)
+
+    def __hash__(self) -> int:
+        return hash(self.function_name)
+
+
+@dataclass
+class SimpleFunctionReference:
+    node: str
+    kind: str
+
+    def __hash__(self) -> int:
+        return hash((self.node, self.kind))
 
 
 @pytest.mark.parametrize(
@@ -116,7 +137,7 @@ def test_calc_node_id(
                     def __init__(self):
                         self.value = 10
                         self.test = 20
-                    def f():
+                    def f(self):
                         var1 = 1
                 def g():
                     var2 = 2
@@ -139,7 +160,10 @@ def test_calc_node_id(
                                 ),
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.f",
-                                    [SimpleScope("LocalVariable.AssignName.var1", [])],
+                                    [
+                                        SimpleScope("Parameter.AssignName.self", []),
+                                        SimpleScope("LocalVariable.AssignName.var1", []),
+                                    ],
                                 ),
                             ],
                             ["FunctionDef.__init__", "FunctionDef.f"],
@@ -235,7 +259,7 @@ def test_calc_node_id(
                 class A:
                     class_attr1 = 20
 
-                    def local_class_attr():
+                    def local_class_attr(self):
                         var1 = A.class_attr1
                         return var1
             """,
@@ -249,7 +273,10 @@ def test_calc_node_id(
                                 SimpleScope("ClassVariable.AssignName.class_attr1", []),
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.local_class_attr",
-                                    [SimpleScope("LocalVariable.AssignName.var1", [])],
+                                    [
+                                        SimpleScope("Parameter.AssignName.self", []),
+                                        SimpleScope("LocalVariable.AssignName.var1", []),
+                                    ],
                                 ),
                             ],
                             ["AssignName.class_attr1", "FunctionDef.local_class_attr"],
@@ -268,7 +295,7 @@ def test_calc_node_id(
                     def __init__(self):
                         self.instance_attr1 = 10
 
-                    def local_instance_attr():
+                    def local_instance_attr(self):
                         var1 = self.instance_attr1
                         return var1
             """,
@@ -290,7 +317,10 @@ def test_calc_node_id(
                                 ),
                                 SimpleScope(
                                     "ClassVariable.FunctionDef.local_instance_attr",
-                                    [SimpleScope("LocalVariable.AssignName.var1", [])],
+                                    [
+                                        SimpleScope("Parameter.AssignName.self", []),
+                                        SimpleScope("LocalVariable.AssignName.var1", []),
+                                    ],
                                 ),
                             ],
                             [
@@ -474,7 +504,7 @@ def test_calc_node_id(
                         class local_class_scope:
                             var3 = 30
 
-                            def local_class_function_scope():
+                            def local_class_function_scope(self):
                                 var4 = 40
             """,
             [
@@ -496,6 +526,7 @@ def test_calc_node_id(
                                                 SimpleScope(
                                                     "ClassVariable.FunctionDef.local_class_function_scope",
                                                     [
+                                                        SimpleScope("Parameter.AssignName.self", []),
                                                         SimpleScope(
                                                             "LocalVariable.AssignName.var4",
                                                             [],
@@ -717,7 +748,7 @@ def test_calc_node_id(
                 with file:
                     a = 1
             """,
-            [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.a", []), SimpleScope("With", [])])],
+            [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.a", [])])],
         ),
         (  # With Statement File
             """
@@ -731,8 +762,31 @@ def test_calc_node_id(
                     "Module",
                     [
                         SimpleScope("GlobalVariable.AssignName.file", []),
+                        SimpleScope("GlobalVariable.AssignName.f", []),
                         SimpleScope("GlobalVariable.AssignName.a", []),
-                        SimpleScope("With", [SimpleScope("LocalVariable.AssignName.f", [])]),
+                    ],
+                ),
+            ],
+        ),
+        (  # With Statement Function
+            """
+                def fun():
+                    with open("text.txt") as f:
+                        text = f.read()
+                        print(text)
+                        f.close()
+            """,
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope(
+                            "GlobalVariable.FunctionDef.fun",
+                            [
+                                SimpleScope("LocalVariable.AssignName.f", []),
+                                SimpleScope("LocalVariable.AssignName.text", []),
+                            ],
+                        ),
                     ],
                 ),
             ],
@@ -770,7 +824,7 @@ def test_calc_node_id(
                             [],
                             [],
                         ),
-                        SimpleScope("With", [SimpleScope("LocalVariable.AssignName.context", [])]),
+                        SimpleScope("GlobalVariable.AssignName.context", []),
                     ],
                 ),
             ],
@@ -797,8 +851,10 @@ def test_calc_node_id(
         "List Comprehension in Function",
         "With Statement",
         "With Statement File",
+        "With Statement Function",
         "With Statement Class",
     ],  # TODO: add tests for lambda, match, try except and generator expressions
+    # TODO: add SimpleFunctionScope and adapt the tests
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
     scope = get_module_data(code).scope
@@ -809,7 +865,7 @@ def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleCla
 def assert_test_get_scope(result: Scope, expected: list[SimpleScope | SimpleClassScope]) -> None:
     transformed_result = [
         transform_result(node) for node in result
-    ]  # The result and the expected data is simplified to make the comparison easier
+    ]  # The result and the expected data are simplified to make the comparison easier
     assert transformed_result == expected
 
 
@@ -884,7 +940,7 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
 
 @pytest.mark.parametrize(
     ("code", "expected"),
-    # expected is a tuple of (ClassDefName, set of class variables, set of instance variables, list of super classes)
+    # expected is a tuple of (ClassDefName, set of class variables, set of instance variables, list of superclasses)
     [
         (  # ClassDef
             """
@@ -1000,7 +1056,7 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 ),
             },
         ),
-        (  # ClassDef with conditional instance attributes (instance attributes with same name)
+        (  # ClassDef with conditional instance attributes (instance attributes with the same name)
             """
                 class A:
                     def __init__(self):
@@ -1085,7 +1141,7 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [], []),
             },
         ),
-        (  # ClassDef with super class
+        (  # ClassDef with superclass
             """
                 class A:
                     pass
@@ -1122,7 +1178,7 @@ def test_get_module_data_classes(code: str, expected: dict[str, SimpleClassScope
 def assert_get_module_data_classes(classes: dict[str, ClassScope], expected: dict[str, SimpleClassScope]) -> None:
     transformed_classes = {
         klassname: transform_result(klass) for klassname, klass in classes.items()
-    }  # The result and the expected data is simplified to make the comparison easier
+    }  # The result and the expected data are simplified to make the comparison easier
     assert transformed_classes == expected
 
 
@@ -1429,6 +1485,94 @@ def transform_member_access(member_access: MemberAccess) -> str:
 
 @pytest.mark.parametrize(("code", "expected"), [])
 def test_get_module_data_function_calls(code: str, expected: str) -> None:
-    function_calls = get_module_data(code).classes
+    function_calls = get_module_data(code).function_calls
     raise NotImplementedError("TODO: implement test")
     assert function_calls == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "internal stuff"
+            """
+b = 1
+c = 2
+d = 3
+def g():
+    pass
+
+def f():
+    # global b  # TODO: [LATER] to detect this case, we need to collect the global statements on function level
+    a = 1  # LocaleWrite
+    b = 2  # NonLocalVariableWrite
+    a      # LocaleRead
+    c      # NonLocalVariableRead
+    b = d  # NonLocalVariableWrite, NonLocalVariableRead
+    g()    # Call
+    x = open("text.txt") # LocalWrite, Call
+            """,  # language=none
+            {
+                "f": SimpleReasons(
+                    "f",
+                    {
+                        SimpleFunctionReference("AssignName.b.line11", "NonLocalVariableWrite"),
+                        SimpleFunctionReference("AssignName.b.line14", "NonLocalVariableWrite"),
+                    },
+                    {
+                        SimpleFunctionReference("Name.c.line13", "NonLocalVariableRead"),
+                        SimpleFunctionReference("Name.d.line14", "NonLocalVariableRead"),
+                    },
+                    {
+                        SimpleFunctionReference("Call.g.line15", "Call"),
+                        SimpleFunctionReference("Call.open.line16", "Call"),
+                    },
+                ),
+                "g": SimpleReasons("g", set(), set(), set()),
+            },
+        ),
+    ],
+    ids=["internal stuff"],  # TODO: add cases for control flow statements and other cases
+)
+def test_get_module_data_function_references(code: str, expected: dict[str, SimpleReasons]) -> None:
+    function_references = get_module_data(code).function_references
+
+    transformed_function_references = transform_function_references(function_references)
+    # assert function_references == expected
+
+    assert transformed_function_references == expected
+
+
+def transform_function_references(function_calls: dict[str, Reasons]) -> dict[str, SimpleReasons]:
+    transformed_function_references = {}
+    for function_name, function_references in function_calls.items():
+        transformed_function_references.update({
+            function_name: SimpleReasons(
+                function_name,
+                {
+                    SimpleFunctionReference(
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                        function_reference.kind,
+                    )
+                    for function_reference in function_references.writes
+                },
+                {
+                    SimpleFunctionReference(
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                        function_reference.kind,
+                    )
+                    for function_reference in function_references.reads
+                },
+                {
+                    SimpleFunctionReference(
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.func.name}.line{function_reference.node.fromlineno}",
+                        function_reference.kind,
+                    )
+                    for function_reference in function_references.calls
+                },
+            ),
+        })
+
+    return transformed_function_references
+
+
+# TODO: testcases for cyclic calls and recursive calls

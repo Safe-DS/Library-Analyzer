@@ -6,18 +6,16 @@ from typing import TYPE_CHECKING
 
 import astroid
 
-from library_analyzer.processing.api.purity_analysis.model._purity import (
-    Expression,
-)
-
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Iterator
+
+    from library_analyzer.processing.api.purity_analysis.model import PurityResult
 
 
 @dataclass
 class ModuleData:
     """
-    Contains all data that is collected for a module.
+    Contains all data collected for a module.
 
     Attributes
     ----------
@@ -29,11 +27,12 @@ class ModuleData:
         target_nodes        All target nodes and their scope.
         parameters          All parameters of functions and their scope.
         function_calls      All function calls and their scope.
+        function_references All for reference resolving relevant nodes inside functions
     """
 
     scope: Scope | ClassScope
     classes: dict[str, ClassScope]
-    functions: dict[str, list[Scope]]
+    functions: dict[str, list[FunctionScope]]
     global_variables: dict[str, Scope | ClassScope]
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]  # TODO: dict[str, list[Scope]]
     target_nodes: dict[
@@ -42,10 +41,11 @@ class ModuleData:
     ]  # TODO: dict[str, list[Scope]]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
     function_calls: dict[astroid.Call, Scope | ClassScope]
+    function_references: dict[str, Reasons]
 
 
 @dataclass
-class MemberAccess(Expression):
+class MemberAccess(astroid.NodeNG):
     receiver: MemberAccess | astroid.NodeNG
     member: astroid.NodeNG
     parent: astroid.NodeNG | None = field(default=None)
@@ -79,8 +79,8 @@ class MemberAccessValue(MemberAccess):
 class NodeID:
     module: astroid.Module | str
     name: str
-    line: int
-    col: int
+    line: int | None
+    col: int | None
 
     def __repr__(self) -> str:
         return f"{self.module}.{self.name}.{self.line}.{self.col}"
@@ -92,7 +92,7 @@ class Symbol(ABC):
 
     Attributes
     ----------
-        node    is the node which defines the symbol.
+        node    is the node that defines the symbol.
         id      is the id of the node.
         name    is the name of the symbol.
 
@@ -107,7 +107,7 @@ class Symbol(ABC):
 
 
 @dataclass
-class Parameter(Symbol):  # TODO: find correct node type and add fields with further infos for each subclass
+class Parameter(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
@@ -183,7 +183,7 @@ class Scope:
     ----------
         _symbol      is the symbol that defines the scope of the node.
         _children    is a list of Scope or ClassScope instances that are defined in the scope of the node, is None if the node is a leaf node.
-        _parent      is the parent node in the scope tree, is None if the node is the root node.
+        _parent      is the parent node in the scope tree, there is None if the node is the root node.
     """
 
     _symbol: Symbol
@@ -198,6 +198,9 @@ class Scope:
 
     def __repr__(self) -> str:
         return f"{self.symbol.name}.line{self.symbol.id.line}"
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
     @property
     def symbol(self) -> Symbol:
@@ -229,6 +232,11 @@ class Scope:
             raise TypeError("Invalid parent type.")
         self._parent = new_parent
 
+    def get_module_scope(self) -> Scope:
+        if self.parent is None:
+            return self
+        return self.parent.get_module_scope()
+
 
 @dataclass
 class ClassScope(Scope):
@@ -238,9 +246,103 @@ class ClassScope(Scope):
     ----------
         class_variables     a dict of class variables and their Symbols
         instance_variables  a dict of instance variables and their Symbols
-        super_classes       a list of ClassScope instances that represent the super classes of the class
+        super_classes       a list of ClassScope instances that represent the superclasses of the class
     """
 
     class_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     instance_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     super_classes: list[ClassScope] = field(default_factory=list)
+
+
+@dataclass
+class FunctionScope(Scope):
+    """Represents a Scope that defines the scope of a function.
+
+    Attributes
+    ----------
+        values      a list of all value nodes in the scope
+        calls       a set of all called functions in the scope
+    """
+
+    # parameters: dict[str, list[Symbol]] = field(default_factory=dict)
+    values: list[Scope | ClassScope] = field(default_factory=list)
+    calls: list[Scope | ClassScope] = field(default_factory=list)
+
+    def remove_call_node_by_name(self, name: str) -> None:
+        for call in self.calls:
+            if call.symbol.name == name:
+                self.calls.remove(call)
+                break
+
+
+@dataclass
+class Reasons:
+    """
+    Contains all reasons why a function is not pure.
+
+    Attributes
+    ----------
+        function        the function node
+        writes          a set of all nodes that are written to
+        reads           a set of all nodes that are read from
+        calls           a set of all nodes that are called
+        result          the result of the purity analysis (this also works as a flag to determine if the purity analysis has been performed)
+                        if it is None, the purity analysis has not been performed
+    """
+
+    function: astroid.FunctionDef | MemberAccess | None = field(default=None)
+    writes: set[FunctionReference] = field(default_factory=set)
+    reads: set[FunctionReference] = field(default_factory=set)
+    calls: set[FunctionReference] = field(default_factory=set)
+    result: PurityResult | None = field(default=None)
+    unknown_calls: list[astroid.Call | astroid.NodeNG] | None = field(default=None)
+
+    def __iter__(self) -> Iterator[FunctionReference]:
+        return iter(self.writes.union(self.reads).union(self.calls))
+
+    def get_call_by_name(self, name: str) -> FunctionReference:
+        for call in self.calls:
+            if isinstance(call.node, astroid.Call) and call.node.func.name == name:  # noqa: SIM114
+                return call
+            elif call.node.name == name:
+                return call
+
+        raise ValueError("No call to the function found.")
+
+    def join_reasons(self, other: Reasons) -> Reasons:
+        self.writes.update(other.writes)
+        self.reads.update(other.reads)
+        self.calls.update(other.calls)
+        if self.unknown_calls is not None and other.unknown_calls is not None:
+            self.unknown_calls.extend(other.unknown_calls)
+        elif self.unknown_calls is None and other.unknown_calls is not None:
+            self.unknown_calls = other.unknown_calls
+        elif other.unknown_calls is None:
+            pass
+
+        return self
+
+    @staticmethod
+    def join_reasons_list(reasons_list: list[Reasons]) -> Reasons:
+        if not reasons_list:
+            raise ValueError("List of Reasons is empty.")
+
+        for reason in reasons_list:
+            reasons_list[0].join_reasons(reason)
+        return reasons_list[0]
+
+
+@dataclass
+class FunctionReference:  # TODO: find a better name for this class  # FunctionPointer?
+    node: astroid.NodeNG
+    kind: str
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __repr__(self) -> str:
+        if isinstance(self.node, astroid.Call):
+            return f"{self.node.func.name}.line{self.node.lineno}"
+        if isinstance(self.node, MemberAccessTarget | MemberAccessValue):
+            return f"{self.node.name}.line{self.node.member.lineno}"
+        return f"{self.node.name}.line{self.node.lineno}"
