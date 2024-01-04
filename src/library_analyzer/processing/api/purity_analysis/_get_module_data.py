@@ -82,19 +82,17 @@ class ModuleDataBuilder:
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope | FunctionScope] = field(
         default_factory=dict,
     )
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope | FunctionScope] = (
-        field(default_factory=dict)
-    )
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
     global_variables: dict[str, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope | FunctionScope, set[astroid.AssignName]]] = field(
         default_factory=dict,
     )
     function_calls: dict[astroid.Call, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
-    function_references: dict[str, Reasons] = field(default_factory=dict)
+    function_references: dict[NodeID, Reasons] = field(default_factory=dict)
 
     def get_function_values(self, function_name: str) -> dict[str, set[Symbol]]:
         """Get all value nodes that are used inside the function body."""
-        values = dict()
+        values = {}
         if function_name in self.functions:
             for val in self.functions[function_name][0].values:
                 if isinstance(val.symbol.node, MemberAccessValue):
@@ -195,6 +193,7 @@ class ModuleDataBuilder:
             # Since Lambdas normally do not have names, we need to add its assigned name manually
             self.current_node_stack[-1].symbol.name = node_name
             self.current_node_stack[-1].symbol.node.name = node_name
+            self.current_node_stack[-1].symbol.id.name = node_name
 
             # Extend the dict of functions with the current node or create a new list with the current node
             if node_name in self.functions:
@@ -249,7 +248,7 @@ class ModuleDataBuilder:
                 else:
                     self.current_node_stack[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
 
-    def collect_function_references(self) ->  dict[str, Reasons]:
+    def collect_function_references(self) -> dict[NodeID, Reasons]:
         """Collect all function references in the module.
 
         This function must only be called after the scope of all nodes has been determined,
@@ -260,11 +259,11 @@ class ModuleDataBuilder:
 
         Returns
         -------
-        dict[str, Reasons]
+        dict[NodeID, Reasons]
             A dict containing all function references in the module.
             The dict is structured as follows:
             {
-                "function_name": Reasons(
+                "NodeID_of_function": Reasons(
                     function_def_node,
                     {FunctionReference}, # writes
                     {FunctionReference}, # reads
@@ -273,21 +272,32 @@ class ModuleDataBuilder:
                 ...
             }
         """
+
         def find_first_parent_function(node: astroid.NodeNG) -> astroid.NodeNG:
             """Find the first parent of a call node that is a function.
 
-            If the parent is a module, return the module.
+            Parameters
+            ----------
+            node : astroid.NodeNG
+                The node to start the search from.
+
+            Returns
+            -------
+            astroid.NodeNG
+                The first parent of the node that is a function.
+                If the parent is a module, return the module.
             """
             if isinstance(node.parent, astroid.FunctionDef | astroid.Module | None):
                 return node.parent
             return find_first_parent_function(node.parent)
 
         python_builtins = dir(builtins)
-        function_references: dict[str, Reasons] = {}
+        function_references: dict[NodeID, Reasons] = {}
         # TODO: we store the results in a dict with a string as key
         #  -> if there are multiple functions with the same name, we only get the results of the first one
-        for function_name, function_scopes in self.functions.items():
+        for function_scopes in self.functions.values():
             for function_node in function_scopes:  # iterate over all functions with the same name
+                function_id = calc_node_id(function_node.symbol.node)
                 function_def_node = function_node.symbol.node
 
                 # Look at all target nodes and check if they are used in the function body
@@ -298,11 +308,11 @@ class ModuleDataBuilder:
                             if target.name == child.symbol.name and child in function_node.children:
                                 ref = FunctionReference(child.symbol.node, self.get_kind(child.symbol))
 
-                                if function_name in function_references:  # check if the function is already in the dict
-                                    if ref not in function_references[function_name]:
-                                        function_references[function_name].writes.add(ref)
+                                if function_id in function_references:  # check if the function is already in the dict
+                                    if ref not in function_references[function_id]:
+                                        function_references[function_id].writes.add(ref)
                                 else:  # create a new entry in the dict
-                                    function_references[function_name] = Reasons(
+                                    function_references[function_id] = Reasons(
                                         function_def_node,
                                         {ref},
                                         set(),
@@ -311,8 +321,10 @@ class ModuleDataBuilder:
 
                 # Look at all value nodes and check if they are used in the function body
                 for value in self.value_nodes:
-                    if isinstance(self.functions[function_name][0], FunctionScope):
-                        function_values = self.get_function_values(function_name)  # Since we do not differentiate between functions with the same name, we can choose the first one  # TODO: this is not correct. also cache this since it is called multiple times
+                    if isinstance(self.functions[function_id.name][0], FunctionScope):
+                        # Since we do not differentiate between functions with the same name, we can choose the first one
+                        # TODO: this is not correct. also cache this since it is called multiple times
+                        function_values = self.get_function_values(function_id.name)
                         if value.name in function_values:
                             if value.name in self.global_variables or isinstance(value, MemberAccessValue):
                                 # Get the correct symbol
@@ -324,10 +336,10 @@ class ModuleDataBuilder:
 
                                 ref = FunctionReference(value, self.get_kind(sym))
 
-                                if function_name in function_references:  # check if the function is already in the dict
-                                    function_references[function_name].reads.add(ref)
+                                if function_id in function_references:  # check if the function is already in the dict
+                                    function_references[function_id].reads.add(ref)
                                 else:  # create a new entry in the dict
-                                    function_references[function_name] = Reasons(
+                                    function_references[function_id] = Reasons(
                                         function_def_node,
                                         set(),
                                         {ref},
@@ -344,7 +356,7 @@ class ModuleDataBuilder:
 
                     parent_function = find_first_parent_function(call)
                     function_scopes_calls_names = [c.symbol.name for c in function_scopes[0].calls]
-                    if call_func_name in function_scopes_calls_names and parent_function.name == function_name:
+                    if call_func_name in function_scopes_calls_names and parent_function.name == function_id.name:
                         # get the correct symbol
                         sym = None
                         # check all self defined functions
@@ -359,10 +371,10 @@ class ModuleDataBuilder:
 
                         ref = FunctionReference(call, self.get_kind(sym))
 
-                        if function_name in function_references:  # check if the function is already in the dict
-                            function_references[function_name].calls.add(ref)
+                        if function_id in function_references:  # check if the function is already in the dict
+                            function_references[function_id].calls.add(ref)
                         else:  # create a new entry in the dict
-                            function_references[function_name] = Reasons(
+                            function_references[function_id] = Reasons(
                                 function_def_node,
                                 set(),
                                 set(),
@@ -370,12 +382,12 @@ class ModuleDataBuilder:
                             )  # Add calls
 
                 # Add function to function_references dict if it is not already in there  TODO: when does this happen?
-                if function_name not in function_references:
+                if function_id not in function_references:
                     # This deals with Lambda functions assigned a name
                     if isinstance(function_def_node, astroid.Lambda) and not isinstance(function_def_node, astroid.FunctionDef):
-                        function_def_node.name = function_name
+                        function_def_node.name = function_id
 
-                    function_references[function_name] = Reasons(function_def_node, set(), set(), set())
+                    function_references[function_id] = Reasons(function_def_node, set(), set(), set())
 
             # TODO: add MemberAccessTarget and MemberAccessValue detection
             #  it should be easy to add filters later: check if a target exists inside a class before adding its impurity reasons to the impurity result
@@ -1054,6 +1066,8 @@ def calc_node_id(
                 return NodeID(module, node.func.attrname, node.lineno, node.col_offset)
             return NodeID(module, node.func.name, node.lineno, node.col_offset)
         case astroid.Lambda():
+            if isinstance(node.parent, astroid.Assign) and node.name != "LAMBDA":
+                return NodeID(module, node.name, node.lineno, node.col_offset)
             return NodeID(module, "LAMBDA", node.lineno, node.col_offset)
         case astroid.ListComp():
             return NodeID(module, "LIST_COMP", node.lineno, node.col_offset)

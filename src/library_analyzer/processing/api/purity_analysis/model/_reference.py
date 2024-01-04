@@ -12,6 +12,7 @@ from library_analyzer.processing.api.purity_analysis.model._scope import (
     Reasons,
     Scope,
     Symbol,
+    NodeID,
 )
 
 
@@ -79,7 +80,7 @@ class CallGraphNode(Generic[_T]):
 
     def __repr__(self) -> str:
         if isinstance(self.data, FunctionScope):
-            return f"{self.data.symbol.name}"
+            return f"{self.data.symbol.id}"
         return f"{self.data}"
 
     def add_child(self, child: CallGraphNode) -> None:
@@ -116,27 +117,27 @@ class CallGraphForest:
         The key is the name of the tree, the value is the root CallGraphNode of the tree.
     """
 
-    graphs: dict[str, CallGraphNode] = field(default_factory=dict)
+    graphs: dict[NodeID, CallGraphNode] = field(default_factory=dict)
 
-    def add_graph(self, graph_name: str, graph: CallGraphNode) -> None:
+    def add_graph(self, graph_id: NodeID, graph: CallGraphNode) -> None:
         """Add a call graph tree to the forest.
 
         Parameters
         ----------
-        graph_name : str
-            The name of the tree.
+        graph_id : NodeID
+            The NodeID of the tree node.
         graph : CallGraphNode
             The root of the tree.
         """
-        self.graphs[graph_name] = graph
+        self.graphs[graph_id] = graph
 
-    def get_graph(self, graph_name: str) -> CallGraphNode:  # type: ignore[return] # see TODO below
+    def get_graph(self, graph_id: NodeID) -> CallGraphNode:  # type: ignore[return] # see TODO below
         """Get a call graph tree from the forest.
 
         Parameters
         ----------
-        graph_name : str
-            The name of the tree to get.
+        graph_id : NodeID
+            The NodeID of the tree node to get.
 
         Returns
         -------
@@ -144,16 +145,16 @@ class CallGraphForest:
             The CallGraphNode that is the root of the tree.
         """
         try:
-            return self.graphs[graph_name]
+            return self.graphs[graph_id]
         except KeyError:
             pass  # TODO: this is not a good idea, but it works -  LARS how to change this?
 
-    def delete_graph(self, graph_name: str) -> None:
+    def delete_graph(self, graph_id: NodeID) -> None:
         """Delete a call graph tree from the forest.
 
         Parameters
         ----------
-        graph_name : str
-            The name of the tree to delete.
+        graph_id : NodeID
+            The NodeID of the tree to delete.
         """
-        del self.graphs[graph_name]
+        del self.graphs[graph_id]

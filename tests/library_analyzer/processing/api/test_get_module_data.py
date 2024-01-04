@@ -15,7 +15,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     MemberAccessValue,
     Reasons,
     Scope,
-    Symbol,
+    Symbol, NodeID,
 )
 
 
@@ -1638,7 +1638,7 @@ def f():
     x = open("text.txt") # LocalWrite, Call
             """,  # language=none
             {
-                "f": SimpleReasons(
+                ".f.8.0": SimpleReasons(
                     "f",
                     {
                         SimpleFunctionReference("AssignName.b.line11", "NonLocalVariableWrite"),
@@ -1653,7 +1653,7 @@ def f():
                         SimpleFunctionReference("Call.open.line16", "Call"),
                     },
                 ),
-                "g": SimpleReasons("g", set(), set(), set()),
+                ".g.5.0": SimpleReasons("g", set(), set(), set()),
             },
         ),
         (  # language=Python "control flow statements"
@@ -1672,7 +1672,7 @@ def f():
         b += 1  # NonLocalVariableWrite
             """,  # language=none
             {
-                "f": SimpleReasons(
+                ".f.5.0": SimpleReasons(
                     "f",
                     {
                         SimpleFunctionReference("AssignName.c.line10", "NonLocalVariableWrite"),
@@ -1695,7 +1695,7 @@ def g():
     c = a.class_attr1  # NonLocalVariableRead
             """,  # language=none
             {
-                "f": SimpleReasons(
+                ".f.5.0": SimpleReasons(
                     "f",
                     {
                         SimpleFunctionReference("MemberAccessTarget.a.class_attr1.line7", "MemberAccessTarget"),
@@ -1705,7 +1705,7 @@ def g():
                         SimpleFunctionReference("Call.A.line6", "Call"),
                     }
                 ),
-                "g": SimpleReasons(
+                ".g.9.0": SimpleReasons(
                     "g",
                     set(),
                     {
@@ -1747,41 +1747,41 @@ def g3():
     c = b.instance_attr1  # NonLocalVariableRead
             """,  # language=none
             {
-                "__init__": SimpleReasons(
+                ".__init__.3.4": SimpleReasons(
                     "__init__"
                 ),
-                "f1": SimpleReasons(
+                ".f1.6.0": SimpleReasons(
                     "f1", {
                         SimpleFunctionReference("MemberAccessTarget.a.instance_attr1.line8", "MemberAccessTarget"),
                     },
                     set(),
                     {SimpleFunctionReference("Call.A.line7", "Call")}
                 ),
-                "f2": SimpleReasons(
+                ".f2.11.0": SimpleReasons(
                     "f2",
                     {
                         SimpleFunctionReference("MemberAccessTarget.x.instance_attr1.line12", "MemberAccessTarget"),
                     },
                 ),
-                "f3": SimpleReasons(
+                ".f3.14.0": SimpleReasons(
                     "f3",
                     {
                         SimpleFunctionReference("MemberAccessTarget.b.instance_attr1.line16", "MemberAccessTarget"),
                     },
                 ),
-                "g1": SimpleReasons(
+                ".g1.18.0": SimpleReasons(
                     "g1", set(), {
                         SimpleFunctionReference("MemberAccessValue.a.instance_attr1.line20", "MemberAccessValue"),
                     }, {SimpleFunctionReference("Call.A.line19", "Call")}
                 ),
-                "g2": SimpleReasons(
+                ".g2.22.0": SimpleReasons(
                     "g2",
                     set(),
                     {
                         SimpleFunctionReference("MemberAccessValue.x.instance_attr1.line23", "MemberAccessValue"),
                     },
                 ),
-                "g3": SimpleReasons(
+                ".g3.25.0": SimpleReasons(
                     "g3",
                     set(),
                     {
@@ -1808,14 +1808,14 @@ def f():
     b.upper_class.set_name("test")
             """,  # language=none
             {
-                "__init__": SimpleReasons(
+                ".__init__.3.4": SimpleReasons(
                     "__init__"
                 ),
-                "set_name": SimpleReasons(
+                ".set_name.6.4": SimpleReasons(
                     "set_name",
                     {SimpleFunctionReference("MemberAccessTarget.self.name.line7", "MemberAccessTarget")}
                 ),
-                "f": SimpleReasons(
+                ".f.12.0": SimpleReasons(
                     "f",
                     set(),
                     {
@@ -1846,13 +1846,13 @@ def g():
     A().class_attr1.f()
             """,  # language=none
             {
-                "__init__": SimpleReasons(
+                ".__init__.3.4": SimpleReasons(
                     "__init__"
                 ),
-                "f": SimpleReasons(
+                ".f.6.4": SimpleReasons(
                     "f", set(), set(), set()
                 ),
-                "g": SimpleReasons(
+                ".g.12.0": SimpleReasons(
                     "g",
                     set(),
                     set(),
@@ -1877,32 +1877,75 @@ class B:
     def __init__(self, name: str):
         self.name = name
 
-a = A("value")
-b = B("test")
-a.name
-b.name
+def f():
+    a = A("value")
+    b = B("test")
+    a.name
+    b.name
             """,  # language=none
             {
-
+                ".__init__.5.4": SimpleReasons(
+                    "__init__"
+                ),
+                ".__init__.11.4": SimpleReasons(
+                    "__init__"
+                ),
+                ".f.14.0": SimpleReasons(
+                    "f",
+                    set(),
+                    {
+                        SimpleFunctionReference("MemberAccessValue.a.name.line17", "MemberAccessValue"),
+                        SimpleFunctionReference("MemberAccessValue.b.name.line18", "MemberAccessValue"),
+                    },
+                    {
+                        SimpleFunctionReference("Call.A.line15", "Call"),
+                        SimpleFunctionReference("Call.B.line16", "Call"),
+                    }
+                )
             }
         ),
         (  # language=Python "multiple classes with same function name - same signature"
             """
+z = 2
+
 class A:
     @staticmethod
     def add(a, b):
-        return a + b
+        global z
+        return a + b + z
 
 class B:
     @staticmethod
     def add(a, b):
         return a + 2 * b
 
-A.add(1, 2)
-B.add(1, 2)
+def f():
+    x = A.add(1, 2)
+    y = B.add(1, 2)
+    if x == y:
+        pass
             """,  # language=none
             {
-
+                ".add.6.4": SimpleReasons(
+                    "add",
+                    set(),
+                    {
+                        SimpleFunctionReference("Name.z.line3", "NonLocalVariableRead")
+                    },
+                    set()
+                ),
+                ".add.12.4": SimpleReasons(
+                    "add",
+                ),
+                ".f.15.0": SimpleReasons(
+                    "f",
+                    set(),
+                    set(),
+                    {
+                        SimpleFunctionReference("Call.add.line16", "Call"),
+                        SimpleFunctionReference("Call.add.line17", "Call"),
+                    }
+                )
             }
         ),  # since we only return a list of all possible references, we can't distinguish between the two functions
         (  # language=Python "multiple classes with same function name - different signature"
@@ -1917,11 +1960,26 @@ class B:
     def add(a, b, c):
         return a + b + c
 
-A.add(1, 2)
-B.add(1, 2, 3)
+def f():
+    A.add(1, 2)
+    B.add(1, 2, 3)
             """,  # language=none
             {
-
+                ".add.4.4": SimpleReasons(
+                    "add",
+                ),
+                ".add.9.4": SimpleReasons(
+                    "add",
+                ),
+                ".f.12.0": SimpleReasons(
+                    "f",
+                    set(),
+                    set(),
+                    {
+                        SimpleFunctionReference("Call.add.line13", "Call"),
+                        SimpleFunctionReference("Call.add.line14", "Call"),
+                    }
+                )
             }
         ),  # TODO: [LATER] we should detect the different signatures
     ],
@@ -1933,7 +1991,7 @@ B.add(1, 2, 3)
         "chained attributes",
         "chained class function call",
         "two classes with same attribute name",
-        "multiple classes with same function name - same signature",
+        "multiple classes with same function name - same signature",  # TODO: Fix the bug where z is not detected as NonLocalVariableRead
         "multiple classes with same function name - different signature",  # TODO: [LATER] we should detect the different signatures
         ],
 )
@@ -1946,7 +2004,7 @@ def test_get_module_data_function_references(code: str, expected: dict[str, Simp
     assert transformed_function_references == expected
 
 
-def transform_function_references(function_calls: dict[str, Reasons]) -> dict[str, SimpleReasons]:
+def transform_function_references(function_calls: dict[NodeID, Reasons]) -> dict[str, SimpleReasons]:
     """Transform the function references.
 
     The function references are transformed to a dictionary with the name of the function as key
@@ -1963,10 +2021,10 @@ def transform_function_references(function_calls: dict[str, Reasons]) -> dict[st
         The transformed function references.
     """
     transformed_function_references = {}
-    for function_name, function_references in function_calls.items():
+    for function_id, function_references in function_calls.items():
         transformed_function_references.update({
-            function_name: SimpleReasons(
-                function_name,
+            function_id.__str__(): SimpleReasons(
+                function_references.function.name,
                 {
                     SimpleFunctionReference(
                         f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}",

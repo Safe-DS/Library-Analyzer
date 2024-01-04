@@ -54,7 +54,7 @@ class ModuleData:
     ]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
     function_calls: dict[astroid.Call, Scope | ClassScope]
-    function_references: dict[str, Reasons]
+    function_references: dict[NodeID, Reasons]
 
 
 @dataclass
@@ -138,7 +138,12 @@ class NodeID:
     col: int | None
 
     def __repr__(self) -> str:
+        if self.line is None or self.col is None:
+            return f"{self.module}.{self.name}"
         return f"{self.module}.{self.name}.{self.line}.{self.col}"
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 @dataclass

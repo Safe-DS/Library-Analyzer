@@ -23,7 +23,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Reasons,
     ReferenceNode,
     StringLiteral,
-    UnknownCall,
+    UnknownCall, NodeID,
 )
 
 # TODO: check these for correctness and add reasons for impurity
@@ -283,7 +283,7 @@ def check_open_like_functions(func_ref: FunctionReference) -> PurityResult:  # t
 
 def infer_purity(
     references: dict[str, list[ReferenceNode]],
-    function_references: dict[str, Reasons],
+    function_references: dict[NodeID, Reasons],
     classes: dict[str, ClassScope],
     call_graph: CallGraphForest,
 ) -> dict[astroid.FunctionDef, PurityResult]:
@@ -326,7 +326,7 @@ def infer_purity(
 def process_node(  # type: ignore[return] # all cases are handled
     reason: Reasons,
     references: dict[str, list[ReferenceNode]],
-    function_references: dict[str, Reasons],
+    function_references: dict[NodeID, Reasons],
     classes: dict[str, ClassScope],
     call_graph: CallGraphForest,
     purity_results: dict[astroid.FunctionDef, PurityResult],
@@ -501,7 +501,7 @@ def get_purity_of_child(
     child: CallGraphNode,
     reason: Reasons,
     references: dict[str, list[ReferenceNode]],
-    function_references: dict[str, Reasons],
+    function_references: dict[NodeID, Reasons],
     classes: dict[str, ClassScope],
     call_graph: CallGraphForest,
     purity_results: dict[astroid.FunctionDef, PurityResult],

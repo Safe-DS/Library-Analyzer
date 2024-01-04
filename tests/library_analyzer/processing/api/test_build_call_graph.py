@@ -14,12 +14,10 @@ def fun1():
 
 def fun2():
     fun1()
-
-fun2()
             """,  # language=none
             {
-                "fun1": set(),
-                "fun2": {"fun1"},
+                ".fun1.2.0": set(),
+                ".fun2.5.0": {".fun1.2.0"},
             },
         ),
         (  # language=Python "function call - against declaration order"
@@ -29,12 +27,10 @@ def fun1():
 
 def fun2():
     pass
-
-fun1()
             """,  # language=none
             {
-                "fun1": {"fun2"},
-                "fun2": set(),
+                ".fun1.2.0": {".fun2.5.0"},
+                ".fun2.5.0": set(),
             },
         ),
         (  # language=Python "function call - against declaration order with multiple calls"
@@ -47,13 +43,11 @@ def fun2():
 
 def fun3():
     pass
-
-fun1()
             """,  # language=none
             {
-                "fun1": {"fun2"},
-                "fun2": {"fun3"},
-                "fun3": set(),
+                ".fun1.2.0": {".fun2.5.0"},
+                ".fun2.5.0": {".fun3.8.0"},
+                ".fun3.8.0": set(),
             },
         ),
         (  # language=Python "function conditional with branching"
@@ -69,13 +63,11 @@ def call_function(a):
         return fun1()
     else:
         return fun2()
-
-call_function(1)
             """,  # language=none
             {
-                "fun1": set(),
-                "fun2": set(),
-                "call_function": {"fun1", "fun2"},
+                ".fun1.2.0": set(),
+                ".fun2.5.0": set(),
+                ".call_function.8.0": {".fun1.2.0", ".fun2.5.0"},
             },
         ),
         (  # language=Python "function call with cycle - direct entry"
@@ -87,11 +79,9 @@ def fun1(count):
 def fun2(count):
     if count > 0:
         fun1(count - 1)
-
-fun1(3)
             """,  # language=none
             {
-                "fun1+fun2": set(),
+                "..fun1.2.0+.fun2.6.0": set(),
             },
         ),
         (  # language=Python "function call with cycle - one entry point"
@@ -107,12 +97,10 @@ def cycle3():
 
 def entry():
     cycle1()
-
-entry()
             """,  # language=none
             {
-                "cycle1+cycle2+cycle3": set(),
-                "entry": {"cycle1+cycle2+cycle3"},
+                "..cycle1.2.0+.cycle2.5.0+.cycle3.8.0": set(),
+                ".entry.11.0": {"..cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
             },
         ),
         (  # language=Python "function call with cycle - many entry points"
@@ -134,14 +122,12 @@ def entry2():
 
 def entry3():
     cycle3()
-
-entry1()
             """,  # language=none
             {
-                "cycle1+cycle2+cycle3": set(),
-                "entry1": {"cycle1+cycle2+cycle3"},
-                "entry2": {"cycle1+cycle2+cycle3"},
-                "entry3": {"cycle1+cycle2+cycle3"},
+                "..cycle1.2.0+.cycle2.5.0+.cycle3.8.0": set(),
+                ".entry1.11.0": {"..cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
+                ".entry2.14.0": {"..cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
+                ".entry3.17.0": {"..cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
             },
         ),
         (  # language=Python "function call with cycle - other call in cycle"
@@ -161,13 +147,11 @@ def entry():
 
 def other():
     pass
-
-entry()
             """,  # language=none
             {
-                "cycle1+cycle2+cycle3": {"other"},
-                "entry": {"cycle1+cycle2+cycle3"},
-                "other": set(),
+                "..cycle1.2.0+.cycle2.5.0+.cycle3.9.0": {".other.15.0"},
+                ".entry.12.0": {"..cycle1.2.0+.cycle2.5.0+.cycle3.9.0"},
+                ".other.15.0": set(),
             },
         ),
         (  # language=Python "function call with cycle - multiple other calls in cycle"
@@ -195,17 +179,16 @@ def other2():
 
 def other3():
     pass
-
-entry()
             """,  # language=none
             {
-                "cycle1+cycle2+cycle3": {"other1", "other3"},
-                "entry": {"cycle1+cycle2+cycle3", "other2"},
-                "other1": set(),
-                "other2": set(),
-                "other3": set(),
+                "..cycle1.2.0+.cycle2.6.0+.cycle3.10.0": {".other1.17.0", ".other3.23.0"},
+                ".entry.13.0": {"..cycle1.2.0+.cycle2.6.0+.cycle3.10.0", ".other2.20.0"},
+                ".other1.17.0": set(),
+                ".other2.20.0": set(),
+                ".other3.23.0": set(),
             },
         ),
+        # TODO: add a case with a cycle and a node inside the cycle has multiple more than one funcdef with the same name
         # TODO: this case is disabled for merging to main [ENABLE AFTER MERGE]
         #         (  # language=Python "function call with cycle - cycle within a cycle"
         #             """
@@ -241,27 +224,22 @@ entry()
 def f(a):
     if a > 0:
         f(a - 1)
-
-x = 10
-f(x)
             """,  # language=none
             {
-                "f": set(),
+                "..f.2.0": set(),
             },
         ),
-        (  # language=Python "recursive function call",
+        (  # language=Python "builtin function call",
             """
 def fun1():
     fun2()
 
 def fun2():
     print("Function 2")
-
-fun1()
             """,  # language=none
             {
-                "fun1": {"fun2"},
-                "fun2": {"print"},
+                ".fun1.2.0": {".fun2.5.0"},
+                ".fun2.5.0": {".print.6.4"},  # print is a builtin function and therefore has no function def to reference -> we use the id of the call node for simplicity
             },
         ),
         (  # language=Python "external function call",
@@ -270,10 +248,34 @@ def fun1():
     call()
             """,  # language=none
             {
-                "fun1": set(),
+                ".fun1.2.0": set(),
             },
         ),
-        (  # language=Python "recursive function call",
+        (  # language=Python "function call of functions with same name"
+            """
+class A:
+    @staticmethod
+    def fun():
+        return "Function A"
+
+class B:
+    @staticmethod
+    def fun():
+        return "Function B"
+
+def call_function(a):
+    if a == 1:
+        return A.fun()
+    else:
+        return B.fun()
+            """,  # language=none
+            {
+                ".fun.4.4": set(),
+                ".fun.9.4": set(),
+                ".call_function.12.0": {".fun.4.4", ".fun.9.4"},
+            },
+        ),
+        (  # language=Python "function call of functions with same name and nested calls",
             """
 def fun1():
     pass
@@ -297,9 +299,10 @@ x = A()
 x.add(1, 2)
             """,  # language=none
             {
-                "fun1": set(),
-                "fun2": {"print"},
-                "add": {"fun1", "fun2"},
+                ".fun1.2.0": set(),
+                ".fun2.5.0": {".print.6.4"},  # print is a builtin function and therefore has no function def to reference -> we use the id of the call node for simplicity
+                ".add.10.4": {".fun1.2.0"},
+                ".add.16.4": {".fun2.5.0"},
             },
         ),
     ],
@@ -317,7 +320,8 @@ x.add(1, 2)
         "recursive function call",
         "builtin function call",
         "external function call",
-        "function call of function with same name",
+        "function call of functions with same name",
+        "function call of functions with same name and nested calls",
     ],  # TODO: LARS how do we build a call graph for a.b.c.d()?
 )
 def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
@@ -325,9 +329,9 @@ def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = build_call_graph(module_data.functions, module_data.function_references)
 
     transformed_call_graph_forest: dict = {}
-    for tree_name, tree in call_graph_forest.graphs.items():
-        transformed_call_graph_forest[tree_name] = set()
+    for tree_id, tree in call_graph_forest.graphs.items():
+        transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
-            transformed_call_graph_forest[tree_name].add(child.data.symbol.name)
+            transformed_call_graph_forest[f"{tree_id}"].add(child.data.symbol.id.__str__())
 
     assert transformed_call_graph_forest == expected
