@@ -8,15 +8,14 @@ from library_analyzer.processing.api.purity_analysis import get_module_data
 from library_analyzer.processing.api.purity_analysis._build_call_graph import build_call_graph
 from library_analyzer.processing.api.purity_analysis.model import (
     Builtin,
-    CallGraphForest,
     ClassScope,
     ClassVariable,
     FunctionScope,
     MemberAccessTarget,
     MemberAccessValue,
+    ModuleAnalysisResult,
     NodeID,
     Parameter,
-    Reasons,
     ReferenceNode,
     Scope,
     Symbol,
@@ -385,8 +384,7 @@ def _find_call_references(
 
 def resolve_references(
     code: str,
-) -> tuple[dict[str, list[ReferenceNode]], dict[str, Reasons], dict[str, ClassScope], CallGraphForest]:
-    # TODO: add a class for this return type then fix the docstring
+) -> ModuleAnalysisResult:
     """
     Resolve all references in a module.
 
@@ -395,12 +393,16 @@ def resolve_references(
     First, we get the module data for the given (module) code.
     Then we call the functions to find all references in the module.
 
+    Attributes
+    ----------
+    code : str
+        The source code of the module.
+
     Returns
     -------
-        * resolved_references: a dict of all resolved references in the module
-        * function_references: a dict of all function references in the module and their Reasons object
-        * classes: a dict of all classes in the module and their scope
-        * call_graph: a CallGraphForest object that represents the call graph of the module
+    ModuleAnalysisResult
+        The result of the reference resolving as well as all other information
+        that is needed for the purity analysis.
     """
     module_data = get_module_data(code)
     name_references = _find_name_references(
@@ -425,7 +427,7 @@ def resolve_references(
 
     call_graph = build_call_graph(module_data.functions, module_data.function_references)
 
-    return resolved_references, module_data.function_references, module_data.classes, call_graph
+    return ModuleAnalysisResult(resolved_references, module_data.function_references, module_data.classes, call_graph)
 
 
 def merge_dicts(

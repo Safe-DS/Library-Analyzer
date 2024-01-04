@@ -20,6 +20,7 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
 from library_analyzer.processing.api.purity_analysis.model._reference import (
     CallGraphForest,
     CallGraphNode,
+    ModuleAnalysisResult,
     ReferenceNode,
 )
 from library_analyzer.processing.api.purity_analysis.model._scope import (
@@ -44,6 +45,7 @@ from library_analyzer.processing.api.purity_analysis.model._scope import (
 )
 
 __all__ = [
+    "ModuleAnalysisResult",
     "ModuleData",
     "Scope",
     "ClassScope",

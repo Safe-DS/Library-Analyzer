@@ -6,13 +6,14 @@ from typing import Generic, TypeVar
 import astroid
 
 from library_analyzer.processing.api.purity_analysis.model._scope import (
+    ClassScope,
     FunctionScope,
     MemberAccessTarget,
     MemberAccessValue,
+    NodeID,
     Reasons,
     Scope,
     Symbol,
-    NodeID,
 )
 
 
@@ -158,3 +159,29 @@ class CallGraphForest:
             The NodeID of the tree to delete.
         """
         del self.graphs[graph_id]
+
+
+@dataclass
+class ModuleAnalysisResult:
+    """Class for module analysis results.
+
+    After the references of aaa module have been resolved, all necessary information for the purity analysis is available in this class.
+
+    Attributes
+    ----------
+    resolved_references : dict[str, list[ReferenceNode]]
+        The dictionary of references.
+        The key is the name of the reference node, the value is the list of ReferenceNodes.
+    function_references : dict[NodeID, Reasons]
+        The dictionary of function references.
+        The key is the NodeID of the function, the value is the Reasons for the function.
+    classes : dict[str, ClassScope]
+        All classes and their ClassScope.
+    call_graph : CallGraphForest
+        The call graph forest of the module.
+    """
+
+    resolved_references: dict[str, list[ReferenceNode]]
+    function_references: dict[NodeID, Reasons]
+    classes: dict[str, ClassScope]
+    call_graph: CallGraphForest

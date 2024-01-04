@@ -131,7 +131,7 @@ def local_double_parameter(a, b):
     ],
 )
 def test_resolve_references_parameters(code: str, expected: list[ReferenceTestNode]) -> None:
-    references = resolve_references(code)[0]
+    references = resolve_references(code).resolved_references
     transformed_references: list[ReferenceTestNode] = []
 
     for node in references.values():
@@ -320,7 +320,7 @@ glob1 = 10
     ],
 )
 def test_resolve_references_local_global(code: str, expected: list[ReferenceTestNode]) -> None:
-    references = resolve_references(code)[0]
+    references = resolve_references(code).resolved_references
     transformed_references: list[ReferenceTestNode] = []
 
     for node in references.values():
@@ -786,7 +786,7 @@ class C:
     ],
 )
 def test_resolve_references_member_access(code: str, expected: list[ReferenceTestNode]) -> None:
-    references = resolve_references(code)[0]
+    references = resolve_references(code).resolved_references
     transformed_references: list[ReferenceTestNode] = []
 
     for node in references.values():
@@ -898,7 +898,7 @@ else:
     # TODO: add cases for assignment in if statement -> ignore branches in general
 )
 def test_resolve_references_conditional_statements(code: str, expected: list[ReferenceTestNode]) -> None:
-    references = resolve_references(code)[0]
+    references = resolve_references(code).resolved_references
     transformed_references: list[ReferenceTestNode] = []
 
     for node in references.values():
@@ -981,7 +981,7 @@ while var1 > 0:
     ],
 )
 def test_resolve_references_loops(code: str, expected: list[ReferenceTestNode]) -> None:
-    references = resolve_references(code)[0]
+    references = resolve_references(code).resolved_references
     transformed_references: list[ReferenceTestNode] = []
 
     for node in references.values():
@@ -1236,7 +1236,7 @@ a
     ],  # TODO: add tests for with ... open
 )
 def test_resolve_references_miscellaneous(code: str, expected: list[ReferenceTestNode]) -> None:
-    references = resolve_references(code)[0]
+    references = resolve_references(code).resolved_references
     transformed_references: list[ReferenceTestNode] = []
 
     for node in references.values():
@@ -1685,7 +1685,7 @@ A().fun_a()
     ],
 )
 def test_resolve_references_calls(code: str, expected: list[ReferenceTestNode]) -> None:
-    references = resolve_references(code)[0]
+    references = resolve_references(code).resolved_references
     transformed_references: list[ReferenceTestNode] = []
 
     # assert references == expected
@@ -1779,7 +1779,7 @@ s(4)
 )
 @pytest.mark.xfail(reason="Not implemented yet")
 def test_resolve_references_imports(code: str, expected: list[ReferenceTestNode]) -> None:
-    references = resolve_references(code)[0]
+    references = resolve_references(code).resolved_references
     transformed_references: list[ReferenceTestNode] = []
 
     for node in references.values():
@@ -1873,7 +1873,7 @@ State(0).state
     ],
 )
 def test_resolve_references_dataclasses(code: str, expected: list[ReferenceTestNode]) -> None:
-    references = resolve_references(code)[0]
+    references = resolve_references(code).resolved_references
     transformed_references: list[ReferenceTestNode] = []
 
     for node in references.values():
