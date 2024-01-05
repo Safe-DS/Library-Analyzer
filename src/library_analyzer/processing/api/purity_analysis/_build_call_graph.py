@@ -237,11 +237,11 @@ def contract_cycle(
     combined_node_data = FunctionScope(
         Symbol(
             None,
-            NodeID("", combined_node_name, None, None),
+            NodeID(None, combined_node_name),
             combined_node_name,
         ),
     )
-    combined_reasons = Reasons.join_reasons_list([node.reasons for node in cycle])
+    combined_reasons = Reasons.join_reasons_list([node.reasons for node in cycle], combined_node_name)
     combined_node = CallGraphNode(data=combined_node_data, reasons=combined_reasons, combined_node_names=cycle_ids)
 
     # Add children to the combined node if they are not in the cycle (other calls)

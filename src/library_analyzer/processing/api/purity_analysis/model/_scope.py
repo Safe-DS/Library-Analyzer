@@ -122,8 +122,9 @@ class NodeID:
 
     Attributes
     ----------
-    module : astroid.Module | str
+    module : astroid.Module | str | None
         The module of the node.
+        Is None for combined nodes.
     name : str
         The name of the node.
     line : int | None
@@ -132,13 +133,15 @@ class NodeID:
         The column of the node in the source code.
     """
 
-    module: astroid.Module | str
+    module: astroid.Module | str | None
     name: str
-    line: int | None
-    col: int | None
+    line: int | None = None
+    col: int | None = None
 
     def __repr__(self) -> str:
         if self.line is None or self.col is None:
+            if self.module is None:
+                return f"{self.name}"
             return f"{self.module}.{self.name}"
         return f"{self.module}.{self.name}.{self.line}.{self.col}"
 
@@ -505,7 +508,7 @@ class Reasons:
         return self
 
     @staticmethod
-    def join_reasons_list(reasons_list: list[Reasons]) -> Reasons:
+    def join_reasons_list(reasons_list: list[Reasons], combined_node_name: str = None) -> Reasons:
         """Join a list of Reasons objects.
 
         Combines a list of Reasons objects into one Reasons object.
@@ -514,6 +517,10 @@ class Reasons:
         ----------
         reasons_list : list[Reasons]
             The list of Reasons objects.
+
+        combined_node_name : str
+            Indicates if the Reasons object is a combined node.
+            If it is a combined node, the function is set to None since it does not exist.
 
         Returns
         -------
@@ -528,9 +535,12 @@ class Reasons:
         if not reasons_list:
             raise ValueError("List of Reasons is empty.")
 
+        result = Reasons()
         for reason in reasons_list:
-            reasons_list[0].join_reasons(reason)
-        return reasons_list[0]
+            result.join_reasons(reason)
+        if combined_node_name is not None:
+            result.function = combined_node_name
+        return result
 
     def remove_class_method_calls_from_reads(self) -> None:
         """Remove all class method calls from the read set.

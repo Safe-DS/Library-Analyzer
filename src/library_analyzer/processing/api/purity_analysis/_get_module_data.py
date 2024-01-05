@@ -385,7 +385,7 @@ class ModuleDataBuilder:
                 if function_id not in function_references:
                     # This deals with Lambda functions assigned a name
                     if isinstance(function_def_node, astroid.Lambda) and not isinstance(function_def_node, astroid.FunctionDef):
-                        function_def_node.name = function_id
+                        function_def_node.name = function_id.name
 
                     function_references[function_id] = Reasons(function_def_node, set(), set(), set())
 

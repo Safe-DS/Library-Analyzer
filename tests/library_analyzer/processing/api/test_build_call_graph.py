@@ -81,7 +81,7 @@ def fun2(count):
         fun1(count - 1)
             """,  # language=none
             {
-                "..fun1.2.0+.fun2.6.0": set(),
+                ".fun1.2.0+.fun2.6.0": set(),
             },
         ),
         (  # language=Python "function call with cycle - one entry point"
@@ -99,8 +99,8 @@ def entry():
     cycle1()
             """,  # language=none
             {
-                "..cycle1.2.0+.cycle2.5.0+.cycle3.8.0": set(),
-                ".entry.11.0": {"..cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
+                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": set(),
+                ".entry.11.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
             },
         ),
         (  # language=Python "function call with cycle - many entry points"
@@ -124,10 +124,10 @@ def entry3():
     cycle3()
             """,  # language=none
             {
-                "..cycle1.2.0+.cycle2.5.0+.cycle3.8.0": set(),
-                ".entry1.11.0": {"..cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
-                ".entry2.14.0": {"..cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
-                ".entry3.17.0": {"..cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
+                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": set(),
+                ".entry1.11.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
+                ".entry2.14.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
+                ".entry3.17.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
             },
         ),
         (  # language=Python "function call with cycle - other call in cycle"
@@ -149,8 +149,8 @@ def other():
     pass
             """,  # language=none
             {
-                "..cycle1.2.0+.cycle2.5.0+.cycle3.9.0": {".other.15.0"},
-                ".entry.12.0": {"..cycle1.2.0+.cycle2.5.0+.cycle3.9.0"},
+                ".cycle1.2.0+.cycle2.5.0+.cycle3.9.0": {".other.15.0"},
+                ".entry.12.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.9.0"},
                 ".other.15.0": set(),
             },
         ),
@@ -181,8 +181,8 @@ def other3():
     pass
             """,  # language=none
             {
-                "..cycle1.2.0+.cycle2.6.0+.cycle3.10.0": {".other1.17.0", ".other3.23.0"},
-                ".entry.13.0": {"..cycle1.2.0+.cycle2.6.0+.cycle3.10.0", ".other2.20.0"},
+                ".cycle1.2.0+.cycle2.6.0+.cycle3.10.0": {".other1.17.0", ".other3.23.0"},
+                ".entry.13.0": {".cycle1.2.0+.cycle2.6.0+.cycle3.10.0", ".other2.20.0"},
                 ".other1.17.0": set(),
                 ".other2.20.0": set(),
                 ".other3.23.0": set(),
@@ -226,7 +226,7 @@ def f(a):
         f(a - 1)
             """,  # language=none
             {
-                "..f.2.0": set(),
+                ".f.2.0": set(),
             },
         ),
         (  # language=Python "builtin function call",
@@ -249,6 +249,14 @@ def fun1():
             """,  # language=none
             {
                 ".fun1.2.0": set(),
+            },
+        ),
+        (  # language=Python "lambda call",
+            """
+double = lambda x: 2 * x
+            """,  # language=none
+            {
+                ".double.2.9": set(),
             },
         ),
         (  # language=Python "function call of functions with same name"
@@ -320,6 +328,7 @@ x.add(1, 2)
         "recursive function call",
         "builtin function call",
         "external function call",
+        "lambda call",
         "function call of functions with same name",
         "function call of functions with same name and nested calls",
     ],  # TODO: LARS how do we build a call graph for a.b.c.d()?
