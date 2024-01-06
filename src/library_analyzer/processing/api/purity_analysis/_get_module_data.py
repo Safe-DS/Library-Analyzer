@@ -248,6 +248,25 @@ class ModuleDataBuilder:
                 else:
                     self.current_node_stack[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
 
+    def find_first_parent_function(self, node: astroid.NodeNG) -> astroid.NodeNG:
+        """Find the first parent of a call node that is a function.
+
+        Parameters
+        ----------
+        node : astroid.NodeNG
+            The node to start the search from.
+
+        Returns
+        -------
+        astroid.NodeNG
+            The first parent of the node that is a function.
+            If the parent is a module, return the module.
+        """
+        # TODO: does this work with Lambdas as well?
+        if isinstance(node.parent, astroid.FunctionDef | astroid.Module | None):
+            return node.parent
+        return self.find_first_parent_function(node.parent)
+
     def collect_function_references(self) -> dict[NodeID, Reasons]:
         """Collect all function references in the module.
 
@@ -272,29 +291,9 @@ class ModuleDataBuilder:
                 ...
             }
         """
-
-        def find_first_parent_function(node: astroid.NodeNG) -> astroid.NodeNG:
-            """Find the first parent of a call node that is a function.
-
-            Parameters
-            ----------
-            node : astroid.NodeNG
-                The node to start the search from.
-
-            Returns
-            -------
-            astroid.NodeNG
-                The first parent of the node that is a function.
-                If the parent is a module, return the module.
-            """
-            if isinstance(node.parent, astroid.FunctionDef | astroid.Module | None):
-                return node.parent
-            return find_first_parent_function(node.parent)
-
         python_builtins = dir(builtins)
         function_references: dict[NodeID, Reasons] = {}
-        # TODO: we store the results in a dict with a string as key
-        #  -> if there are multiple functions with the same name, we only get the results of the first one
+
         for function_scopes in self.functions.values():
             for function_node in function_scopes:  # iterate over all functions with the same name
                 function_id = calc_node_id(function_node.symbol.node)
@@ -354,7 +353,7 @@ class ModuleDataBuilder:
                     else:
                         call_func_name = call.func.name
 
-                    parent_function = find_first_parent_function(call)
+                    parent_function = self.find_first_parent_function(call)
                     function_scopes_calls_names = [c.symbol.name for c in function_scopes[0].calls]
                     if call_func_name in function_scopes_calls_names and parent_function.name == function_id.name:
                         # get the correct symbol
@@ -383,10 +382,6 @@ class ModuleDataBuilder:
 
                 # Add function to function_references dict if it is not already in there  TODO: when does this happen?
                 if function_id not in function_references:
-                    # This deals with Lambda functions assigned a name
-                    if isinstance(function_def_node, astroid.Lambda) and not isinstance(function_def_node, astroid.FunctionDef):
-                        function_def_node.name = function_id.name
-
                     function_references[function_id] = Reasons(function_def_node, set(), set(), set())
 
             # TODO: add MemberAccessTarget and MemberAccessValue detection
@@ -725,7 +720,15 @@ class ModuleDataBuilder:
             # Append a node only then when it is not the name node of the function
             self.value_nodes[node] = self.current_node_stack[-1]
 
+        # func_def = self.find_first_parent_function(node)
+        # if isinstance(func_def, astroid.FunctionDef | astroid.Lambda):
         if isinstance(node.parent.parent, astroid.FunctionDef | astroid.Lambda):
+            # TODO: this is wrong, because not all value nodes are directly used in a functions body, but rather in a nested expression
+            #  Write testcases to determine how bad this problem is!
+            # We ignore self and cls because they are not relevant for purity by our means
+            # if node.name in ("self", "cls"):
+            #     return
+
             parent = self.current_node_stack[-1]
             name_node = Scope(
                 _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),

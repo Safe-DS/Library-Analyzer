@@ -10,16 +10,17 @@ from library_analyzer.processing.api.purity_analysis import (
 )
 from library_analyzer.processing.api.purity_analysis.model import (
     ClassScope,
+    FunctionScope,
     MemberAccess,
     MemberAccessTarget,
     MemberAccessValue,
+    NodeID,
     Reasons,
     Scope,
-    Symbol, NodeID,
+    Symbol,
 )
 
 
-# TODO: refactor: move functions to top of file
 @dataclass
 class SimpleScope:
     """Class for simple scopes.
@@ -67,7 +68,25 @@ class SimpleClassScope(SimpleScope):
 
 @dataclass
 class SimpleFunctionScope(SimpleScope):
-    pass  # TODO: add function scope
+    """Class for simple function scopes.
+
+    A simplified class of the FunctionScope class for testing purposes.
+
+    Attributes
+    ----------
+    node_name : str | None
+        The name of the node.
+    children : list[SimpleScope] | None
+        The children of the node.
+        None if the node has no children.
+    values : list[str]
+        The list of value nodes used in the function as string.
+    calls : list[str]
+        The list of call nodes used in the function as string.
+    """
+
+    values: list[str]
+    calls: list[str]
 
 
 @dataclass
@@ -116,6 +135,294 @@ class SimpleFunctionReference:
 
     def __hash__(self) -> int:
         return hash((self.node, self.kind))
+
+
+def transform_scope_node(node: Scope | ClassScope | FunctionScope) -> SimpleScope | SimpleClassScope | SimpleFunctionScope:
+    """Transform a Scope, ClassScope or FunctionScope instance.
+
+    Parameters
+    ----------
+    node : Scope | ClassScope | FunctionScope
+        The node to transform.
+
+    Returns
+    -------
+    SimpleScope | SimpleClassScope | SimpleFunctionScope
+        The transformed node.
+    """
+    if node.children is not None:
+        if isinstance(node, ClassScope):
+            instance_vars_transformed = []
+            class_vars_transformed = []
+            super_classes_transformed = []
+            for child in node.instance_variables.values():
+                for c in child:
+                    c_str = to_string_class(c.node.member)
+                    if c_str is not None:
+                        instance_vars_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
+            for child in node.class_variables.values():
+                for c in child:
+                    c_str = to_string_class(c.node)
+                    if c_str is not None:
+                        class_vars_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
+
+            for klass in node.super_classes:
+                c_str = to_string_class(klass)
+                if c_str is not None:
+                    super_classes_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
+
+            return SimpleClassScope(
+                to_string(node.symbol),
+                [transform_scope_node(child) for child in node.children],
+                class_vars_transformed,
+                instance_vars_transformed,
+                super_classes_transformed,
+            )
+        if isinstance(node, FunctionScope):
+            values_transformed = []
+            calls_transformed = []
+            for value in node.values:
+                values_transformed.append(to_string_func(value.symbol.node))
+            for call in node.calls:
+                calls_transformed.append(to_string_func(call.symbol.node))
+
+            return SimpleFunctionScope(
+                to_string(node.symbol),
+                [transform_scope_node(child) for child in node.children],
+                values_transformed,
+                calls_transformed,
+            )
+
+        return SimpleScope(to_string(node.symbol), [transform_scope_node(child) for child in node.children])
+    else:
+        return SimpleScope(to_string(node.symbol), [])
+
+
+def to_string(symbol: Symbol) -> str:
+    """Transform a Symbol instance to a string.
+
+    Parameters
+    ----------
+    symbol : Symbol
+        The Symbol instance to transform.
+
+    Returns
+    -------
+    str
+        The transformed Symbol instance as string.
+    """
+    if isinstance(symbol.node, astroid.Module):
+        return f"{symbol.node.__class__.__name__}"
+    elif isinstance(symbol.node, astroid.ClassDef | astroid.FunctionDef | astroid.AssignName):
+        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.name}"
+    elif isinstance(symbol.node, astroid.AssignAttr):
+        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.attrname}"
+    elif isinstance(symbol.node, MemberAccess):
+        result = transform_member_access(symbol.node)
+        return f"{symbol.__class__.__name__}.MemberAccess.{result}"
+    elif isinstance(symbol.node, astroid.Import):
+        return (  # TODO: handle multiple imports and aliases
+            f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.names[0][0]}"
+        )
+    elif isinstance(symbol.node, astroid.ImportFrom):
+        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.modname}.{symbol.node.names[0][0]}"  # TODO: handle multiple imports and aliases
+    elif isinstance(symbol.node, astroid.Name):
+        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.name}"
+    elif isinstance(symbol.node, astroid.ListComp | astroid.TryExcept | astroid.TryFinally | astroid.With):
+        return f"{symbol.node.__class__.__name__}"
+    elif isinstance(symbol.node, astroid.Lambda):
+        if symbol.name == "lambda":
+            return f"{symbol.node.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.name}"
+        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}"
+    raise NotImplementedError(f"Unknown node type: {symbol.node.__class__.__name__}")
+
+
+def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
+    """Transform a NodeNG or ClassScope instance to a string.
+
+    Parameters
+    ----------
+    node : astroid.NodeNG | ClassScope
+        The NodeNG or ClassScope instance to transform.
+
+    Returns
+    -------
+    str | None
+        The transformed NodeNG or ClassScope instance as string.
+        None if the node is a Lambda, TryExcept, TryFinally or ListComp instance.
+    """
+    if isinstance(node, astroid.AssignAttr):
+        return f"{node.__class__.__name__}.{node.attrname}"
+    elif isinstance(node, astroid.AssignName | astroid.FunctionDef | astroid.ClassDef):
+        return f"{node.__class__.__name__}.{node.name}"
+    elif isinstance(node, astroid.Lambda | astroid.TryExcept | astroid.TryFinally | astroid.ListComp):
+        return None
+    elif isinstance(node, ClassScope):
+        return f"{node.symbol.node.__class__.__name__}.{node.symbol.node.name}"
+    raise NotImplementedError(f"Unknown node type: {node.__class__.__name__}")
+
+
+def to_string_func(node: astroid.NodeNG | MemberAccess) -> str:
+    """Transform a NodeNG or FunctionScope instance to a string.
+
+    Parameters
+    ----------
+    node : astroid.NodeNG | MemberAccess
+        The NodeNG or MemberAccess instance to transform.
+
+    Returns
+    -------
+    str
+        The transformed NodeNG or FunctionScope instance as string.
+    """
+    if isinstance(node, astroid.Name):
+        return f"{node.__class__.__name__}.{node.name}"
+    elif isinstance(node, MemberAccess):
+        return f"{node.__class__.__name__}.{transform_member_access(node)}"
+    elif isinstance(node, astroid.Call):
+        if isinstance(node.func, astroid.Attribute):
+            return f"Call.{node.func.attrname}"
+        return f"Call.{node.func.name}"
+
+
+def transform_value_nodes(value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]) -> dict[str, str]:
+    """Transform the value nodes.
+
+    The value nodes are transformed to a dictionary with the name of the node as key and the transformed node as value.
+
+    Parameters
+    ----------
+    value_nodes : dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
+        The value nodes to transform.
+
+    Returns
+    -------
+    dict[str, str]
+        The transformed value nodes.
+    """
+    value_nodes_transformed = {}
+    for node in value_nodes:
+        if isinstance(node, astroid.Name):
+            value_nodes_transformed.update({node.name: f"{node.__class__.__name__}.{node.name}"})
+        elif isinstance(node, MemberAccessValue):
+            result = transform_member_access(node)
+            value_nodes_transformed.update({result: f"{node.__class__.__name__}.{result}"})
+
+    return value_nodes_transformed
+
+
+def transform_target_nodes(
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope],
+) -> dict[str, str]:
+    """Transform the target nodes.
+
+    The target nodes are transformed to a dictionary with the name of the node as key and the transformed node as value.
+
+    Parameters
+    ----------
+    target_nodes : dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]
+
+    Returns
+    -------
+    dict[str, str]
+        The transformed target nodes.
+    """
+    target_nodes_transformed = {}
+    for node in target_nodes:
+        if isinstance(node, astroid.AssignName | astroid.Name):
+            target_nodes_transformed.update({node.name: f"{node.__class__.__name__}.{node.name}"})
+        elif isinstance(node, MemberAccessTarget):
+            result = transform_member_access(node)
+            target_nodes_transformed.update({result: f"{node.__class__.__name__}.{result}"})
+
+    return target_nodes_transformed
+
+
+def transform_member_access(member_access: MemberAccess) -> str:
+    """Transform a MemberAccess instance to a string.
+
+    Parameters
+    ----------
+    member_access : MemberAccess
+        The MemberAccess instance to transform.
+
+    Returns
+    -------
+    str
+        The transformed MemberAccess instance as string.
+    """
+    attribute_names = []
+
+    while isinstance(member_access, MemberAccess):
+        if isinstance(member_access.member, astroid.AssignAttr | astroid.Attribute):
+            attribute_names.append(member_access.member.attrname)
+        else:
+            attribute_names.append(member_access.member.name)
+        member_access = member_access.receiver
+    if isinstance(member_access, astroid.Name):
+        attribute_names.append(member_access.name)
+
+    return ".".join(reversed(attribute_names))
+
+
+def transform_function_references(function_calls: dict[NodeID, Reasons]) -> dict[str, SimpleReasons]:
+    """Transform the function references.
+
+    The function references are transformed to a dictionary with the name of the function as key
+    and the transformed Reasons instance as value.
+
+    Parameters
+    ----------
+    function_calls : dict[str, Reasons]
+        The function references to transform.
+
+    Returns
+    -------
+    dict[str, SimpleReasons]
+        The transformed function references.
+    """
+    transformed_function_references = {}
+    for function_id, function_references in function_calls.items():
+        transformed_function_references.update({
+            function_id.__str__(): SimpleReasons(
+                function_references.function.name,
+                {
+                    SimpleFunctionReference(
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}",
+                        function_reference.kind,
+                    ) if isinstance(function_reference.node, MemberAccessTarget) else
+                    SimpleFunctionReference(
+                         f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                         function_reference.kind,
+                    )
+                    for function_reference in function_references.writes
+                },
+                {
+                    SimpleFunctionReference(
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}",
+                        function_reference.kind,
+                    ) if isinstance(function_reference.node, MemberAccessValue) else
+                    SimpleFunctionReference(
+                         f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                         function_reference.kind,
+                    )
+                    for function_reference in function_references.reads
+                },
+                {
+                    SimpleFunctionReference(
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.func.attrname}.line{function_reference.node.fromlineno}",
+                        function_reference.kind,
+                    ) if isinstance(function_reference.node.func, astroid.Attribute) else
+                    SimpleFunctionReference(
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.func.name}.line{function_reference.node.fromlineno}",
+                        function_reference.kind,
+                    )
+                    for function_reference in function_references.calls
+                },
+            ),
+        })
+
+    return transformed_function_references
 
 
 @pytest.mark.parametrize(
@@ -183,7 +490,7 @@ class SimpleFunctionReference:
         "AssignName (parent FunctionDef)",
         "Name (parent FunctionDef)",
         "Name (parent FunctionDef, parent ClassDef, parent Module)",
-    ],  # TODO: add Import and ImportFrom
+    ],  # TODO: add AssignAttr, Import, ImportFrom, Call, Lambda, ListComp, MemberAccess
 )
 def test_calc_node_id(
     node: astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name,
@@ -196,18 +503,18 @@ def test_calc_node_id(
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        (  # Seminar Example
+        (  # language=Python "Seminar Example"
             """
-                glob = 1
-                class A:
-                    def __init__(self):
-                        self.value = 10
-                        self.test = 20
-                    def f(self):
-                        var1 = 1
-                def g():
-                    var2 = 2
-            """,
+glob = 1
+class A:
+    def __init__(self):
+        self.value = 10
+        self.test = 20
+    def f(self):
+        var1 = 1
+def g():
+    var2 = 2
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
@@ -216,119 +523,131 @@ def test_calc_node_id(
                         SimpleClassScope(
                             "GlobalVariable.ClassDef.A",
                             [
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__init__",
                                     [
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self.value", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self.test", []),
                                     ],
+                                    [],
+                                    [],
                                 ),
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.f",
                                     [
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("LocalVariable.AssignName.var1", []),
                                     ],
+                                    [],
+                                    [],
                                 ),
                             ],
                             ["FunctionDef.__init__", "FunctionDef.f"],
                             ["AssignAttr.value", "AssignAttr.test"],
                         ),
-                        SimpleScope("GlobalVariable.FunctionDef.g", [SimpleScope("LocalVariable.AssignName.var2", [])]),
+                        SimpleFunctionScope("GlobalVariable.FunctionDef.g", [SimpleScope("LocalVariable.AssignName.var2", [])], [], []),
                     ],
                 ),
             ],
         ),
-        (  # Function Scope
+        (  # language=Python "Function Scope"
             """
-                def function_scope():
-                    res = 23
-                    return res
-            """,
+def function_scope():
+    res = 23
+    return res
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope(
+                        SimpleFunctionScope(
                             "GlobalVariable.FunctionDef.function_scope",
                             [SimpleScope("LocalVariable.AssignName.res", [])],
+                            ["Name.res"],
+                            []
                         ),
                     ],
                 ),
             ],
         ),
-        (  # Function Scope with variable
+        (  # language=Python "Function Scope with variable"
             """
-                var1 = 10
-                def function_scope():
-                    res = var1
-                    return res
-            """,
+var1 = 10
+def function_scope():
+    res = var1
+    return res
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
                     [
                         SimpleScope("GlobalVariable.AssignName.var1", []),
-                        SimpleScope(
+                        SimpleFunctionScope(
                             "GlobalVariable.FunctionDef.function_scope",
                             [SimpleScope("LocalVariable.AssignName.res", [])],
+                            ["Name.var1", "Name.res"],
+                            []
                         ),
                     ],
                 ),
             ],
         ),
-        (  # Function Scope with global variable
+        (  # language=Python "Function Scope with global variable"
             """
-                var1 = 10
-                def function_scope():
-                    global var1
-                    res = var1
-                    return res
-            """,
+var1 = 10
+def function_scope():
+    global var1
+    res = var1
+    return res
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
                     [
                         SimpleScope("GlobalVariable.AssignName.var1", []),
-                        SimpleScope(
+                        SimpleFunctionScope(
                             "GlobalVariable.FunctionDef.function_scope",
                             [SimpleScope("LocalVariable.AssignName.res", [])],
+                            ["Name.var1", "Name.res"],
+                            []
                         ),
                     ],
                 ),
             ],
         ),
-        (  # Function Scope with Parameter
+        (  # language=Python "Function Scope with Parameter"
             """
-                def function_scope(parameter):
-                    res = parameter
-                    return res
-            """,
+def function_scope(parameter):
+    res = parameter
+    return res
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope(
+                        SimpleFunctionScope(
                             "GlobalVariable.FunctionDef.function_scope",
                             [
                                 SimpleScope("Parameter.AssignName.parameter", []),
                                 SimpleScope("LocalVariable.AssignName.res", []),
                             ],
+                            ["Name.parameter", "Name.res"],
+                            [],
                         ),
                     ],
                 ),
             ],
         ),
-        (  # Class Scope with class attribute and class function
+        (  # language=Python "Class Scope with class attribute and class function"
             """
-                class A:
-                    class_attr1 = 20
+class A:
+    class_attr1 = 20
 
-                    def local_class_attr(self):
-                        var1 = A.class_attr1
-                        return var1
-            """,
+    def local_class_attr(self):
+        var1 = A.class_attr1
+        return var1
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
@@ -337,12 +656,14 @@ def test_calc_node_id(
                             "GlobalVariable.ClassDef.A",
                             [
                                 SimpleScope("ClassVariable.AssignName.class_attr1", []),
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.local_class_attr",
                                     [
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("LocalVariable.AssignName.var1", []),
                                     ],
+                                    ["MemberAccessValue.A.class_attr1", "Name.var1"],
+                                    [],
                                 ),
                             ],
                             ["AssignName.class_attr1", "FunctionDef.local_class_attr"],
@@ -352,19 +673,19 @@ def test_calc_node_id(
                 ),
             ],
         ),
-        (  # Class Scope with instance attribute and class function
+        (  # language=Python "Class Scope with instance attribute and class function"
             """
-                class B:
-                    local_class_attr1 = 20
-                    local_class_attr2 = 30
+class B:
+    local_class_attr1 = 20
+    local_class_attr2 = 30
 
-                    def __init__(self):
-                        self.instance_attr1 = 10
+    def __init__(self):
+        self.instance_attr1 = 10
 
-                    def local_instance_attr(self):
-                        var1 = self.instance_attr1
-                        return var1
-            """,
+    def local_instance_attr(self):
+        var1 = self.instance_attr1
+        return var1
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
@@ -374,19 +695,23 @@ def test_calc_node_id(
                             [
                                 SimpleScope("ClassVariable.AssignName.local_class_attr1", []),
                                 SimpleScope("ClassVariable.AssignName.local_class_attr2", []),
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__init__",
                                     [
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", []),
                                     ],
+                                    [],
+                                    [],
                                 ),
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.local_instance_attr",
                                     [
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("LocalVariable.AssignName.var1", []),
                                     ],
+                                    ["MemberAccessValue.self.instance_attr1", "Name.var1"],
+                                    [],
                                 ),
                             ],
                             [
@@ -401,16 +726,16 @@ def test_calc_node_id(
                 ),
             ],
         ),
-        (  # Class Scope with instance attribute and module function
+        (  # language=Python "Class Scope with instance attribute and module function"
             """
-                class B:
-                    def __init__(self):
-                        self.instance_attr1 = 10
+class B:
+    def __init__(self):
+        self.instance_attr1 = 10
 
-                def local_instance_attr():
-                    var1 = B().instance_attr1
-                    return var1
-            """,
+def local_instance_attr():
+    var1 = B().instance_attr1
+    return var1
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
@@ -418,33 +743,37 @@ def test_calc_node_id(
                         SimpleClassScope(
                             "GlobalVariable.ClassDef.B",
                             [
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__init__",
                                     [
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", []),
                                     ],
+                                    [],
+                                    [],
                                 ),
                             ],
                             ["FunctionDef.__init__"],
                             ["AssignAttr.instance_attr1"],
                         ),
-                        SimpleScope(
+                        SimpleFunctionScope(
                             "GlobalVariable.FunctionDef.local_instance_attr",
                             [SimpleScope("LocalVariable.AssignName.var1", [])],
+                            ["MemberAccessValue.B.instance_attr1", "Name.var1"],
+                            ["Call.B"],
                         ),
                     ],
                 ),
             ],
         ),
-        (  # Class Scope within Class Scope
+        (  # language=Python "Class Scope within Class Scope"
             """
-                class A:
-                    var1 = 10
+class A:
+    var1 = 10
 
-                    class B:
-                        var2 = 20
-            """,
+    class B:
+        var2 = 20
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
@@ -467,17 +796,17 @@ def test_calc_node_id(
                 ),
             ],
         ),
-        (  # Class Scope with subclass
+        (  # language=Python "Class Scope with subclass"
             """
-                class A:
-                    var1 = 10
+class A:
+    var1 = 10
 
-                class X:
-                    var3 = 30
+class X:
+    var3 = 30
 
-                class B(A, X):
-                    var2 = 20
-            """,
+class B(A, X):
+    var2 = 20
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
@@ -505,19 +834,19 @@ def test_calc_node_id(
                 ),
             ],
         ),
-        (  # Class Scope within Function Scope
+        (  # language=Python "Class Scope within Function Scope"
             """
-                def function_scope():
-                    var1 = 10
+def function_scope():
+    var1 = 10
 
-                    class B:
-                        var2 = 20
-            """,
+    class B:
+        var2 = 20
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope(
+                        SimpleFunctionScope(
                             "GlobalVariable.FunctionDef.function_scope",
                             [
                                 SimpleScope("LocalVariable.AssignName.var1", []),
@@ -528,68 +857,74 @@ def test_calc_node_id(
                                     [],
                                 ),
                             ],
+                            [],
+                            [],
                         ),
                     ],
                 ),
             ],
         ),
-        (  # Function Scope within Function Scope
+        (  # language=Python "Function Scope within Function Scope"
             """
-                def function_scope():
-                    var1 = 10
+def function_scope():
+    var1 = 10
 
-                    def local_function_scope():
-                        var2 = 20
-            """,
+    def local_function_scope():
+        var2 = 20
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope(
+                        SimpleFunctionScope(
                             "GlobalVariable.FunctionDef.function_scope",
                             [
                                 SimpleScope("LocalVariable.AssignName.var1", []),
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "LocalVariable.FunctionDef.local_function_scope",
                                     [SimpleScope("LocalVariable.AssignName.var2", [])],
+                                    [],
+                                    []
                                 ),
                             ],
+                            [],
+                            []
                         ),
                     ],
                 ),
             ],
         ),
-        (  # Complex Scope
+        (  # language=Python "Complex Scope"
             """
-                def function_scope():
-                    var1 = 10
+def function_scope():
+    var1 = 10
 
-                    def local_function_scope():
-                        var2 = 20
+    def local_function_scope():
+        var2 = 20
 
-                        class local_class_scope:
-                            var3 = 30
+        class LocalClassScope:
+            var3 = 30
 
-                            def local_class_function_scope(self):
-                                var4 = 40
-            """,
+            def local_class_function_scope(self):
+                var4 = 40
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope(
+                        SimpleFunctionScope(
                             "GlobalVariable.FunctionDef.function_scope",
                             [
                                 SimpleScope("LocalVariable.AssignName.var1", []),
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "LocalVariable.FunctionDef.local_function_scope",
                                     [
                                         SimpleScope("LocalVariable.AssignName.var2", []),
                                         SimpleClassScope(
-                                            "LocalVariable.ClassDef.local_class_scope",
+                                            "LocalVariable.ClassDef.LocalClassScope",
                                             [
                                                 SimpleScope("ClassVariable.AssignName.var3", []),
-                                                SimpleScope(
+                                                SimpleFunctionScope(
                                                     "ClassVariable.FunctionDef.local_class_function_scope",
                                                     [
                                                         SimpleScope("Parameter.AssignName.self", []),
@@ -598,78 +933,84 @@ def test_calc_node_id(
                                                             [],
                                                         ),
                                                     ],
+                                                    [],
+                                                    []
                                                 ),
                                             ],
                                             ["AssignName.var3", "FunctionDef.local_class_function_scope"],
                                             [],
                                         ),
                                     ],
+                                    [],
+                                    []
                                 ),
                             ],
+                            [],
+                            []
                         ),
                     ],
                 ),
             ],
         ),
-        (  # ASTWalker
+        (  # language=Python "ASTWalker"
             """
-                from collections.abc import Callable
-                from typing import Any
+from collections.abc import Callable
+from typing import Any
 
-                import astroid
+import astroid
 
-                _EnterAndLeaveFunctions = tuple[
-                    Callable[[astroid.NodeNG], None] | None,
-                    Callable[[astroid.NodeNG], None] | None,
-                ]
+_EnterAndLeaveFunctions = tuple[
+    Callable[[astroid.NodeNG], None] | None,
+    Callable[[astroid.NodeNG], None] | None,
+]
 
 
-                class ASTWalker:
-                    additional_locals = []
+class ASTWalker:
+    additional_locals = []
 
-                    def __init__(self, handler: Any) -> None:
-                        self._handler = handler
-                        self._cache: dict[type, _EnterAndLeaveFunctions] = {}
+    def __init__(self, handler: Any) -> None:
+        self._handler = handler
+        self._cache: dict[type, _EnterAndLeaveFunctions] = {}
 
-                    def walk(self, node: astroid.NodeNG) -> None:
-                        self.__walk(node, set())
+    def walk(self, node: astroid.NodeNG) -> None:
+        self.__walk(node, set())
 
-                    def __walk(self, node: astroid.NodeNG, visited_nodes: set[astroid.NodeNG]) -> None:
-                        if node in visited_nodes:
-                            raise AssertionError("Node visited twice")
-                        visited_nodes.add(node)
+    def __walk(self, node: astroid.NodeNG, visited_nodes: set[astroid.NodeNG]) -> None:
+        if node in visited_nodes:
+            raise AssertionError("Node visited twice")
+        visited_nodes.add(node)
 
-                        self.__enter(node)
-                        for child_node in node.get_children():
-                            self.__walk(child_node, visited_nodes)
-                        self.__leave(node)
+        self.__enter(node)
+        for child_node in node.get_children():
+            self.__walk(child_node, visited_nodes)
+        self.__leave(node)
 
-                    def __enter(self, node: astroid.NodeNG) -> None:
-                        method = self.__get_callbacks(node)[0]
-                        if method is not None:
-                            method(node)
+    def __enter(self, node: astroid.NodeNG) -> None:
+        method = self.__get_callbacks(node)[0]
+        if method is not None:
+            method(node)
 
-                    def __leave(self, node: astroid.NodeNG) -> None:
-                        method = self.__get_callbacks(node)[1]
-                        if method is not None:
-                            method(node)
+    def __leave(self, node: astroid.NodeNG) -> None:
+        method = self.__get_callbacks(node)[1]
+        if method is not None:
+            method(node)
 
-                    def __get_callbacks(self, node: astroid.NodeNG) -> _EnterAndLeaveFunctions:
-                        klass = node.__class__
-                        methods = self._cache.get(klass)
+    def __get_callbacks(self, node: astroid.NodeNG) -> _EnterAndLeaveFunctions:
+        klass = node.__class__
+        methods = self._cache.get(klass)
 
-                        if methods is None:
-                            handler = self._handler
-                            class_name = klass.__name__.lower()
-                            enter_method = getattr(handler, f"enter_{class_name}", getattr(handler, "enter_default", None))
-                            leave_method = getattr(handler, f"leave_{class_name}", getattr(handler, "leave_default", None))
-                            self._cache[klass] = (enter_method, leave_method)
-                        else:
-                            enter_method, leave_method = methods
+        if methods is None:
+            handler = self._handler
+            class_name = klass.__name__.lower()
+            enter_method = getattr(handler, f"enter_{class_name}", getattr(handler, "enter_default", None))
+            leave_method = getattr(handler, f"leave_{class_name}", getattr(handler, "leave_default", None))
+            self._cache[klass] = (enter_method, leave_method)
+        else:
+            enter_method, leave_method = methods
 
-                        return enter_method, leave_method
+        return enter_method, leave_method
 
-            """,
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
@@ -682,7 +1023,7 @@ def test_calc_node_id(
                             "GlobalVariable.ClassDef.ASTWalker",
                             [
                                 SimpleScope("ClassVariable.AssignName.additional_locals", []),
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__init__",
                                     [
                                         SimpleScope("Parameter.AssignName.self", []),
@@ -690,15 +1031,19 @@ def test_calc_node_id(
                                         SimpleScope("InstanceVariable.MemberAccess.self._handler", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self._cache", []),
                                     ],
+                                    ["Name.handler"],
+                                    [],
                                 ),
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.walk",
                                     [
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("Parameter.AssignName.node", []),
                                     ],
+                                    ["Name.node"],
+                                    ["Call.__walk"]
                                 ),
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__walk",
                                     [
                                         SimpleScope("Parameter.AssignName.self", []),
@@ -706,24 +1051,30 @@ def test_calc_node_id(
                                         SimpleScope("Parameter.AssignName.visited_nodes", []),
                                         SimpleScope("LocalVariable.AssignName.child_node", []),
                                     ],
+                                    ["Name.node", "Name.visited_nodes", "Name.child_node"],
+                                    ["Call.add", "Call.__enter", "Call.get_children", "Call.__walk", "Call.__leave"],
                                 ),
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__enter",
                                     [
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("Parameter.AssignName.node", []),
                                         SimpleScope("LocalVariable.AssignName.method", []),
                                     ],
+                                    ["Name.node", "Name.method"],
+                                    ["Call.__get_callbacks", "Call.methode"],
                                 ),
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__leave",
                                     [
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("Parameter.AssignName.node", []),
                                         SimpleScope("LocalVariable.AssignName.method", []),
                                     ],
+                                    ["Name.node", "Name.method"],
+                                    ["Call.__get_callbacks", "Call.methode"],
                                 ),
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__get_callbacks",
                                     [
                                         SimpleScope("Parameter.AssignName.self", []),
@@ -737,6 +1088,8 @@ def test_calc_node_id(
                                         SimpleScope("LocalVariable.AssignName.enter_method", []),
                                         SimpleScope("LocalVariable.AssignName.leave_method", []),
                                     ],
+                                    ["Name.node", "MemberAccessValue.node.__class__", "Name.klass", "Name.methods", "MemberAccessVaalue.self._handler", "Name.handler", "Name.class_name", "Name.enter_method", "Name.leave_method"],
+                                    ["Call.get", "Call.lower", "Call.getattr"],
                                 ),
                             ],
                             [
@@ -754,23 +1107,29 @@ def test_calc_node_id(
                 ),
             ],
         ),
-        (  # AssignName
+        (  # language=Python "AssignName"
             """
-                a = "a"
-            """,
+a = "a"
+            """,  # language=none
             [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.a", [])])],
         ),
-        (  # List Comprehension in Module
+        (  # language=Python "List Comprehension in Module"
             """
-                [len(num) for num in nums]
-            """,
-            [SimpleScope("Module", [SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])])])],
+nums = ["aaa", "bb", "ase"]
+[len(num) for num in nums]
+            """,  # language=none
+            [SimpleScope("Module",
+                         [
+                            SimpleScope("GlobalVariable.AssignName.nums", []),
+                            SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
+                          ])],
         ),
-        (  # List Comprehension in Class
+        (  # language=Python "List Comprehension in Class"
             """
-                class A:
-                    x = [len(num) for num in nums]
-            """,
+class A:
+    nums = ["aaa", "bb", "ase"]
+    x = [len(num) for num in nums]
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
@@ -778,10 +1137,11 @@ def test_calc_node_id(
                         SimpleClassScope(
                             "GlobalVariable.ClassDef.A",
                             [
+                                SimpleScope("ClassVariable.AssignName.nums", []),
                                 SimpleScope("ClassVariable.AssignName.x", []),
                                 SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
                             ],
-                            ["AssignName.x"],
+                            ["AssignName.nums", "AssignName.x"],
                             [],
                             [],
                         ),
@@ -789,40 +1149,48 @@ def test_calc_node_id(
                 ),
             ],
         ),
-        (  # List Comprehension in Function
+        (  # language=Python "List Comprehension in Function"
             """
-                def fun():
-                    x = [len(num) for num in nums]
-            """,
+def fun():
+    nums = ["aaa", "bb", "ase"]
+    x = [len(num) for num in nums]
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope(
+                        SimpleFunctionScope(
                             "GlobalVariable.FunctionDef.fun",
                             [
+                                SimpleScope("LocalVariable.AssignName.nums", []),
                                 SimpleScope("LocalVariable.AssignName.x", []),
                                 SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
                             ],
+                            [],
+                            ["Call.len"],
                         ),
                     ],
                 ),
             ],
         ),
-        (  # With Statement
+        (  # language=Python "With Statement"
             """
-                with file:
-                    a = 1
-            """,
-            [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.a", [])])],
+file = "file.txt"
+with file:
+    a = 1
+            """,  # language=none
+            [SimpleScope("Module", [
+                SimpleScope("GlobalVariable.AssignName.file", []),
+                SimpleScope("GlobalVariable.AssignName.a", [])
+            ])],
         ),
-        (  # With Statement File
+        (  # language=Python "With Statement File"
             """
-                file = "file.txt"
-                with open(file, "r") as f:
-                    a = 1
-                    f.read()
-            """,
+file = "file.txt"
+with open(file, "r") as f:
+    a = 1
+    f.read()
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
@@ -834,42 +1202,44 @@ def test_calc_node_id(
                 ),
             ],
         ),
-        (  # With Statement Function
+        (  # language=Python "With Statement Function"
             """
-                def fun():
-                    with open("text.txt") as f:
-                        text = f.read()
-                        print(text)
-                        f.close()
-            """,
+def fun():
+    with open("text.txt") as f:
+        text = f.read()
+        print(text)
+        f.close()
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
                     [
-                        SimpleScope(
+                        SimpleFunctionScope(
                             "GlobalVariable.FunctionDef.fun",
                             [
                                 SimpleScope("LocalVariable.AssignName.f", []),
                                 SimpleScope("LocalVariable.AssignName.text", []),
                             ],
+                            [],
+                            ["Call.open", "Call.read", "Call.print", "Call.close"],
                         ),
                     ],
                 ),
             ],
         ),
-        (  # With Statement Class
+        (  # language=Python "With Statement Class"
             """
-                class MyContext:
-                    def __enter__(self):
-                        print("Entering the context")
-                        return self
+class MyContext:
+    def __enter__(self):
+        print("Entering the context")
+        return self
 
-                    def __exit__(self):
-                        print("Exiting the context")
+    def __exit__(self):
+        print("Exiting the context")
 
-                with MyContext() as context:
-                    print("Inside the context")
-            """,
+with MyContext() as context:
+    print("Inside the context")
+            """,  # language=none
             [
                 SimpleScope(
                     "Module",
@@ -877,13 +1247,17 @@ def test_calc_node_id(
                         SimpleClassScope(
                             "GlobalVariable.ClassDef.MyContext",
                             [
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__enter__",
                                     [SimpleScope("Parameter.AssignName.self", [])],
+                                    [],
+                                    ["Call.print"],
                                 ),
-                                SimpleScope(
+                                SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__exit__",
                                     [SimpleScope("Parameter.AssignName.self", [])],
+                                    [],
+                                    ["Call.print"],
                                 ),
                             ],
                             ["FunctionDef.__enter__", "FunctionDef.__exit__"],
@@ -891,6 +1265,40 @@ def test_calc_node_id(
                             [],
                         ),
                         SimpleScope("GlobalVariable.AssignName.context", []),
+                    ],
+                ),
+            ],
+        ),
+        (  # language=Python "Lambda"
+            """
+lambda x, y: x + y
+            """,  # language=none
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleFunctionScope("GlobalVariable.Lambda",
+                                            [SimpleScope("LocalVariable.AssignName.x", []), SimpleScope("LocalVariable.AssignName.y", [])],  # TODO: Lars: is LV correct, or should it be Parameter?
+                                            ["Name.x", "Name.y"],
+                                            [],
+                                            ),
+                    ],
+                ),
+            ],
+        ),
+        (  # language=Python "Lambda with name"
+            """
+double = lambda x: 2 * x
+            """,  # language=none
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleFunctionScope("GlobalVariable.Lambda.double",
+                                            [SimpleScope("LocalVariable.AssignName.x", [])],
+                                            ["Name.x"],
+                                            [],
+                                            ),
                     ],
                 ),
             ],
@@ -919,140 +1327,34 @@ def test_calc_node_id(
         "With Statement File",
         "With Statement Function",
         "With Statement Class",
-    ],  # TODO: add tests for lambda, match, try except and generator expressions
-    # TODO: add SimpleFunctionScope and adapt the tests
+        "Lambda",
+        "Lambda with name",
+    ],  # TODO: add tests for match, try except and generator expressions
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
     scope = get_module_data(code).scope
     # assert result == expected
     transformed_result = [
-        transform_result(node) for node in scope
+        transform_scope_node(node) for node in scope
     ]  # The result and the expected data are simplified to make the comparison easier
     assert transformed_result == expected
 
 
-def transform_result(node: Scope | ClassScope) -> SimpleScope | SimpleClassScope:
-    """Transform a Scope or ClassScope instance.
-
-    Parameters
-    ----------
-    node : Scope | ClassScope
-        The node to transform.
-
-    Returns
-    -------
-    SimpleScope | SimpleClassScope
-        The transformed node.
-    """
-    if node.children is not None:
-        if isinstance(node, ClassScope):
-            instance_vars_transformed = []
-            class_vars_transformed = []
-            super_classes_transformed = []
-            for child in node.instance_variables.values():
-                for c in child:
-                    c_str = to_string_class(c.node.member)
-                    if c_str is not None:
-                        instance_vars_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
-            for child in node.class_variables.values():
-                for c in child:
-                    c_str = to_string_class(c.node)
-                    if c_str is not None:
-                        class_vars_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
-
-            for klass in node.super_classes:
-                c_str = to_string_class(klass)
-                if c_str is not None:
-                    super_classes_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
-
-            return SimpleClassScope(
-                to_string(node.symbol),
-                [transform_result(child) for child in node.children],
-                class_vars_transformed,
-                instance_vars_transformed,
-                super_classes_transformed,
-            )
-        return SimpleScope(to_string(node.symbol), [transform_result(child) for child in node.children])
-    else:
-        return SimpleScope(to_string(node.symbol), [])
-
-
-def to_string(symbol: Symbol) -> str:
-    """Transform a Symbol instance to a string.
-
-    Parameters
-    ----------
-    symbol : Symbol
-        The Symbol instance to transform.
-
-    Returns
-    -------
-    str
-        The transformed Symbol instance as string.
-    """
-    if isinstance(symbol.node, astroid.Module):
-        return f"{symbol.node.__class__.__name__}"
-    elif isinstance(symbol.node, astroid.ClassDef | astroid.FunctionDef | astroid.AssignName):
-        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.name}"
-    elif isinstance(symbol.node, astroid.AssignAttr):
-        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.attrname}"
-    elif isinstance(symbol.node, MemberAccess):
-        result = transform_member_access(symbol.node)
-        return f"{symbol.__class__.__name__}.MemberAccess.{result}"
-    elif isinstance(symbol.node, astroid.Import):
-        return (  # TODO: handle multiple imports and aliases
-            f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.names[0][0]}"
-        )
-    elif isinstance(symbol.node, astroid.ImportFrom):
-        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.modname}.{symbol.node.names[0][0]}"  # TODO: handle multiple imports and aliases
-    elif isinstance(symbol.node, astroid.Name):
-        return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.name}"
-    elif isinstance(symbol.node, astroid.ListComp | astroid.TryExcept | astroid.TryFinally | astroid.With):
-        return f"{symbol.node.__class__.__name__}"
-    raise NotImplementedError(f"Unknown node type: {symbol.node.__class__.__name__}")
-
-
-def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
-    """Transform a NodeNG or ClassScope instance to a string.
-
-    Parameters
-    ----------
-    node : astroid.NodeNG | ClassScope
-        The NodeNG or ClassScope instance to transform.
-
-    Returns
-    -------
-    str | None
-        The transformed NodeNG or ClassScope instance as string.
-        None if the node is a Lambda, TryExcept, TryFinally or ListComp instance.
-    """
-    if isinstance(node, astroid.AssignAttr):
-        return f"{node.__class__.__name__}.{node.attrname}"
-    elif isinstance(node, astroid.AssignName | astroid.FunctionDef | astroid.ClassDef):
-        return f"{node.__class__.__name__}.{node.name}"
-    elif isinstance(node, astroid.Lambda | astroid.TryExcept | astroid.TryFinally | astroid.ListComp):
-        return None
-    elif isinstance(node, ClassScope):
-        return f"{node.symbol.node.__class__.__name__}.{node.symbol.node.name}"
-    raise NotImplementedError(f"Unknown node type: {node.__class__.__name__}")
-
-
 @pytest.mark.parametrize(
     ("code", "expected"),
-    # expected is a tuple of (ClassDefName, set of class variables, set of instance variables, list of superclasses)
     [
-        (  # ClassDef
+        (  # language=Python "ClassDef"
             """
-                class A:
-                    pass
-            """,
+class A:
+    pass
+            """,  # language=none
             {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [], [])},
         ),
-        (  # ClassDef with class attribute
+        (  # language=Python "ClassDef with class attribute"
             """
-                class A:
-                    var1 = 1
-            """,
+class A:
+    var1 = 1
+            """,  # language=none
             {
                 "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
@@ -1063,12 +1365,12 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 ),
             },
         ),
-        (  # ClassDef with multiple class attribute
+        (  # language=Python "ClassDef with multiple class attribute"
             """
-                class A:
-                    var1 = 1
-                    var2 = 2
-            """,
+class A:
+    var1 = 1
+    var2 = 2
+            """,  # language=none
             {
                 "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
@@ -1082,14 +1384,14 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 ),
             },
         ),
-        (  # ClassDef with multiple class attribute (same name)
+        (  # language=Python "ClassDef with multiple class attribute (same name)"
             """
-                class A:
-                    if True:
-                        var1 = 1
-                    else:
-                        var1 = 2
-            """,
+class A:
+    if True:
+        var1 = 1
+    else:
+        var1 = 2
+            """,  # language=none
             {
                 "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
@@ -1103,22 +1405,24 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 ),
             },
         ),
-        (  # ClassDef with instance attribute
+        (  # language=Python "ClassDef with instance attribute"
             """
-                class A:
-                    def __init__(self):
-                        self.var1 = 1
-            """,
+class A:
+    def __init__(self):
+        self.var1 = 1
+            """,  # language=none
             {
                 "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
                     [
-                        SimpleScope(
+                        SimpleFunctionScope(
                             "ClassVariable.FunctionDef.__init__",
                             [
                                 SimpleScope("Parameter.AssignName.self", []),
                                 SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
                             ],
+                            [],
+                            []
                         ),
                     ],
                     ["FunctionDef.__init__"],
@@ -1127,19 +1431,19 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 ),
             },
         ),
-        (  # ClassDef with multiple instance attributes (and type annotations)
+        (  # language=Python "ClassDef with multiple instance attributes (and type annotations)"
             """
-                class A:
-                    def __init__(self):
-                        self.var1: int = 1
-                        self.name: str = "name"
-                        self.state: bool = True
-            """,
+class A:
+    def __init__(self):
+        self.var1: int = 1
+        self.name: str = "name"
+        self.state: bool = True
+            """,  # language=none
             {
                 "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
                     [
-                        SimpleScope(
+                        SimpleFunctionScope(
                             "ClassVariable.FunctionDef.__init__",
                             [
                                 SimpleScope("Parameter.AssignName.self", []),
@@ -1147,6 +1451,8 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                                 SimpleScope("InstanceVariable.MemberAccess.self.name", []),
                                 SimpleScope("InstanceVariable.MemberAccess.self.state", []),
                             ],
+                            [],
+                            []
                         ),
                     ],
                     ["FunctionDef.__init__"],
@@ -1155,26 +1461,28 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 ),
             },
         ),
-        (  # ClassDef with conditional instance attributes (instance attributes with the same name)
+        (  # language=Python "ClassDef with conditional instance attributes (instance attributes with the same name)"
             """
-                class A:
-                    def __init__(self):
-                        if True:
-                            self.var1 = 1
-                        else:
-                            self.var1 = 0
-            """,
+class A:
+    def __init__(self):
+        if True:
+            self.var1 = 1
+        else:
+            self.var1 = 0
+            """,  # language=none
             {
                 "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
                     [
-                        SimpleScope(
+                        SimpleFunctionScope(
                             "ClassVariable.FunctionDef.__init__",
                             [
                                 SimpleScope("Parameter.AssignName.self", []),
                                 SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
                                 SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
                             ],
+                            [],
+                            []
                         ),
                     ],
                     ["FunctionDef.__init__"],
@@ -1183,25 +1491,27 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 ),
             },
         ),
-        (  # ClassDef with class and instance attribute
+        (  # language=Python "ClassDef with class and instance attribute"
             """
-                class A:
-                    var1 = 1
+class A:
+    var1 = 1
 
-                    def __init__(self):
-                        self.var1 = 1
-            """,
+    def __init__(self):
+        self.var1 = 1
+            """,  # language=none
             {
                 "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
                     [
                         SimpleScope("ClassVariable.AssignName.var1", []),
-                        SimpleScope(
+                        SimpleFunctionScope(
                             "ClassVariable.FunctionDef.__init__",
                             [
                                 SimpleScope("Parameter.AssignName.self", []),
                                 SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
                             ],
+                            [],
+                            []
                         ),
                     ],
                     ["AssignName.var1", "FunctionDef.__init__"],
@@ -1210,12 +1520,12 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 ),
             },
         ),
-        (  # ClassDef with nested class
+        (  # language=Python "ClassDef with nested class"
             """
-                class A:
-                    class B:
-                        pass
-            """,
+class A:
+    class B:
+        pass
+            """,  # language=none
             {
                 "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
@@ -1227,27 +1537,27 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
                 "B": SimpleClassScope("ClassVariable.ClassDef.B", [], [], [], []),
             },
         ),
-        (  # Multiple ClassDef
+        (  # language=Python "Multiple ClassDef"
             """
-                class A:
-                    pass
+class A:
+    pass
 
-                class B:
-                    pass
-            """,
+class B:
+    pass
+            """,  # language=none
             {
                 "A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [], []),
                 "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [], []),
             },
         ),
-        (  # ClassDef with superclass
+        (  # language=Python "ClassDef with superclass"
             """
-                class A:
-                    pass
+class A:
+    pass
 
-                class B(A):
-                    pass
-            """,
+class B(A):
+    pass
+            """,  # language=none
             {
                 "A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [], []),
                 "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [], ["ClassDef.A"]),
@@ -1272,28 +1582,144 @@ def test_get_module_data_classes(code: str, expected: dict[str, SimpleClassScope
     classes = get_module_data(code).classes
 
     transformed_classes = {
-        klassname: transform_result(klass) for klassname, klass in classes.items()
+        klassname: transform_scope_node(klass) for klassname, klass in classes.items()
     }  # The result and the expected data are simplified to make the comparison easier
     assert transformed_classes == expected
 
 
-@pytest.mark.parametrize(("code", "expected"), [])
-def test_get_module_data_functions(code: str, expected: str) -> None:
-    functions = get_module_data(code).classes
-    raise NotImplementedError("TODO: implement test")
-    assert functions == expected
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "Trivial function"
+            """
+def f():
+    pass
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [], [], [])]
+            }
+        ),
+        (  # language=Python "Function with child"
+            """
+def f():
+    var1 = 1
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [SimpleScope("LocalVariable.AssignName.var1", [])], [], [])]
+            }
+        ),
+        (  # language=Python "Function with parameter"
+            """
+def f(name):
+    var1 = name
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [SimpleScope("Parameter.AssignName.name", []), SimpleScope("LocalVariable.AssignName.var1", [])], ["Name.name"], [])]
+            }
+        ),
+        (  # language=Python "Function with values"
+            """
+def f():
+    name = "name"
+    var1 = name
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [SimpleScope("LocalVariable.AssignName.name", []), SimpleScope("LocalVariable.AssignName.var1", [])], ["Name.name"], [])]
+            }
+        ),
+        (  # language=Python "Function with return"
+            """
+def f():
+    var1 = 1
+    return var1
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [SimpleScope("LocalVariable.AssignName.var1", [])], ["Name.var1"], [])]
+            }
+        ),
+        (  # language=Python "Function with nested return"
+            """
+def f(a, b):
+    var1 = 1
+    return a + b + var1
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [SimpleScope("Parameter.AssignName.a", []), SimpleScope("Parameter.AssignName.b", []), SimpleScope("LocalVariable.AssignName.var1", [])], ["Name.a", "Name.b", "Name.var1"], [])]
+            }
+        ),
+        (  # language=Python "Function with nested names"
+            """
+def f(a, b):
+    var1 = 1
+    var2 = a + b + var1
+    return var2
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f",
+                                          [
+                                              SimpleScope("Parameter.AssignName.a", []),
+                                              SimpleScope("Parameter.AssignName.b", []),
+                                              SimpleScope("LocalVariable.AssignName.var1", []),
+                                              SimpleScope("LocalVariable.AssignName.var2", [])
+                                          ],
+                                          ["Name.a", "Name.b", "Name.var1", "Name.var2"],
+                                          [])]
+            }
+        ),
+        (  # language=Python "Function with call"
+            """
+def f():
+    f()
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [], [], ["Call.f"])]
+            }
+        ),
+        (  # language=Python "Function with same name"
+            """
+def f():
+    f()
+
+def f():
+    pass
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [], [], ["Call.f"]),
+                      SimpleFunctionScope("GlobalVariable.FunctionDef.f", [], [], [])]
+            }
+        ),
+    ],
+    ids=[
+        "Trivial function",
+        "Function with child",
+        "Function with parameter",
+        "Function with values",
+        "Function with return",
+        "Function with nested return",
+        "Function with nested names",
+        "Function with call",
+        "Function with same name",
+    ]
+)
+def test_get_module_data_functions(code: str, expected: dict[str, list[str]]) -> None:
+    functions = get_module_data(code).functions
+    transformed_functions = {
+        fun_name: [transform_scope_node(fun) for fun in fun_list] for fun_name, fun_list in functions.items()
+    }  # The result and the expected data are simplified to make the comparison easier
+
+    assert transformed_functions == expected
 
 
 @pytest.mark.parametrize(("code", "expected"), [])
 def test_get_module_data_globals(code: str, expected: str) -> None:
-    globs = get_module_data(code).classes
+    globs = get_module_data(code).global_variables
     raise NotImplementedError("TODO: implement test")
     assert globs == expected
 
 
 @pytest.mark.parametrize(("code", "expected"), [])
 def test_get_module_data_parameters(code: str, expected: str) -> None:
-    parameters = get_module_data(code).classes
+    parameters = get_module_data(code).parameters
     raise NotImplementedError("TODO: implement test")
     assert parameters == expected
 
@@ -1529,86 +1955,6 @@ def test_get_module_data_value_and_target_nodes(code: str, expected: str) -> Non
     assert (value_nodes_transformed, target_nodes_transformed) == expected
 
 
-def transform_value_nodes(value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]) -> dict[str, str]:
-    """Transform the value nodes.
-
-    The value nodes are transformed to a dictionary with the name of the node as key and the transformed node as value.
-
-    Parameters
-    ----------
-    value_nodes : dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
-        The value nodes to transform.
-
-    Returns
-    -------
-    dict[str, str]
-        The transformed value nodes.
-    """
-    value_nodes_transformed = {}
-    for node in value_nodes:
-        if isinstance(node, astroid.Name):
-            value_nodes_transformed.update({node.name: f"{node.__class__.__name__}.{node.name}"})
-        elif isinstance(node, MemberAccessValue):
-            result = transform_member_access(node)
-            value_nodes_transformed.update({result: f"{node.__class__.__name__}.{result}"})
-
-    return value_nodes_transformed
-
-
-def transform_target_nodes(
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope],
-) -> dict[str, str]:
-    """Transform the target nodes.
-
-    The target nodes are transformed to a dictionary with the name of the node as key and the transformed node as value.
-
-    Parameters
-    ----------
-    target_nodes : dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]
-
-    Returns
-    -------
-    dict[str, str]
-        The transformed target nodes.
-    """
-    target_nodes_transformed = {}
-    for node in target_nodes:
-        if isinstance(node, astroid.AssignName | astroid.Name):
-            target_nodes_transformed.update({node.name: f"{node.__class__.__name__}.{node.name}"})
-        elif isinstance(node, MemberAccessTarget):
-            result = transform_member_access(node)
-            target_nodes_transformed.update({result: f"{node.__class__.__name__}.{result}"})
-
-    return target_nodes_transformed
-
-
-def transform_member_access(member_access: MemberAccess) -> str:
-    """Transform a MemberAccess instance to a string.
-
-    Parameters
-    ----------
-    member_access : MemberAccess
-        The MemberAccess instance to transform.
-
-    Returns
-    -------
-    str
-        The transformed MemberAccess instance as string.
-    """
-    attribute_names = []
-
-    while isinstance(member_access, MemberAccess):
-        if isinstance(member_access.member, astroid.AssignAttr | astroid.Attribute):
-            attribute_names.append(member_access.member.attrname)
-        else:
-            attribute_names.append(member_access.member.name)
-        member_access = member_access.receiver
-    if isinstance(member_access, astroid.Name):
-        attribute_names.append(member_access.name)
-
-    return ".".join(reversed(attribute_names))
-
-
 @pytest.mark.parametrize(("code", "expected"), [])
 def test_get_module_data_function_calls(code: str, expected: str) -> None:
     function_calls = get_module_data(code).function_calls
@@ -1678,6 +2024,9 @@ def f():
                         SimpleFunctionReference("AssignName.c.line10", "NonLocalVariableWrite"),
                         SimpleFunctionReference("AssignName.b.line13", "NonLocalVariableWrite"),
                     },
+                    # {
+                    #     SimpleFunctionReference("Name.b.line7", "NonLocalVariableRead"),
+                    # }
                 ),
             },
         ),
@@ -2002,66 +2351,5 @@ def test_get_module_data_function_references(code: str, expected: dict[str, Simp
     # assert function_references == expected
 
     assert transformed_function_references == expected
-
-
-def transform_function_references(function_calls: dict[NodeID, Reasons]) -> dict[str, SimpleReasons]:
-    """Transform the function references.
-
-    The function references are transformed to a dictionary with the name of the function as key
-    and the transformed Reasons instance as value.
-
-    Parameters
-    ----------
-    function_calls : dict[str, Reasons]
-        The function references to transform.
-
-    Returns
-    -------
-    dict[str, SimpleReasons]
-        The transformed function references.
-    """
-    transformed_function_references = {}
-    for function_id, function_references in function_calls.items():
-        transformed_function_references.update({
-            function_id.__str__(): SimpleReasons(
-                function_references.function.name,
-                {
-                    SimpleFunctionReference(
-                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}",
-                        function_reference.kind,
-                    ) if isinstance(function_reference.node, MemberAccessTarget) else
-                    SimpleFunctionReference(
-                         f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
-                         function_reference.kind,
-                    )
-                    for function_reference in function_references.writes
-                },
-                {
-                    SimpleFunctionReference(
-                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}",
-                        function_reference.kind,
-                    ) if isinstance(function_reference.node, MemberAccessValue) else
-                    SimpleFunctionReference(
-                         f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
-                         function_reference.kind,
-                    )
-                    for function_reference in function_references.reads
-                },
-                {
-                    SimpleFunctionReference(
-                        f"{function_reference.node.__class__.__name__}.{function_reference.node.func.attrname}.line{function_reference.node.fromlineno}",
-                        function_reference.kind,
-                    ) if isinstance(function_reference.node.func, astroid.Attribute) else
-                    SimpleFunctionReference(
-                        f"{function_reference.node.__class__.__name__}.{function_reference.node.func.name}.line{function_reference.node.fromlineno}",
-                        function_reference.kind,
-                    )
-                    for function_reference in function_references.calls
-                },
-            ),
-        })
-
-    return transformed_function_references
-
 
 # TODO: testcases for cyclic calls and recursive calls
