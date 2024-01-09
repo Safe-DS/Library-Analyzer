@@ -1753,7 +1753,6 @@ def fun1():
 
 def fun2():
     a = A().g()
-
             """,  # language=none
             [
                 ReferenceTestNode("A.line9", "FunctionDef.fun1", ["GlobalVariable.A.line2"]),
@@ -1796,7 +1795,6 @@ def fun1():
 
 def fun2():
     a = A().a_inst.b_fun()
-
             """,  # language=none
            [
                 ReferenceTestNode("self.line4", "FunctionDef.A.__init__", ["Parameter.self.line3"]),
