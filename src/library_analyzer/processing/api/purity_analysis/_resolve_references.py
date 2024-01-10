@@ -28,6 +28,7 @@ def _find_name_references(
     classes: dict[str, ClassScope],
     functions: dict[str, list[FunctionScope]],
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
+    global_variables: dict[str, Scope | ClassScope | FunctionScope]
 ) -> dict[str, list[ReferenceNode]]:
     """Create a list of references from a list of name nodes.
 
@@ -61,7 +62,7 @@ def _find_name_references(
     # Detect all value references: references that are used as values (e.g., sth = value, return value)
     for value_ref in value_references:
         if isinstance(value_ref.node, astroid.Name | MemberAccessValue):
-            value_ref_complete = _find_value_references(value_ref, target_references, classes, functions, parameters)
+            value_ref_complete = _find_value_references(value_ref, target_references, classes, functions, parameters, global_variables)
             if value_ref_complete.node.name in final_references:
                 final_references[value_ref_complete.node.name].append(value_ref_complete)
             else:
@@ -171,6 +172,7 @@ def _find_value_references(
     classes: dict[str, ClassScope],
     functions: dict[str, list[FunctionScope]],
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
+    global_variables: dict[str, Scope | ClassScope | FunctionScope]
 ) -> ReferenceNode:
     """Find all references for a value node.
 
@@ -222,9 +224,11 @@ def _find_value_references(
                     outer_continue = False
                     continue
 
-            complete_reference.referenced_symbols = list(
-                set(complete_reference.referenced_symbols) | set(_get_symbols(ref)),
-            )
+            # Only add a reference if it is declared in the same scope as the value_reference or if it is a global variable
+            if current_value_reference.scope == ref.scope or ref.node.name in global_variables:
+                complete_reference.referenced_symbols = list(
+                    set(complete_reference.referenced_symbols) | set(_get_symbols(ref)),
+                )
 
         if isinstance(current_value_reference.node, MemberAccessValue):
             # Add ClassVariables if the name matches
@@ -411,6 +415,7 @@ def resolve_references(
         module_data.classes,
         module_data.functions,
         module_data.parameters,
+        module_data.global_variables
     )
 
     if module_data.function_calls:

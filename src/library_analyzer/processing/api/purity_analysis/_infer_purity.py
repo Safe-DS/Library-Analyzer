@@ -141,7 +141,7 @@ BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
     "format": Impure(set()),  # Can produce variable output
     "frozenset": Pure(),
     "getattr": Impure(set()),  # Can raise exceptions or interact with external resources
-    "globals": Impure(set()),  # May interact with external resources
+    "globals": Impure(set()),  # May interact with external resources  # TODO: implement special case since this can modify the global namespace
     "hasattr": Pure(),
     "hash": Pure(),
     "help": Impure(set()),  # May interact with external resources
