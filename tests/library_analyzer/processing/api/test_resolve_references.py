@@ -761,6 +761,241 @@ class C:
                 ReferenceTestNode("cls.line10", "FunctionDef.set_state", ["Parameter.cls.line9"]),
             ],
         ),
+        (  # language=Python "class call - init",
+            """
+class A:
+    pass
+
+def fun():
+    a = A()
+
+            """,  # language=none
+            [
+                ReferenceTestNode("A.line6", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
+            ]
+        ),
+        (  # language=Python "member access - class",
+            """
+class A:
+    class_attr1 = 20
+
+def fun():
+    a = A().class_attr1
+
+            """,  # language=none
+            [
+                ReferenceTestNode("A.line6", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
+                ReferenceTestNode("A.class_attr1.line6", "FunctionDef.fun", ["ClassVariable.A.class_attr1.line3"]),
+            ]
+        ),
+        (  # language=Python "member access - class without init",
+            """
+class A:
+    class_attr1 = 20
+
+def fun():
+    a = A.class_attr1
+
+            """,  # language=none
+            [
+                ReferenceTestNode("A.line6", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
+                ReferenceTestNode("A.class_attr1.line6", "FunctionDef.fun", ["ClassVariable.A.class_attr1.line3"]),
+            ]
+        ),
+        (  # language=Python "member access - methode",
+            """
+class A:
+    class_attr1 = 20
+
+    def g(self):
+        pass
+
+def fun1():
+    a = A()
+    a.g()
+
+def fun2():
+    a = A().g()
+            """,  # language=none
+            [
+                ReferenceTestNode("A.line9", "FunctionDef.fun1", ["GlobalVariable.A.line2"]),
+                ReferenceTestNode("a.line10", "FunctionDef.fun1", ["LocalVariable.a.line9"]),
+                ReferenceTestNode("a.g.line10", "FunctionDef.fun1", ["ClassVariable.A.g.line5"]),
+                ReferenceTestNode("A.line13", "FunctionDef.fun2", ["GlobalVariable.A.line2"]),
+                ReferenceTestNode("A.g.line13", "FunctionDef.fun2", ["ClassVariable.A.g.line5"]),
+            ]
+        ),
+        (  # language=Python "member access - init",
+            """
+class A:
+    def __init__(self):
+        pass
+
+def fun():
+    a = A()
+
+            """,  # language=none
+           [
+                ReferenceTestNode("A.line7", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
+           ]
+        ),
+        (  # language=Python "member access - instance function",
+            """
+class A:
+    def __init__(self):
+        self.a_inst = B()
+
+class B:
+    def __init__(self):
+        pass
+
+    def b_fun(self):
+        pass
+
+def fun1():
+    a = A()
+    a.a_inst.b_fun()
+
+def fun2():
+    a = A().a_inst.b_fun()
+            """,  # language=none
+           [
+                ReferenceTestNode("self.line4", "FunctionDef.A.__init__", ["Parameter.self.line3"]),
+                ReferenceTestNode("B.line4", "FunctionDef.A.__init__", ["GlobalVariable.B.line6"]),
+                ReferenceTestNode("A.line14", "FunctionDef.fun1", ["GlobalVariable.A.line2"]),
+                ReferenceTestNode("a.line15", "FunctionDef.fun1", ["LocalVariable.a.line14"]),
+                ReferenceTestNode("a.a_inst.line15", "FunctionDef.fun1", ["InstanceVariable.A.a_inst.line4"]),
+                ReferenceTestNode("a.a_inst.b_fun.line15", "FunctionDef.fun1", ["ClassVariable.B.b_fun.line10"]),
+                ReferenceTestNode("A.line18", "FunctionDef.fun2", ["GlobalVariable.A.line2"]),
+                ReferenceTestNode("A.a_inst.line18", "FunctionDef.fun2", ["InstanceVariable.A.a_inst.line4"]),
+                ReferenceTestNode("A.a_inst.b_fun.line18", "FunctionDef.fun2", ["ClassVariable.B.b_fun.line10"]),
+           ]
+        ),
+        (  # language=Python "member access - function call of functions with same name"
+            """
+class A:
+    @staticmethod
+    def add(a, b):
+        return a + b
+
+class B:
+    @staticmethod
+    def add(a, b):
+        return a + 2 * b
+
+def fun_a():
+    x = A()
+    x.add(1, 2)
+
+def fun_b():
+    x = B()
+    x.add(1, 2)
+            """,  # language=none
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.add", ["Parameter.a.line4"]),
+                ReferenceTestNode("b.line5", "FunctionDef.add", ["Parameter.b.line4"]),
+                ReferenceTestNode("a.line10", "FunctionDef.add", ["Parameter.a.line9"]),
+                ReferenceTestNode("b.line10", "FunctionDef.add", ["Parameter.b.line9"]),
+                ReferenceTestNode("A.line13", "FunctionDef.fun_a", ["GlobalVariable.A.line2"]),
+                ReferenceTestNode("x.line14", "FunctionDef.fun_a", ["LocalVariable.x.line13"]),
+                ReferenceTestNode("x.add.line14", "FunctionDef.fun_a", ["ClassVariable.A.add.line4",  # TODO: is it possible to distinguish between the two add functions?
+                                                                         "ClassVariable.B.add.line9"]),
+                ReferenceTestNode("B.line17", "FunctionDef.fun_b", ["GlobalVariable.B.line7"]),
+                ReferenceTestNode("x.line18", "FunctionDef.fun_b", ["LocalVariable.x.line17"]),
+                ReferenceTestNode("x.add.line18", "FunctionDef.fun_b", ["ClassVariable.A.add.line4",
+                                                                         "ClassVariable.B.add.line9"]),  # TODO: is it possible to distinguish between the two add functions?
+            ]
+        ),
+        (  # language=Python "member access - function call of functions with same name and nested calls",
+            """
+def fun1():
+    pass
+
+def fun2():
+    print("Function 2")
+
+class A:
+    @staticmethod
+    def add(a, b):
+        fun1()
+        return a + b
+
+class B:
+    @staticmethod
+    def add(a, b):
+        fun2()
+        return a + 2 * b
+            """,  # language=none
+           [
+                ReferenceTestNode("print.line6", "FunctionDef.fun2", ["Builtin.print"]),
+                ReferenceTestNode("a.line12", "FunctionDef.add", ["Parameter.a.line10"]),
+                ReferenceTestNode("b.line12", "FunctionDef.add", ["Parameter.b.line10"]),
+                ReferenceTestNode("fun1.line11", "FunctionDef.add", ["GlobalVariable.fun1.line2"]),
+                ReferenceTestNode("a.line18", "FunctionDef.add", ["Parameter.a.line16"]),
+                ReferenceTestNode("b.line18", "FunctionDef.add", ["Parameter.b.line16"]),
+                ReferenceTestNode("fun2.line17", "FunctionDef.add", ["GlobalVariable.fun2.line5"]),
+
+           ]
+        ),
+        (  # language=Python "member access - function call of functions with same name (no distinction possible)"
+            """
+class A:
+    @staticmethod
+    def fun():
+        return "Function A"
+
+class B:
+    @staticmethod
+    def fun():
+        return "Function B"
+
+def fun_out(a):
+    if a == 1:
+        x = A()
+    else:
+        x = B()
+    x.fun()
+            """,  # language=none
+            [
+                ReferenceTestNode("a.line13", "FunctionDef.fun_out", ["Parameter.a.line12"]),
+                ReferenceTestNode("A.line14", "FunctionDef.fun_out", ["GlobalVariable.A.line2"]),
+                ReferenceTestNode("B.line16", "FunctionDef.fun_out", ["GlobalVariable.B.line7"]),
+                ReferenceTestNode("x.line17", "FunctionDef.fun_out", ["LocalVariable.x.line14",
+                                                                      "LocalVariable.x.line16"]),
+                ReferenceTestNode("x.fun.line17", "FunctionDef.fun_out", ["ClassVariable.A.fun.line4",
+                                                                           "ClassVariable.B.fun.line9"]),  # here we can't distinguish between the two functions
+            ]
+        ),
+        (  # language=Python "member access - function call of functions with same name (different signatures)"
+            """
+class A:
+    @staticmethod
+    def add(a, b):
+        return a + b
+
+class B:
+    @staticmethod
+    def add(a, b, c):
+        return a + b + c
+
+def fun():
+    A.add(1, 2)
+    B.add(1, 2, 3)
+            """,  # language=none
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.add", ["Parameter.a.line4"]),
+                ReferenceTestNode("b.line5", "FunctionDef.add", ["Parameter.b.line4"]),
+                ReferenceTestNode("a.line10", "FunctionDef.add", ["Parameter.a.line9"]),
+                ReferenceTestNode("b.line10", "FunctionDef.add", ["Parameter.b.line9"]),
+                ReferenceTestNode("c.line10", "FunctionDef.add", ["Parameter.c.line9"]),
+                ReferenceTestNode("A.line13", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
+                ReferenceTestNode("A.add.line13", "FunctionDef.fun", ["ClassVariable.A.add.line4",
+                                                                       "ClassVariable.B.add.line9"]),  # TODO: is it possible to distinguish between the two add functions and therefor remove this?
+                ReferenceTestNode("B.line14", "FunctionDef.fun", ["GlobalVariable.B.line7"]),
+                ReferenceTestNode("B.add.line14", "FunctionDef.fun", ["ClassVariable.A.add.line4",  # TODO: is it possible to distinguish between the two add functions and therefor remove this?
+                                                                       "ClassVariable.B.add.line9"]),
+            ]
+        ),
     ],
     ids=[
         "class attribute value",
@@ -783,6 +1018,16 @@ class C:
         "setter function with classname different name",
         "setter function as @staticmethod",
         "setter function as @classmethod",
+        "class call - init",
+        "member access - class",
+        "member access - class without init",
+        "member access - methode",
+        "member access - init",
+        "member access - instance function",
+        "member access - function call of functions with same name",
+        "member access - function call of functions with same name and nested calls",
+        "member access - function call of functions with same name (no distinction possible)",
+        "member access - function call of functions with same name (different signatures)",
     ],
 )
 def test_resolve_references_member_access(code: str, expected: list[ReferenceTestNode]) -> None:
@@ -1685,269 +1930,6 @@ A().fun_a()
     ],
 )
 def test_resolve_references_calls(code: str, expected: list[ReferenceTestNode]) -> None:
-    references = resolve_references(code).resolved_references
-    transformed_references: list[ReferenceTestNode] = []
-
-    # assert references == expected
-    for node in references.values():
-        transformed_references.extend(transform_reference_nodes(node))
-
-    assert set(transformed_references) == set(expected)
-
-
-@pytest.mark.parametrize(
-    ("code", "expected"),
-    [
-        (  # language=Python "class call - init",
-            """
-class A:
-    pass
-
-def fun():
-    a = A()
-
-            """,  # language=none
-            [
-                ReferenceTestNode("A.line6", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
-            ]
-        ),
-        (  # language=Python "member access - class",
-            """
-class A:
-    class_attr1 = 20
-
-def fun():
-    a = A().class_attr1
-
-            """,  # language=none
-            [
-                ReferenceTestNode("A.line6", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
-                ReferenceTestNode("A.class_attr1.line6", "FunctionDef.fun", ["ClassVariable.A.class_attr1.line3"]),
-            ]
-        ),
-        (  # language=Python "member access - class without init",
-            """
-class A:
-    class_attr1 = 20
-
-def fun():
-    a = A.class_attr1
-
-            """,  # language=none
-            [
-                ReferenceTestNode("A.line6", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
-                ReferenceTestNode("A.class_attr1.line6", "FunctionDef.fun", ["ClassVariable.A.class_attr1.line3"]),
-            ]
-        ),
-        (  # language=Python "member access - methode",
-            """
-class A:
-    class_attr1 = 20
-
-    def g(self):
-        pass
-
-def fun1():
-    a = A()
-    a.g()
-
-def fun2():
-    a = A().g()
-            """,  # language=none
-            [
-                ReferenceTestNode("A.line9", "FunctionDef.fun1", ["GlobalVariable.A.line2"]),
-                ReferenceTestNode("a.line10", "FunctionDef.fun1", ["LocalVariable.a.line9"]),
-                ReferenceTestNode("a.g.line10", "FunctionDef.fun1", ["ClassVariable.A.g.line5"]),
-                ReferenceTestNode("A.line13", "FunctionDef.fun2", ["GlobalVariable.A.line2"]),
-                ReferenceTestNode("A.g.line13", "FunctionDef.fun2", ["ClassVariable.A.g.line5"]),
-            ]
-        ),
-        (  # language=Python "member access - init",
-            """
-class A:
-    def __init__(self):
-        pass
-
-def fun():
-    a = A()
-
-            """,  # language=none
-           [
-                ReferenceTestNode("A.line7", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
-           ]
-        ),
-        (  # language=Python "member access - instance function",
-            """
-class A:
-    def __init__(self):
-        self.a_inst = B()
-
-class B:
-    def __init__(self):
-        pass
-
-    def b_fun(self):
-        pass
-
-def fun1():
-    a = A()
-    a.a_inst.b_fun()
-
-def fun2():
-    a = A().a_inst.b_fun()
-            """,  # language=none
-           [
-                ReferenceTestNode("self.line4", "FunctionDef.A.__init__", ["Parameter.self.line3"]),
-                ReferenceTestNode("B.line4", "FunctionDef.A.__init__", ["GlobalVariable.B.line6"]),
-                ReferenceTestNode("A.line14", "FunctionDef.fun1", ["GlobalVariable.A.line2"]),
-                ReferenceTestNode("a.line15", "FunctionDef.fun1", ["LocalVariable.a.line14"]),
-                ReferenceTestNode("a.a_inst.line15", "FunctionDef.fun1", ["ClassVariable.A.a_inst.line4"]),
-                ReferenceTestNode("a.a_inst.b_fun.line15", "FunctionDef.fun1", ["ClassVariable.B.b_fun.line10"]),
-                ReferenceTestNode("A.line18", "FunctionDef.fun2", ["GlobalVariable.A.line2"]),
-                ReferenceTestNode("A.a_inst.line18", "FunctionDef.fun2", ["ClassVariable.A.a_inst.line4"]),
-                ReferenceTestNode("A.a_inst.b_fun.line18", "FunctionDef.fun2", ["ClassVariable.B.b_fun.line10"]),
-           ]
-        ),
-        (  # language=Python "member access - function call of functions with same name"
-            """
-class A:
-    @staticmethod
-    def add(a, b):
-        return a + b
-
-class B:
-    @staticmethod
-    def add(a, b):
-        return a + 2 * b
-
-def fun_a():
-    x = A()
-    x.add(1, 2)
-
-def fun_b():
-    x = B()
-    x.add(1, 2)
-            """,  # language=none
-            [
-                ReferenceTestNode("a.line5", "FunctionDef.add", ["Parameter.a.line4"]),
-                ReferenceTestNode("b.line5", "FunctionDef.add", ["Parameter.b.line4"]),
-                ReferenceTestNode("a.line11", "FunctionDef.add", ["Parameter.a.line10"]),
-                ReferenceTestNode("b.line11", "FunctionDef.add", ["Parameter.b.line10"]),
-                ReferenceTestNode("A.line13", "FunctionDef.fun_a", ["GlobalVariable.A.line2"]),
-                ReferenceTestNode("x.line14", "FunctionDef.fun_a", ["LocalVariable.x.line13"]),
-                ReferenceTestNode("x.add.line13", "Module.", ["ClassVariable.A.add.line4",  # TODO: is it possible to distinguish between the two add functions?
-                                                              "ClassVariable.B.add.line9"]),
-                ReferenceTestNode("B.line16", "FunctionDef.fun_b", ["GlobalVariable.B.line7"]),
-                ReferenceTestNode("x.line17", "FunctionDef.fun_b", ["LocalVariable.x.line16"]),
-                ReferenceTestNode("x.add.line16", "Module.", ["ClassVariable.A.add.line4",
-                                                              "ClassVariable.B.add.line9"]),  # TODO: is it possible to distinguish between the two add functions?
-            ]
-        ),
-        (  # language=Python "member access - function call of functions with same name and nested calls",
-            """
-def fun1():
-    pass
-
-def fun2():
-    print("Function 2")
-
-class A:
-    @staticmethod
-    def add(a, b):
-        fun1()
-        return a + b
-
-class B:
-    @staticmethod
-    def add(a, b):
-        fun2()
-        return a + 2 * b
-            """,  # language=none
-           [
-                ReferenceTestNode("print.line6", "FunctionDef.fun2", ["Builtin.print"]),
-                ReferenceTestNode("a.line12", "FunctionDef.add", ["Parameter.a.line10"]),
-                ReferenceTestNode("b.line12", "FunctionDef.add", ["Parameter.b.line10"]),
-                ReferenceTestNode("fun1.line11", "FunctionDef.add.", ["GlobalVariable.fun1.line2"]),
-                ReferenceTestNode("a.line18", "FunctionDef.add", ["Parameter.a.line16"]),
-                ReferenceTestNode("b.line18", "FunctionDef.add", ["Parameter.b.line16"]),
-                ReferenceTestNode("fun2.line17", "FunctionDef.add", ["GlobalVariable.fun2.line5"]),
-
-           ]
-        ),
-        (  # language=Python "member access - function call of functions with same name (no distinction possible)"
-            """
-class A:
-    @staticmethod
-    def fun():
-        return "Function A"
-
-class B:
-    @staticmethod
-    def fun():
-        return "Function B"
-
-def fun_out(a):
-    if a == 1:
-        x = A()
-    else:
-        x = B()
-    x.fun()
-            """,  # language=none
-            [
-                ReferenceTestNode("a.line13", "FunctionDef.fun_out", ["Parameter.a.line12"]),
-                ReferenceTestNode("A.line14", "FunctionDef.fun_out", ["GlobalVariable.A.line2"]),
-                ReferenceTestNode("B.line16", "FunctionDef.fun_out", ["GlobalVariable.B.line7"]),
-                ReferenceTestNode("x.line17", "FunctionDef.fun_out", ["LocalVariable.x.line14",
-                                                                      "LocalVariable.x.line16"]),
-                ReferenceTestNode("x.fun.line17", "Module.", ["ClassVariable.A.fun.line4",
-                                                              "ClassVariable.B.fun.line7"]),  # here we can't distinguish between the two functions
-            ]
-        ),
-        (  # language=Python "member access - function call of functions with same name (different signatures)"
-            """
-class A:
-    @staticmethod
-    def add(a, b):
-        return a + b
-
-class B:
-    @staticmethod
-    def add(a, b, c):
-        return a + b + c
-
-def fun():
-    A.add(1, 2)
-    B.add(1, 2, 3)
-            """,  # language=none
-            [
-                ReferenceTestNode("a.line5", "FunctionDef.add", ["Parameter.a.line4"]),
-                ReferenceTestNode("b.line5", "FunctionDef.add", ["Parameter.b.line4"]),
-                ReferenceTestNode("a.line10", "FunctionDef.add", ["Parameter.a.line9"]),
-                ReferenceTestNode("b.line10", "FunctionDef.add", ["Parameter.b.line9"]),
-                ReferenceTestNode("c.line10", "FunctionDef.add", ["Parameter.c.line9"]),
-                ReferenceTestNode("A.line13", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
-                ReferenceTestNode("A.add.line13", "Module.", ["ClassVariable.A.add.line4",
-                                                              "ClassVariable.B.add.line9"]),  # TODO: is it possible to distinguish between the two add functions and therefor remove this?
-                ReferenceTestNode("B.line14", "FunctionDef.fun", ["GlobalVariable.B.line7"]),
-                ReferenceTestNode("B.add.line14", "Module.", ["ClassVariable.A.add.line4",  # TODO: is it possible to distinguish between the two add functions and therefor remove this?
-                                                              "ClassVariable.B.add.line9"]),
-            ]
-        ),
-    ],
-    ids=[
-        "class call - init",
-        "member access - class",
-        "member access - class without init",
-        "member access - methode",
-        "member access - init",
-        "member access - instance function",
-        "member access - function call of functions with same name",
-        "member access - function call of functions with same name and nested calls",
-        "member access - function call of functions with same name (no distinction possible)",
-        "member access - function call of functions with same name (different signatures)",
-    ],
-)
-def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> None:
     references = resolve_references(code).resolved_references
     transformed_references: list[ReferenceTestNode] = []
 

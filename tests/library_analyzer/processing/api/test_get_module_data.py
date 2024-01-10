@@ -593,12 +593,13 @@ def function_scope():
                 ),
             ],
         ),
-        (  # language=Python "Function Scope with global variable"
+        (  # language=Python "Function Scope with global variables"
             """
 var1 = 10
+var2 = 20
 def function_scope():
-    global var1
-    res = var1
+    global var1, var2
+    res = var1 + var2
     return res
             """,  # language=none
             [
@@ -606,10 +607,11 @@ def function_scope():
                     "Module",
                     [
                         SimpleScope("GlobalVariable.AssignName.var1", []),
+                        SimpleScope("GlobalVariable.AssignName.var2", []),
                         SimpleFunctionScope(
                             "GlobalVariable.FunctionDef.function_scope",
                             [SimpleScope("LocalVariable.AssignName.res", [])],
-                            ["Name.var1", "Name.res"],
+                            ["Name.var1", "Name.var2", "Name.res"],
                             []
                         ),
                     ],
@@ -1308,7 +1310,7 @@ double = lambda x: 2 * x
         "Seminar Example",
         "Function Scope",
         "Function Scope with variable",
-        "Function Scope with global variable",
+        "Function Scope with global variables",
         "Function Scope with Parameter",
         "Class Scope with class attribute and Class function",
         "Class Scope with instance attribute and Class function",
@@ -1336,7 +1338,7 @@ def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleCla
     # assert result == expected
     transformed_result = [
         transform_scope_node(node) for node in scope
-    ]  # The result and the expected data are simplified to make the comparison easier
+    ]  # The result is simplified to make the comparison easier
     assert transformed_result == expected
 
 
@@ -1583,7 +1585,7 @@ def test_get_module_data_classes(code: str, expected: dict[str, SimpleClassScope
 
     transformed_classes = {
         klassname: transform_scope_node(klass) for klassname, klass in classes.items()
-    }  # The result and the expected data are simplified to make the comparison easier
+    }  # The result is simplified to make the comparison easier
     assert transformed_classes == expected
 
 
@@ -1705,16 +1707,46 @@ def test_get_module_data_functions(code: str, expected: dict[str, list[str]]) ->
     functions = get_module_data(code).functions
     transformed_functions = {
         fun_name: [transform_scope_node(fun) for fun in fun_list] for fun_name, fun_list in functions.items()
-    }  # The result and the expected data are simplified to make the comparison easier
+    }  # The result is simplified to make the comparison easier
 
     assert transformed_functions == expected
 
 
-@pytest.mark.parametrize(("code", "expected"), [])
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "No global variables"
+            """
+def f():
+    pass
+            """,  # language=none
+            set(),
+        ),
+        (  # language=Python "Variable on Module Scope"
+            """
+var1 = 10
+            """,  # language=none
+            {"var1"},
+        ),
+        (  # language=Python "Multiple Variables on Module Scope"
+            """
+var1 = 10
+var2 = 20
+var3 = 30
+            """,  # language=none
+            {"var1", "var2", "var3"},
+        ),
+    ],
+    ids=[
+        "No global variables",
+        "Variable on Module Scope",
+        "Multiple Variables on Module Scope",
+    ]
+)
 def test_get_module_data_globals(code: str, expected: str) -> None:
     globs = get_module_data(code).global_variables
-    raise NotImplementedError("TODO: implement test")
-    assert globs == expected
+    transformed_globs = {f"{glob}" for glob in globs}  # The result is simplified to make the comparison easier
+    assert transformed_globs == expected
 
 
 @pytest.mark.parametrize(("code", "expected"), [])
