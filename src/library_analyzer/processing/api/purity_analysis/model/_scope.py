@@ -41,6 +41,7 @@ class ModuleData:
         All function calls and their Scope or ClassScope.
     function_references : dict[str, Reasons]
         All nodes relevant for reference resolving inside functions.
+        function_references All for reference resolving relevant nodes inside functions
     """
 
     scope: Scope | ClassScope
@@ -270,7 +271,7 @@ class Scope:
         The list of Scope or ClassScope instances that are defined in the scope of the Symbol node.
         Is None if the node is a leaf node.
     _parent : Scope | ClassScope | None
-        The parent node in the scope tree, is None if the node is the root node.
+        The parent node in the scope tree, there is None if the node is the root node.
     """  # TODO: Lars do we want Attributes here or in the properties?
 
     _symbol: Symbol
@@ -392,7 +393,7 @@ class FunctionScope(Scope):
 
         Parameters
         ----------
-        name  : str
+        name : str
             The name of the call node to remove.
         """
         for call in self.calls:
@@ -442,7 +443,7 @@ class Reasons:
 
         Parameters
         ----------
-        name  : str
+        name : str
             The name of the call to get.
 
         Returns

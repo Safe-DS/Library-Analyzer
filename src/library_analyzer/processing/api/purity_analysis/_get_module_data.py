@@ -83,6 +83,11 @@ class ModuleDataBuilder:
         default_factory=dict,
     )
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope | FunctionScope] = (
+        field(
+            default_factory=dict,
+        )
+    )
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope | FunctionScope] = (
         field(default_factory=dict)
     )
     global_variables: dict[str, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
