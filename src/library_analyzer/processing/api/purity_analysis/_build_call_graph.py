@@ -9,6 +9,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     NodeID,
     Reasons,
     Symbol,
+    ClassScope,
 )
 
 BUILTINS = dir(builtins)
@@ -16,6 +17,7 @@ BUILTINS = dir(builtins)
 
 def build_call_graph(
     functions: dict[str, list[FunctionScope]],
+    classes: dict[str, ClassScope],
     function_references: dict[NodeID, Reasons],
 ) -> CallGraphForest:
     """Build a call graph from a list of functions.
@@ -28,6 +30,8 @@ def build_call_graph(
     functions : dict[str, list[FunctionScope]]
         All functions and a list of their FunctionScopes.
         The value is a list since there can be multiple functions with the same name.
+    classes : dict[str, ClassScope]
+        Classnames in the module as key and their corresponding ClassScope instance as value.
     function_references : dict[str, Reasons]
         All nodes relevant for reference resolving inside functions.
 
@@ -37,12 +41,16 @@ def build_call_graph(
         The call graph forest for the given functions.
     """
     call_graph_forest = CallGraphForest()
+    classes_and_functions = {**classes, **functions}
 
-    for function_scopes in functions.values():
+    for function_scopes in classes_and_functions.values():
+        # Inner for loop is needed to handle multiple function defs with the same name
         for function_scope in function_scopes:
             # Add reasons for impurity to the corresponding function
             function_id = function_scope.symbol.id
-            if function_references[function_id]:
+            if isinstance(function_scope, ClassScope):
+                function_node = CallGraphNode(data=function_scope, reasons=Reasons())
+            elif function_references[function_id]:
                 function_node = CallGraphNode(data=function_scope, reasons=function_references[function_id])
             else:
                 function_node = CallGraphNode(data=function_scope, reasons=Reasons())
@@ -54,6 +62,20 @@ def build_call_graph(
                     function_node,
                 )  # We save the tree in the forest by the name of the root function
 
+            # When dealing with a class, we need to add the init function to the call graph manually (if it exists)
+            if isinstance(function_scope, ClassScope):
+                if "__init__" in functions:
+                    for fun in functions["__init__"]:
+                        if fun.parent == function_scope:
+                            init_function = fun
+                            if fun.symbol.id not in call_graph_forest.graphs:
+                                call_graph_forest.add_graph(
+                                    fun.symbol.id,
+                                    CallGraphNode(data=init_function, reasons=Reasons()),
+                                )
+                            function_node.add_child(call_graph_forest.get_graph(fun.symbol.id))
+                continue
+
             # Default case where a function calls no other functions in its body - therefore, the tree has just one node
             if not function_scope.calls:
                 continue
@@ -62,9 +84,9 @@ def build_call_graph(
             else:
                 for call in function_scope.calls:
                     # Handle self defined function calls
-                    if call.symbol.name in functions:
+                    if call.symbol.name in classes_and_functions:
                         # Check if any function def has the same name as the called function
-                        matching_function_defs = [called_function for called_function in functions[call.symbol.name] if called_function.symbol.name == call.symbol.name]
+                        matching_function_defs = [called_function for called_function in classes_and_functions[call.symbol.name] if called_function.symbol.name == call.symbol.name]
                         current_tree_node = call_graph_forest.get_graph(function_id)
                         break_condition = False  # This is used to indicate that one or more functions defs was found inside the forest which match the called function name
 
@@ -79,9 +101,9 @@ def build_call_graph(
 
                         # If the called function is not in the forest, we need to compute it first and then connect it to the current tree
                         else:
-                            for called_function_scope in functions[call.symbol.name]:
+                            for called_function_scope in classes_and_functions[call.symbol.name]:
                                 # Check if any function def has the same name as the called function
-                                matching_function_defs = [called_function for called_function in functions[call.symbol.name] if called_function.symbol.name == call.symbol.name]
+                                matching_function_defs = [called_function for called_function in classes_and_functions[call.symbol.name] if called_function.symbol.name == call.symbol.name]
                                 # TODO: check if this is correct
                                 for f in matching_function_defs:
                                     if function_references[f.symbol.id]:

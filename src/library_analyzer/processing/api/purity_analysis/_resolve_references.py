@@ -434,7 +434,7 @@ def resolve_references(
 
     resolved_references = merge_dicts(call_references, name_references)
 
-    call_graph = build_call_graph(module_data.functions, module_data.function_references)
+    call_graph = build_call_graph(module_data.functions, module_data.classes, module_data.function_references)
 
     return ModuleAnalysisResult(resolved_references, module_data.function_references, module_data.classes, call_graph)
 

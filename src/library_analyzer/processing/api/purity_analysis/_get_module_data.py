@@ -384,9 +384,6 @@ class ModuleDataBuilder:
                 if function_id not in function_references:
                     function_references[function_id] = Reasons(function_def_node, set(), set(), set())
 
-            # TODO: add MemberAccessTarget and MemberAccessValue detection
-            #  it should be easy to add filters later: check if a target exists inside a class before adding its impurity reasons to the impurity result
-
         # remove duplicate calls from reads
         if self.function_calls:
             for ref in function_references.values():

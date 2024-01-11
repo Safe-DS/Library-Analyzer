@@ -280,7 +280,7 @@ double = lambda x: 2 * x
 )
 def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
     module_data = get_module_data(code)
-    call_graph_forest = build_call_graph(module_data.functions, module_data.function_references)
+    call_graph_forest = build_call_graph(module_data.functions, module_data.classes, module_data.function_references)
 
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.graphs.items():
@@ -304,6 +304,7 @@ def fun():
 
             """,  # language=none
             {
+                ".A.2.0": set(),
                 ".fun.5.0": {".A.2.0"},
             },
         ),
@@ -429,9 +430,9 @@ def fun_b():
                 ".A.2.0": set(),
                 ".B.7.0": set(),
                 ".add.4.4": set(),
-                ".add.10.4": set(),
-                ".fun_a.13.0": {".A.2.0", ".add.4.4"},  # TODO: is it possible to distinguish between the two add functions?
-                ".fun_b.18.0": {".B.7.0", ".add.10.4"},
+                ".add.9.4": set(),
+                ".fun_a.12.0": {".A.2.0", ".add.4.4"},  # TODO: is it possible to distinguish between the two add functions?
+                ".fun_b.17.0": {".B.7.0", ".add.9.4"},
             },
         ),
         (  # language=Python "member access - function call of functions with same name and nested calls",
@@ -484,10 +485,10 @@ def fun_out(a):
             """,  # language=none
             {
                 ".A.2.0": set(),
-                ".B.8.0": set(),
+                ".B.7.0": set(),
                 ".fun.4.4": set(),
                 ".fun.9.4": set(),
-                ".fun_out.12.0": {".A.2.0", ".B.8.0", ".fun.4.4", ".fun.9.4"},   # here we cannot distinguish between the two fun functions
+                ".fun_out.12.0": {".A.2.0", ".B.7.0", ".fun.4.4", ".fun.9.4"},   # here we cannot distinguish between the two fun functions
             },
         ),
         (  # language=Python "member access - function call of functions with same name (different signatures)"
@@ -511,10 +512,44 @@ def fun():
                 ".B.7.0": set(),
                 ".add.4.4": set(),
                 ".add.9.4": set(),
-                ".fun.12.0": {".A.2.0", ".B.7.0", ".add.4.4", ".add.9.4"},   # TODO: here we can distinguish between the two add functions because of their signature
+                ".fun.12.0": {".A.2.0", ".B.7.0", ".add.4.4", ".add.9.4"},   # TODO: here we maybe can distinguish between the two add functions because of their signature
             },
         ),
+        (  # language=Python "member access - function call of functions with same name (but different instance variables)"
+            """
+class A:
+    @staticmethod
+    def add(a, b):
+        return a + b
 
+class B:
+    def __init__(self):
+        self.value = C()
+
+class C:
+    @staticmethod
+    def add(a, b):
+        return a + b
+
+def fun_a():
+    x = A()
+    x.add(1, 2)
+
+def fun_b():
+    x = B()
+    x.value.add(1, 2)
+            """,  # language=none
+            {
+                ".A.2.0": set(),
+                ".add.4.4": set(),
+                ".B.7.0": {".__init__.8.4"},
+                ".__init__.8.4": {".C.11.0"},
+                ".C.11.0": set(),
+                ".add.13.4": set(),
+                ".fun_a.16.0": {".A.2.0", ".add.4.4"},
+                ".fun_b.20.0": {".B.7.0", ".add.13.4"},   # TODO: here we maybe can distinguish between the two add functions because of their instance variables
+            },  # TODO: it should be easy to add filters later: check if a target exists inside a class before adding its impurity reasons to the impurity result
+        ),
     ],
     ids=[
         "class call - init",
@@ -527,11 +562,12 @@ def fun():
         "member access - function call of functions with same name and nested calls",
         "member access - function call of functions with same name (no distinction possible)",
         "member access - function call of functions with same name (different signatures)",
-    ],
+        "member access - function call of functions with same name (but different instance variables)",
+    ],  # TODO: add cyclic cases
 )
 def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> None:
     module_data = get_module_data(code)
-    call_graph_forest = build_call_graph(module_data.functions, module_data.function_references)
+    call_graph_forest = build_call_graph(module_data.functions, module_data.classes, module_data.function_references)
 
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.graphs.items():

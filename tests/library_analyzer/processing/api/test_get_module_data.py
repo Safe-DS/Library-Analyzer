@@ -2311,7 +2311,7 @@ def f():
                     "add",
                     set(),
                     {
-                        SimpleFunctionReference("Name.z.line3", "NonLocalVariableRead")
+                        SimpleFunctionReference("Name.z.line8", "NonLocalVariableRead")
                     },
                     set()
                 ),
