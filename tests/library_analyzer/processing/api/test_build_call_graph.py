@@ -251,7 +251,20 @@ def fun1():
                 ".fun1.2.0": set(),
             },
         ),
-        (  # language=Python "lambda call",
+        (  # language=Python "lambda",
+            """
+def fun1(x):
+    return x + 1
+
+def fun2():
+    return lambda x: fun1(x) * 2
+            """,  # language=none
+            {
+                ".fun1.2.0": set(),
+                ".fun2.5.0": {".fun1.2.0"},
+            },
+        ),
+        (  # language=Python "lambda with name",
             """
 double = lambda x: 2 * x
             """,  # language=none
@@ -259,7 +272,6 @@ double = lambda x: 2 * x
                 ".double.2.9": set(),
             },
         ),
-
     ],
     ids=[
         "function call - in declaration order",
@@ -275,7 +287,8 @@ double = lambda x: 2 * x
         "recursive function call",
         "builtin function call",
         "external function call",
-        "lambda call",
+        "lambda",
+        "lambda with name",
     ],
 )
 def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
@@ -333,7 +346,7 @@ def fun():
             """,  # language=none
             {
                 ".A.2.0": set(),
-                ".fun.5.0": {".A.2.0"},  # TODO: LARS do we want this?
+                ".fun.5.0": set(),
             },
         ),
         (  # language=Python "member access - methode",
@@ -431,8 +444,8 @@ def fun_b():
                 ".B.7.0": set(),
                 ".add.4.4": set(),
                 ".add.9.4": set(),
-                ".fun_a.12.0": {".A.2.0", ".add.4.4"},  # TODO: is it possible to distinguish between the two add functions?
-                ".fun_b.17.0": {".B.7.0", ".add.9.4"},
+                ".fun_a.12.0": {".A.2.0", ".add.4.4", ".add.9.4"},  # TODO: [LATER] is it possible to distinguish between the two add functions?
+                ".fun_b.16.0": {".B.7.0", ".add.4.4", ".add.9.4"},
             },
         ),
         (  # language=Python "member access - function call of functions with same name and nested calls",
@@ -504,15 +517,17 @@ class B:
         return a + b + c
 
 def fun():
-    A.add(1, 2)
-    B.add(1, 2, 3)
+    a = A()
+    b = B()
+    x = a.add(1, 2)
+    y = b.add(1, 2, 3)
             """,  # language=none
             {
                 ".A.2.0": set(),
                 ".B.7.0": set(),
                 ".add.4.4": set(),
                 ".add.9.4": set(),
-                ".fun.12.0": {".A.2.0", ".B.7.0", ".add.4.4", ".add.9.4"},   # TODO: here we maybe can distinguish between the two add functions because of their signature
+                ".fun.12.0": {".A.2.0", ".B.7.0", ".add.4.4", ".add.9.4"},   # TODO: [LATER] maybe we can distinguish between the two add functions because of their signature
             },
         ),
         (  # language=Python "member access - function call of functions with same name (but different instance variables)"
@@ -546,9 +561,46 @@ def fun_b():
                 ".__init__.8.4": {".C.11.0"},
                 ".C.11.0": set(),
                 ".add.13.4": set(),
-                ".fun_a.16.0": {".A.2.0", ".add.4.4"},
-                ".fun_b.20.0": {".B.7.0", ".add.13.4"},   # TODO: here we maybe can distinguish between the two add functions because of their instance variables
-            },  # TODO: it should be easy to add filters later: check if a target exists inside a class before adding its impurity reasons to the impurity result
+                ".fun_a.16.0": {".A.2.0", ".add.4.4", ".add.13.4"},
+                ".fun_b.20.0": {".B.7.0", ".add.4.4", ".add.13.4"},   # TODO: [LATER] maybe we can distinguish between the two add functions because of their instance variables
+            },
+        ),
+        (  # language=Python "member access - lambda function call"
+            """
+class A:
+    def __init__(self):
+        self.add = lambda x, y: x + y
+
+def fun_a():
+    a = A()
+    b = a.add(3, 4)
+            """,  # language=none
+            {
+                ".A.2.0": "__init__.3.4",
+                ".__init__.3.4": set(),
+                ".add.4.8": set(),
+                ".fun_a.6.0": {".A.2.0", ".add.4.8"},
+            },
+        ),
+        (  # language=Python "member access - class init and methode call in lambda function"
+            """
+class A:
+    def __init__(self):
+        self.value = B()
+
+class B:
+    @staticmethod
+    def add(a, b):
+        return a + b
+
+lambda_add = lambda x, y: A().value.add(x, y)
+            """,  # language=none
+            {
+                ".A.2.0": "__init__.3.4",
+                ".__init__.3.4": ".B.6.0",
+                ".add.8.4": set(),
+                ".lambda_add.11.0": {".A.2.0", ".add.4.8"},
+            },
         ),
     ],
     ids=[
@@ -563,7 +615,9 @@ def fun_b():
         "member access - function call of functions with same name (no distinction possible)",
         "member access - function call of functions with same name (different signatures)",
         "member access - function call of functions with same name (but different instance variables)",
-    ],  # TODO: add cyclic cases
+        "member access - lambda function call",
+        "member access - class init and methode call in lambda function",
+    ],  # TODO: add cyclic cases and MA in lambda functions
 )
 def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> None:
     module_data = get_module_data(code)

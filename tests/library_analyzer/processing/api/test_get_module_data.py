@@ -1280,7 +1280,7 @@ lambda x, y: x + y
                     "Module",
                     [
                         SimpleFunctionScope("GlobalVariable.Lambda",
-                                            [SimpleScope("LocalVariable.AssignName.x", []), SimpleScope("LocalVariable.AssignName.y", [])],  # TODO: Lars: is LV correct, or should it be Parameter?
+                                            [SimpleScope("Parameter.AssignName.x", []), SimpleScope("Parameter.AssignName.y", [])],
                                             ["Name.x", "Name.y"],
                                             [],
                                             ),
@@ -1297,7 +1297,7 @@ double = lambda x: 2 * x
                     "Module",
                     [
                         SimpleFunctionScope("GlobalVariable.Lambda.double",
-                                            [SimpleScope("LocalVariable.AssignName.x", [])],
+                                            [SimpleScope("Parameter.AssignName.x", [])],
                                             ["Name.x"],
                                             [],
                                             ),
@@ -1453,7 +1453,7 @@ class A:
                                 SimpleScope("InstanceVariable.MemberAccess.self.name", []),
                                 SimpleScope("InstanceVariable.MemberAccess.self.state", []),
                             ],
-                            [],
+                            [],  # TODO: remove type hints
                             []
                         ),
                     ],

@@ -69,7 +69,7 @@ class ModuleDataBuilder:
         All parameters and their corresponding Scope or ClassScope instance.
     function_calls : dict[astroid.Call, Scope | ClassScope | FunctionScope]
         All function calls and their corresponding Scope or ClassScope instance.
-    function_references : dict[str, Reasons]
+    function_references : dict[NodeID, Reasons]
         All function references and their corresponding Reasons instance.
     """
 

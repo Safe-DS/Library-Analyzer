@@ -391,6 +391,7 @@ class FunctionScope(Scope):
     # parameters: dict[str, list[Symbol]] = field(default_factory=dict)
     values: list[Scope | ClassScope] = field(default_factory=list)
     calls: list[Scope | ClassScope] = field(default_factory=list)
+    # TODO: globals
 
     def remove_call_node_by_name(self, name: str) -> None:
         """Remove a call node by name.
