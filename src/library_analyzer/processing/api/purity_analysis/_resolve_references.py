@@ -64,7 +64,6 @@ def _find_name_references(
         if isinstance(value_ref.node, astroid.Name | MemberAccessValue):
             value_ref_complete = _find_value_references(value_ref, target_references, classes, functions, parameters)
             if value_ref_complete.node.name in final_references:
-                if value_ref_complete.node.name in final_references:
                 final_references[value_ref_complete.node.name].append(value_ref_complete)
             else:
                 final_references[value_ref_complete.node.name] = [value_ref_complete]

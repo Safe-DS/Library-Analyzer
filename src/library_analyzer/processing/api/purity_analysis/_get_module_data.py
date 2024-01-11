@@ -534,7 +534,7 @@ class ModuleDataBuilder:
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
             case (
-                astroid.TryExcept() | astroid.TryFinally()
+            astroid.TryExcept() | astroid.TryFinally()
             ):  # TODO: can we summarize Lambda and ListComp here? -> only if nodes in try except are not global
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
