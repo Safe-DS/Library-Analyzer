@@ -108,6 +108,7 @@ class Impure(PurityResult):
     def __hash__(self) -> int:
         return hash(str(self))
 
+
 class ImpurityReason(ABC):  # noqa: B024 # this is just a base class, and it is important that it cannot be instantiated
     """Superclass for impurity reasons.
 
