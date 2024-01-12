@@ -20,6 +20,20 @@ from library_analyzer.processing.api.purity_analysis.model import (
 
 @dataclass
 class ReferenceTestNode:
+    """Class for reference test nodes.
+
+    A simplified class of the ReferenceNode class for testing purposes.
+
+    Attributes
+    ----------
+    name : str
+        The name of the node.
+    scope : str
+        The scope of the node as string.
+    referenced_symbols : list[str]
+        The list of referenced symbols as strings.
+    """
+
     name: str
     scope: str
     referenced_symbols: list[str]
@@ -1870,6 +1884,18 @@ def test_resolve_references_dataclasses(code: str, expected: list[ReferenceTestN
 
 
 def transform_reference_nodes(nodes: list[ReferenceNode]) -> list[ReferenceTestNode]:
+    """Transform a list of ReferenceNodes to a list of ReferenceTestNodes.
+
+    Parameters
+    ----------
+    nodes : list[ReferenceNode]
+        The list of ReferenceNodes to transform.
+
+    Returns
+    -------
+    list[ReferenceTestNode]
+        The transformed list of ReferenceTestNodes.
+    """
     transformed_nodes: list[ReferenceTestNode] = []
 
     for node in nodes:
@@ -1879,6 +1905,20 @@ def transform_reference_nodes(nodes: list[ReferenceNode]) -> list[ReferenceTestN
 
 
 def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
+    """Transform a ReferenceNode to a ReferenceTestNode.
+
+    Transforms a ReferenceNode to a ReferenceTestNode, so that they are no longer complex objects and easier to compare.
+
+    Parameters
+    ----------
+    node : ReferenceNode
+        The ReferenceNode to transform.
+
+    Returns
+    -------
+    ReferenceTestNode
+        The transformed ReferenceTestNode.
+    """
     if isinstance(node.node, MemberAccess | MemberAccessValue | MemberAccessTarget):
         expression = get_base_expression(node.node)
         if node.scope.symbol.name == "__init__" and isinstance(node.scope.symbol, ClassVariable | InstanceVariable):

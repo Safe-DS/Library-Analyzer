@@ -31,24 +31,46 @@ from library_analyzer.utils import ASTWalker
 @dataclass
 class ModuleDataBuilder:
     """
-    A ScopeFinder instance is used to find the scope of a reference.
+    A ModuleDataBuilder instance is used to find all information relevant for the purity analysis of a module.
 
-    The scope of a reference is the node in the scope tree that defines the reference.
-    It is determined by walking the AST and checking if the reference is defined in the scope of the current node.
+    It must be handed to an ASTWalker instance to collect all information.
+    After the ASTWalker has walked the AST,
+    the ModuleDataBuilder instance contains all information relevant to the purity analysis of the module.
 
     Attributes
     ----------
-        current_node_stack      stack of nodes that are currently visited by the ASTWalker.
-        children:               All found children nodes are stored in children until their scope is determined.
-        names:                  All found names are stored in names until their scope is determined.
-        calls:                  All found calls on function level are stored in calls until their scope is determined.
-        classes:                dict of all classes in the module and their corresponding ClassScope instance.
-        functions:              dict of all functions in the module and their corresponding Scope or ClassScope instance.
-        value_nodes:            dict of all nodes that are used as a value and their corresponding Scope or ClassScope instance.
-        target_nodes:           dict of all nodes that are used as a target and their corresponding Scope or ClassScope instance.
-        global_variables:       dict of all global variables and their corresponding Scope or ClassScope instance.
-        parameters:             dict of all parameters and their corresponding Scope or ClassScope instance.
-        function_calls:         dict of all function calls and their corresponding Scope or ClassScope instance.
+    current_node_stack : list[Scope | ClassScope | FunctionScope]
+        Stack of nodes that are currently visited by the ASTWalker.
+        The last node in the stack is the current node.
+        It Is only used while walking the AST.
+    children : list[Scope | ClassScope | FunctionScope]
+        All found children nodes are stored in children until their scope is determined.
+        After the AST is completely walked, the resulting "Module"- Scope is stored in children.
+        (children[0])
+    names : list[Scope | ClassScope | FunctionScope]
+        All found names are stored in names until their scope is determined.
+        It Is only used while walking the AST.
+    calls : list[Scope | ClassScope | FunctionScope]
+        All found calls on function level are stored in calls until their scope is determined.
+        It Is only used while walking the AST.
+    classes : dict[str, ClassScope]
+        Classnames in the module as key and their corresponding ClassScope instance as value.
+    functions : dict[str, list[FunctionScope]]
+        Function names in the module as key and a list of their corresponding FunctionScope instances as value.
+    value_nodes : dict[astroid.Name | MemberAccessValue, Scope | ClassScope | FunctionScope]
+        Nodes that are used as a value and their corresponding Scope or ClassScope instance.
+        Value nodes are nodes that are used as a value in an expression.
+    target_nodes : dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope | FunctionScope]
+        Nodes that are used as a target and their corresponding Scope or ClassScope instance.
+        Target nodes are nodes that are used as a target in an expression.
+    global_variables : dict[str, Scope | ClassScope | FunctionScope]
+        All global variables and their corresponding Scope or ClassScope instance.
+    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope | FunctionScope, set[astroid.AssignName]]]
+        All parameters and their corresponding Scope or ClassScope instance.
+    function_calls : dict[astroid.Call, Scope | ClassScope | FunctionScope]
+        All function calls and their corresponding Scope or ClassScope instance.
+    function_references : dict[str, Reasons]
+        All function references and their corresponding Reasons instance.
     """
 
     current_node_stack: list[Scope | ClassScope | FunctionScope] = field(default_factory=list)
@@ -61,9 +83,7 @@ class ModuleDataBuilder:
         default_factory=dict,
     )
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope | FunctionScope] = (
-        field(
-            default_factory=dict,
-        )
+        field(default_factory=dict)
     )
     global_variables: dict[str, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope | FunctionScope, set[astroid.AssignName]]] = field(
@@ -78,6 +98,14 @@ class ModuleDataBuilder:
 
         Detecting the scope of a node means finding the node in the scope tree that defines the scope of the given node.
         The scope of a node is defined by the parent node in the scope tree.
+        This function is called when the ASTWalker leaves a node.
+        It also adds classes and functions to their corresponding dicts
+        while dealing with the construction of the corresponding Scope instance (FunctionsScope, ClassScope).
+
+        Parameters
+        ----------
+        node : astroid.NodeNG
+            The node whose scope is to be determined.
         """
         current_scope = node
         outer_scope_children: list[Scope | ClassScope] = []
@@ -103,6 +131,7 @@ class ModuleDataBuilder:
         self.current_node_stack[-1].children = inner_scope_children  # Set the children of the current node
         self.children = outer_scope_children  # Keep the children that are not in the scope of the current node
         self.children.append(self.current_node_stack[-1])  # Add the current node to the children
+        # TODO: refactor this to a separate function
         if isinstance(node, astroid.ClassDef):
             # Add classdef to the classes dict
             self.classes[node.name] = self.current_node_stack[-1]  # type: ignore[assignment] # we can ignore the linter error because of the if statement above
@@ -114,7 +143,7 @@ class ModuleDataBuilder:
                         self.current_node_stack[-1].class_variables[child.symbol.name].append(child.symbol)
                     else:
                         self.current_node_stack[-1].class_variables[child.symbol.name] = [child.symbol]
-
+        # TODO: refactor this to a separate function
         # Add functions to the functions dict
         if isinstance(node, astroid.FunctionDef):
             # Extend the dict of functions with the current node or create a new list with the current node
@@ -190,7 +219,7 @@ class ModuleDataBuilder:
         """Analyze the constructor of a class.
 
         The constructor of a class is a special function called when an instance of the class is created.
-        This function only is called when the name of the FunctionDef node is `__init__`.
+        This function must only be called when the name of the FunctionDef node is `__init__`.
         """
         # add instance variables to the instance_variables list of the class
         for child in self.current_node_stack[-1].children:
@@ -204,6 +233,29 @@ class ModuleDataBuilder:
                     self.current_node_stack[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
 
     def collect_function_references(self) -> None:
+        """Collect all function references in the module.
+
+        This function must only be called after the scope of all nodes has been determined,
+        and the module scope is the current node.
+        Iterate over all functions and find all function references in the module.
+        Therefore, we loop over all target nodes and check if they are used in the function body of each function.
+        The same is done for all value nodes and all calls/class initializations.
+
+        Returns
+        -------
+        dict[str, Reasons]
+            A dict containing all function references in the module.
+            The dict is structured as follows:
+            {
+                "function_name": Reasons(
+                    function_def_node,
+                    {FunctionReference}, # writes
+                    {FunctionReference}, # reads
+                    {FunctionReference}, # calls
+                )
+                ...
+            }
+        """
         python_builtins = dir(builtins)
 
         for function_name, scopes in self.functions.items():
@@ -287,6 +339,21 @@ class ModuleDataBuilder:
 
     @staticmethod
     def get_kind(symbol: Symbol | None) -> str:  # type: ignore[return] # all cases are handled
+        """Get the kind of symbol.
+
+        When the Symbol is collected, it is not always clear what kind of symbol it is.
+        This function determines the kind of the symbol in the context of the current node.
+
+        Parameters
+        ----------
+        symbol : Symbol | None
+            The symbol whose kind is to be determined.
+
+        Returns
+        -------
+        str
+            A string representing the kind of the symbol.
+        """
         if symbol is None:
             return "None"  # TODO: make sure this never happens
         if isinstance(symbol.node, astroid.AssignName):
@@ -306,8 +373,13 @@ class ModuleDataBuilder:
         """
         Enter a module node.
 
-        The module node is the root node, so it has no parent (parent is None).
+        The module node is the root node of the AST, so it has no parent (parent is None).
         The module node is also the first node that is visited, so the current_node_stack is empty before entering the module node.
+
+        Parameters
+        ----------
+        node : astroid.Module
+            The module node to enter.
         """
         self.current_node_stack.append(
             Scope(_symbol=self.get_symbol(node, None), _children=[], _parent=None),
@@ -344,7 +416,17 @@ class ModuleDataBuilder:
         self._detect_scope(node)
 
     def get_symbol(self, node: astroid.NodeNG, current_scope: astroid.NodeNG | None) -> Symbol:
-        """Get the symbol of a node."""
+        """Get the symbol of a node.
+
+        It matches the current scope of the node and returns the corresponding symbol for the given node.
+
+        Parameters
+        ----------
+        node : astroid.NodeNG
+            The node whose symbol is to be determined.
+        current_scope : astroid.NodeNG | None
+            The current scope of the node (is None if the node is the module node).
+        """
         match current_scope:
             case astroid.Module() | None:
                 if isinstance(node, astroid.Import):
@@ -674,7 +756,24 @@ class ModuleDataBuilder:
 
     @staticmethod
     def has_assignattr_parent(node: astroid.Attribute) -> bool:
-        """Check if any parent of the given node is an AssignAttr node."""
+        """Check if any parent of the given node is an AssignAttr node.
+
+        Since astroid generates an Attribute node for every attribute access,
+        and it is possible to have nested attribute accesses,
+        it is possible that the direct parent is not an AssignAttr node.
+        In this case, we need to check if any parent of the given node is an AssignAttr node.
+
+        Parameters
+        ----------
+        node : astroid.Attribute
+            The node whose parents are to be checked.
+
+        Returns
+        -------
+        bool
+            True if any parent of the given node is an AssignAttr node, False otherwise.
+            True means that the given node is a target node, False means that the given node is a value node.
+        """
         current_node = node
         while current_node is not None:
             if isinstance(current_node, astroid.AssignAttr):
@@ -723,7 +822,18 @@ class ModuleDataBuilder:
         Check if a name is a global variable.
 
         Checks if a name is a global variable inside the root of the given node
-        Returns True if the name is listed in root.globals dict, False otherwise
+
+        Parameters
+        ----------
+        name : str
+            The variable name to check.
+        node : astroid.NodeNG
+            The node whose root is to be checked.
+
+        Returns
+        -------
+        bool
+            True if the name is a global variable, False otherwise.
         """
         if not isinstance(node, astroid.Module):
             return self.check_if_global(name, node.parent)
@@ -732,7 +842,20 @@ class ModuleDataBuilder:
         return False
 
     def find_base_classes(self, node: astroid.ClassDef) -> list[ClassScope]:
-        """Find a list of all base classes of the given class."""
+        """Find a list of all base classes of the given class.
+
+        If a class has no base classes, an empty list is returned.
+
+        Parameters
+        ----------
+        node : astroid.ClassDef
+            The class whose base classes are to be found.
+
+        Returns
+        -------
+        list[ClassScope]
+            A list of all base classes of the given class.
+        """
         base_classes = []
         for base in node.bases:
             if isinstance(base, astroid.Name):
@@ -742,7 +865,19 @@ class ModuleDataBuilder:
         return base_classes
 
     def get_class_by_name(self, name: str) -> ClassScope | None:
-        """Get the class with the given name."""
+        """Get the class with the given name.
+
+        Parameters
+        ----------
+        name : str
+            The name of the class to get.
+
+        Returns
+        -------
+        ClassScope | None
+            The class with the given name if it exists, None otherwise.
+            None will never be returned since we only call this function when we know that the class exists.
+        """
         for klass in self.classes:
             if klass == name:
                 return self.classes[klass]
@@ -750,6 +885,17 @@ class ModuleDataBuilder:
         return None  # pragma: no cover
 
     def handle_arg(self, constructed_node: astroid.AssignName) -> None:
+        """Handle an argument node.
+
+        This function is called when an vararg or a kwarg parameter is found inside of an Argument node.
+        This is needed because astroid does not generate a symbol for these nodes.
+        Therefore, we need to create one manually and add it to the parameters dict.
+
+        Parameters
+        ----------
+        constructed_node : astroid.AssignName
+            The node that is to be handled.
+        """
         self.target_nodes[constructed_node] = self.current_node_stack[-1]
         scope_node = Scope(
             _symbol=Parameter(constructed_node, calc_node_id(constructed_node), constructed_node.name),
@@ -759,7 +905,23 @@ class ModuleDataBuilder:
         self.children.append(scope_node)
         self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], {constructed_node})
 
+    # TODO: move this to MemberAccessTarget
     def get_class_for_receiver_node(self, receiver: MemberAccessTarget) -> ClassScope | None:
+        """Get the class for the given receiver node.
+
+        When dealing with MemberAccessTarget nodes,
+        we need to find the class of the receiver node since the MemberAccessTarget node does not have a symbol.
+
+        Parameters
+        ----------
+        receiver : MemberAccessTarget
+            The receiver node whose class is to be found.
+
+        Returns
+        -------
+        ClassScope | None
+            The class of the given receiver node if it exists, None otherwise.
+        """
         if isinstance(receiver, astroid.Name) and receiver.name in self.classes:
             return self.classes[receiver.name]
         return None
@@ -776,9 +938,26 @@ def calc_node_id(
         | astroid.AssignAttr
         | astroid.Import
         | astroid.ImportFrom
+        | astroid.Call
+        | astroid.Lambda
+        | astroid.ListComp
         | MemberAccess
     ),
 ) -> NodeID:
+    """Calculate the NodeID of the given node.
+
+    The NodeID is calculated by using the name of the module, the name of the node, the line number and the column offset.
+    The NodeID is used to identify nodes in the module.
+
+    Parameters
+    ----------
+    node : astroid.NodeNG | astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name | astroid.AssignAttr | astroid.Import | astroid.ImportFrom | astroid.Call | astroid.Lambda | astroid.ListComp | MemberAccess
+
+    Returns
+    -------
+    NodeID
+        The NodeID of the given node.
+    """
     if isinstance(node, MemberAccess):
         module = node.receiver.root().name
     else:
@@ -827,6 +1006,18 @@ def _construct_member_access_target(
 
     Constructing a MemberAccessTarget node means constructing a MemberAccessTarget node with the given receiver and member.
     The receiver is the node that is accessed, and the member is the node that accesses the receiver. The receiver can be nested.
+
+    Parameters
+    ----------
+    receiver : astroid.Name | astroid.Attribute | astroid.Call
+        The receiver node.
+    member : astroid.AssignAttr | astroid.Attribute
+        The member node.
+
+    Returns
+    -------
+    MemberAccessTarget
+        The constructed MemberAccessTarget node.
     """
     try:
         if isinstance(receiver, astroid.Name):
@@ -848,6 +1039,18 @@ def _construct_member_access_value(
 
     Constructing a MemberAccessValue node means constructing a MemberAccessValue node with the given receiver and member.
     The receiver is the node that is accessed, and the member is the node that accesses the receiver. The receiver can be nested.
+
+    Parameters
+    ----------
+    receiver : astroid.Name | astroid.Attribute | astroid.Call
+        The receiver node.
+    member : astroid.Attribute
+        The member node.
+
+    Returns
+    -------
+    MemberAccessValue
+        The constructed MemberAccessValue node.
     """
     try:
         if isinstance(receiver, astroid.Name):
@@ -862,6 +1065,20 @@ def _construct_member_access_value(
 
 
 def get_base_expression(node: MemberAccess) -> astroid.NodeNG:
+    """Get the base expression of a MemberAccess node.
+
+    Get the base expression of a MemberAccess node by recursively calling this function on the receiver of the MemberAccess node.
+
+    Parameters
+    ----------
+    node : MemberAccess
+        The MemberAccess node whose base expression is to be found.
+
+    Returns
+    -------
+    astroid.NodeNG
+        The base expression of the given MemberAccess node.
+    """
     if isinstance(node.receiver, MemberAccess):
         return get_base_expression(node.receiver)
     else:
@@ -872,8 +1089,19 @@ def get_module_data(code: str) -> ModuleData:
     """Get the module data of the given code.
 
     To get the module data of the given code, the code is parsed into an AST and then walked by an ASTWalker.
-    The ModuleDataBuilder detects the scope of each node and builds a scope tree by using an instance of ScopeFinder.
-    The ScopeFinder also collects all name nodes, parameters, global variables, classes and functions of the module.
+    The ModuleDataBuilder detects the scope of each node and builds a scope tree.
+    The ModuleDataBuilder also collects all classes, functions, global variables, value nodes, target nodes, parameters,
+    function calls, and function references.
+
+    Parameters
+    ----------
+    code : str
+        The source code of the module whose module data is to be found.
+
+    Returns
+    -------
+    ModuleData
+        The module data of the given module.
     """
     module_data_handler = ModuleDataBuilder()
     walker = ASTWalker(module_data_handler)
