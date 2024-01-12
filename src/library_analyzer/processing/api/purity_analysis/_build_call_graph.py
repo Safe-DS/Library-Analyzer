@@ -211,7 +211,7 @@ def test_for_cycles(
         return []
 
     if graph in path:
-        return path[path.index(graph):]  # A cycle is found, return the path containing the cycle
+        return path[path.index(graph) :]  # A cycle is found, return the path containing the cycle
 
     # Mark the current node as visited
     visited_nodes.add(graph)
@@ -229,6 +229,7 @@ def test_for_cycles(
     return cycle
 
 
+# TODO: add cycle detection for FunctionScope instances
 def contract_cycle(
     forest: CallGraphForest,
     cycle: list[CallGraphNode],

@@ -39,7 +39,7 @@ class ModuleData:
         These are used to determine the scope of the parameters for each function.
     function_calls : dict[astroid.Call, Scope | ClassScope]
         All function calls and their Scope or ClassScope.
-    function_references : dict[str, Reasons]
+    function_references : dict[NodeID, Reasons]
         All nodes relevant for reference resolving inside functions.
     """
 
@@ -278,7 +278,7 @@ class Scope:
         The list of Scope or ClassScope instances that are defined in the scope of the Symbol node.
         Is None if the node is a leaf node.
     _parent : Scope | ClassScope | None
-        The parent node in the scope tree, is None if the node is the root node.
+        The parent node in the scope tree, there is None if the node is the root node.
     """  # TODO: Lars do we want Attributes here or in the properties?
 
     _symbol: Symbol

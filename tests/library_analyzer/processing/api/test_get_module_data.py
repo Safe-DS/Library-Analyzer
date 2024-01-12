@@ -21,6 +21,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
 )
 
 
+# TODO: refactor: move functions to top of file
 @dataclass
 class SimpleScope:
     """Class for simple scopes.
@@ -1332,6 +1333,7 @@ double = lambda x: 2 * x
         "Lambda",
         "Lambda with name",
     ],  # TODO: add tests for match, try except and generator expressions
+    # TODO: add SimpleFunctionScope and adapt the tests
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
     scope = get_module_data(code).scope
