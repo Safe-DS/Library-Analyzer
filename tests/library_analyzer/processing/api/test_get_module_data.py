@@ -88,6 +88,7 @@ class SimpleFunctionScope(SimpleScope):
 
     values: list[str]
     calls: list[str]
+    parameters: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -138,7 +139,8 @@ class SimpleFunctionReference:
         return hash((self.node, self.kind))
 
 
-def transform_scope_node(node: Scope | ClassScope | FunctionScope) -> SimpleScope | SimpleClassScope | SimpleFunctionScope:
+def transform_scope_node(
+    node: Scope | ClassScope | FunctionScope) -> SimpleScope | SimpleClassScope | SimpleFunctionScope:
     """Transform a Scope, ClassScope or FunctionScope instance.
 
     Parameters
@@ -160,17 +162,20 @@ def transform_scope_node(node: Scope | ClassScope | FunctionScope) -> SimpleScop
                 for c in child:
                     c_str = to_string_class(c.node.member)
                     if c_str is not None:
-                        instance_vars_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
+                        instance_vars_transformed.append(
+                            c_str)  # type: ignore[misc] # it is not possible that c_str is None
             for child in node.class_variables.values():
                 for c in child:
                     c_str = to_string_class(c.node)
                     if c_str is not None:
-                        class_vars_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
+                        class_vars_transformed.append(
+                            c_str)  # type: ignore[misc] # it is not possible that c_str is None
 
             for klass in node.super_classes:
                 c_str = to_string_class(klass)
                 if c_str is not None:
-                    super_classes_transformed.append(c_str)  # type: ignore[misc] # it is not possible that c_str is None
+                    super_classes_transformed.append(
+                        c_str)  # type: ignore[misc] # it is not possible that c_str is None
 
             return SimpleClassScope(
                 to_string(node.symbol),
@@ -182,16 +187,20 @@ def transform_scope_node(node: Scope | ClassScope | FunctionScope) -> SimpleScop
         if isinstance(node, FunctionScope):
             values_transformed = []
             calls_transformed = []
+            parameters_transformed = []
             for value in node.values:
                 values_transformed.append(to_string_func(value.symbol.node))
             for call in node.calls:
                 calls_transformed.append(to_string_func(call.symbol.node))
+            for parameter in node.parameters.values():
+                parameters_transformed.append(to_string_func(parameter.node))
 
             return SimpleFunctionScope(
                 to_string(node.symbol),
                 [transform_scope_node(child) for child in node.children],
                 values_transformed,
                 calls_transformed,
+                parameters_transformed,
             )
 
         return SimpleScope(to_string(node.symbol), [transform_scope_node(child) for child in node.children])
@@ -264,7 +273,7 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
 
 
 def to_string_func(node: astroid.NodeNG | MemberAccess) -> str:
-    """Transform a NodeNG or FunctionScope instance to a string.
+    """Transform a NodeNG or MemberAccess instance to a string.
 
     Parameters
     ----------
@@ -276,7 +285,7 @@ def to_string_func(node: astroid.NodeNG | MemberAccess) -> str:
     str
         The transformed NodeNG or FunctionScope instance as string.
     """
-    if isinstance(node, astroid.Name):
+    if isinstance(node, astroid.Name | astroid.AssignName):
         return f"{node.__class__.__name__}.{node.name}"
     elif isinstance(node, MemberAccess):
         return f"{node.__class__.__name__}.{transform_member_access(node)}"
@@ -394,8 +403,8 @@ def transform_function_references(function_calls: dict[NodeID, Reasons]) -> dict
                         function_reference.kind,
                     ) if isinstance(function_reference.node, MemberAccessTarget) else
                     SimpleFunctionReference(
-                         f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
-                         function_reference.kind,
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                        function_reference.kind,
                     )
                     for function_reference in function_references.writes
                 },
@@ -405,8 +414,8 @@ def transform_function_references(function_calls: dict[NodeID, Reasons]) -> dict
                         function_reference.kind,
                     ) if isinstance(function_reference.node, MemberAccessValue) else
                     SimpleFunctionReference(
-                         f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
-                         function_reference.kind,
+                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
+                        function_reference.kind,
                     )
                     for function_reference in function_references.reads
                 },
@@ -548,7 +557,8 @@ def g():
                             ["FunctionDef.__init__", "FunctionDef.f"],
                             ["AssignAttr.value", "AssignAttr.test"],
                         ),
-                        SimpleFunctionScope("GlobalVariable.FunctionDef.g", [SimpleScope("LocalVariable.AssignName.var2", [])], [], []),
+                        SimpleFunctionScope("GlobalVariable.FunctionDef.g",
+                                            [SimpleScope("LocalVariable.AssignName.var2", [])], [], []),
                     ],
                 ),
             ],
@@ -638,6 +648,7 @@ def function_scope(parameter):
                             ],
                             ["Name.parameter", "Name.res"],
                             [],
+                            ["AssignName.parameter"],
                         ),
                     ],
                 ),
@@ -1037,6 +1048,7 @@ class ASTWalker:
                                     ],
                                     ["Name.handler"],
                                     [],
+                                    ["AssignName.handler"],
                                 ),
                                 SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.walk",
@@ -1045,7 +1057,8 @@ class ASTWalker:
                                         SimpleScope("Parameter.AssignName.node", []),
                                     ],
                                     ["Name.node"],
-                                    ["Call.__walk"]
+                                    ["Call.__walk"],
+                                    ["AssignName.node"]
                                 ),
                                 SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__walk",
@@ -1057,6 +1070,7 @@ class ASTWalker:
                                     ],
                                     ["Name.node", "Name.visited_nodes", "Name.child_node"],
                                     ["Call.add", "Call.__enter", "Call.get_children", "Call.__walk", "Call.__leave"],
+                                    ["AssignName.node", "AssignName.visited_nodes"]
                                 ),
                                 SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__enter",
@@ -1067,6 +1081,7 @@ class ASTWalker:
                                     ],
                                     ["Name.node", "Name.method"],
                                     ["Call.__get_callbacks", "Call.methode"],
+                                    ["AssignName.node"]
                                 ),
                                 SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__leave",
@@ -1077,6 +1092,7 @@ class ASTWalker:
                                     ],
                                     ["Name.node", "Name.method"],
                                     ["Call.__get_callbacks", "Call.methode"],
+                                    ["AssignName.node"]
                                 ),
                                 SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__get_callbacks",
@@ -1092,8 +1108,11 @@ class ASTWalker:
                                         SimpleScope("LocalVariable.AssignName.enter_method", []),
                                         SimpleScope("LocalVariable.AssignName.leave_method", []),
                                     ],
-                                    ["Name.node", "MemberAccessValue.node.__class__", "Name.klass", "Name.methods", "MemberAccessVaalue.self._handler", "Name.handler", "Name.class_name", "Name.enter_method", "Name.leave_method"],
+                                    ["Name.node", "MemberAccessValue.node.__class__", "Name.klass", "Name.methods",
+                                     "MemberAccessVaalue.self._handler", "Name.handler", "Name.class_name",
+                                     "Name.enter_method", "Name.leave_method"],
                                     ["Call.get", "Call.lower", "Call.getattr"],
+                                    ["AssignName.node"]
                                 ),
                             ],
                             [
@@ -1124,9 +1143,9 @@ nums = ["aaa", "bb", "ase"]
             """,  # language=none
             [SimpleScope("Module",
                          [
-                            SimpleScope("GlobalVariable.AssignName.nums", []),
-                            SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
-                          ])],
+                             SimpleScope("GlobalVariable.AssignName.nums", []),
+                             SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
+                         ])],
         ),
         (  # language=Python "List Comprehension in Class"
             """
@@ -1282,7 +1301,8 @@ lambda x, y: x + y
                     "Module",
                     [
                         SimpleFunctionScope("GlobalVariable.Lambda",
-                                            [SimpleScope("Parameter.AssignName.x", []), SimpleScope("Parameter.AssignName.y", [])],
+                                            [SimpleScope("Parameter.AssignName.x", []),
+                                             SimpleScope("Parameter.AssignName.y", [])],
                                             ["Name.x", "Name.y"],
                                             [],
                                             ),
@@ -1334,7 +1354,6 @@ double = lambda x: 2 * x
         "Lambda",
         "Lambda with name",
     ],  # TODO: add tests for match, try except and generator expressions
-    # TODO: add SimpleFunctionScope and adapt the tests
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
     scope = get_module_data(code).scope
@@ -1610,7 +1629,8 @@ def f():
     var1 = 1
             """,  # language=none
             {
-                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [SimpleScope("LocalVariable.AssignName.var1", [])], [], [])]
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f",
+                                          [SimpleScope("LocalVariable.AssignName.var1", [])], [], [])]
             }
         ),
         (  # language=Python "Function with parameter"
@@ -1619,7 +1639,13 @@ def f(name):
     var1 = name
             """,  # language=none
             {
-                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [SimpleScope("Parameter.AssignName.name", []), SimpleScope("LocalVariable.AssignName.var1", [])], ["Name.name"], [])]
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f",
+                                          [SimpleScope("Parameter.AssignName.name", []),
+                                           SimpleScope("LocalVariable.AssignName.var1", [])],
+                                          ["Name.name"],
+                                          [],
+                                          ["AssignName.name"]
+                                          )]
             }
         ),
         (  # language=Python "Function with values"
@@ -1629,7 +1655,9 @@ def f():
     var1 = name
             """,  # language=none
             {
-                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [SimpleScope("LocalVariable.AssignName.name", []), SimpleScope("LocalVariable.AssignName.var1", [])], ["Name.name"], [])]
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f",
+                                          [SimpleScope("LocalVariable.AssignName.name", []),
+                                           SimpleScope("LocalVariable.AssignName.var1", [])], ["Name.name"], [])]
             }
         ),
         (  # language=Python "Function with return"
@@ -1639,7 +1667,8 @@ def f():
     return var1
             """,  # language=none
             {
-                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [SimpleScope("LocalVariable.AssignName.var1", [])], ["Name.var1"], [])]
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f",
+                                          [SimpleScope("LocalVariable.AssignName.var1", [])], ["Name.var1"], [])]
             }
         ),
         (  # language=Python "Function with nested return"
@@ -1649,7 +1678,14 @@ def f(a, b):
     return a + b + var1
             """,  # language=none
             {
-                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [SimpleScope("Parameter.AssignName.a", []), SimpleScope("Parameter.AssignName.b", []), SimpleScope("LocalVariable.AssignName.var1", [])], ["Name.a", "Name.b", "Name.var1"], [])]
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f",
+                                          [SimpleScope("Parameter.AssignName.a", []),
+                                           SimpleScope("Parameter.AssignName.b", []),
+                                           SimpleScope("LocalVariable.AssignName.var1", [])],
+                                          ["Name.a", "Name.b", "Name.var1"],
+                                          [],
+                                          ["AssignName.a", "AssignName.b"]
+                                          )]
             }
         ),
         (  # language=Python "Function with nested names"
@@ -1668,7 +1704,9 @@ def f(a, b):
                                               SimpleScope("LocalVariable.AssignName.var2", [])
                                           ],
                                           ["Name.a", "Name.b", "Name.var1", "Name.var2"],
-                                          [])]
+                                          [],
+                                          ["AssignName.a", "AssignName.b"]
+                                          )]
             }
         ),
         (  # language=Python "Function with call"
@@ -1752,11 +1790,102 @@ def test_get_module_data_globals(code: str, expected: str) -> None:
     assert transformed_globs == expected
 
 
-@pytest.mark.parametrize(("code", "expected"), [])
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "parameter in function scope"
+            """
+def local_parameter(pos_arg):
+    return 2 * pos_arg
+            """,  # language= None
+            {"local_parameter": ["pos_arg"]},
+        ),
+        (  # language=Python "parameter in function scope with keyword only"
+            """
+def local_parameter(*, key_arg_only):
+    return 2 * key_arg_only
+            """,  # language= None
+            {"local_parameter": ["key_arg_only"]},
+        ),
+        (  # language=Python "parameter in function scope with positional only"
+            """
+def local_parameter(pos_arg_only, /):
+    return 2 * pos_arg_only
+            """,  # language= None
+            {"local_parameter": ["pos_arg_only"]},
+        ),
+        (  # language=Python "parameter in function scope with default value"
+            """
+def local_parameter(def_arg=10):
+    return def_arg
+            """,  # language= None
+            {"local_parameter": ["def_arg"]},
+        ),
+        (  # language=Python "parameter in function scope with type annotation"
+            """
+def local_parameter(def_arg: int):
+    return def_arg
+            """,  # language= None
+            {"local_parameter": ["def_arg"]},
+        ),
+        (  # language=Python "parameter in function scope with *args"
+            """
+def local_parameter(*args):
+    return args
+            """,  # language= None
+            {"local_parameter": ["args"]},
+        ),
+        (  # language=Python "parameter in function scope with **kwargs"
+            """
+def local_parameter(**kwargs):
+    return kwargs
+            """,  # language= None
+            {"local_parameter": ["kwargs"]},
+        ),
+        (  # language=Python "parameter in function scope with *args and **kwargs"
+            """
+def local_parameter(*args, **kwargs):
+    return args, kwargs
+            """,  # language= None
+            {"local_parameter": ["args", "kwargs"]},
+        ),
+        (  # language=Python "two parameters in function scope"
+            """
+def local_double_parameter(a, b):
+    return a, b
+            """,  # language= None
+            {"local_double_parameter": ["a", "b"]},
+        ),
+        (  # language=Python "two parameters in function scope"
+            """
+def local_parameter1(a):
+    return a
+
+def local_parameter2(a):
+    return a
+            """,  # language= None
+            {"local_parameter1": ["a"], "local_parameter2": ["a"]},
+        ),
+    ],
+    ids=[
+        "parameter in function scope",
+        "parameter in function scope with keyword only",
+        "parameter in function scope with positional only",
+        "parameter in function scope with default value",
+        "parameter in function scope with type annotation",
+        "parameter in function scope with *args",
+        "parameter in function scope with **kwargs",
+        "parameter in function scope with *args and **kwargs",
+        "two parameters in function scope",
+        "two functions with same parameter name"
+    ],
+)
 def test_get_module_data_parameters(code: str, expected: str) -> None:
     parameters = get_module_data(code).parameters
-    raise NotImplementedError("TODO: implement test")
-    assert parameters == expected
+    transformed_parameters = {
+        fun_name.name: [f"{param.name}" for param in param_list[1]] for fun_name, param_list in parameters.items()
+    }
+    assert transformed_parameters == expected
 
 
 @pytest.mark.parametrize(
@@ -2375,9 +2504,11 @@ def f():
         "chained attributes",
         "chained class function call",
         "two classes with same attribute name",
-        "multiple classes with same function name - same signature",  # TODO: Fix the bug where z is not detected as NonLocalVariableRead
-        "multiple classes with same function name - different signature",  # TODO: [LATER] we should detect the different signatures
-        ],
+        "multiple classes with same function name - same signature",
+        # TODO: Fix the bug where z is not detected as NonLocalVariableRead
+        "multiple classes with same function name - different signature",
+        # TODO: [LATER] we should detect the different signatures
+    ],
 )
 def test_get_module_data_function_references(code: str, expected: dict[str, SimpleReasons]) -> None:
     function_references = get_module_data(code).function_references

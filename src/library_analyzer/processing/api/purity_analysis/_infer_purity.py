@@ -25,7 +25,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Reasons,
     ReferenceNode,
     StringLiteral,
-    UnknownCall,
+    UnknownCall, CallOfParameter,
 )
 
 # TODO: check these for correctness and add reasons for impurity
@@ -428,8 +428,7 @@ def process_node(  # type: ignore[return] # all cases are handled
                         # TODO: refactor this so it is cleaner
                         purity = transform_reasons_to_impurity_result(
                             analysis_result.call_graph.graphs[combined_node.data.symbol.id].reasons,
-                            analysis_result.resolved_references,
-                            analysis_result.classes,
+                            analysis_result
                         )
 
                         if not combined_node.reasons.result:
@@ -465,8 +464,7 @@ def process_node(  # type: ignore[return] # all cases are handled
                 if analysis_result.call_graph.graphs[reason_id].reasons:
                     purity_self_defined = transform_reasons_to_impurity_result(
                         analysis_result.call_graph.graphs[reason_id].reasons,
-                        analysis_result.resolved_references,
-                        analysis_result.classes,
+                        analysis_result
                     )
 
                 # If a result was propagated from the children, it needs to be kept and updated with more reasons if the function itself has more reasons
@@ -545,8 +543,7 @@ def get_purity_of_child(
 # TODO: this is not working correctly: whenever a variable is referenced, it is marked as read/written if its is not inside the current function
 def transform_reasons_to_impurity_result(
     reasons: Reasons,
-    references: dict[str, list[ReferenceNode]],
-    classes: dict[str, ClassScope],
+    analysis_result: ModuleAnalysisResult,
 ) -> PurityResult:
     """
     Transform the reasons for impurity to an impurity result.
@@ -577,7 +574,7 @@ def transform_reasons_to_impurity_result(
     else:
         if reasons.writes:
             for write in reasons.writes:
-                write_ref_list = references[write.node.name]
+                write_ref_list = analysis_result.resolved_references[write.node.name]
                 for write_ref in write_ref_list:
                     for sym_ref in write_ref.referenced_symbols:
                         if isinstance(sym_ref, GlobalVariable | ClassVariable | InstanceVariable):
@@ -587,7 +584,7 @@ def transform_reasons_to_impurity_result(
 
         if reasons.reads:
             for read in reasons.reads:
-                read_ref_list = references[read.node.name]
+                read_ref_list = analysis_result.resolved_references[read.node.name]
                 for read_ref in read_ref_list:
                     for sym_ref in read_ref.referenced_symbols:
                         if isinstance(sym_ref, GlobalVariable | ClassVariable | InstanceVariable):
@@ -602,14 +599,20 @@ def transform_reasons_to_impurity_result(
                     unknown_call_func_name = unknown_call.func.attrname
                 else:
                     unknown_call_func_name = unknown_call.func.name
-                if not classes:
-                    impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
-                else:  # noqa: PLR5501 # better for readability
-                    if unknown_call_func_name in classes:  # better for readability
-                        pass  # TODO: Handle class instantiations here
+                reason_id = calc_node_id(reasons.function)  # TODO: maybe add ID to Reasons?
+                if reason_id in analysis_result.call_graph.graphs:
+                    graph = analysis_result.call_graph.get_graph(reason_id)
+                    if unknown_call_func_name in graph.data.parameters:
+                        impurity_reasons.add(CallOfParameter(ParameterAccess(unknown_call_func_name)))
                     else:
                         impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
-        # TODO: add unknown as return type
+                elif not analysis_result.classes:
+                    impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
+                else:  # noqa: PLR5501 # better for readability
+                    if unknown_call_func_name in analysis_result.classes:  # better for readability
+                        pass
+                    else:
+                        impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
         if impurity_reasons:
             return Impure(impurity_reasons)
         return Pure()

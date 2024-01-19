@@ -19,7 +19,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Pure,
     PurityResult,
     StringLiteral,
-    UnknownCall,
+    UnknownCall, CallOfParameter,
 )
 
 
@@ -100,17 +100,22 @@ def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # a
         return f"NonLocalVariableWrite.{reason.symbol.__class__.__name__}.{reason.symbol.name}"
     elif isinstance(reason, FileRead):
         if isinstance(reason.source, ParameterAccess):
-            return f"FileRead.ParameterAccess.{reason.source.parameter}"
+            return f"FileRead.{reason.source.__class__.__name__}.{reason.source.parameter}"
         if isinstance(reason.source, StringLiteral):
             return f"FileRead.{reason.source.__class__.__name__}.{reason.source.value}"
     elif isinstance(reason, FileWrite):
         if isinstance(reason.source, ParameterAccess):
-            return f"FileWrite.ParameterAccess.{reason.source.parameter}"
+            return f"FileWrite.{reason.source.__class__.__name__}.{reason.source.parameter}"
         if isinstance(reason.source, StringLiteral):
             return f"FileWrite.{reason.source.__class__.__name__}.{reason.source.value}"
     elif isinstance(reason, UnknownCall):
         if isinstance(reason.expression, StringLiteral):
             return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.value}"
+    elif isinstance(reason, CallOfParameter):
+        if isinstance(reason.expression, StringLiteral):
+            return f"CallOfParameter.{reason.expression.__class__.__name__}.{reason.expression.value}"
+        elif isinstance(reason.expression, ParameterAccess):
+            return f"CallOfParameter.{reason.expression.__class__.__name__}.{reason.expression.parameter}"
     else:
         raise NotImplementedError(f"Unknown reason: {reason}")
 
@@ -739,6 +744,18 @@ def fun():
             """,  # language= None
             {"fun.line2": SimpleImpure({"FileRead.StringLiteral.stdin"})},
         ),
+        (  # language=Python "Call of Impure Builtin type class methode"
+            """
+class A:
+    pass
+
+def fun():
+    a = A()
+    res = a.__class__.__name__  # TODO: this is class methode call
+    return res
+            """,  # language= None
+            {"fun.line2": Pure()},
+        ),
         (  # language=Python "Lambda function"
             """
 var1 = 1
@@ -910,11 +927,21 @@ def fun1(a):
                 "fun1.line2": SimpleImpure({"CallOfParameter.ParameterAccess.a"}),
             },
         ),
+        (  # language=Python "Unknown Call of Parameter with many Parameters",
+            """
+def fun1(function, a, b , c, **kwargs):
+    res = function(a, b, c, **kwargs)
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({"CallOfParameter.ParameterAccess.function"}),
+            },
+        ),
     ],
     ids=[
         "Unknown Call",
         "Three Unknown Call",
         "Unknown Call of Parameter",
+        "Unknown Call of Parameter with many Parameters",
     ],
 )
 def test_infer_purity_unknown(code: str, expected: dict[str, SimpleImpure]) -> None:

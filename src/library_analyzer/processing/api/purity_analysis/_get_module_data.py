@@ -65,7 +65,7 @@ class ModuleDataBuilder:
         Target nodes are nodes that are used as a target in an expression.
     global_variables : dict[str, Scope | ClassScope | FunctionScope]
         All global variables and their corresponding Scope or ClassScope instance.
-    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope | FunctionScope, set[astroid.AssignName]]]
+    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope | FunctionScope, list[astroid.AssignName]]]
         All parameters and their corresponding Scope or ClassScope instance.
     function_calls : dict[astroid.Call, Scope | ClassScope | FunctionScope]
         All function calls and their corresponding Scope or ClassScope instance.
@@ -84,11 +84,11 @@ class ModuleDataBuilder:
     )
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
     global_variables: dict[str, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope | FunctionScope, set[astroid.AssignName]]] = field(
+    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope | FunctionScope, list[astroid.AssignName]]] = field(
         default_factory=dict,
-    )
+    )  # TODO: remove parameters since they are stored inside the FunctionScope in functions now
     function_calls: dict[astroid.Call, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
-    function_references: dict[NodeID, Reasons] = field(default_factory=dict)
+    function_references: dict[NodeID, Reasons] = field(default_factory=dict)  # TODO: rename to raw_reasons?
 
     def get_function_values(self, function_name: str) -> dict[str, set[Symbol]]:
         """Get all value nodes that are used inside the function body."""
@@ -354,7 +354,7 @@ class ModuleDataBuilder:
                         call_func_name = call.func.name
 
                     parent_function = self.find_first_parent_function(call)
-                    function_scopes_calls_names = [c.symbol.name for c in function_scopes[0].calls]
+                    function_scopes_calls_names = [c.symbol.name for c in function_node.calls]
                     if call_func_name in function_scopes_calls_names and parent_function.name == function_id.name:
                         # get the correct symbol
                         sym = None
@@ -367,6 +367,24 @@ class ModuleDataBuilder:
                         # check all builtins
                         elif call_func_name in python_builtins:
                             sym = Builtin(call, NodeID("builtins", call_func_name, 0, 0), call_func_name)
+                        # check if a parameter of the function is called
+                        # elif isinstance(parent_function, astroid.FunctionDef) and parent_function in self.parameters:
+                        #     for i, p in enumerate(self.parameters[parent_function][1]):
+                        #         if p.name == call_func_name:
+                        #             sym = self.parameters[parent_function][1][i]
+                        #             break
+                        elif isinstance(parent_function, astroid.FunctionDef):
+                            fun_list = self.functions[parent_function.name]
+                            fun = None
+                            for f in fun_list:
+                                if f.symbol.node == parent_function:
+                                    fun = f
+                                    break
+                            if fun is not None:
+                                for par_name, par in fun.parameters.items():
+                                    if par_name == call_func_name:
+                                        sym = par
+                                        break
 
                         ref = FunctionReference(call, self.get_kind(sym))
 
@@ -644,18 +662,25 @@ class ModuleDataBuilder:
         self._detect_scope(node)
 
     def enter_arguments(self, node: astroid.Arguments) -> None:
+
         if node.args:
-            self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], set(node.args))
+            self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], node.args)
+            for arg in node.args:
+                self.add_arg_to_function_scope_parameters(arg)
         if node.kwonlyargs:
             self.parameters[self.current_node_stack[-1].symbol.node] = (
                 self.current_node_stack[-1],
-                set(node.kwonlyargs),
+                node.kwonlyargs,
             )
+            for arg in node.kwonlyargs:
+                self.add_arg_to_function_scope_parameters(arg)
         if node.posonlyargs:
             self.parameters[self.current_node_stack[-1].symbol.node] = (
                 self.current_node_stack[-1],
-                set(node.posonlyargs),
+                node.posonlyargs,
             )
+            for arg in node.kwonlyargs:
+                self.add_arg_to_function_scope_parameters(arg)
         if node.vararg:
             constructed_node = astroid.AssignName(
                 name=node.vararg,
@@ -674,6 +699,22 @@ class ModuleDataBuilder:
                 col_offset=node.parent.col_offset,
             )
             self.handle_arg(constructed_node)
+
+    # TODO: [Refactor] when refactoring the FunctionScope class to use properties, move this to the FunctionScope class
+    def add_arg_to_function_scope_parameters(self, argument: astroid.AssignName) -> None:
+        """Add an argument to the parameters dict of the current function scope.
+
+        Parameters
+        ----------
+        argument : astroid.AssignName
+            The argument node to add to the parameter dict.
+        """
+        if isinstance(self.current_node_stack[-1], FunctionScope) and argument.name != "self" and argument.name != "cls":
+            self.current_node_stack[-1].parameters[argument.name] = Parameter(
+                argument,
+                calc_node_id(argument),
+                argument.name,
+            )
 
     def enter_name(self, node: astroid.Name) -> None:
         if isinstance(node.parent, astroid.Decorators) or isinstance(node.parent.parent, astroid.Decorators):
@@ -979,7 +1020,11 @@ class ModuleDataBuilder:
             _parent=self.current_node_stack[-1],
         )
         self.children.append(scope_node)
-        self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], {constructed_node})
+        self.add_arg_to_function_scope_parameters(constructed_node)
+        if self.current_node_stack[-1].symbol.node in self.parameters:
+            self.parameters[self.current_node_stack[-1].symbol.node][1].append(constructed_node)
+        else:
+            self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], [constructed_node])
 
     # TODO: move this to MemberAccessTarget
     def get_class_for_receiver_node(self, receiver: MemberAccessTarget) -> ClassScope | None:

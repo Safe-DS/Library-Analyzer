@@ -34,7 +34,7 @@ class ModuleData:
     target_nodes : dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]
         All target nodes and their Scope or ClassScope.
         Target nodes are nodes that are written to.
-    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
+    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]
         All parameters of functions and a tuple of their Scope or ClassScope and a set of their target nodes.
         These are used to determine the scope of the parameters for each function.
     function_calls : dict[astroid.Call, Scope | ClassScope]
@@ -52,7 +52,7 @@ class ModuleData:
         astroid.AssignName | astroid.Name | MemberAccessTarget,
         Scope | ClassScope,
     ]
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
+    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]
     function_calls: dict[astroid.Call, Scope | ClassScope]
     function_references: dict[NodeID, Reasons]
 
@@ -389,9 +389,9 @@ class FunctionScope(Scope):
         The list of all function calls inside the corresponding function.
     """
 
-    # parameters: dict[str, list[Symbol]] = field(default_factory=dict)
     values: list[Scope | ClassScope] = field(default_factory=list)
     calls: list[Scope | ClassScope] = field(default_factory=list)
+    parameters: dict[str, Parameter] = field(default_factory=dict)
     # TODO: globals
 
     def remove_call_node_by_name(self, name: str) -> None:

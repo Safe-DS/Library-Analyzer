@@ -27,7 +27,7 @@ def _find_name_references(
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope],
     classes: dict[str, ClassScope],
     functions: dict[str, list[FunctionScope]],
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
+    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
     global_variables: dict[str, Scope | ClassScope | FunctionScope]
 ) -> dict[str, list[ReferenceNode]]:
     """Create a list of references from a list of name nodes.
@@ -43,8 +43,8 @@ def _find_name_references(
     functions : dict[str, list[FunctionScope]]
         All functions and a list of their FunctionScopes.
         The value is a list since there can be multiple functions with the same name.
-    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
-        All parameters of functions and a tuple of their Scope or ClassScope and a set of their target nodes.
+    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]
+        All parameters of functions and a tuple of their Scope or ClassScope and a list of their target nodes.
     global_variables : dict[str, Scope | ClassScope | FunctionScope]
         All global variables and their Scope or ClassScope.
 
@@ -173,7 +173,7 @@ def _find_value_references(
     all_target_list: list[ReferenceNode],
     classes: dict[str, ClassScope],
     functions: dict[str, list[FunctionScope]],
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
+    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
     global_variables: dict[str, Scope | ClassScope | FunctionScope]
 ) -> ReferenceNode:
     """Find all references for a value node.
@@ -191,8 +191,8 @@ def _find_value_references(
     functions : dict[str, list[FunctionScope]]
         All functions and a list of their FunctionScopes.
         The value is a list since there can be multiple functions with the same name.
-    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
-        All parameters of functions and a tuple of their Scope or ClassScope and a set of their target nodes.
+    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]
+        All parameters of functions and a tuple of their Scope or ClassScope and a list of their target nodes.
     global_variables : dict[str, Scope | ClassScope | FunctionScope]
         All global variables and their Scope or ClassScope.
 
@@ -308,7 +308,7 @@ def _find_call_references(
     function_calls: dict[astroid.Call, Scope | ClassScope],
     classes: dict[str, ClassScope],
     functions: dict[str, list[FunctionScope]],
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
+    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]],
 ) -> dict[str, list[ReferenceNode]]:
     """Find all references for a function call.
 
@@ -321,8 +321,8 @@ def _find_call_references(
     functions : dict[str, list[FunctionScope]]
         All functions and a list of their FunctionScopes.
         The value is a list since there can be multiple functions with the same name.
-    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
-        All parameters of functions and a tuple of their Scope or ClassScope and a set of their target nodes.
+    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]
+        All parameters of functions and a tuple of their Scope or ClassScope and a list of their target nodes.
 
     Returns
     -------
