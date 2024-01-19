@@ -374,6 +374,7 @@ class ClassScope(Scope):
     class_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     instance_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     super_classes: list[ClassScope] = field(default_factory=list)
+    # TODO: init!
 
 
 @dataclass
@@ -583,11 +584,12 @@ class FunctionReference:  # TODO: find a better name for this class  # FunctionP
     node : astroid.NodeNG | MemberAccess
         The node that is referenced inside the function.
     kind : str
-        The kind of the node, e.g. "LocalWrite", "NonLocalRead" or "Call".
+        The kind of the node, e.g. "LocalWrite", "NonLocalVariableRead" or "Call".
     """
 
     node: astroid.NodeNG | MemberAccess
     kind: str
+    # TODO: replace both with symbol instead - do we still need this class just to nest another class?
 
     def __hash__(self) -> int:
         return hash(str(self))

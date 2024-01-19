@@ -354,7 +354,7 @@ def process_node(  # type: ignore[return] # all cases are handled
     if isinstance(reason.function, str) or reason.function is None:
         reason.function = astroid.FunctionDef(name=reason.function)  # This is a hack to make the code work but it is not nice
         reason_id = NodeID(None, reason.function.name)
-    else:  # Normally the ID can be calculated from the function node as usual
+    else:  # Normally, the ID can be calculated from the function node as usual
         reason_id = calc_node_id(reason.function)
 
     # Check the forest if the purity of the function is already determined
@@ -381,7 +381,7 @@ def process_node(  # type: ignore[return] # all cases are handled
             # If the node is part of the call graph, we can check if it has any children (called functions) = not a leaf
             if not analysis_result.call_graph.get_graph(reason_id).is_leaf():
                 for child in analysis_result.call_graph.get_graph(reason_id).children:
-                    # Check if we deal with a combined node (would throw a KeyError otherwise)
+                    # Check if we deal with a combined node (would throw a KeyError otherwise) # TODO: is this still the case with the changed analysis??
                     if not child.combined_node_names:
                         get_purity_of_child(
                             child,
@@ -455,7 +455,7 @@ def process_node(  # type: ignore[return] # all cases are handled
             and reason_id in analysis_result.call_graph.graphs
         ):
             # Check if the function does not call other functions (it is a leaf), we can check its (reasons for) impurity directly
-            # also check that all children are handled (have a result)
+            # also check that all children are already handled (have a result)
             if analysis_result.call_graph.graphs[reason_id].is_leaf() or all(
                 c.reasons.result
                 for c in analysis_result.call_graph.graphs[reason_id].children
@@ -488,13 +488,14 @@ def process_node(  # type: ignore[return] # all cases are handled
         raise KeyError(f"Function {reason_id} not found in function_references") from None
 
 
+# TODO: [Refactor] make this return a PurityResult??
+# TODO: add statement, that adds the result to the purity_results dict before returning
 def get_purity_of_child(
     child: CallGraphNode,
     reason: Reasons,
     analysis_result: ModuleAnalysisResult,
     purity_results: dict[astroid.FunctionDef, PurityResult],
 ) -> None:
-    # TODO: add a class for this return type then fix the docstring, see resolve_references()
     """
     Get the purity of a child node.
 
@@ -516,6 +517,16 @@ def get_purity_of_child(
         purity_result_child = check_open_like_functions(reason.get_call_by_name(child.data.symbol.name))
     elif child.data.symbol.name in BUILTIN_FUNCTIONS:
         purity_result_child = BUILTIN_FUNCTIONS[child.data.symbol.name]
+    elif child.data.symbol.name in analysis_result.classes:
+        if child.reasons.calls:
+            init_fun_id = calc_node_id(child.reasons.calls.pop().node)  # TODO: make sure that there is only one call in the set of the class def reasons object
+            purity_result_child = process_node(
+                analysis_result.function_references[init_fun_id],
+                analysis_result,
+                purity_results,
+            )
+        else:
+            purity_result_child = Pure()
     else:
         purity_result_child = process_node(
             analysis_result.function_references[child.data.symbol.id],

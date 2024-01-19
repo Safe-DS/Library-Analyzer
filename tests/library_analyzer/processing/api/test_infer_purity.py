@@ -7,10 +7,12 @@ from library_analyzer.processing.api.purity_analysis import (
     resolve_references,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
+    ClassVariable,
     FileRead,
     FileWrite,
     Impure,
     ImpurityReason,
+    InstanceVariable,
     NonLocalVariableRead,
     NonLocalVariableWrite,
     ParameterAccess,
@@ -34,6 +36,83 @@ class SimpleImpure:
     """
 
     reasons: set[str]
+
+
+def to_string_function_def(func: astroid.FunctionDef | str) -> str:
+    """Convert a function to a string representation.
+
+    Parameters
+    ----------
+    func : astroid.FunctionDef | str
+        The function to convert.
+
+    Returns
+    -------
+    str
+        The string representation of the function.
+    """
+    if isinstance(func, str):
+        return f"{func}"
+    return f"{func.name}.line{func.fromlineno}"
+
+
+def to_simple_result(purity_result: PurityResult) -> Pure | SimpleImpure:  # type: ignore[return] # all cases are handled
+    """Convert a purity result to a simple result.
+
+    Parameters
+    ----------
+    purity_result : PurityResult
+        The purity result to convert, either Pure or Impure.
+
+    Returns
+    -------
+    Pure | SimpleImpure
+        The converted purity result.
+    """
+    if isinstance(purity_result, Pure):
+        return Pure()
+    elif isinstance(purity_result, Impure):
+        return SimpleImpure({to_string_reason(reason) for reason in purity_result.reasons})
+
+
+def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # all cases are handled
+    """Convert an impurity reason to a string.
+
+    Parameters
+    ----------
+    reason : ImpurityReason
+        The impurity reason to convert.
+
+    Returns
+    -------
+    str
+        The converted impurity reason.
+    """
+    if reason is None:
+        raise ValueError("Reason must not be None")
+    if isinstance(reason, NonLocalVariableRead):
+        if isinstance(reason.symbol, ClassVariable | InstanceVariable):
+            return f"NonLocalVariableRead.{reason.symbol.__class__.__name__}.{reason.symbol.klass.name}.{reason.symbol.name}"
+        return f"NonLocalVariableRead.{reason.symbol.__class__.__name__}.{reason.symbol.name}"
+    elif isinstance(reason, NonLocalVariableWrite):
+        if isinstance(reason.symbol, ClassVariable | InstanceVariable):
+            return f"NonLocalVariableWrite.{reason.symbol.__class__.__name__}.{reason.symbol.klass.name}.{reason.symbol.name}"
+        return f"NonLocalVariableWrite.{reason.symbol.__class__.__name__}.{reason.symbol.name}"
+    elif isinstance(reason, FileRead):
+        if isinstance(reason.source, ParameterAccess):
+            return f"FileRead.ParameterAccess.{reason.source.parameter}"
+        if isinstance(reason.source, StringLiteral):
+            return f"FileRead.{reason.source.__class__.__name__}.{reason.source.value}"
+    elif isinstance(reason, FileWrite):
+        if isinstance(reason.source, ParameterAccess):
+            return f"FileWrite.ParameterAccess.{reason.source.parameter}"
+        if isinstance(reason.source, StringLiteral):
+            return f"FileWrite.{reason.source.__class__.__name__}.{reason.source.value}"
+    elif isinstance(reason, UnknownCall):
+        if isinstance(reason.expression, StringLiteral):
+            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.value}"
+    else:
+        raise NotImplementedError(f"Unknown reason: {reason}")
 
 
 @pytest.mark.parametrize(
@@ -92,8 +171,7 @@ def fun1():
 def fun2():
     b = B()
             """,  # language= None
-            {"A.line2": Pure(),
-             "B.line5": Pure(),
+            {
              "__init__.line6": Pure(),
              "fun1.line9": Pure(),
              "fun2.line12": Pure()
@@ -106,10 +184,12 @@ class A:
         self.instance_attr1 = 10
 
 def fun():
-    a = A()  # TODO: class instantiation must be handled separately - pure for now
+    a = A()
     a.instance_attr1 = 20  # Pure: VariableWrite to InstanceVariable - but actually a LocalVariable
             """,  # language= None
-            {"A.line2": Pure(), "__init__.line3": Pure(), "fun.line6": Pure()},
+            {
+             "__init__.line3": Pure(),
+             "fun.line6": Pure()},
         ),
         (  # language=Python "VariableRead from InstanceVariable - but actually a LocalVariable"
             """
@@ -118,11 +198,13 @@ class A:
         self.instance_attr1 = 10
 
 def fun():
-    a = A()  # TODO: class instantiation must be handled separately - pure for now
+    a = A()
     res = a.instance_attr1  # Pure: VariableRead from InstanceVariable - but actually a LocalVariable
     return res
             """,  # language= None
-            {"A.line2": Pure(), "__init__.line3": Pure(), "fun.line6": Pure()},
+            {
+             "__init__.line3": Pure(),
+             "fun.line6": Pure()},
         ),
         (  # language=Python "Call of Pure Function"
             """
@@ -244,7 +326,7 @@ c = fun1()
         "Assigned Lambda function",
         "Lambda as key",
         "Multiple Calls of same Pure function (Caching)",
-    ],  # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods
+    ],  # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods, class inits in cycles
 )
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     analysis_result = resolve_references(code)
@@ -320,7 +402,7 @@ class A:
 def fun():
     a = A()
             """,  # language= None
-            {"A.line2": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+            {
              "__init__.line3": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
              "fun.line6": SimpleImpure({"FileWrite.StringLiteral.stdout"})
              },
@@ -338,10 +420,10 @@ def fun1():
 def fun2():
     a = A().g()
             """,  # language= None
-            {"A.line2": Pure(),
+            {
              "g.line3": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
              "fun1.line6": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-             "fun2.line9": SimpleImpure({"FileWrite.StringLiteral.stdout"})
+             "fun2.line10": SimpleImpure({"FileWrite.StringLiteral.stdout"})
              },
         ),
         (  # language=Python "Instance methode call"
@@ -368,9 +450,8 @@ def fun2():
 def fun3():
     a = A().a_inst.b_fun()
             """,  # language= None
-            {"A.line2": Pure(),
+            {
              "__init__.line3": Pure(),
-             "B.line6": Pure(),
              "__init__.line7": Pure(),
              "b_fun.line10": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
              "fun1.line13": Pure(),
@@ -420,7 +501,8 @@ def fun(c):
 b = B()
 fun(b)
             """,  # language= None
-            {"fun.line6": SimpleImpure({"NonLocalVariableWrite.InstanceVariable.B.instance_attr1"})},
+            {"__init__.line3": Pure(),
+             "fun.line6": SimpleImpure({"NonLocalVariableWrite.InstanceVariable.B.instance_attr1"})},
         ),
         (  # language=Python "VariableRead from InstanceVariable"
             """
@@ -435,7 +517,8 @@ def fun(c):
 b = B()
 a = fun(b)
             """,  # language= None
-            {"fun.line6": SimpleImpure({"NonLocalVariableRead.InstanceVariable.B.instance_attr1"})},
+            {"__init__.line3": Pure(),
+             "fun.line6": SimpleImpure({"NonLocalVariableRead.InstanceVariable.B.instance_attr1"})},
         ),
         (  # language=Python "Function call of functions with same name and different purity"
             """
@@ -483,9 +566,7 @@ def fun2():
     B.add(1, 2, 3)
             """,  # language=none
             {
-                "A.line2": Pure(),
                 "add.line4": Pure(),
-                "B.line7": Pure(),
                 "add.line9": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
                 "fun1.line13": SimpleImpure({"FileWrite.StringLiteral.stdout"}),  # here we need to be conservative and assume that the call is impure
                 "fun2.line16": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
@@ -747,6 +828,55 @@ def fun2():
                 "fun2.line12": SimpleImpure({"FileRead.StringLiteral.stdin"}),
             },
         ),
+    ],
+    ids=[
+        "Print with str",
+        "Print with parameter",
+        "VariableWrite to GlobalVariable",  # TODO: this just passes due to the conversion to a set
+        "VariableWrite to GlobalVariable with parameter",  # TODO: this just passes due to the conversion a set
+        "VariableRead from GlobalVariable",
+        "Impure Class initialization",
+        "Class methode call",
+        "Instance methode call",
+        "VariableWrite to ClassVariable",
+        "VariableRead from ClassVariable",
+        "VariableWrite to InstanceVariable",
+        "VariableRead from InstanceVariable",
+        "Function call of functions with same name and different purity",
+        "Function call of functions with same name (different signatures)",
+        "Call of Impure Function",
+        "Call of Impure Chain of Functions",
+        # "Call of Impure Chain of Functions with cycle - one entry point",
+        # "Call of Impure Chain of Functions with cycle - other calls in cycle",
+        # "Call of Impure Chain of Functions with cycle - cycle in cycle",
+        "Call of Impure Chain of Functions with cycle - direct entry",
+        "Call of Impure BuiltIn Function",
+        "Call of Impure Builtin type class methode",
+        "Lambda function",
+        "Lambda function with Impure Call",
+        "Assigned Lambda function",
+        # "Lambda as key",
+        "Multiple Calls of same Impure function (Caching)",
+        "Different Reasons for Impurity",
+        # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods, class instantiation?
+    ],
+)
+def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
+    analysis_result = resolve_references(code)
+
+    purity_results = infer_purity(analysis_result)
+
+    transformed_purity_results = {
+        to_string_function_def(function_def): to_simple_result(purity_result)
+        for function_def, purity_result in purity_results.items()
+    }
+
+    assert transformed_purity_results == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
         (  # language=Python "Unknown Call",
             """
 def fun1():
@@ -771,41 +901,23 @@ def fun1():
                 }),
             },
         ),
+        (  # language=Python "Unknown Call of Parameter",
+            """
+def fun1(a):
+    a()
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({"CallOfParameter.ParameterAccess.a"}),
+            },
+        ),
     ],
     ids=[
-        "Print with str",
-        "Print with parameter",
-        "VariableWrite to GlobalVariable",  # TODO: this just passes due to the conversion to a set
-        "VariableWrite to GlobalVariable with parameter",  # TODO: this just passes due to the conversion a set
-        "VariableRead from GlobalVariable",
-        "Impure Class initialization",
-        "Class methode call",
-        "Instance methode call",
-        "VariableWrite to ClassVariable",
-        "VariableRead from ClassVariable",
-        "VariableWrite to InstanceVariable",
-        "VariableRead from InstanceVariable",
-        "Function call of functions with same name and different purity",
-        "Function call of functions with same name (different signatures)",
-        "Call of Impure Function",
-        "Call of Impure Chain of Functions",
-        # "Call of Impure Chain of Functions with cycle - one entry point",
-        # "Call of Impure Chain of Functions with cycle - other calls in cycle",
-        # "Call of Impure Chain of Functions with cycle - cycle in cycle",
-        "Call of Impure Chain of Functions with cycle - direct entry",
-        "Call of Impure BuiltIn Function",
-        "Lambda function",
-        "Lambda function with Impure Call",
-        "Assigned Lambda function",
-        # "Lambda as key",
-        "Multiple Calls of same Impure function (Caching)",
-        "Different Reasons for Impurity",
         "Unknown Call",
         "Three Unknown Call",
-        # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods, class instantiation?
+        "Unknown Call of Parameter",
     ],
 )
-def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
+def test_infer_purity_unknown(code: str, expected: dict[str, SimpleImpure]) -> None:
     analysis_result = resolve_references(code)
 
     purity_results = infer_purity(analysis_result)
@@ -816,79 +928,6 @@ def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> No
     }
 
     assert transformed_purity_results == expected
-
-
-def to_string_function_def(func: astroid.FunctionDef | str) -> str:
-    """Convert a function to a string representation.
-
-    Parameters
-    ----------
-    func : astroid.FunctionDef | str
-        The function to convert.
-
-    Returns
-    -------
-    str
-        The string representation of the function.
-    """
-    if isinstance(func, str):
-        return f"{func}"
-    return f"{func.name}.line{func.lineno}"
-
-
-def to_simple_result(purity_result: PurityResult) -> Pure | SimpleImpure:  # type: ignore[return] # all cases are handled
-    """Convert a purity result to a simple result.
-
-    Parameters
-    ----------
-    purity_result : PurityResult
-        The purity result to convert, either Pure or Impure.
-
-    Returns
-    -------
-    Pure | SimpleImpure
-        The converted purity result.
-    """
-    if isinstance(purity_result, Pure):
-        return Pure()
-    elif isinstance(purity_result, Impure):
-        return SimpleImpure({to_string_reason(reason) for reason in purity_result.reasons})
-
-
-def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # all cases are handled
-    """Convert an impurity reason to a string.
-
-    Parameters
-    ----------
-    reason : ImpurityReason
-        The impurity reason to convert.
-
-    Returns
-    -------
-    str
-        The converted impurity reason.
-    """
-    if reason is None:
-        raise ValueError("Reason must not be None")
-    if isinstance(reason, NonLocalVariableRead):
-        return f"NonLocalVariableRead.{reason.symbol.__class__.__name__}.{reason.symbol.name}"
-    elif isinstance(reason, NonLocalVariableWrite):
-        return f"NonLocalVariableWrite.{reason.symbol.__class__.__name__}.{reason.symbol.name}"
-    elif isinstance(reason, FileRead):
-        if isinstance(reason.source, ParameterAccess):
-            return f"FileRead.ParameterAccess.{reason.source.parameter}"
-        if isinstance(reason.source, StringLiteral):
-            return f"FileRead.{reason.source.__class__.__name__}.{reason.source.value}"
-    elif isinstance(reason, FileWrite):
-        if isinstance(reason.source, ParameterAccess):
-            return f"FileWrite.ParameterAccess.{reason.source.parameter}"
-        if isinstance(reason.source, StringLiteral):
-            return f"FileWrite.{reason.source.__class__.__name__}.{reason.source.value}"
-    elif isinstance(reason, UnknownCall):
-        if isinstance(reason.expression, StringLiteral):
-            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.value}"
-    else:
-        raise NotImplementedError(f"Unknown reason: {reason}")
 
 
 @pytest.mark.parametrize(

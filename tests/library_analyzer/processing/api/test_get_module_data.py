@@ -284,6 +284,7 @@ def to_string_func(node: astroid.NodeNG | MemberAccess) -> str:
         if isinstance(node.func, astroid.Attribute):
             return f"Call.{node.func.attrname}"
         return f"Call.{node.func.name}"
+    return f"{node.as_string()}"
 
 
 def transform_value_nodes(value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]) -> dict[str, str]:

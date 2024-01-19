@@ -5,11 +5,12 @@ import astroid
 from library_analyzer.processing.api.purity_analysis.model import (
     CallGraphForest,
     CallGraphNode,
+    ClassScope,
+    FunctionReference,
     FunctionScope,
     NodeID,
     Reasons,
     Symbol,
-    ClassScope,
 )
 
 BUILTINS = dir(builtins)
@@ -68,12 +69,14 @@ def build_call_graph(
                     for fun in functions["__init__"]:
                         if fun.parent == function_scope:
                             init_function = fun
-                            if fun.symbol.id not in call_graph_forest.graphs:
+                            if init_function.symbol.id not in call_graph_forest.graphs:
                                 call_graph_forest.add_graph(
-                                    fun.symbol.id,
+                                    init_function.symbol.id,
                                     CallGraphNode(data=init_function, reasons=Reasons()),
                                 )
-                            function_node.add_child(call_graph_forest.get_graph(fun.symbol.id))
+                            function_node.add_child(call_graph_forest.get_graph(init_function.symbol.id))
+                            function_node.reasons.calls.add(FunctionReference(function_references[init_function.symbol.id].function, "Call"))
+                            break
                 continue
 
             # Default case where a function calls no other functions in its body - therefore, the tree has just one node
@@ -124,11 +127,12 @@ def build_call_graph(
                     # Handle builtins: builtins are not in the functions dict, and therefore we need to handle them separately
                     # Since we do not analyze builtins any further at this stage, we can simply add them as a child to the current tree node
                     # Because a builtin function has no real function def, we will use the call node as the function def - hence its id is always wrong
-                    elif call.symbol.name in BUILTINS:
+                    elif call.symbol.name in BUILTINS or call.symbol.name in ("read", "readline", "readlines", "write", "writelines"):
                         current_tree_node = call_graph_forest.get_graph(function_id)
                         current_tree_node.add_child(CallGraphNode(data=call, reasons=Reasons()))
 
                     # Deal with unknown calls:
+                    # - calls of unknown code => call node not in functions dict
                     # - calls of external code => call node not in function_reference dict
                     # - calls of parameters # TODO: parameter calls are not handled yet
                     # These functions get an unknown flag

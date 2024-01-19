@@ -380,7 +380,7 @@ class ModuleDataBuilder:
                                 {ref},
                             )  # Add calls
 
-                # Add function to function_references dict if it is not already in there  TODO: when does this happen?
+                # Add function to function_references dict if no reason (write, read nor call) was found
                 if function_id not in function_references:
                     function_references[function_id] = Reasons(function_def_node, set(), set(), set())
 

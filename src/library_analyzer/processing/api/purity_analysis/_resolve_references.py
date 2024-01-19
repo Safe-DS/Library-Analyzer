@@ -8,7 +8,6 @@ from library_analyzer.processing.api.purity_analysis import get_module_data
 from library_analyzer.processing.api.purity_analysis._build_call_graph import build_call_graph
 from library_analyzer.processing.api.purity_analysis.model import (
     Builtin,
-    CallGraphForest,
     ClassScope,
     ClassVariable,
     FunctionScope,
@@ -17,7 +16,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ModuleAnalysisResult,
     NodeID,
     Parameter,
-    Reasons,
     ReferenceNode,
     Scope,
     Symbol,

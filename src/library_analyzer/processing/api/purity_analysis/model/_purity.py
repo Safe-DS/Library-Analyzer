@@ -109,7 +109,7 @@ class Impure(PurityResult):
 class ImpurityReason(ABC):  # noqa: B024 # this is just a base class, and it is important that it cannot be instantiated
     """Superclass for impurity reasons.
 
-    If a funtion is impure it is because of one or more impurity reasons.
+    If a function is impure it is because of one or more impurity reasons.
     """
 
     def __hash__(self) -> int:
