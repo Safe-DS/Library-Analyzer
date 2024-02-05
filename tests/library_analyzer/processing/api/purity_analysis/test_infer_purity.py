@@ -936,12 +936,28 @@ def fun1(function, a, b , c, **kwargs):
                 "fun1.line2": SimpleImpure({"CallOfParameter.ParameterAccess.function"}),
             },
         ),
+        (  # language=Python "Unknown Call of Parameter with many Parameters",
+            """
+from typing import Callable
+
+def fun1():
+    fun = import_fun("functions.py", "fun1")
+    fun()
+
+def import_fun(file: str, f_name: str) -> Callable:
+    pass
+            """,  # language=none
+            {
+
+            },
+        ),
     ],
     ids=[
         "Unknown Call",
         "Three Unknown Call",
         "Unknown Call of Parameter",
         "Unknown Call of Parameter with many Parameters",
+        "Unknown Import function"
     ],
 )
 def test_infer_purity_unknown(code: str, expected: dict[str, SimpleImpure]) -> None:

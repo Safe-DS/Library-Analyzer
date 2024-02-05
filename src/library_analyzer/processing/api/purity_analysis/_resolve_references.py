@@ -61,6 +61,7 @@ def _find_name_references(
     target_references = [ReferenceNode(node, scope, []) for node, scope in target_nodes.items()]
     value_references = [ReferenceNode(node, scope, []) for node, scope in value_nodes.items()]
 
+    # TODO: this can possibly run on multiple threads and therefore boost the performance
     # Detect all value references: references that are used as values (e.g., sth = value, return value)
     for value_ref in value_references:
         if isinstance(value_ref.node, astroid.Name | MemberAccessValue):

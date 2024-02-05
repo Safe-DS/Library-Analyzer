@@ -1046,7 +1046,8 @@ class ASTWalker:
                                         SimpleScope("InstanceVariable.MemberAccess.self._handler", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self._cache", []),
                                     ],
-                                    ["Name.handler"],
+                                    ["Name.handler",
+                                     "Name._EnterAndLeaveFunctions"],
                                     [],
                                     ["AssignName.handler"],
                                 ),
@@ -1080,7 +1081,7 @@ class ASTWalker:
                                         SimpleScope("LocalVariable.AssignName.method", []),
                                     ],
                                     ["Name.node", "Name.method"],
-                                    ["Call.__get_callbacks", "Call.methode"],
+                                    ["Call.__get_callbacks", "Call.method"],
                                     ["AssignName.node"]
                                 ),
                                 SimpleFunctionScope(
