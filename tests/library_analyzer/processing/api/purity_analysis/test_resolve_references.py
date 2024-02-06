@@ -1673,8 +1673,8 @@ F()
 lambda x, y: x + y
             """,  # language=none
             [
-                ReferenceTestNode("x.line2", "Lambda", ["LocalVariable.x.line2"]),
-                ReferenceTestNode("y.line2", "Lambda", ["LocalVariable.y.line2"]),
+                ReferenceTestNode("x.line2", "Lambda", ["Parameter.x.line2"]),
+                ReferenceTestNode("y.line2", "Lambda", ["Parameter.y.line2"]),
             ],
         ),
         (  # language=Python "lambda function call"
@@ -1682,8 +1682,8 @@ lambda x, y: x + y
 (lambda x, y: x + y)(10, 20)
             """,  # language=none
             [
-                ReferenceTestNode("x.line2", "Lambda", ["LocalVariable.x.line2"]),
-                ReferenceTestNode("y.line2", "Lambda", ["LocalVariable.y.line2"]),
+                ReferenceTestNode("x.line2", "Lambda", ["Parameter.x.line2"]),
+                ReferenceTestNode("y.line2", "Lambda", ["Parameter.y.line2"]),
             ],
         ),
         (  # language=Python "lambda function used as normal function"
@@ -1693,7 +1693,7 @@ double = lambda x: 2 * x
 double(10)
             """,  # language=none
             [
-                ReferenceTestNode("x.line2", "Lambda", ["LocalVariable.x.line2"]),
+                ReferenceTestNode("x.line2", "Lambda", ["Parameter.x.line2"]),
                 ReferenceTestNode("double.line4", "Module.", ["GlobalVariable.double.line2"]),
             ],
         ),
@@ -1709,14 +1709,14 @@ A.double(10)
 B.double(10)
             """,  # language=none
             [
-                ReferenceTestNode("x.line3", "Lambda", ["LocalVariable.x.line3"]),
+                ReferenceTestNode("x.line3", "Lambda", ["Parameter.x.line3"]),
                 ReferenceTestNode("A.line8", "Module.", ["GlobalVariable.A.line2"]),
                 ReferenceTestNode(
                     "A.double.line8",
                     "Module.",
                     ["ClassVariable.A.double.line3", "ClassVariable.B.double.line6"],
                 ),
-                ReferenceTestNode("x.line6", "Lambda", ["LocalVariable.x.line6"]),
+                ReferenceTestNode("x.line6", "Lambda", ["Parameter.x.line6"]),
                 ReferenceTestNode("B.line9", "Module.", ["GlobalVariable.B.line5"]),
                 ReferenceTestNode(
                     "B.double.line9",
@@ -1739,7 +1739,7 @@ A.double(10)
 B.double(10)
             """,  # language=none
             [
-                ReferenceTestNode("x.line3", "Lambda", ["LocalVariable.x.line3"]),
+                ReferenceTestNode("x.line3", "Lambda", ["Parameter.x.line3"]),
                 ReferenceTestNode("A.line10", "Module.", ["GlobalVariable.A.line2"]),
                 ReferenceTestNode(
                     "A.double.line10",
@@ -1766,7 +1766,7 @@ sort
                 ReferenceTestNode("sorted.line4", "Module.", ["Builtin.sorted"]),
                 ReferenceTestNode("len.line4", "Lambda", ["Builtin.len"]),
                 ReferenceTestNode("names.line4", "Module.", ["GlobalVariable.names.line2"]),
-                ReferenceTestNode("x.line4", "Lambda", ["LocalVariable.x.line4"]),
+                ReferenceTestNode("x.line4", "Lambda", ["Parameter.x.line4"]),
                 ReferenceTestNode("sort.line5", "Module.", ["GlobalVariable.sort.line4"]),
             ],
         ),

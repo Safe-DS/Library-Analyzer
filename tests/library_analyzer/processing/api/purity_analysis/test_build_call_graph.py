@@ -576,10 +576,10 @@ def fun_a():
     b = a.add(3, 4)
             """,  # language=none
             {
-                ".A.2.0": "__init__.3.4",
+                ".A.2.0": {".__init__.3.4"},
                 ".__init__.3.4": set(),
-                ".add.4.8": set(),
-                ".fun_a.6.0": {".A.2.0", ".add.4.8"},
+                ".add.4.19": set(),
+                ".fun_a.6.0": {".A.2.0", ".add.4.19"},
             },
         ),
         (  # language=Python "member access - class init and methode call in lambda function"
@@ -596,10 +596,11 @@ class B:
 lambda_add = lambda x, y: A().value.add(x, y)
             """,  # language=none
             {
-                ".A.2.0": "__init__.3.4",
-                ".__init__.3.4": ".B.6.0",
+                ".A.2.0": {".__init__.3.4"},
+                ".B.6.0": set(),
+                ".__init__.3.4": {".B.6.0"},
                 ".add.8.4": set(),
-                ".lambda_add.11.0": {".A.2.0", ".add.4.8"},
+                ".lambda_add.11.13": {".A.2.0", ".add.8.4"},
             },
         ),
     ],

@@ -188,7 +188,11 @@ class ModuleDataBuilder:
 
         # Add lambda functions that are assigned to a name (and therefor are callable) to the functions dict
         if isinstance(node, astroid.Lambda) and isinstance(node.parent, astroid.Assign):
-            node_name = node.parent.targets[0].name
+            # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+            if isinstance(node.parent.targets[0], astroid.AssignAttr):
+                node_name = node.parent.targets[0].attrname
+            else:
+                node_name = node.parent.targets[0].name
             # If the Lambda function is assigned to a name, it can be called just as a normal function
             # Since Lambdas normally do not have names, we need to add its assigned name manually
             self.current_node_stack[-1].symbol.name = node_name
@@ -213,20 +217,32 @@ class ModuleDataBuilder:
                 self.functions[node_name][-1].calls = self.calls
                 self.calls = []
 
-        # Lambda Functions that have no name are hard to deal with- therefore, we simply add all of their names/calls to the parent of the Lambda node
+        # Lambda Functions that have no name are hard to deal with when building the call graph. Therefore,
+        # we simply add all of their names/calls to the parent function to indirectly add the needed impurity info
+        # to the parent function. We assume that lambda functions are only used inside a function body (other cases
+        # would be irrelevant for function purity anyway). Anyway, all names in the lambda function are of local
+        # scope. Therefore, we assign a FunctionScope instance with the name 'Lambda' to represent that.
         if (
             isinstance(node, astroid.Lambda)
             and not isinstance(node, astroid.FunctionDef)
-            and isinstance(node.parent, astroid.Call)
+            and isinstance(node.parent, astroid.Call | astroid.Expr)  # Call deals  with: (lambda x: x+1)(2) and Expr deals with: lambda x: x+1
         ):
-            # Add all values that are used inside the lambda body to its parent's values' list
+            # Add all values that are used inside the lambda body to its parent function values' list
             if self.names and isinstance(self.current_node_stack[-2], FunctionScope):
                 self.current_node_stack[-2].values = self.names
                 self.names = []
+            # Only add the values to the Lambda FunctionScope
+            elif self.names and isinstance(self.current_node_stack[-1], FunctionScope) and isinstance(self.current_node_stack[-1].symbol.node, astroid.Lambda):
+                self.current_node_stack[-1].values = self.names
+                self.names = []
 
-            # Add all calls that are used inside the lambda body to its parent's calls' list
+            # Add all calls that are used inside the lambda body to its parent function calls' list
             if self.calls and isinstance(self.current_node_stack[-2], FunctionScope):
                 self.current_node_stack[-2].calls = self.calls
+                self.calls = []
+            # Only add the calls to the Lambda FunctionScope
+            elif self.calls and isinstance(self.current_node_stack[-1], FunctionScope) and isinstance(self.current_node_stack[-1].symbol.node, astroid.Lambda):
+                self.current_node_stack[-1].calls = self.calls
                 self.calls = []
 
         self.current_node_stack.pop()  # Remove the current node from the stack
@@ -604,7 +620,13 @@ class ModuleDataBuilder:
 
             case astroid.Lambda() | astroid.ListComp():
                 if isinstance(node, astroid.Call):
+                    # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+                    if isinstance(node.func, astroid.Attribute):
+                        return LocalVariable(node=node, id=calc_node_id(node), name=node.func.attrname)
                     return LocalVariable(node=node, id=calc_node_id(node), name=node.func.name)
+                # This deals with the case where a lambda function has parameters
+                if isinstance(node, astroid.AssignName) and isinstance(node.parent, astroid.Arguments):
+                    return Parameter(node=node, id=calc_node_id(node), name=node.name)
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
             case (
@@ -764,8 +786,11 @@ class ModuleDataBuilder:
             # TODO: this is wrong, because not all value nodes are directly used in a functions body, but rather in a nested expression
             #  Write testcases to determine how bad this problem is!
             # We ignore self and cls because they are not relevant for purity by our means
-            # if node.name in ("self", "cls"):
-            #     return
+            if node.name in ("self", "cls"):
+                return
+            # AnnAssign removes inline type hints
+            if isinstance(node.parent, astroid.AnnAssign):
+                return
 
             parent = self.current_node_stack[-1]
             name_node = Scope(

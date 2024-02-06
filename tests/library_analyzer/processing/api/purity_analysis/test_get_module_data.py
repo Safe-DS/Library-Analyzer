@@ -241,8 +241,8 @@ def to_string(symbol: Symbol) -> str:
     elif isinstance(symbol.node, astroid.ListComp | astroid.TryExcept | astroid.TryFinally | astroid.With):
         return f"{symbol.node.__class__.__name__}"
     elif isinstance(symbol.node, astroid.Lambda):
-        if symbol.name == "lambda":
-            return f"{symbol.node.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.name}"
+        if symbol.name != "Lambda":
+            return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.name}"
         return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}"
     raise NotImplementedError(f"Unknown node type: {symbol.node.__class__.__name__}")
 
@@ -1306,6 +1306,26 @@ lambda x, y: x + y
                                              SimpleScope("Parameter.AssignName.y", [])],
                                             ["Name.x", "Name.y"],
                                             [],
+                                            ["AssignName.x", "AssignName.y"]
+                                            ),
+                    ],
+                ),
+            ],
+        ),
+        (  # language=Python "Lambda"
+            """
+(lambda x, y: x + y)(10, 20)
+            """,  # language=none
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleFunctionScope("GlobalVariable.Lambda",
+                                            [SimpleScope("Parameter.AssignName.x", []),
+                                             SimpleScope("Parameter.AssignName.y", [])],
+                                            ["Name.x", "Name.y"],
+                                            [],
+                                            ["AssignName.x", "AssignName.y"]
                                             ),
                     ],
                 ),
@@ -1323,6 +1343,7 @@ double = lambda x: 2 * x
                                             [SimpleScope("Parameter.AssignName.x", [])],
                                             ["Name.x"],
                                             [],
+                                            ["AssignName.x"]
                                             ),
                     ],
                 ),
@@ -1353,6 +1374,7 @@ double = lambda x: 2 * x
         "With Statement Function",
         "With Statement Class",
         "Lambda",
+        "Lambda call",
         "Lambda with name",
     ],  # TODO: add tests for match, try except and generator expressions
 )
@@ -1476,7 +1498,7 @@ class A:
                                 SimpleScope("InstanceVariable.MemberAccess.self.name", []),
                                 SimpleScope("InstanceVariable.MemberAccess.self.state", []),
                             ],
-                            [],  # TODO: remove type hints
+                            [],
                             []
                         ),
                     ],
@@ -1595,7 +1617,7 @@ class B(A):
         "ClassDef with multiple class attribute",
         "ClassDef with conditional class attribute (same name)",
         "ClassDef with instance attribute",
-        "ClassDef with multiple instance attributes",
+        "ClassDef with multiple instance attributes (and type annotations)",
         "ClassDef with conditional instance attributes (instance attributes with same name)",
         "ClassDef with class and instance attribute",
         "ClassDef with nested class",
