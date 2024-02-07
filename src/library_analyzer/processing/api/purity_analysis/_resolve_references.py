@@ -55,7 +55,7 @@ def _find_name_references(
     """
     final_references: dict[str, list[ReferenceNode]] = {}
 
-    # TODO: is it possible to do this in a more efficient way?
+    # TODO: is it possible to do this in a more efficient way?  maybe remove all target references that are locals
     # maybe we can speed up the detection of references by using a dictionary instead of a list
     # -> target_references = {node.name: ReferenceNode(node, scope, []) for node, scope in target_nodes.items()}
     target_references = [ReferenceNode(node, scope, []) for node, scope in target_nodes.items()]
@@ -85,6 +85,7 @@ def _find_name_references(
     return final_references
 
 
+# TODO: this function has a sideeffect, it changes the current_target_reference.referenced_symbols instead of returning them
 def _find_target_references(
     current_target_reference: ReferenceNode,
     all_target_list: list[ReferenceNode],
@@ -111,7 +112,10 @@ def _find_target_references(
         The reference for the given node with all its target references added to its referenced_symbols.
     """
     if current_target_reference in all_target_list:
+        # TODO: this can be more efficient if we filter out all targets that do not have the same name as the current_target_reference
         all_targets_before_current_target_reference = all_target_list[: all_target_list.index(current_target_reference)]
+        if not all_targets_before_current_target_reference:
+            return current_target_reference
         result: list[Symbol] = []
         for ref in all_targets_before_current_target_reference:
             if isinstance(current_target_reference.node, MemberAccessTarget):
@@ -142,9 +146,10 @@ def _find_target_references(
             # This deals with the case where a variable is reassigned.
             elif (
                 isinstance(current_target_reference.node, astroid.AssignName)
-                and ref.node.name == current_target_reference.node.name
-                and not isinstance(current_target_reference.scope.symbol.node, astroid.Lambda)
-                and not isinstance(current_target_reference.scope, ClassScope)
+                and ref.node.name == current_target_reference.node.name  # check if the name of the target matches
+                and ref.scope == current_target_reference.scope
+                # and (ref.scope == current_target_reference.scope or ref in current_target_reference.scope.globals) # check if the scope of the target matches
+                and not isinstance(current_target_reference.scope, ClassScope)  # check we deal with a function scope
             ):
                 symbol_list = _get_symbols(ref)
                 all_targets_before_current_target_reference_nodes = [
@@ -169,6 +174,7 @@ def _find_target_references(
     return current_target_reference
 
 
+# TODO: this function has a sideeffect, it changes the current_target_reference.referenced_symbols instead of returning them
 def _find_value_references(
     current_value_reference: ReferenceNode,
     all_target_list: list[ReferenceNode],

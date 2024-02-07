@@ -1137,6 +1137,14 @@ a = "a"
             """,  # language=none
             [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.a", [])])],
         ),
+        (  # language=Python "Multiple AssignName"
+            """
+a = b = c = 1
+            """,  # language=none
+            [SimpleScope("Module", [SimpleScope("GlobalVariable.AssignName.a", []),
+                                    SimpleScope("GlobalVariable.AssignName.b", []),
+                                    SimpleScope("GlobalVariable.AssignName.c", [])])],
+        ),
         (  # language=Python "List Comprehension in Module"
             """
 nums = ["aaa", "bb", "ase"]
@@ -1366,6 +1374,7 @@ double = lambda x: 2 * x
         "Complex Scope",
         "ASTWalker",
         "AssignName",
+        "Multiple AssignName",
         "List Comprehension in Module",
         "List Comprehension in Class",
         "List Comprehension in Function",
@@ -2448,6 +2457,7 @@ class A:
     @staticmethod
     def add(a, b):
         global z
+        a = b = z
         return a + b + z
 
 class B:

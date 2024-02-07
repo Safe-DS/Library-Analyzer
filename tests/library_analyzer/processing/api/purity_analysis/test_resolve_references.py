@@ -960,6 +960,7 @@ def fun_out(a):
                 ReferenceTestNode("a.line13", "FunctionDef.fun_out", ["Parameter.a.line12"]),
                 ReferenceTestNode("A.line14", "FunctionDef.fun_out", ["GlobalVariable.A.line2"]),
                 ReferenceTestNode("B.line16", "FunctionDef.fun_out", ["GlobalVariable.B.line7"]),
+                ReferenceTestNode("x.line16", "FunctionDef.fun_out", ["LocalVariable.x.line14"]),  # this is an assumption we need to make since we cannot differentiate between branches before runtime
                 ReferenceTestNode("x.line17", "FunctionDef.fun_out", ["LocalVariable.x.line14",
                                                                       "LocalVariable.x.line16"]),
                 ReferenceTestNode("x.fun.line17", "FunctionDef.fun_out", ["ClassVariable.A.fun.line4",
@@ -1449,6 +1450,63 @@ a
                 ReferenceTestNode("a.line3", "Module.", ["GlobalVariable.a.line2"]),
             ],
         ),
+        (  # language=Python "chained assignment global scope"
+            """
+var1 = 1
+var2 = 2
+var3 = 3
+
+inp = input()
+
+var1 = a = inp
+a = var2 = inp
+var1 = a = var3
+            """,  # language=none
+            [
+                ReferenceTestNode("input.line6", "Module.", ["Builtin.input"]),
+                ReferenceTestNode("inp.line8", "Module.", ["GlobalVariable.inp.line6"]),
+                ReferenceTestNode("var1.line8", "Module.", ["GlobalVariable.var1.line2"]),
+                ReferenceTestNode("a.line9", "Module.", ["GlobalVariable.a.line8"]),
+                ReferenceTestNode("var2.line9", "Module.", ["GlobalVariable.var2.line3"]),
+                ReferenceTestNode("inp.line9", "Module.", ["GlobalVariable.inp.line6"]),
+                ReferenceTestNode("var1.line10", "Module.", ["GlobalVariable.var1.line2",
+                                                             "GlobalVariable.var1.line8"]),
+                ReferenceTestNode("a.line10", "Module.", ["GlobalVariable.a.line8",
+                                                          "GlobalVariable.a.line9"]),
+                ReferenceTestNode("var3.line10", "Module.", ["GlobalVariable.var3.line4"]),
+            ],
+        ),
+        (  # language=Python "chained assignment function scope"
+            """
+var1 = 1
+var2 = 2
+var3 = 3
+
+def fun1(a):
+    global var1, var2, var3
+    inp = input()
+
+    var1 = a = inp
+    a = var2 = inp
+    var1 = a = var3
+            """,  # language=none
+            [
+                ReferenceTestNode("input.line8", "FunctionDef.fun1", ["Builtin.input"]),
+                ReferenceTestNode("a.line10", "FunctionDef.fun1", ["Parameter.a.line6"]),
+                ReferenceTestNode("inp.line10", "FunctionDef.fun1", ["LocalVariable.inp.line8"]),
+                ReferenceTestNode("var1.line10", "FunctionDef.fun1", ["GlobalVariable.var1.line2"]),
+                ReferenceTestNode("a.line11", "FunctionDef.fun1", ["Parameter.a.line6",
+                                                                   "LocalVariable.a.line10"]),
+                ReferenceTestNode("var2.line11", "FunctionDef.fun1", ["GlobalVariable.var2.line3"]),
+                ReferenceTestNode("inp.line11", "FunctionDef.fun1", ["LocalVariable.inp.line8"]),
+                ReferenceTestNode("var1.line12", "FunctionDef.fun1", ["GlobalVariable.var1.line2",
+                                                                      "GlobalVariable.var1.line10"]),
+                ReferenceTestNode("a.line12", "FunctionDef.fun1", ["Parameter.a.line6",
+                                                                   "LocalVariable.a.line10",
+                                                                   "LocalVariable.a.line11"]),
+                ReferenceTestNode("var3.line12", "FunctionDef.fun1", ["GlobalVariable.var3.line4"]),
+            ],
+        ),
         #         (  # language=Python "regex"
         #             """
         # import re
@@ -1477,6 +1535,8 @@ a
         "variable swap",
         "aliases",
         "test",
+        "chained assignment global scope",
+        "chained assignment function scope",
         # "regex"
     ],  # TODO: add tests for with ... open
 )

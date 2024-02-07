@@ -845,6 +845,40 @@ def fun2():
                 "fun2.line12": SimpleImpure({"FileRead.StringLiteral.stdin"}),
             },
         ),
+        (  # language=Python "Impure Write to Local and Global",
+            """
+var1 = 1
+var2 = 2
+var3 = 3
+
+def fun1(a):
+    global var1, var2, var3
+    inp = input()  # Impure: Call of Impure Builtin Function - User input is requested
+    var1 = a = inp  # Impure: VariableWrite to GlobalVariable
+    a = var2 = inp  # Impure: VariableWrite to GlobalVariable
+    inp = a = var3  # Impure: VariableWrite to GlobalVariable and VariableRead from GlobalVariable
+
+            """,  # language=none
+            {
+                "fun1.line6": SimpleImpure({
+                    "TODO"
+                }),
+            },
+        ),
+        (  # language=Python "Call of Function with function as return",
+            """
+def fun1(a):
+    print(a)  # Impure: FileWrite
+    return fun1
+
+fun1(1)(2)(3)
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({
+                    "TODO"  # TODO: LARS what about this?
+                }),
+            },
+        ),
     ],
     ids=[
         "Print with str",
@@ -875,6 +909,8 @@ def fun2():
         # "Lambda as key",
         "Multiple Calls of same Impure function (Caching)",
         "Different Reasons for Impurity",
+        "Impure Write to Local and Global",
+        "Call of Function with function as return",
         # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods, class instantiation?
     ],
 )
