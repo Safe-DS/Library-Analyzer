@@ -7,6 +7,7 @@ from library_analyzer.processing.api.purity_analysis import (
     resolve_references,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
+    CallOfParameter,
     ClassVariable,
     FileRead,
     FileWrite,
@@ -19,7 +20,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Pure,
     PurityResult,
     StringLiteral,
-    UnknownCall, CallOfParameter,
+    UnknownCall,
 )
 
 
@@ -754,7 +755,7 @@ def fun():
     res = a.__class__.__name__  # TODO: this is class methode call
     return res
             """,  # language= None
-            {"fun.line2": Pure()},
+            {"fun.line5": Pure()},
         ),
         (  # language=Python "Lambda function"
             """
@@ -856,12 +857,15 @@ def fun1(a):
     inp = input()  # Impure: Call of Impure Builtin Function - User input is requested
     var1 = a = inp  # Impure: VariableWrite to GlobalVariable
     a = var2 = inp  # Impure: VariableWrite to GlobalVariable
-    inp = a = var3  # Impure: VariableWrite to GlobalVariable and VariableRead from GlobalVariable
+    inp = a = var3  # Impure: VariableRead from GlobalVariable
 
             """,  # language=none
             {
                 "fun1.line6": SimpleImpure({
-                    "TODO"
+                    "FileRead.StringLiteral.stdin",
+                    "NonLocalVariableWrite.GlobalVariable.var1",
+                    "NonLocalVariableWrite.GlobalVariable.var2",
+                    "NonLocalVariableRead.GlobalVariable.var3",
                 }),
             },
         ),
@@ -871,11 +875,37 @@ def fun1(a):
     print(a)  # Impure: FileWrite
     return fun1
 
-fun1(1)(2)(3)
+def fun2():
+    x = fun1(1)(2)(3)
             """,  # language=none
             {
                 "fun1.line2": SimpleImpure({
-                    "TODO"  # TODO: LARS what about this?
+                    "FileWrite.StringLiteral.stdout",
+                }),
+                "fun2.line6": SimpleImpure({
+                    "FileWrite.StringLiteral.stdout",
+                }),
+            },
+        ),
+        (  # language=Python "Call within a call",
+            """
+def fun1(a):
+    print(a)  # Impure: FileWrite
+    return a
+
+def fun2(a):
+    return a * 2
+
+def fun3():
+    x = fun2(fun1(2))
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({
+                     "FileWrite.StringLiteral.stdout",
+                }),
+                "fun2.line6": Pure(),
+                "fun3.line9": SimpleImpure({
+                    "FileWrite.StringLiteral.stdout",
                 }),
             },
         ),
@@ -911,6 +941,7 @@ fun1(1)(2)(3)
         "Different Reasons for Impurity",
         "Impure Write to Local and Global",
         "Call of Function with function as return",
+        "Call within a call",
         # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods, class instantiation?
     ],
 )
@@ -981,11 +1012,13 @@ def fun1():
     fun()
 
 def import_fun(file: str, f_name: str) -> Callable:
-    pass
+    print("test")
             """,  # language=none
             {
-
-            },
+                'fun1.line4': SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                            "UnknownCall.StringLiteral.fun"}),
+                'import_fun.line8': SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+             }
         ),
     ],
     ids=[

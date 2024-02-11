@@ -27,6 +27,8 @@ from library_analyzer.processing.api.purity_analysis.model import (
 )
 from library_analyzer.utils import ASTWalker
 
+_ComprehensionType = astroid.ListComp | astroid.DictComp | astroid.SetComp | astroid.GeneratorExp
+
 
 @dataclass
 class ModuleDataBuilder:
@@ -86,14 +88,17 @@ class ModuleDataBuilder:
     global_variables: dict[str, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope | FunctionScope, list[astroid.AssignName]]] = field(
         default_factory=dict,
-    )  # TODO: remove parameters since they are stored inside the FunctionScope in functions now
+    )  # TODO: [LATER] in a refactor:  remove parameters since they are stored inside the FunctionScope in functions now and use these instead
     function_calls: dict[astroid.Call, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
     function_references: dict[NodeID, Reasons] = field(default_factory=dict)  # TODO: rename to raw_reasons?
+    last_function_def: list[FunctionScope] = field(default_factory=list)
+
 
     def get_function_values(self, function_name: str) -> dict[str, set[Symbol]]:
         """Get all value nodes that are used inside the function body."""
         values = {}
         if function_name in self.functions:
+            # TODO: [0] might be problematic for multiple functions with the same name - check that
             for val in self.functions[function_name][0].values:
                 if isinstance(val.symbol.node, MemberAccessValue):
                     key = val.symbol.node.name
@@ -107,7 +112,7 @@ class ModuleDataBuilder:
 
         return values
 
-    def _detect_scope(self, node: astroid.NodeNG) -> None:
+    def _detect_scope(self, current_node: astroid.NodeNG) -> None:
         """
         Detect the scope of the given node.
 
@@ -119,15 +124,14 @@ class ModuleDataBuilder:
 
         Parameters
         ----------
-        node : astroid.NodeNG
+        current_node : astroid.NodeNG
             The node whose scope is to be determined.
         """
-        current_scope = node
         outer_scope_children: list[Scope | ClassScope] = []
         inner_scope_children: list[Scope | ClassScope] = []
         # This is only the case when we leave the module: every child must be in the inner scope(=module scope)
         # This speeds up the process of finding the scope of the children and guarantees that no child is lost
-        if isinstance(node, astroid.Module):
+        if isinstance(current_node, astroid.Module):
             inner_scope_children = self.children
 
             # add all symbols of a function to the function_references dict
@@ -137,7 +141,7 @@ class ModuleDataBuilder:
         else:
             for child in self.children:
                 if (
-                    child.parent is not None and child.parent.symbol.node != current_scope
+                    child.parent is not None and child.parent.symbol.node != current_node
                 ):  # Check if the child is in the scope of the current node
                     outer_scope_children.append(child)  # Add the child to the outer scope
                 else:
@@ -147,9 +151,9 @@ class ModuleDataBuilder:
         self.children = outer_scope_children  # Keep the children that are not in the scope of the current node
         self.children.append(self.current_node_stack[-1])  # Add the current node to the children
         # TODO: refactor this to a separate function
-        if isinstance(node, astroid.ClassDef):
+        if isinstance(current_node, astroid.ClassDef):
             # Add classdef to the classes dict
-            self.classes[node.name] = self.current_node_stack[-1]  # type: ignore[assignment] # we can ignore the linter error because of the if statement above
+            self.classes[current_node.name] = self.current_node_stack[-1]  # type: ignore[assignment] # we can ignore the linter error because of the if statement above
 
             # Add class variables to the class_variables dict
             for child in self.current_node_stack[-1].children:
@@ -160,39 +164,39 @@ class ModuleDataBuilder:
                         self.current_node_stack[-1].class_variables[child.symbol.name] = [child.symbol]
         # TODO: refactor this to a separate function
         # Add functions to the functions dict
-        if isinstance(node, astroid.FunctionDef):
+        if isinstance(current_node, astroid.FunctionDef):
             # Extend the dict of functions with the current node or create a new list with the current node
-            if node.name in self.functions:
+            if current_node.name in self.functions:
                 if isinstance(
                     self.current_node_stack[-1],
                     FunctionScope,
                 ):  # only add the current node if it is a function
-                    self.functions[node.name].append(self.current_node_stack[-1])
+                    self.functions[current_node.name].append(self.current_node_stack[-1])
             else:  # noqa: PLR5501 # better for readability
                 if isinstance(self.current_node_stack[-1], FunctionScope):  # better for readability
-                    self.functions[node.name] = [self.current_node_stack[-1]]
+                    self.functions[current_node.name] = [self.current_node_stack[-1]]
 
             # If we deal with a constructor, we need to analyze it to find the instance variables of the class
-            if node.name == "__init__":
+            if current_node.name == "__init__":
                 self._analyze_constructor()
 
             # Add all values that are used inside the function body to its values' list
             if self.names:
-                self.functions[node.name][-1].values.extend(self.names)
+                self.functions[current_node.name][-1].values.extend([name for name in self.names if name.parent.symbol.node == current_node])
                 self.names = []
 
             # Add all calls that are used inside the function body to its calls' list
             if self.calls:
-                self.functions[node.name][-1].calls = self.calls
+                self.functions[current_node.name][-1].calls = self.calls
                 self.calls = []
 
         # Add lambda functions that are assigned to a name (and therefor are callable) to the functions dict
-        if isinstance(node, astroid.Lambda) and isinstance(node.parent, astroid.Assign):
+        if isinstance(current_node, astroid.Lambda) and isinstance(current_node.parent, astroid.Assign):
             # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
-            if isinstance(node.parent.targets[0], astroid.AssignAttr):
-                node_name = node.parent.targets[0].attrname
+            if isinstance(current_node.parent.targets[0], astroid.AssignAttr):
+                node_name = current_node.parent.targets[0].attrname
             else:
-                node_name = node.parent.targets[0].name
+                node_name = current_node.parent.targets[0].name
             # If the Lambda function is assigned to a name, it can be called just as a normal function
             # Since Lambdas normally do not have names, we need to add its assigned name manually
             self.current_node_stack[-1].symbol.name = node_name
@@ -209,7 +213,7 @@ class ModuleDataBuilder:
 
             # Add all values that are used inside the function body to its values' list
             if self.names:
-                self.functions[node_name][-1].values.extend(self.names)
+                self.functions[node_name][-1].values.extend([name for name in self.names if name.parent.symbol.node == current_node])
                 self.names = []
 
             # Add all calls that are used inside the function body to its calls' list
@@ -223,27 +227,37 @@ class ModuleDataBuilder:
         # would be irrelevant for function purity anyway). Anyway, all names in the lambda function are of local
         # scope. Therefore, we assign a FunctionScope instance with the name 'Lambda' to represent that.
         if (
-            isinstance(node, astroid.Lambda)
-            and not isinstance(node, astroid.FunctionDef)
-            and isinstance(node.parent, astroid.Call | astroid.Expr)  # Call deals  with: (lambda x: x+1)(2) and Expr deals with: lambda x: x+1
+            isinstance(current_node, astroid.Lambda)
+            and not isinstance(current_node, astroid.FunctionDef)
+            and isinstance(current_node.parent, astroid.Call | astroid.Expr)  # Call deals  with: (lambda x: x+1)(2) and Expr deals with: lambda x: x+1
         ):
             # Add all values that are used inside the lambda body to its parent function values' list
             if self.names and isinstance(self.current_node_stack[-2], FunctionScope):
-                self.current_node_stack[-2].values = self.names
-                self.names = []
-            # Only add the values to the Lambda FunctionScope
-            elif self.names and isinstance(self.current_node_stack[-1], FunctionScope) and isinstance(self.current_node_stack[-1].symbol.node, astroid.Lambda):
-                self.current_node_stack[-1].values = self.names
-                self.names = []
+                self.current_node_stack[-2].values.extend([name for name in self.names if name.parent.symbol.node == current_node and name.symbol.name not in self.current_node_stack[-1].parameters])
+
+            # Add the values to the Lambda FunctionScope
+            if self.names and isinstance(self.current_node_stack[-1], FunctionScope) and isinstance(self.current_node_stack[-1].symbol.node, astroid.Lambda):
+                self.current_node_stack[-1].values.extend([name for name in self.names if name.parent.symbol.node == current_node])
+            self.names = []
 
             # Add all calls that are used inside the lambda body to its parent function calls' list
             if self.calls and isinstance(self.current_node_stack[-2], FunctionScope):
                 self.current_node_stack[-2].calls = self.calls
-                self.calls = []
-            # Only add the calls to the Lambda FunctionScope
-            elif self.calls and isinstance(self.current_node_stack[-1], FunctionScope) and isinstance(self.current_node_stack[-1].symbol.node, astroid.Lambda):
+
+            # Add the calls to the Lambda FunctionScope
+            if self.calls and isinstance(self.current_node_stack[-1], FunctionScope) and isinstance(self.current_node_stack[-1].symbol.node, astroid.Lambda):
                 self.current_node_stack[-1].calls = self.calls
-                self.calls = []
+            self.calls = []
+
+            # Add all globals that are used inside the Lambda to the parent function globals' list
+            if self.current_node_stack[-1].globals:
+                for glob_name, glob_def_list in self.current_node_stack[-1].globals.items():
+                    if glob_name not in self.last_function_def[-2].globals:
+                        self.last_function_def[-2].globals[glob_name] = glob_def_list
+                    else:
+                        for glob_def in glob_def_list:
+                            if glob_def not in self.last_function_def[-2].globals[glob_name]:
+                                self.last_function_def[-2].globals[glob_name].append(glob_def)
 
         self.current_node_stack.pop()  # Remove the current node from the stack
 
@@ -279,7 +293,7 @@ class ModuleDataBuilder:
             If the parent is a module, return the module.
         """
         # TODO: does this work with Lambdas as well?
-        if isinstance(node.parent, astroid.FunctionDef | astroid.Module | None):
+        if isinstance(node.parent, astroid.FunctionDef | astroid.Lambda | astroid.Module | None):
             return node.parent
         return self.find_first_parent_function(node.parent)
 
@@ -503,9 +517,25 @@ class ModuleDataBuilder:
                 _parent=self.current_node_stack[-1],
             ),
         )
+        self.last_function_def.append(self.current_node_stack[-1])
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
         self._detect_scope(node)
+        # self.cleanup_globals(self.last_function_def[-1])
+        self.last_function_def.pop()
+
+    @staticmethod
+    def cleanup_globals(function_scope: FunctionScope) -> None:
+        """Remove all global variables that are shadowed by local variables.
+
+        This function is called after the ASTWalker has walked all children of a function def and all their scopes are determined.
+        It removes all global variables from the globals dict that are shadowed by local variables.
+        """
+        if not isinstance(function_scope, FunctionScope) or not function_scope.globals:
+            return
+        for glob_name in function_scope.globals.copy():
+            if glob_name in [child.symbol.name for child in function_scope.children if isinstance(child.symbol, LocalVariable)]:
+                del function_scope.globals[glob_name]
 
     def get_symbol(self, node: astroid.NodeNG, current_scope: astroid.NodeNG | None) -> Symbol:
         """Get the symbol of a node.
@@ -559,7 +589,7 @@ class ModuleDataBuilder:
                                 )
                 if isinstance(
                     node,
-                    astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally,
+                    _ComprehensionType | astroid.Lambda | astroid.TryExcept | astroid.TryFinally,
                 ) and not isinstance(node, astroid.FunctionDef):
                     return GlobalVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__)
                 return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
@@ -570,7 +600,7 @@ class ModuleDataBuilder:
                 #     return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
                 if isinstance(
                     node,
-                    astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally,
+                    _ComprehensionType | astroid.Lambda | astroid.TryExcept | astroid.TryFinally,
                 ) and not isinstance(node, astroid.FunctionDef):
                     return ClassVariable(
                         node=node,
@@ -604,10 +634,11 @@ class ModuleDataBuilder:
                     return Parameter(node=node, id=calc_node_id(node), name=node.name)
 
                 # Special cases for nodes inside functions that we defined as LocalVariables but which do not have a name
-                if isinstance(node, astroid.ListComp | astroid.Lambda | astroid.TryExcept | astroid.TryFinally):
+                if isinstance(node, _ComprehensionType | astroid.Lambda | astroid.TryExcept | astroid.TryFinally):
                     return LocalVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__)
 
                 if isinstance(node, astroid.Name | astroid.AssignName) and node.name in self.global_variables:
+                    # TODO: detect the case where a global variable is shadowed in the function scope as LocalVariable
                     return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
 
                 if isinstance(node, astroid.Call):
@@ -618,7 +649,7 @@ class ModuleDataBuilder:
 
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
-            case astroid.Lambda() | astroid.ListComp():
+            case astroid.Lambda() | astroid.ListComp() | astroid.DictComp() | astroid.SetComp() | astroid.GeneratorExp():
                 if isinstance(node, astroid.Call):
                     # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
                     if isinstance(node.func, astroid.Attribute):
@@ -627,6 +658,9 @@ class ModuleDataBuilder:
                 # This deals with the case where a lambda function has parameters
                 if isinstance(node, astroid.AssignName) and isinstance(node.parent, astroid.Arguments):
                     return Parameter(node=node, id=calc_node_id(node), name=node.name)
+                # This deals with global variables that are used inside a lambda
+                if isinstance(node, astroid.AssignName) and node.name in self.global_variables:
+                    return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
             case (
@@ -645,9 +679,11 @@ class ModuleDataBuilder:
                 _parent=self.current_node_stack[-1],
             ),
         )
+        self.last_function_def.append(self.current_node_stack[-1])
 
     def leave_lambda(self, node: astroid.Lambda) -> None:
         self._detect_scope(node)
+        self.last_function_def.pop()
 
     def enter_listcomp(self, node: astroid.ListComp) -> None:
         self.current_node_stack.append(
@@ -659,6 +695,42 @@ class ModuleDataBuilder:
         )
 
     def leave_listcomp(self, node: astroid.ListComp) -> None:
+        self._detect_scope(node)
+
+    def enter_dictcomp(self, node: astroid.DictComp) -> None:
+        self.current_node_stack.append(
+            Scope(
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                _children=[],
+                _parent=self.current_node_stack[-1],
+            ),
+        )
+
+    def leave_dictcomp(self, node: astroid.DictComp) -> None:
+        self._detect_scope(node)
+
+    def enter_setcomp(self, node: astroid.SetComp) -> None:
+        self.current_node_stack.append(
+            Scope(
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                _children=[],
+                _parent=self.current_node_stack[-1],
+            ),
+        )
+
+    def leave_setcomp(self, node: astroid.SetComp) -> None:
+        self._detect_scope(node)
+
+    def enter_generatorexp(self, node: astroid.GeneratorExp) -> None:
+        self.current_node_stack.append(
+            Scope(
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                _children=[],
+                _parent=self.current_node_stack[-1],
+            ),
+        )
+
+    def leave_generatorexp(self, node: astroid.DictComp) -> None:
         self._detect_scope(node)
 
     # def enter_tryfinally(self, node: astroid.TryFinally) -> None:
@@ -780,17 +852,48 @@ class ModuleDataBuilder:
             # Append a node only then when it is not the name node of the function
             self.value_nodes[node] = self.current_node_stack[-1]
 
-        # func_def = self.find_first_parent_function(node)
-        # if isinstance(func_def, astroid.FunctionDef | astroid.Lambda):
-        if isinstance(node.parent.parent, astroid.FunctionDef | astroid.Lambda):
-            # TODO: this is wrong, because not all value nodes are directly used in a functions body, but rather in a nested expression
-            #  Write testcases to determine how bad this problem is!
-            # We ignore self and cls because they are not relevant for purity by our means
-            if node.name in ("self", "cls"):
+        # idee: hole die letzte function def vom stack und füge alle namen hinzu
+        # mache eine ausnahme für den fall, dass der current_node_stack[-1] ein Scope ist, dass einen lokalen Scope definiert:
+        # TODO: dazu zählen ListComp, Lambda, TryExcept??, TryFinally??
+
+        func_def = self.find_first_parent_function(node)
+
+        if self.last_function_def and func_def == self.last_function_def[-1].symbol.node:
+            # Exclude propagation to a function scope if we deal with a scope within that function that defined a local scope itself
+            # e.g. ListComp, SetComp, DictComp, GeneratorExp
+            # Except the name node is a global variable
+            if isinstance(self.current_node_stack[-1].symbol.node, _ComprehensionType) and node.name not in self.global_variables:
                 return
-            # AnnAssign removes inline type hints
-            if isinstance(node.parent, astroid.AnnAssign):
-                return
+
+            # Deal with some special cases that need to be excluded
+            if isinstance(node, astroid.Name):
+                # We ignore self and cls because they are not relevant for purity by our means
+                if node.name in ("self", "cls"):
+                    return
+
+                # Call removes the function name
+                if isinstance(node.parent, astroid.Call):
+                    if isinstance(node.parent.func, astroid.Attribute):
+                        if node.parent.func.attrname == node.name:
+                            return
+                    elif isinstance(node.parent.func, astroid.Name):
+                        if node.parent.func.name == node.name:
+                            return
+
+                # Check if the Name belongs to a type hint
+                if self.is_annotated(node, False):
+                    return
+
+            # deal with the same things for member accesses
+            elif isinstance(node, MemberAccessValue):
+                # We ignore self and cls because they are not relevant for purity by our means.
+                top_receiver = node.get_top_level_receiver()
+                if top_receiver in ("self", "cls"):
+                    return
+                if isinstance(top_receiver.parent.parent, astroid.Arguments):
+                    return
+                print("ALARM MEMBER", node)
+                pass
 
             parent = self.current_node_stack[-1]
             name_node = Scope(
@@ -798,7 +901,59 @@ class ModuleDataBuilder:
                 _children=[],
                 _parent=parent,
             )
-            self.names.append(name_node)
+            if name_node not in self.names:
+                self.names.append(name_node)
+
+            # Add the name to the globals list of the surrounding function if it is a variable of global scope
+            global_node_defs = self.check_if_global(node.name, node)
+            if global_node_defs:
+                # It is possible that a variable has more than one global assignment
+                # (particularly in cases where the variable is depending on a condition.
+                # Since we do not check if those are met, we add them all)
+                for global_node_def in global_node_defs:
+                    # Propagate global variables in Comprehension type to the surrounding function if it is a global variable
+                    if isinstance(global_node_def, astroid.AssignName) and (isinstance(self.current_node_stack[-1], FunctionScope) or isinstance(self.current_node_stack[-1].symbol.node, _ComprehensionType | astroid.Lambda)):
+                        # Create a new dict entry for a global variable (by name)
+                        if node.name not in self.last_function_def[-1].globals:
+                            symbol = self.get_symbol(global_node_def, self.last_function_def[-1].symbol.node)
+                            if isinstance(symbol, GlobalVariable):
+                                self.last_function_def[-1].globals[node.name] = [symbol]
+                        # If the name of the global variable already exists, add the new declaration to the list (redeclaration)
+                        else:
+                            symbol = self.get_symbol(global_node_def, self.last_function_def[-1].symbol.node)
+                            if symbol not in self.last_function_def[-1].globals[node.name] and isinstance(symbol, GlobalVariable):
+                                self.last_function_def[-1].globals[node.name].append(symbol)
+
+
+    def is_annotated(self, node: astroid.NodeNG, found_annotation_node: bool) -> bool:
+        """Check if the Name node is a type hint.
+
+        Parameters
+        ----------
+        node : astroid.Name
+            The node to check.
+        found_annotation_node : bool
+            A bool that indicates if an annotation node is found.
+
+        Returns
+        -------
+        bool
+            True if the node is a type hint, False otherwise.
+        """
+        # Condition that checks if an annotation node is found.
+        # This can be extended by all nodes indicating a type hint.
+        if isinstance(node, astroid.Arguments | astroid.AnnAssign):
+            found_annotation_node = True
+
+        # Return the current bool if an assignment node is found.
+        # This is the case when there are no more nested nodes that could contain a type hint property.
+        if isinstance(node, astroid.Assign) or found_annotation_node:
+            return found_annotation_node
+
+        elif node.parent is not None:
+            found_annotation_node = self.is_annotated(node.parent, found_annotation_node)
+            if isinstance(node, astroid.Assign) or found_annotation_node:
+                return found_annotation_node
 
     def enter_assignname(self, node: astroid.AssignName) -> None:
         # We do not want lambda assignments to be added to the target_nodes dict because they are handled as functions
@@ -853,7 +1008,7 @@ class ModuleDataBuilder:
             self.children.append(scope_node)
 
             # Detect global assignments and add them to the global_variables dict
-            if isinstance(node.parent.parent, astroid.Module) and node.name in node.parent.parent.globals:
+            if isinstance(node.root(), astroid.Module) and node.name in node.root().globals:
                 self.global_variables[node.name] = scope_node
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
@@ -924,9 +1079,26 @@ class ModuleDataBuilder:
         return False
 
     def enter_global(self, node: astroid.Global) -> None:
+        """Enter a global node.
+
+        Global nodes are used to declare global variables inside a function.
+        We will collect all these global variable usages and add them to the globals dict of that FunctionScope
+        """
         for name in node.names:
-            if self.check_if_global(name, node):
-                self.global_variables[name] = self.current_node_stack[-1]
+            global_node_defs = self.check_if_global(name, node)
+            if global_node_defs:
+                # It is possible that a variable has more than one global assignment
+                # (particularly in cases where the variable is depending on a condition.
+                # Since we do not check if those are met, we add them all)
+                for global_node_def in global_node_defs:
+                    if (isinstance(global_node_def, astroid.AssignName) and
+                       isinstance(self.current_node_stack[-1], FunctionScope)):
+                        symbol = self.get_symbol(global_node_def, self.current_node_stack[-1].symbol.node)
+                        if isinstance(symbol, GlobalVariable):
+                            if name not in self.current_node_stack[-1].globals:
+                                self.current_node_stack[-1].globals[name] = [symbol]
+                            else:
+                                self.current_node_stack[-1].globals[name].append(symbol)
 
     def enter_call(self, node: astroid.Call) -> None:
         if isinstance(node.func, astroid.Name | astroid.Attribute):
@@ -940,6 +1112,16 @@ class ModuleDataBuilder:
                     _parent=self.current_node_stack[-1],
                 )
                 self.calls.append(call_node)
+            else:
+                # Add the call node to the calls of the last function definition to ensure it is considered in the call graph
+                # since it would otherwise be lost in the (local) Scope of the Comprehension
+                if isinstance(self.current_node_stack[-1].symbol.node, _ComprehensionType) and self.last_function_def:
+                    call_node = Scope(
+                        _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                        _children=[],
+                        _parent=self.current_node_stack[-1],
+                    )
+                    self.last_function_def[-1].calls.append(call_node)
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
@@ -959,11 +1141,14 @@ class ModuleDataBuilder:
         )
         self.children.append(scope_node)
 
-    def check_if_global(self, name: str, node: astroid.NodeNG) -> bool:
+    # TODO: this lookup could be more efficient if we would add all global nodes to the dict when 'enter_module' is called
+    #  we than can be sure that all globals are detected already and we do not need to traverse the tree
+    def check_if_global(self, name: str, node: astroid.NodeNG) -> list[astroid.AssignName] | None:
         """
         Check if a name is a global variable.
 
         Checks if a name is a global variable inside the root of the given node
+        and return its assignment node if it is a global variable.
 
         Parameters
         ----------
@@ -974,14 +1159,14 @@ class ModuleDataBuilder:
 
         Returns
         -------
-        bool
-            True if the name is a global variable, False otherwise.
+        astroid.AssignName | None
+            The symbol of the global variable if it exists, None otherwise.
         """
         if not isinstance(node, astroid.Module):
             return self.check_if_global(name, node.parent)
         elif isinstance(node, astroid.Module) and name in node.globals:
-            return True
-        return False
+            return node.globals[name]
+        return None
 
     def find_base_classes(self, node: astroid.ClassDef) -> list[ClassScope]:
         """Find a list of all base classes of the given class.

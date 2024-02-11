@@ -84,11 +84,16 @@ class SimpleFunctionScope(SimpleScope):
         The list of value nodes used in the function as string.
     calls : list[str]
         The list of call nodes used in the function as string.
+    parameters : list[str]
+        The list of parameter nodes used in the function as string.
+    globals : list[str]
+        The list of global nodes used in the function as string.
     """
 
     values: list[str]
     calls: list[str]
     parameters: list[str] = field(default_factory=list)
+    globals: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -188,12 +193,16 @@ def transform_scope_node(
             values_transformed = []
             calls_transformed = []
             parameters_transformed = []
+            globals_transformed = []
             for value in node.values:
                 values_transformed.append(to_string_func(value.symbol.node))
             for call in node.calls:
                 calls_transformed.append(to_string_func(call.symbol.node))
             for parameter in node.parameters.values():
                 parameters_transformed.append(to_string_func(parameter.node))
+            for globs in node.globals.values():
+                for g in globs:
+                    globals_transformed.append(to_string_func(g.node))
 
             return SimpleFunctionScope(
                 to_string(node.symbol),
@@ -201,6 +210,7 @@ def transform_scope_node(
                 values_transformed,
                 calls_transformed,
                 parameters_transformed,
+                globals_transformed,
             )
 
         return SimpleScope(to_string(node.symbol), [transform_scope_node(child) for child in node.children])
@@ -238,7 +248,7 @@ def to_string(symbol: Symbol) -> str:
         return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.modname}.{symbol.node.names[0][0]}"  # TODO: handle multiple imports and aliases
     elif isinstance(symbol.node, astroid.Name):
         return f"{symbol.__class__.__name__}.{symbol.node.__class__.__name__}.{symbol.node.name}"
-    elif isinstance(symbol.node, astroid.ListComp | astroid.TryExcept | astroid.TryFinally | astroid.With):
+    elif isinstance(symbol.node, astroid.ListComp | astroid.SetComp | astroid.DictComp | astroid.GeneratorExp | astroid.TryExcept | astroid.TryFinally | astroid.With):
         return f"{symbol.node.__class__.__name__}"
     elif isinstance(symbol.node, astroid.Lambda):
         if symbol.name != "Lambda":
@@ -259,13 +269,13 @@ def to_string_class(node: astroid.NodeNG | ClassScope) -> str | None:
     -------
     str | None
         The transformed NodeNG or ClassScope instance as string.
-        None if the node is a Lambda, TryExcept, TryFinally or ListComp instance.
+        None if the node is a Lambda, TryExcept, TryFinally or a Comprehension instance.
     """
     if isinstance(node, astroid.AssignAttr):
         return f"{node.__class__.__name__}.{node.attrname}"
     elif isinstance(node, astroid.AssignName | astroid.FunctionDef | astroid.ClassDef):
         return f"{node.__class__.__name__}.{node.name}"
-    elif isinstance(node, astroid.Lambda | astroid.TryExcept | astroid.TryFinally | astroid.ListComp):
+    elif isinstance(node, astroid.Lambda | astroid.TryExcept | astroid.TryFinally | astroid.ListComp | astroid.SetComp | astroid.DictComp | astroid.GeneratorExp):
         return None
     elif isinstance(node, ClassScope):
         return f"{node.symbol.node.__class__.__name__}.{node.symbol.node.name}"
@@ -599,7 +609,9 @@ def function_scope():
                             "GlobalVariable.FunctionDef.function_scope",
                             [SimpleScope("LocalVariable.AssignName.res", [])],
                             ["Name.var1", "Name.res"],
-                            []
+                            [],
+                            [],
+                            ["AssignName.var1"],
                         ),
                     ],
                 ),
@@ -624,7 +636,9 @@ def function_scope():
                             "GlobalVariable.FunctionDef.function_scope",
                             [SimpleScope("LocalVariable.AssignName.res", [])],
                             ["Name.var1", "Name.var2", "Name.res"],
-                            []
+                            [],
+                            [],
+                            ["AssignName.var1", "AssignName.var2"],
                         ),
                     ],
                 ),
@@ -677,7 +691,7 @@ class A:
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("LocalVariable.AssignName.var1", []),
                                     ],
-                                    ["MemberAccessValue.A.class_attr1", "Name.var1"],
+                                    ["MemberAccessValue.A.class_attr1", "Name.A", "Name.var1"],
                                     [],
                                 ),
                             ],
@@ -1058,7 +1072,7 @@ class ASTWalker:
                                         SimpleScope("Parameter.AssignName.node", []),
                                     ],
                                     ["Name.node"],
-                                    ["Call.__walk"],
+                                    ["Call.__walk", "Call.set"],
                                     ["AssignName.node"]
                                 ),
                                 SimpleFunctionScope(
@@ -1110,7 +1124,7 @@ class ASTWalker:
                                         SimpleScope("LocalVariable.AssignName.leave_method", []),
                                     ],
                                     ["Name.node", "MemberAccessValue.node.__class__", "Name.klass", "Name.methods",
-                                     "MemberAccessVaalue.self._handler", "Name.handler", "Name.class_name",
+                                     "MemberAccessValue.self._handler", "Name.handler", "Name.class_name",
                                      "Name.enter_method", "Name.leave_method"],
                                     ["Call.get", "Call.lower", "Call.getattr"],
                                     ["AssignName.node"]
@@ -1205,6 +1219,37 @@ def fun():
                 ),
             ],
         ),
+        (  # language=Python "Dict Comprehension in Module"
+            """
+nums = [1, 2, 3, 4]
+{num: num*num for num in nums}
+            """,  # language=none
+            [SimpleScope("Module",
+                         [
+                             SimpleScope("GlobalVariable.AssignName.nums", []),
+                             SimpleScope("DictComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
+                         ])],
+        ),
+        (  # language=Python "Set Comprehension in Module"
+            """
+nums = [1, 2, 3, 4]
+{num*num for num in nums if num % 2 == 0}
+            """,  # language=none
+            [SimpleScope("Module",
+                         [
+                             SimpleScope("GlobalVariable.AssignName.nums", []),
+                             SimpleScope("SetComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
+                         ])],
+        ),
+        (  # language=Python "Generator Expression in Module"
+            """
+(num*num for num in range(10))
+            """,  # language=none
+            [SimpleScope("Module",
+                         [
+                             SimpleScope("GeneratorExp", [SimpleScope("LocalVariable.AssignName.num", [])]),
+                         ])],
+        ),
         (  # language=Python "With Statement"
             """
 file = "file.txt"
@@ -1252,7 +1297,7 @@ def fun():
                                 SimpleScope("LocalVariable.AssignName.f", []),
                                 SimpleScope("LocalVariable.AssignName.text", []),
                             ],
-                            [],
+                            ["Name.f", "Name.text"],
                             ["Call.open", "Call.read", "Call.print", "Call.close"],
                         ),
                     ],
@@ -1378,6 +1423,9 @@ double = lambda x: 2 * x
         "List Comprehension in Module",
         "List Comprehension in Class",
         "List Comprehension in Function",
+        "Dict Comprehension in Module",
+        "Set Comprehension in Module",
+        "Generator Expression in Module",
         "With Statement",
         "With Statement File",
         "With Statement Function",
@@ -1385,7 +1433,7 @@ double = lambda x: 2 * x
         "Lambda",
         "Lambda call",
         "Lambda with name",
-    ],  # TODO: add tests for match, try except and generator expressions
+    ],  # TODO: add tests for match, try except
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
     scope = get_module_data(code).scope
@@ -1741,6 +1789,43 @@ def f(a, b):
                                           )]
             }
         ),
+        (  # language=Python "Function with value in call"
+            """
+def f(a):
+    print(a)
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f",
+                                          [
+                                              SimpleScope("Parameter.AssignName.a", []),
+                                          ],
+                                          ["Name.a"],
+                                          ["Call.print"],
+                                          ["AssignName.a"]
+                                          )]
+            }
+        ),
+        (  # language=Python "Function with value in loop"
+            """
+def f(a):
+    for i in range(10):
+        pass
+
+    while a:
+        pass
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f",
+                                          [
+                                              SimpleScope("Parameter.AssignName.a", []),
+                                              SimpleScope("LocalVariable.AssignName.i", [])
+                                          ],
+                                          ["Name.a"],
+                                          ["Call.range"],
+                                          ["AssignName.a"]
+                                          )]
+            }
+        ),
         (  # language=Python "Function with call"
             """
 def f():
@@ -1763,6 +1848,190 @@ def f():
                       SimpleFunctionScope("GlobalVariable.FunctionDef.f", [], [], [])]
             }
         ),
+        (  # language=Python "Function with reassignment of global variable"
+            """
+a = True
+if a:
+    var1 = 10
+else:
+    var1 = 20
+
+def f():
+    global var1
+    print(var1)
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f",
+                                          [],
+                                          ["Name.var1"],
+                                          ["Call.print"],
+                                          [],
+                                          ["AssignName.var1", "AssignName.var1"])]
+            }
+        ),
+        (  # language=Python "Functions with different uses of globals"
+            """
+var1, var2 = 10, 20
+
+def f():
+    global var1
+
+def g():
+    global var1, var2
+
+def h():
+    for i in range(var1):
+        global var2
+        pass
+
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [], [], [], [], ["AssignName.var1"])],
+                "g": [SimpleFunctionScope("GlobalVariable.FunctionDef.g", [], [], [], [], ["AssignName.var1", "AssignName.var2"])],
+                "h": [SimpleFunctionScope("GlobalVariable.FunctionDef.h", [SimpleScope("LocalVariable.AssignName.i", [])], ["Name.var1"], ["Call.range"], [], ["AssignName.var1", "AssignName.var2"])]
+            }
+        ),
+        (  # language=Python "Function with shadowing of global variable"
+            """
+var1 = 10
+
+def f():
+    var1 = 1  # this is not a global variable  # TODO: add detection for shadowing of global variables
+    for i in range(var1):
+        pass
+
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f",
+                                          [
+                                              SimpleScope("LocalVariable.AssignName.var1", []),
+                                              SimpleScope("LocalVariable.AssignName.i", [])
+                                          ],
+                                          ["Name.var1"],
+                                          ["Call.range"],
+                                          [],
+                                          [])]
+            }
+        ),
+        (  # language=Python "Function with List Comprehension with global"
+            """
+nums = ["aaa", "bb", "ase"]
+
+def f():
+    global nums
+    x = [len(num) for num in nums]
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope(
+                            "GlobalVariable.FunctionDef.f",
+                            [
+                                SimpleScope("LocalVariable.AssignName.x", []),
+                                SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
+                            ],
+                            [],
+                            ["Call.len"],
+                            [],
+                            ["AssignName.nums"]
+                        )]
+            }
+        ),
+        (  # language=Python "Function with List Comprehension with global and condition"
+            """
+nums = ["aaa", "bb", "ase"]
+var1 = 10
+
+def f():
+    global nums, var1
+    x = [len(num) for num in nums if var1 > 10]
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope(
+                            "GlobalVariable.FunctionDef.f",
+                            [
+                                SimpleScope("LocalVariable.AssignName.x", []),
+                                SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
+                            ],
+                            [],
+                            ["Call.len"],
+                            [],
+                            ["AssignName.nums", "AssignName.var1"]
+                        )]
+            }
+        ),
+        (  # language=Python "Function with List Comprehension without global"
+            """
+nums = ["aaa", "bb", "ase"]
+
+def f():
+    x = [len(num) for num in nums]  # TODO: LARS what about this
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope(
+                    "GlobalVariable.FunctionDef.f",
+                    [
+                        SimpleScope("LocalVariable.AssignName.x", []),
+                        SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
+                    ],
+                    [],
+                    ["Call.len"],
+                    [],
+                    ["AssignName.nums"]
+                )]
+            }
+        ),
+        (  # language=Python "Function with Lambda with global"
+            """
+var1 = 1
+
+def f():
+    global var1
+    return (lambda y: var1 + y)(4)
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope(
+                    "GlobalVariable.FunctionDef.f",
+                    [
+                        SimpleFunctionScope("LocalVariable.Lambda",
+                                            [SimpleScope("Parameter.AssignName.y", [])],
+                                            ["Name.var1", "Name.y"],
+                                            [],
+                                            ["AssignName.y"],
+                                            ["AssignName.var1"]
+                                            ),
+                    ],
+                    ["Name.var1"],
+                    [],
+                    [],
+                    ["AssignName.var1"]
+                )]
+            }
+        ),
+        (  # language=Python "Function with Lambda without global"
+            """
+var1 = 1
+
+def f():
+    return (lambda y: var1 + y)(4) # TODO: LARS what about this
+            """,  # language=none
+            {
+                "f": [SimpleFunctionScope(
+                    "GlobalVariable.FunctionDef.f",
+                    [
+                        SimpleFunctionScope("LocalVariable.Lambda",
+                                            [SimpleScope("Parameter.AssignName.y", [])],
+                                            ["Name.var1", "Name.y"],
+                                            [],
+                                            ["AssignName.y"],
+                                            ["AssignName.var1"]
+                                            ),
+                    ],
+                    ["Name.var1"],
+                    [],
+                    [],
+                    ["AssignName.var1"]
+                )]
+            }
+        ),
     ],
     ids=[
         "Trivial function",
@@ -1772,8 +2041,18 @@ def f():
         "Function with return",
         "Function with nested return",
         "Function with nested names",
+        "Function with value in call",
+        "Function with value in loop",
         "Function with call",
         "Function with same name",
+        "Function with reassignment of global variable",
+        "Functions with different uses of globals",
+        "Function with shadowing of global variable",
+        "Function with List Comprehension with global",
+        "Function with List Comprehension with global and condition",
+        "Function with List Comprehension without global",
+        "Function with Lambda with global",
+        "Function with Lambda without global",
     ]
 )
 def test_get_module_data_functions(code: str, expected: dict[str, list[str]]) -> None:
@@ -1801,7 +2080,7 @@ var1 = 10
             """,  # language=none
             {"var1"},
         ),
-        (  # language=Python "Multiple Variables on Module Scope"
+        (  # language=Python "Multiple variables on Module Scope single assignment"
             """
 var1 = 10
 var2 = 20
@@ -1809,11 +2088,33 @@ var3 = 30
             """,  # language=none
             {"var1", "var2", "var3"},
         ),
+        (  # language=Python "Multiple variables on Module Scope multiple assignment"
+            """
+var1, var2 = 10, 20
+            """,  # language=none
+            {"var1", "var2"},
+        ),
+        (  # language=Python "Multiple variables on Module Scope chained assignment"
+            """
+var1 = var2 = 10
+            """,  # language=none
+            {"var1", "var2"},
+        ),
+        (  # language=Python "Reassignment of variable on Module Scope"
+            """
+var1 = 1
+var1 = 2
+            """,  # language=none
+            {"var1"},
+        ),
     ],
     ids=[
         "No global variables",
         "Variable on Module Scope",
-        "Multiple Variables on Module Scope",
+        "Multiple variables on Module Scope single assignment",
+        "Multiple variables on Module Scope multiple assignment",
+        "Multiple variables on Module Scope chained assignment",
+        "Reassignment of variable on Module Scope"
     ]
 )
 def test_get_module_data_globals(code: str, expected: str) -> None:
@@ -2170,7 +2471,7 @@ def g():
     pass
 
 def f():
-    # global b  # TODO: [LATER] to detect this case, we need to collect the global statements on function level
+    global b
     a = 1  # LocaleWrite
     b = 2  # NonLocalVariableWrite
     a      # LocaleRead
@@ -2220,9 +2521,9 @@ def f():
                         SimpleFunctionReference("AssignName.c.line10", "NonLocalVariableWrite"),
                         SimpleFunctionReference("AssignName.b.line13", "NonLocalVariableWrite"),
                     },
-                    # {
-                    #     SimpleFunctionReference("Name.b.line7", "NonLocalVariableRead"),
-                    # }
+                    {
+                        SimpleFunctionReference("Name.b.line7", "NonLocalVariableRead"),
+                    }
                 ),
             },
         ),
@@ -2278,7 +2579,7 @@ def f2(x):
 
 def f3():
     global b
-    b.instance_attr1 = 10  # NonLocalVariableWrite
+    b.instance_attr1 = 10  # NonLocalVariableWrite  # TODO: LARS is this a global read of b? yes
 
 def g1():
     a = A()
@@ -2289,7 +2590,7 @@ def g2(x):
 
 def g3():
     global b
-    c = b.instance_attr1  # NonLocalVariableRead
+    c = b.instance_attr1  # NonLocalVariableRead  # TODO: LARS is this a global read of b? yes
             """,  # language=none
             {
                 ".__init__.3.4": SimpleReasons(
@@ -2483,13 +2784,13 @@ def f():
                 ".add.12.4": SimpleReasons(
                     "add",
                 ),
-                ".f.15.0": SimpleReasons(
+                ".f.16.0": SimpleReasons(
                     "f",
                     set(),
                     set(),
                     {
-                        SimpleFunctionReference("Call.add.line16", "Call"),
                         SimpleFunctionReference("Call.add.line17", "Call"),
+                        SimpleFunctionReference("Call.add.line18", "Call"),
                     }
                 )
             }

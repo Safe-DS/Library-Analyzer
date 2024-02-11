@@ -93,6 +93,18 @@ class MemberAccess(astroid.NodeNG):  # TODO: since this is a subclass it should 
         else:
             self.name = f"{self.receiver.name}.{self.member.name}"
 
+    def get_top_level_receiver(self) -> astroid.NodeNG:
+        """Get the top level receiver.
+
+        Returns
+        -------
+        astroid.NodeNG
+            The top level receiver.
+        """
+        if isinstance(self.receiver, MemberAccess):
+            return self.receiver.get_top_level_receiver()
+        return self.receiver
+
 
 @dataclass
 class MemberAccessTarget(MemberAccess):
@@ -387,12 +399,17 @@ class FunctionScope(Scope):
         The list of all value nodes used inside the corresponding function.
     calls : list[Scope | ClassScope]
         The list of all function calls inside the corresponding function.
+    parameters : dict[str, Parameter]
+        The parameters of the function.
+    globals : dict[str, GlobalVariable]
+        The global variables used inside the function.
+        It stores the globally assigned nodes (Assignment of the used variable).
     """
 
     values: list[Scope | ClassScope] = field(default_factory=list)
     calls: list[Scope | ClassScope] = field(default_factory=list)
     parameters: dict[str, Parameter] = field(default_factory=dict)
-    # TODO: globals
+    globals: dict[str, list[GlobalVariable]] = field(default_factory=dict)
 
     def remove_call_node_by_name(self, name: str) -> None:
         """Remove a call node by name.

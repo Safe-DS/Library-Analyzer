@@ -147,9 +147,8 @@ def _find_target_references(
             elif (
                 isinstance(current_target_reference.node, astroid.AssignName)
                 and ref.node.name == current_target_reference.node.name  # check if the name of the target matches
-                and ref.scope == current_target_reference.scope
-                # and (ref.scope == current_target_reference.scope or ref in current_target_reference.scope.globals) # check if the scope of the target matches
                 and not isinstance(current_target_reference.scope, ClassScope)  # check we deal with a function scope
+                and (ref.scope == current_target_reference.scope or ref.node.name in current_target_reference.scope.globals)  # check if the scope of the target matches
             ):
                 symbol_list = _get_symbols(ref)
                 all_targets_before_current_target_reference_nodes = [
