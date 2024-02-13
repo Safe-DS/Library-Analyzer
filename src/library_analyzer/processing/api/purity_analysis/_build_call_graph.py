@@ -85,7 +85,7 @@ def build_call_graph(
 
             # If the function calls other functions in its body, we need to build a tree
             else:
-                for call in function_scope.calls:
+                for call in function_scope.calls.values():
                     # Handle self defined function calls
                     if call.symbol.name in classes_and_functions:
                         # Check if any function def has the same name as the called function
@@ -276,7 +276,7 @@ def contract_cycle(
         other_calls = [
             call
             for node in cycle
-            for call in node.data.calls
+            for call in node.data.calls.values()
             if call.symbol.name not in cycle_names and call.symbol.name not in BUILTINS
         ]
         # Find all function definitions that match the other call names for each call
@@ -285,7 +285,7 @@ def contract_cycle(
             matching_function_defs[call.symbol.name] = [called_function for called_function in functions[call.symbol.name] if called_function.symbol.name == call.symbol.name]
 
         # Find all builtin calls
-        builtin_calls = [call for node in cycle for call in node.data.calls if call.symbol.name in BUILTINS]
+        builtin_calls = [call for node in cycle for call in node.data.calls.values() if call.symbol.name in BUILTINS]
 
         # Add the calls as well as the children of the function defs to the combined node
         combined_node_data.calls = other_calls + builtin_calls
@@ -335,7 +335,7 @@ def update_pointers(node: CallGraphNode, cycle_names: list[str], combined_node: 
             # Update data
             if isinstance(node.data, FunctionScope):
                 node.data.remove_call_node_by_name(child.data.symbol.name)
-                node.data.calls.append(combined_node.data)
+                node.data.calls.update({combined_node.data.symbol.name: combined_node.data})
             # Remove the call from the reasons (reasons need to be updated later)
             if isinstance(node.reasons, Reasons):
                 for call in node.reasons.calls.copy():

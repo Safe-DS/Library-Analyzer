@@ -194,9 +194,9 @@ def transform_scope_node(
             calls_transformed = []
             parameters_transformed = []
             globals_transformed = []
-            for value in node.values:
-                values_transformed.append(to_string_func(value.symbol.node))
-            for call in node.calls:
+            for value in node.values.values():
+                values_transformed.append(to_string_func(value.node))
+            for call in node.calls.values():
                 calls_transformed.append(to_string_func(call.symbol.node))
             for parameter in node.parameters.values():
                 parameters_transformed.append(to_string_func(parameter.node))
@@ -1106,7 +1106,7 @@ class ASTWalker:
                                         SimpleScope("LocalVariable.AssignName.method", []),
                                     ],
                                     ["Name.node", "Name.method"],
-                                    ["Call.__get_callbacks", "Call.methode"],
+                                    ["Call.__get_callbacks", "Call.method"],
                                     ["AssignName.node"]
                                 ),
                                 SimpleFunctionScope(
@@ -1127,7 +1127,8 @@ class ASTWalker:
                                      "MemberAccessValue.self._handler", "Name.handler", "Name.class_name",
                                      "Name.enter_method", "Name.leave_method"],
                                     ["Call.get", "Call.lower", "Call.getattr"],
-                                    ["AssignName.node"]
+                                    ["AssignName.node"],
+                                    []
                                 ),
                             ],
                             [

@@ -395,10 +395,10 @@ class FunctionScope(Scope):
 
     Attributes
     ----------
-    values : list[Scope | ClassScope]
-        The list of all value nodes used inside the corresponding function.
-    calls : list[Scope | ClassScope]
-        The list of all function calls inside the corresponding function.
+    values : dict[str, Symbol]
+        The dict of all value nodes used inside the corresponding function.
+    calls : dict[str, Scope | ClassScope]
+        The dict of all function calls inside the corresponding function.
     parameters : dict[str, Parameter]
         The parameters of the function.
     globals : dict[str, GlobalVariable]
@@ -406,26 +406,23 @@ class FunctionScope(Scope):
         It stores the globally assigned nodes (Assignment of the used variable).
     """
 
-    values: list[Scope | ClassScope] = field(default_factory=list)
-    calls: list[Scope | ClassScope] = field(default_factory=list)
+    values: dict[str, Symbol] = field(default_factory=dict)
+    calls: dict[str, Scope | ClassScope] = field(default_factory=dict)
     parameters: dict[str, Parameter] = field(default_factory=dict)
     globals: dict[str, list[GlobalVariable]] = field(default_factory=dict)
 
     def remove_call_node_by_name(self, name: str) -> None:
         """Remove a call node by name.
 
-        Removes a call node from the list of call nodes by name.
-        This is used to remove cyclic calls from the list of call nodes after the call graph has been built.
+        Removes a call node from the dict of call nodes by name.
+        This is used to remove cyclic calls from the dict of call nodes after the call graph has been built.
 
         Parameters
         ----------
         name  : str
             The name of the call node to remove.
         """
-        for call in self.calls:
-            if call.symbol.name == name:
-                self.calls.remove(call)
-                break
+        self.calls.pop(name, None)
 
 
 @dataclass
