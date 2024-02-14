@@ -9,7 +9,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ClassVariable,
     FileRead,
     FileWrite,
-    FunctionReference,
+    Symbol,
     GlobalVariable,
     Impure,
     ImpurityReason,
@@ -219,15 +219,15 @@ OPEN_MODES = {
 
 
 # TODO: remove type ignore after implementing all cases
-def check_open_like_functions(func_ref: FunctionReference) -> PurityResult:  # type: ignore[return] # all cases are handled
+def check_open_like_functions(symbol: Symbol) -> PurityResult:  # type: ignore[return] # all cases are handled
     """Check open-like function for impurity.
 
     This includes functions like open, read, readline, readlines, write, writelines.
 
     Parameters
     ----------
-    func_ref: FunctionReference
-        The function reference to check.
+    symbol: Symbol
+        The symbol to check.
 
     Returns
     -------
@@ -236,28 +236,28 @@ def check_open_like_functions(func_ref: FunctionReference) -> PurityResult:  # t
 
     """
     # Check if we deal with the open function
-    if isinstance(func_ref.node, astroid.Call):
+    if isinstance(symbol.node, astroid.Call):
         # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
-        if isinstance(func_ref.node.func, astroid.Attribute):
-            func_ref_node_func_name = func_ref.node.func.attrname
+        if isinstance(symbol.node.func, astroid.Attribute):
+            func_ref_node_func_name = symbol.node.func.attrname
         else:
-            func_ref_node_func_name = func_ref.node.func.name
+            func_ref_node_func_name = symbol.node.func.name
 
         if func_ref_node_func_name == "open":
             open_mode_str: str = "r"
             open_mode: OpenMode | None = None
             # Check if a mode is set and if the value is a string literal
-            if len(func_ref.node.args) >= 2 and isinstance(func_ref.node.args[1], astroid.Const):
-                if func_ref.node.args[1].value in OPEN_MODES:
-                    open_mode_str = func_ref.node.args[1].value
+            if len(symbol.node.args) >= 2 and isinstance(symbol.node.args[1], astroid.Const):
+                if symbol.node.args[1].value in OPEN_MODES:
+                    open_mode_str = symbol.node.args[1].value
             # We exclude the case where the mode is a variable since we cannot determine the mode in this case,
             # therefore, we set it to be the worst case (read and write)
-            elif len(func_ref.node.args) == 2 and not isinstance(func_ref.node.args[1], astroid.Const):
+            elif len(symbol.node.args) == 2 and not isinstance(symbol.node.args[1], astroid.Const):
                 open_mode = OpenMode.READ_WRITE
 
             # We need to check if the file name is a variable or a string literal
-            if isinstance(func_ref.node.args[0], astroid.Name):
-                file_var = func_ref.node.args[0].name
+            if isinstance(symbol.node.args[0], astroid.Name):
+                file_var = symbol.node.args[0].name
                 if not open_mode:
                     open_mode = OPEN_MODES[open_mode_str]
                 match open_mode:
@@ -270,7 +270,7 @@ def check_open_like_functions(func_ref: FunctionReference) -> PurityResult:  # t
 
             # The file name is a string literal
             else:
-                file_str = func_ref.node.args[0].value
+                file_str = symbol.node.args[0].value
                 open_mode = OPEN_MODES[open_mode_str]
                 match open_mode:
                     case OpenMode.READ:
@@ -555,11 +555,8 @@ def transform_reasons_to_impurity_result(
     ----------
     reasons : Reasons
         The node to process containing the raw reasons for impurity collected.
-    references : dict[str, list[ReferenceNode]]
-        The dictionary of references.
-        The key is the name of the reference node, the value is the list of ReferenceNodes.
-    classes : dict[str, ClassScope]
-        All classes and their ClassScope.
+    analysis_result : ModuleAnalysisResult
+        The result of the analysis of the module.
 
     Returns
     -------
@@ -574,7 +571,7 @@ def transform_reasons_to_impurity_result(
     else:
         if reasons.writes:
             for write in reasons.writes:
-                write_ref_list = analysis_result.resolved_references[write.node.name]
+                write_ref_list = analysis_result.resolved_references[write.name]
                 for write_ref in write_ref_list:
                     for sym_ref in write_ref.referenced_symbols:
                         if isinstance(sym_ref, GlobalVariable | ClassVariable | InstanceVariable):
@@ -584,7 +581,7 @@ def transform_reasons_to_impurity_result(
 
         if reasons.reads:
             for read in reasons.reads:
-                read_ref_list = analysis_result.resolved_references[read.node.name]
+                read_ref_list = analysis_result.resolved_references[read.name]
                 for read_ref in read_ref_list:
                     for sym_ref in read_ref.referenced_symbols:
                         if isinstance(sym_ref, GlobalVariable | ClassVariable | InstanceVariable):

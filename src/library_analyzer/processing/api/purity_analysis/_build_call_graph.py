@@ -6,7 +6,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     CallGraphForest,
     CallGraphNode,
     ClassScope,
-    FunctionReference,
     FunctionScope,
     NodeID,
     Reasons,
@@ -75,7 +74,7 @@ def build_call_graph(
                                     CallGraphNode(data=init_function, reasons=Reasons()),
                                 )
                             function_node.add_child(call_graph_forest.get_graph(init_function.symbol.id))
-                            function_node.reasons.calls.add(FunctionReference(function_references[init_function.symbol.id].function, "Call"))
+                            function_node.reasons.calls.add(Symbol(function_references[init_function.symbol.id].function, init_function.symbol.id, init_function.symbol.name))
                             break
                 continue
 

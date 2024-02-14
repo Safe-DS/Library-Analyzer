@@ -115,9 +115,9 @@ class SimpleReasons:
     """
 
     function_name: str
-    writes: set[SimpleFunctionReference] = field(default_factory=set)
-    reads: set[SimpleFunctionReference] = field(default_factory=set)
-    calls: set[SimpleFunctionReference] = field(default_factory=set)
+    writes: set[str] = field(default_factory=set)
+    reads: set[str] = field(default_factory=set)
+    calls: set[str] = field(default_factory=set)
 
     def __hash__(self) -> int:
         return hash(self.function_name)
@@ -411,36 +411,21 @@ def transform_function_references(function_calls: dict[NodeID, Reasons]) -> dict
             function_id.__str__(): SimpleReasons(
                 function_references.function.name,
                 {
-                    SimpleFunctionReference(
-                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}",
-                        function_reference.kind,
-                    ) if isinstance(function_reference.node, MemberAccessTarget) else
-                    SimpleFunctionReference(
-                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
-                        function_reference.kind,
-                    )
+                    f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}"
+                    if isinstance(function_reference.node, MemberAccessTarget) else
+                    f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
                     for function_reference in function_references.writes
                 },
                 {
-                    SimpleFunctionReference(
-                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}",
-                        function_reference.kind,
-                    ) if isinstance(function_reference.node, MemberAccessValue) else
-                    SimpleFunctionReference(
-                        f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}",
-                        function_reference.kind,
-                    )
+                    f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}"
+                    if isinstance(function_reference.node, MemberAccessValue) else
+                    f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
                     for function_reference in function_references.reads
                 },
                 {
-                    SimpleFunctionReference(
-                        f"{function_reference.node.__class__.__name__}.{function_reference.node.func.attrname}.line{function_reference.node.fromlineno}",
-                        function_reference.kind,
-                    ) if isinstance(function_reference.node.func, astroid.Attribute) else
-                    SimpleFunctionReference(
-                        f"{function_reference.node.__class__.__name__}.{function_reference.node.func.name}.line{function_reference.node.fromlineno}",
-                        function_reference.kind,
-                    )
+                    f"{function_reference.node.__class__.__name__}.{function_reference.node.func.attrname}.line{function_reference.node.fromlineno}"
+                    if isinstance(function_reference.node.func, astroid.Attribute) else
+                    f"{function_reference.node.__class__.__name__}.{function_reference.node.func.name}.line{function_reference.node.fromlineno}"
                     for function_reference in function_references.calls
                 },
             ),
@@ -2488,16 +2473,16 @@ def f():
                 ".f.8.0": SimpleReasons(
                     "f",
                     {
-                        SimpleFunctionReference("AssignName.b.line11", "NonLocalVariableWrite"),
-                        SimpleFunctionReference("AssignName.b.line14", "NonLocalVariableWrite"),
+                        "AssignName.b.line11",
+                        "AssignName.b.line14",
                     },
                     {
-                        SimpleFunctionReference("Name.c.line13", "NonLocalVariableRead"),
-                        SimpleFunctionReference("Name.d.line14", "NonLocalVariableRead"),
+                        "Name.c.line13",
+                        "Name.d.line14",
                     },
                     {
-                        SimpleFunctionReference("Call.g.line15", "Call"),
-                        SimpleFunctionReference("Call.open.line16", "Call"),
+                        "Call.g.line15",
+                        "Call.open.line16",
                     },
                 ),
                 ".g.5.0": SimpleReasons("g", set(), set(), set()),
@@ -2522,11 +2507,11 @@ def f():
                 ".f.5.0": SimpleReasons(
                     "f",
                     {
-                        SimpleFunctionReference("AssignName.c.line10", "NonLocalVariableWrite"),
-                        SimpleFunctionReference("AssignName.b.line13", "NonLocalVariableWrite"),
+                        "AssignName.c.line10",
+                        "AssignName.b.line13",
                     },
                     {
-                        SimpleFunctionReference("Name.b.line7", "NonLocalVariableRead"),
+                        "Name.b.line7",
                     }
                 ),
             },
@@ -2548,21 +2533,21 @@ def g():
                 ".f.5.0": SimpleReasons(
                     "f",
                     {
-                        SimpleFunctionReference("MemberAccessTarget.a.class_attr1.line7", "MemberAccessTarget"),
+                        "MemberAccessTarget.a.class_attr1.line7",
                     },
                     set(),
                     {
-                        SimpleFunctionReference("Call.A.line6", "Call"),
+                        "Call.A.line6"
                     }
                 ),
                 ".g.9.0": SimpleReasons(
                     "g",
                     set(),
                     {
-                        SimpleFunctionReference("MemberAccessValue.a.class_attr1.line11", "MemberAccessValue"),
+                        "MemberAccessValue.a.class_attr1.line11"
                     },
                     {
-                        SimpleFunctionReference("Call.A.line10", "Call"),
+                        "Call.A.line10"
                     }
                 ),
             },
@@ -2602,40 +2587,40 @@ def g3():
                 ),
                 ".f1.6.0": SimpleReasons(
                     "f1", {
-                        SimpleFunctionReference("MemberAccessTarget.a.instance_attr1.line8", "MemberAccessTarget"),
+                        "MemberAccessTarget.a.instance_attr1.line8",
                     },
                     set(),
-                    {SimpleFunctionReference("Call.A.line7", "Call")}
+                    {"Call.A.line7"}
                 ),
                 ".f2.11.0": SimpleReasons(
                     "f2",
                     {
-                        SimpleFunctionReference("MemberAccessTarget.x.instance_attr1.line12", "MemberAccessTarget"),
+                        "MemberAccessTarget.x.instance_attr1.line12",
                     },
                 ),
                 ".f3.14.0": SimpleReasons(
                     "f3",
                     {
-                        SimpleFunctionReference("MemberAccessTarget.b.instance_attr1.line16", "MemberAccessTarget"),
+                        "MemberAccessTarget.b.instance_attr1.line16",
                     },
                 ),
                 ".g1.18.0": SimpleReasons(
                     "g1", set(), {
-                        SimpleFunctionReference("MemberAccessValue.a.instance_attr1.line20", "MemberAccessValue"),
-                    }, {SimpleFunctionReference("Call.A.line19", "Call")}
+                        "MemberAccessValue.a.instance_attr1.line20",
+                    }, {"Call.A.line19"}
                 ),
                 ".g2.22.0": SimpleReasons(
                     "g2",
                     set(),
                     {
-                        SimpleFunctionReference("MemberAccessValue.x.instance_attr1.line23", "MemberAccessValue"),
+                        "MemberAccessValue.x.instance_attr1.line23",
                     },
                 ),
                 ".g3.25.0": SimpleReasons(
                     "g3",
                     set(),
                     {
-                        SimpleFunctionReference("MemberAccessValue.b.instance_attr1.line27", "MemberAccessValue"),
+                        "MemberAccessValue.b.instance_attr1.line27",
                     },
                 ),
             },
@@ -2663,19 +2648,19 @@ def f():
                 ),
                 ".set_name.6.4": SimpleReasons(
                     "set_name",
-                    {SimpleFunctionReference("MemberAccessTarget.self.name.line7", "MemberAccessTarget")}
+                    {"MemberAccessTarget.self.name.line7"}
                 ),
                 ".f.12.0": SimpleReasons(
                     "f",
                     set(),
                     {
-                        SimpleFunctionReference("MemberAccessValue.b.upper_class.name.line14", "MemberAccessValue"),
-                        SimpleFunctionReference("MemberAccessValue.b.upper_class.line14", "MemberAccessValue"),
-                        SimpleFunctionReference("MemberAccessValue.b.upper_class.line15", "MemberAccessValue"),
+                        "MemberAccessValue.b.upper_class.name.line14",
+                        "MemberAccessValue.b.upper_class.line14",
+                        "MemberAccessValue.b.upper_class.line15",
                     },
                     {
-                        SimpleFunctionReference("Call.B.line13", "Call"),
-                        SimpleFunctionReference("Call.set_name.line15", "Call"),
+                        "Call.B.line13",
+                        "Call.set_name.line15",
                     }
                 ),
             }
@@ -2707,8 +2692,8 @@ def g():
                     set(),
                     set(),
                     {
-                        SimpleFunctionReference("Call.A.line13", "Call"),
-                        SimpleFunctionReference("Call.f.line13", "Call"),
+                        "Call.A.line13",
+                        "Call.f.line13"
                     }
                 ),
             }
@@ -2744,12 +2729,12 @@ def f():
                     "f",
                     set(),
                     {
-                        SimpleFunctionReference("MemberAccessValue.a.name.line17", "MemberAccessValue"),
-                        SimpleFunctionReference("MemberAccessValue.b.name.line18", "MemberAccessValue"),
+                        "MemberAccessValue.a.name.line17",
+                        "MemberAccessValue.b.name.line18",
                     },
                     {
-                        SimpleFunctionReference("Call.A.line15", "Call"),
-                        SimpleFunctionReference("Call.B.line16", "Call"),
+                        "Call.A.line15",
+                        "Call.B.line16"
                     }
                 )
             }
@@ -2780,20 +2765,20 @@ def f():
                     "add",
                     set(),
                     {
-                        SimpleFunctionReference("Name.z.line8", "NonLocalVariableRead")
+                        "Name.z.line8"
                     },
                     set()
                 ),
                 ".add.12.4": SimpleReasons(
                     "add",
                 ),
-                ".f.16.0": SimpleReasons(
+                ".f.15.0": SimpleReasons(
                     "f",
                     set(),
                     set(),
                     {
-                        SimpleFunctionReference("Call.add.line17", "Call"),
-                        SimpleFunctionReference("Call.add.line18", "Call"),
+                        "Call.add.line16",
+                        "Call.add.line17",
                     }
                 )
             }
@@ -2826,8 +2811,8 @@ def f():
                     set(),
                     set(),
                     {
-                        SimpleFunctionReference("Call.add.line13", "Call"),
-                        SimpleFunctionReference("Call.add.line14", "Call"),
+                       "Call.add.line13",
+                       "Call.add.line14"
                     }
                 )
             }

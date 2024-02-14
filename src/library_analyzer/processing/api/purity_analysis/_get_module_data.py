@@ -9,7 +9,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Builtin,
     ClassScope,
     ClassVariable,
-    FunctionReference,
     FunctionScope,
     GlobalVariable,
     Import,
@@ -429,7 +428,7 @@ class ModuleDataBuilder:
                         else:
                             ref = Symbol(call, calc_node_id(call), call_func_name)
 
-                        if function_id in function_references:  # check if the function is already in the dict
+                        if function_id in function_references and ref:  # check if the function is already in the dict
                             function_references[function_id].calls.add(ref)
                         else:  # create a new entry in the dict
                             function_references[function_id] = Reasons(

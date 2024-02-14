@@ -442,11 +442,11 @@ class Reasons:
     ----------
     function : astroid.FunctionDef | MemberAccess | None
         The function that is analyzed.
-    writes : set[FunctionReference]
+    writes : set[Symbol]
         A set of all nodes that are written to.
-    reads : set[FunctionReference]
+    reads : set[Symbol]
         A set of all nodes that are read from.
-    calls : set[FunctionReference]
+    calls : set[Symbol]
         A set of all nodes that are called.
     result : PurityResult | None
         The result of the purity analysis
@@ -458,16 +458,16 @@ class Reasons:
     """
 
     function: astroid.FunctionDef | MemberAccess | None = field(default=None)
-    writes: set[FunctionReference] = field(default_factory=set)
-    reads: set[FunctionReference] = field(default_factory=set)
-    calls: set[FunctionReference] = field(default_factory=set)
+    writes: set[Symbol] = field(default_factory=set)
+    reads: set[Symbol] = field(default_factory=set)
+    calls: set[Symbol] = field(default_factory=set)
     result: PurityResult | None = field(default=None)
     unknown_calls: list[astroid.Call | astroid.NodeNG] | None = field(default=None)
 
-    def __iter__(self) -> Iterator[FunctionReference]:
+    def __iter__(self) -> Iterator[Symbol]:
         return iter(self.writes.union(self.reads).union(self.calls))
 
-    def get_call_by_name(self, name: str) -> FunctionReference:
+    def get_call_by_name(self, name: str) -> Symbol:
         """Get a call by name.
 
         Parameters
@@ -477,8 +477,8 @@ class Reasons:
 
         Returns
         -------
-        FunctionReference
-            The FunctionReference of the call.
+        Symbol
+            The Symbol of the call.
 
         Raises
         ------
@@ -581,7 +581,7 @@ class Reasons:
 
                 call_names_and_lines.add(name_line_tuple)
 
-        filtered_reads: set[FunctionReference] = set()
+        filtered_reads: set[Symbol] = set()
 
         for read in self.reads:
             if not any(  # check if the read is a class method call, differentiate between MemberAccessValue and normal Name
@@ -593,32 +593,3 @@ class Reasons:
                 filtered_reads.add(read)
 
         self.reads = filtered_reads
-
-
-@dataclass
-class FunctionReference:  # TODO: find a better name for this class  # FunctionPointer?
-    """Represents a function reference.
-
-    Attributes
-    ----------
-    node : astroid.NodeNG | MemberAccess
-        The node that is referenced inside the function.
-    kind : str
-        The kind of the node, e.g. "LocalWrite", "NonLocalVariableRead" or "Call".
-    """
-
-    node: astroid.NodeNG | MemberAccess
-    kind: str
-    # TODO: replace both with symbol instead - do we still need this class just to nest another class?
-
-    def __hash__(self) -> int:
-        return hash(str(self))
-
-    def __repr__(self) -> str:
-        if isinstance(self.node, astroid.Call):
-            if isinstance(self.node.func, astroid.Attribute):
-                return f"{self.node.func.attrname}.line{self.node.lineno}"
-            return f"{self.node.func.name}.line{self.node.lineno}"
-        if isinstance(self.node, MemberAccessTarget | MemberAccessValue):
-            return f"{self.node.name}.line{self.node.member.lineno}"
-        return f"{self.node.name}.line{self.node.lineno}"
