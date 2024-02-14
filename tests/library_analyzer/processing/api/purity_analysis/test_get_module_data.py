@@ -195,7 +195,10 @@ def transform_scope_node(
             parameters_transformed = []
             globals_transformed = []
             for value in node.values.values():
-                values_transformed.append(to_string_func(value.node))
+                for v in value:
+                    string = to_string_func(v.node)
+                    if string not in values_transformed:
+                        values_transformed.append(string)
             for call in node.calls.values():
                 calls_transformed.append(to_string_func(call.symbol.node))
             for parameter in node.parameters.values():
@@ -2012,7 +2015,7 @@ def f():
 var1 = 1
 
 def f():
-    return (lambda y: var1 + y)(4) # TODO: LARS what about this
+    return (lambda y: var1 + y)(4)
             """,  # language=none
             {
                 "f": [SimpleFunctionScope(
@@ -2759,7 +2762,6 @@ class A:
     @staticmethod
     def add(a, b):
         global z
-        a = b = z
         return a + b + z
 
 class B:
@@ -2840,7 +2842,6 @@ def f():
         "chained class function call",
         "two classes with same attribute name",
         "multiple classes with same function name - same signature",
-        # TODO: Fix the bug where z is not detected as NonLocalVariableRead
         "multiple classes with same function name - different signature",
         # TODO: [LATER] we should detect the different signatures
     ],

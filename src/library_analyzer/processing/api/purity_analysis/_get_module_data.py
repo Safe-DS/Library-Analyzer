@@ -163,7 +163,12 @@ class ModuleDataBuilder:
 
             # Add all values that are used inside the function body to its values' dict
             if self.names:
-                self.functions[current_node.name][-1].values.update({name.symbol.name: name.symbol for name in self.names if name.symbol.name not in self.current_node_stack[-1].values and name.parent is not None and name.parent.symbol.node == current_node})
+                for name in self.names:
+                    if name.parent is not None and name.parent.symbol.node == current_node:
+                        if name.symbol.name not in self.current_node_stack[-1].values:
+                            self.current_node_stack[-1].values[name.symbol.name] = [name.symbol]
+                        else:
+                            self.current_node_stack[-1].values[name.symbol.name].append(name.symbol)
                 self.names = []
 
             # Add all calls that are used inside the function body to its calls' dict
@@ -194,7 +199,12 @@ class ModuleDataBuilder:
 
             # Add all values that are used inside the function body to its values' dict
             if self.names:
-                self.functions[node_name][-1].values.update({name.symbol.name: name.symbol for name in self.names if name.symbol.name not in self.current_node_stack[-1].values and name.parent is not None and name.parent.symbol.node == current_node})
+                for name in self.names:
+                    if name.parent is not None and name.parent.symbol.node == current_node:
+                        if name.symbol.name not in self.current_node_stack[-1].values:
+                            self.current_node_stack[-1].values[name.symbol.name] = [name.symbol]
+                        else:
+                            self.current_node_stack[-1].values[name.symbol.name].append(name.symbol)
                 self.names = []
 
             # Add all calls that are used inside the function body to its calls' dict
@@ -214,11 +224,21 @@ class ModuleDataBuilder:
         ):
             # Add all values that are used inside the lambda body to its parent function values' dict
             if self.names and isinstance(self.current_node_stack[-2], FunctionScope):
-                self.current_node_stack[-2].values.update({name.symbol.name: name.symbol for name in self.names if name.symbol.name not in self.current_node_stack[-1].values and name.parent is not None and name.parent.symbol.node == current_node and name.symbol.name not in self.current_node_stack[-1].parameters})  # type: ignore[union-attr] # we can ignore the linter error because the current scope node is always of type FunctionScope and therefor has a parameter attribute.
+                for name in self.names:
+                    if name.parent is not None and name.parent.symbol.node == current_node and name.symbol.name not in self.current_node_stack[-1].parameters:  # type: ignore[union-attr] # we can ignore the linter error because the current scope node is always of type FunctionScope and therefor has a parameter attribute.
+                        if name.symbol.name not in self.current_node_stack[-2].values:
+                            self.current_node_stack[-2].values[name.symbol.name] = [name.symbol]
+                        else:
+                            self.current_node_stack[-2].values[name.symbol.name].append(name.symbol)
 
             # Add the values to the Lambda FunctionScope
             if self.names and isinstance(self.current_node_stack[-1], FunctionScope) and isinstance(self.current_node_stack[-1].symbol.node, astroid.Lambda):
-                self.current_node_stack[-1].values.update({name.symbol.name: name.symbol for name in self.names if name.symbol.name not in self.current_node_stack[-1].values and name.parent is not None and name.parent.symbol.node == current_node})
+                for name in self.names:
+                    if name.parent is not None and name.parent.symbol.node == current_node:
+                        if name.symbol.name not in self.current_node_stack[-1].values:
+                            self.current_node_stack[-1].values[name.symbol.name] = [name.symbol]
+                        else:
+                            self.current_node_stack[-1].values[name.symbol.name].append(name.symbol)
             self.names = []
 
             # Add all calls that are used inside the lambda body to its parent function calls' dict
@@ -316,7 +336,7 @@ class ModuleDataBuilder:
                     if target.name in self.global_variables or isinstance(target, MemberAccessTarget):  # Filter out all non-global variables
                         for child in function_node.children:
                             if target.name == child.symbol.name and child in function_node.children:
-                                ref = FunctionReference(child.symbol.node, self.get_kind(child.symbol))
+                                ref = child.symbol
 
                                 if function_id in function_references:  # check if the function is already in the dict
                                     if ref not in function_references[function_id]:
@@ -340,12 +360,16 @@ class ModuleDataBuilder:
                                 # Get the correct symbol
                                 sym = None
                                 if isinstance(self.value_nodes[value], FunctionScope):
-                                    for v in self.value_nodes[value].values.values():  # type: ignore[union-attr] # we can ignore the linter error because of the if statement above
-                                        if v.node == value:
-                                            sym = v
-                                            break
+                                    for val_list in self.value_nodes[value].values.values():  # type: ignore[union-attr] # we can ignore the linter error because of the if statement above
+                                        for val in val_list:
+                                            if val.node == value:
+                                                sym = val
+                                                break
+                                else:
+                                    # raise TypeError(f"{self.value_nodes[value]} is not of type FunctionScope")
+                                    continue
 
-                                ref = FunctionReference(value, self.get_kind(sym))
+                                ref = sym
 
                                 if function_id in function_references:  # check if the function is already in the dict
                                     function_references[function_id].reads.add(ref)
@@ -358,6 +382,7 @@ class ModuleDataBuilder:
                                     )  # Add reads
 
                 # Look at all calls and check if they are used in the function body
+                unknown = []
                 for call in self.function_calls:
                     # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
                     if isinstance(call.func, astroid.Attribute):
@@ -370,6 +395,7 @@ class ModuleDataBuilder:
                     if call_func_name in function_scopes_calls_names and parent_function.name == function_id.name:
                         # get the correct symbol
                         sym = None
+                        ref = None
                         # check all self defined functions
                         if call_func_name in self.functions:
                             sym = self.functions[call_func_name][0].symbol
@@ -398,17 +424,21 @@ class ModuleDataBuilder:
                                         sym = par
                                         break
 
-                        ref = FunctionReference(call, self.get_kind(sym))
+                        if sym is None:
+                            unknown.append(call)
+                        else:
+                            ref = Symbol(call, calc_node_id(call), call_func_name)
 
                         if function_id in function_references:  # check if the function is already in the dict
                             function_references[function_id].calls.add(ref)
                         else:  # create a new entry in the dict
                             function_references[function_id] = Reasons(
                                 function_def_node,
-                                set(),
-                                set(),
-                                {ref},
                             )  # Add calls
+                            if ref:
+                                function_references[function_id].calls.add(ref)
+                            if unknown:
+                                function_references[function_id].unknown_calls = unknown
 
                 # Add function to function_references dict if no reason (write, read nor call) was found
                 if function_id not in function_references:
@@ -422,42 +452,6 @@ class ModuleDataBuilder:
                 if ref.calls and ref.reads:
                     ref.remove_class_method_calls_from_reads()
         return function_references
-
-    @staticmethod
-    def get_kind(symbol: Symbol | None) -> str:  # type: ignore[return] # all cases are handled
-        """Get the kind of symbol.
-
-        When the Symbol is collected, it is not always clear what kind of symbol it is.
-        This function determines the kind of the symbol in the context of the current node.
-
-        Parameters
-        ----------
-        symbol : Symbol | None
-            The symbol whose kind is to be determined.
-
-        Returns
-        -------
-        str
-            A string representing the kind of the symbol.
-        """
-        if symbol is None:
-            return "None"  # TODO: make sure this never happens
-        elif isinstance(symbol.node, astroid.AssignName):
-            if isinstance(symbol, LocalVariable):
-                return "LocalWrite"  # this should never happen
-            elif isinstance(symbol, GlobalVariable):
-                return "NonLocalVariableWrite"
-        elif isinstance(symbol.node, astroid.Name):
-            if isinstance(symbol, LocalVariable):
-                return "LocalRead"  # this should never happen
-            elif isinstance(symbol, GlobalVariable):
-                return "NonLocalVariableRead"
-        elif isinstance(symbol.node, astroid.FunctionDef | astroid.ClassDef) or isinstance(symbol, Builtin):
-            return "Call"
-        elif isinstance(symbol.node, MemberAccessTarget):
-            return "MemberAccessTarget"  # we need to resolve the kind of the MemberAccessTarget later
-        elif isinstance(symbol.node, MemberAccessValue):
-            return "MemberAccessValue"  # we need to resolve the kind of the MemberAccessValue later
 
     def enter_module(self, node: astroid.Module) -> None:
         """

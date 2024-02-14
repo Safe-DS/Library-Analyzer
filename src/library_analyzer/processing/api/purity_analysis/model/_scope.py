@@ -182,6 +182,9 @@ class Symbol(ABC):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
+    def __hash__(self) -> int:
+        return hash(str(self))
+
 
 @dataclass
 class Parameter(Symbol):
@@ -272,6 +275,9 @@ class Builtin(Symbol):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 @dataclass
@@ -406,7 +412,7 @@ class FunctionScope(Scope):
         It stores the globally assigned nodes (Assignment of the used variable).
     """
 
-    values: dict[str, Symbol] = field(default_factory=dict)
+    values: dict[str, list[Symbol]] = field(default_factory=dict)
     calls: dict[str, Scope | ClassScope] = field(default_factory=dict)
     parameters: dict[str, Parameter] = field(default_factory=dict)
     globals: dict[str, list[GlobalVariable]] = field(default_factory=dict)
