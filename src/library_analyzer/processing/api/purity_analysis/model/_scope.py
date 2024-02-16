@@ -46,7 +46,7 @@ class ModuleData:
     scope: Scope | ClassScope
     classes: dict[str, ClassScope]
     functions: dict[str, list[FunctionScope]]
-    global_variables: dict[str, Scope | ClassScope]
+    global_variables: dict[str, Scope | ClassScope | FunctionScope]
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
     target_nodes: dict[
         astroid.AssignName | astroid.Name | MemberAccessTarget,
@@ -163,7 +163,10 @@ class NodeID:
 
 @dataclass
 class Symbol(ABC):
-    """Represents a node in the scope tree.
+    """Represents a node that defines a Name.
+
+    A Symbol is a node that defines a Name, e.g. a function, a class, a variable, etc.
+    It can be referenced by another node.
 
     Attributes
     ----------
@@ -175,7 +178,7 @@ class Symbol(ABC):
         The name of the symbol (for easier access).
     """
 
-    node: astroid.NodeNG | MemberAccess
+    node: astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | MemberAccessTarget
     id: NodeID
     name: str
 
@@ -275,6 +278,39 @@ class Builtin(Symbol):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+
+@dataclass
+class Reference:
+    """Represents a node that references a Name.
+
+    A Reference is a node that references a Name, e.g. a function call, a variable read, etc.
+
+
+    Attributes
+    ----------
+    node : astroid.Call | astroid.Name | MemberAccessValue
+        The node that defines the symbol.
+    id : NodeID
+        The id of that node.
+    name : str
+        The name of the symbol (for easier access).
+    referenced_symbols : list[Symbol] | None
+        The list of referenced symbols.
+        These are the symbols of the nodes that node references.
+        Is None when the references have not been resolved yet.
+    """
+
+    node: astroid.Call | astroid.Name | MemberAccessValue
+    id: NodeID
+    name: str
+    referenced_symbols: list[Symbol] | None = None
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -385,14 +421,16 @@ class ClassScope(Scope):
         Also, it is impossible to distinguish between a declaration and a reassignment.
     instance_variables : dict[str, list[Symbol]]
         The name of the instance variable and a list of its Symbols (which represent a declaration).
-    super_classes : list[ClassScope]
-        The list of super classes of the class.
+    init_function : FunctionScope | None
+        The init function of the class if it exists else None.
+    super_classes : list[ClassScope] | None
+        The list of super classes of the class if it exists else None.
     """
 
     class_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     instance_variables: dict[str, list[Symbol]] = field(default_factory=dict)
-    super_classes: list[ClassScope] = field(default_factory=list)
-    # TODO: init!
+    init_function: FunctionScope | None = None
+    super_classes: list[ClassScope] | None = None
 
 
 @dataclass
@@ -412,8 +450,9 @@ class FunctionScope(Scope):
         It stores the globally assigned nodes (Assignment of the used variable).
     """
 
-    values: dict[str, list[Symbol]] = field(default_factory=dict)
-    calls: dict[str, Scope | ClassScope] = field(default_factory=dict)
+    # targets: dict[str, list[Symbol]] = field(default_factory=dict)
+    values: dict[str, list[Reference]] = field(default_factory=dict)
+    calls: dict[str, list[Reference]] = field(default_factory=dict)
     parameters: dict[str, Parameter] = field(default_factory=dict)
     globals: dict[str, list[GlobalVariable]] = field(default_factory=dict)
 

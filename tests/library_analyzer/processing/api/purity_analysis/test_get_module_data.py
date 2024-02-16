@@ -58,13 +58,13 @@ class SimpleClassScope(SimpleScope):
         The list of class variables.
     instance_variables : list[str]
         The list of instance variables.
-    super_class : list[str]
-        The list of super classes.
+    super_class : list[str] | None
+        The list of super classes, if the class has any.
     """
 
     class_variables: list[str]
     instance_variables: list[str]
-    super_class: list[str] = field(default_factory=list)
+    super_class: list[str] | None = None
 
 
 @dataclass
@@ -106,11 +106,11 @@ class SimpleReasons:
     ----------
     function_name : str
         The name of the function.
-    writes : set[SimpleFunctionReference]
+    writes : set[str]
         The set of the functions writes.
-    reads : set[SimpleFunctionReference]
+    reads : set[str]
         The set of the function reads.
-    calls : set[SimpleFunctionReference]
+    calls : set[str]
         The set of the function calls.
     """
 
@@ -121,27 +121,6 @@ class SimpleReasons:
 
     def __hash__(self) -> int:
         return hash(self.function_name)
-
-
-@dataclass
-class SimpleFunctionReference:
-    """Class for simple function references.
-
-    A simplified class of the FunctionReference class for testing purposes.
-
-    Attributes
-    ----------
-    node : str
-        The name of the node.
-    kind : str
-        The kind of the Reason as string.
-    """
-
-    node: str
-    kind: str
-
-    def __hash__(self) -> int:
-        return hash((self.node, self.kind))
 
 
 def transform_scope_node(
@@ -175,19 +154,19 @@ def transform_scope_node(
                     if c_str is not None:
                         class_vars_transformed.append(
                             c_str)  # type: ignore[misc] # it is not possible that c_str is None
-
-            for klass in node.super_classes:
-                c_str = to_string_class(klass)
-                if c_str is not None:
-                    super_classes_transformed.append(
-                        c_str)  # type: ignore[misc] # it is not possible that c_str is None
+            if node.super_classes:
+                for klass in node.super_classes:
+                    c_str = to_string_class(klass)
+                    if c_str is not None:
+                        super_classes_transformed.append(
+                            c_str)  # type: ignore[misc] # it is not possible that c_str is None
 
             return SimpleClassScope(
                 to_string(node.symbol),
                 [transform_scope_node(child) for child in node.children],
                 class_vars_transformed,
                 instance_vars_transformed,
-                super_classes_transformed,
+                super_classes_transformed if super_classes_transformed else None,
             )
         if isinstance(node, FunctionScope):
             values_transformed = []
@@ -200,7 +179,8 @@ def transform_scope_node(
                     if string not in values_transformed:
                         values_transformed.append(string)
             for call in node.calls.values():
-                calls_transformed.append(to_string_func(call.symbol.node))
+                for c in call:
+                    calls_transformed.append(to_string_func(c.node))
             for parameter in node.parameters.values():
                 parameters_transformed.append(to_string_func(parameter.node))
             for globs in node.globals.values():
@@ -1178,7 +1158,6 @@ class A:
                             ],
                             ["AssignName.nums", "AssignName.x"],
                             [],
-                            [],
                         ),
                     ],
                 ),
@@ -1328,7 +1307,6 @@ with MyContext() as context:
                             ],
                             ["FunctionDef.__enter__", "FunctionDef.__exit__"],
                             [],
-                            [],
                         ),
                         SimpleScope("GlobalVariable.AssignName.context", []),
                     ],
@@ -1441,7 +1419,7 @@ def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleCla
 class A:
     pass
             """,  # language=none
-            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [], [])},
+            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [])},
         ),
         (  # language=Python "ClassDef with class attribute"
             """
@@ -1453,7 +1431,6 @@ class A:
                     "GlobalVariable.ClassDef.A",
                     [SimpleScope("ClassVariable.AssignName.var1", [])],
                     ["AssignName.var1"],
-                    [],
                     [],
                 ),
             },
@@ -1472,7 +1449,6 @@ class A:
                         SimpleScope("ClassVariable.AssignName.var2", []),
                     ],
                     ["AssignName.var1", "AssignName.var2"],
-                    [],
                     [],
                 ),
             },
@@ -1493,7 +1469,6 @@ class A:
                         SimpleScope("ClassVariable.AssignName.var1", []),
                     ],
                     ["AssignName.var1", "AssignName.var1"],
-                    [],
                     [],
                 ),
             },
@@ -1520,7 +1495,6 @@ class A:
                     ],
                     ["FunctionDef.__init__"],
                     ["AssignAttr.var1"],
-                    [],
                 ),
             },
         ),
@@ -1550,7 +1524,6 @@ class A:
                     ],
                     ["FunctionDef.__init__"],
                     ["AssignAttr.var1", "AssignAttr.name", "AssignAttr.state"],
-                    [],
                 ),
             },
         ),
@@ -1580,7 +1553,6 @@ class A:
                     ],
                     ["FunctionDef.__init__"],
                     ["AssignAttr.var1", "AssignAttr.var1"],
-                    [],
                 ),
             },
         ),
@@ -1609,7 +1581,6 @@ class A:
                     ],
                     ["AssignName.var1", "FunctionDef.__init__"],
                     ["AssignAttr.var1"],
-                    [],
                 ),
             },
         ),
@@ -1622,12 +1593,11 @@ class A:
             {
                 "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
-                    [SimpleClassScope("ClassVariable.ClassDef.B", [], [], [], [])],
+                    [SimpleClassScope("ClassVariable.ClassDef.B", [], [], [])],
                     ["ClassDef.B"],
                     [],
-                    [],
                 ),
-                "B": SimpleClassScope("ClassVariable.ClassDef.B", [], [], [], []),
+                "B": SimpleClassScope("ClassVariable.ClassDef.B", [], [], []),
             },
         ),
         (  # language=Python "Multiple ClassDef"
@@ -1639,8 +1609,8 @@ class B:
     pass
             """,  # language=none
             {
-                "A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [], []),
-                "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [], []),
+                "A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], []),
+                "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], []),
             },
         ),
         (  # language=Python "ClassDef with superclass"
@@ -1652,7 +1622,7 @@ class B(A):
     pass
             """,  # language=none
             {
-                "A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [], []),
+                "A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], []),
                 "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [], ["ClassDef.A"]),
             },
         ),
@@ -1917,7 +1887,7 @@ def f():
                                 SimpleScope("LocalVariable.AssignName.x", []),
                                 SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
                             ],
-                            [],
+                            ["Name.nums"],
                             ["Call.len"],
                             [],
                             ["AssignName.nums"]
@@ -1940,7 +1910,7 @@ def f():
                                 SimpleScope("LocalVariable.AssignName.x", []),
                                 SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
                             ],
-                            [],
+                            ["Name.nums", "Name.var1"],
                             ["Call.len"],
                             [],
                             ["AssignName.nums", "AssignName.var1"]
@@ -1961,7 +1931,7 @@ def f():
                         SimpleScope("LocalVariable.AssignName.x", []),
                         SimpleScope("ListComp", [SimpleScope("LocalVariable.AssignName.num", [])]),
                     ],
-                    [],
+                    ["Name.nums"],
                     ["Call.len"],
                     [],
                     ["AssignName.nums"]

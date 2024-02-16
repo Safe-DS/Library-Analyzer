@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Generic, TypeVar
 
 import astroid
 
@@ -12,6 +11,7 @@ from library_analyzer.processing.api.purity_analysis.model._scope import (
     MemberAccessValue,
     NodeID,
     Reasons,
+    Reference,
     Scope,
     Symbol,
 )
@@ -47,20 +47,19 @@ class ReferenceNode:
         return f"{self.node.name}.line{self.node.lineno}"
 
 
-_T = TypeVar("_T")
-
-
 @dataclass
-class CallGraphNode(Generic[_T]):
+class CallGraphNode:
     """Class for call graph nodes.
 
-    A call graph node represents a function call.
+    A call graph node represents a function in the call graph.
 
     Attributes
     ----------
-    data : _T
-        The data of the node.
-        This is normally a FunctionScope but can be any type.
+    function : FunctionScope | ClassScope | Reference
+        The function that the node represents.
+        This is a FunctionScope if we deal with a function,
+        a ClassScope if we deal with a class initialization,
+        and a Reference if we deal with a builtin function.
     reasons : Reasons
         The raw Reasons for the node.
     children : set[CallGraphNode]
@@ -69,20 +68,25 @@ class CallGraphNode(Generic[_T]):
         A list of the names of all nodes that are combined into this node.
         This is only set if the node is a combined node.
         This is later used for transferring the reasons of the combined node to the original nodes.
+    is_builtin : bool
+        True if the function is a builtin function, False otherwise.
     """
 
-    data: _T
+    function: FunctionScope | ClassScope | Reference
     reasons: Reasons
     children: set[CallGraphNode] = field(default_factory=set)
     combined_node_names: list[str] = field(default_factory=list)
+    is_builtin: bool = False
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __repr__(self) -> str:
-        if isinstance(self.data, FunctionScope):
-            return f"{self.data.symbol.id}"
-        return f"{self.data}"
+        if isinstance(self.function, FunctionScope | ClassScope):
+            return f"{self.function.symbol.id}"
+        if isinstance(self.function, Reference):
+            return f"{self.function.id}"
+        return f"{self.function}"
 
     def add_child(self, child: CallGraphNode) -> None:
         """Add a child to the node.

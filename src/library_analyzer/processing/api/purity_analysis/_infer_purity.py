@@ -392,10 +392,10 @@ def process_node(  # type: ignore[return] # all cases are handled
                     # The child is a combined node and therefore not part of the reference dict
                     else:  # noqa: PLR5501 # better for readability
                         if reason.function not in purity_results:  # better for readability
-                            purity_results[reason.function] = analysis_result.call_graph.get_graph(child.data.symbol.id).reasons.result
+                            purity_results[reason.function] = analysis_result.call_graph.get_graph(child.function.symbol.id).reasons.result
                         else:
                             purity_results[reason.function] = purity_results[reason.function].update(
-                                analysis_result.call_graph.get_graph(child.data.symbol.id).reasons.result,
+                                analysis_result.call_graph.get_graph(child.function.symbol.id).reasons.result,
                             )
 
                 # After all children are handled, we can propagate the purity of the called functions to the calling function
@@ -405,7 +405,7 @@ def process_node(  # type: ignore[return] # all cases are handled
         else:
             # Check if we deal with a combined node since they need to be handled differently
             combined_nodes = {
-                node.data.symbol.name: node for node in analysis_result.call_graph.graphs.values() if node.combined_node_names
+                node.function.symbol.name: node for node in analysis_result.call_graph.graphs.values() if node.combined_node_names
             }
             for combined_node in combined_nodes.values():
                 # Check if the current node is part of the combined node (therefore part of the cycle)
@@ -427,7 +427,7 @@ def process_node(  # type: ignore[return] # all cases are handled
 
                         # TODO: refactor this so it is cleaner
                         purity = transform_reasons_to_impurity_result(
-                            analysis_result.call_graph.graphs[combined_node.data.symbol.id].reasons,
+                            analysis_result.call_graph.graphs[combined_node.function.symbol.id].reasons,
                             analysis_result
                         )
 
@@ -439,11 +439,11 @@ def process_node(  # type: ignore[return] # all cases are handled
                             purity_results[reason.function] = purity
                         else:
                             purity_results[reason.function] = purity_results[reason.function].update(purity)
-                        if combined_node.data.symbol.name not in purity_results:
-                            purity_results[combined_node.data.symbol.name] = purity
+                        if combined_node.function.symbol.name not in purity_results:
+                            purity_results[combined_node.function.symbol.name] = purity
                         else:
-                            purity_results[combined_node.data.symbol.name] = purity_results[
-                                combined_node.data.symbol.name
+                            purity_results[combined_node.function.symbol.name] = purity_results[
+                                combined_node.function.symbol.name
                             ].update(purity)
 
                     return purity_results[reason.function]
@@ -458,7 +458,7 @@ def process_node(  # type: ignore[return] # all cases are handled
             if analysis_result.call_graph.graphs[reason_id].is_leaf() or all(
                 c.reasons.result
                 for c in analysis_result.call_graph.graphs[reason_id].children
-                if c.data.symbol.name not in BUILTIN_FUNCTIONS
+                if not c.is_builtin
             ):
                 purity_self_defined: PurityResult = Pure()
                 if analysis_result.call_graph.graphs[reason_id].reasons:
@@ -511,11 +511,16 @@ def get_purity_of_child(
         The function nodes as keys and purity results of the functions as values.
         Since we collect them iteratively, we need to pass them as a parameter to check for duplicates.
     """
-    if child.data.symbol.name in ("open", "read", "readline", "readlines", "write", "writelines"):
-        purity_result_child = check_open_like_functions(reason.get_call_by_name(child.data.symbol.name))
-    elif child.data.symbol.name in BUILTIN_FUNCTIONS:
-        purity_result_child = BUILTIN_FUNCTIONS[child.data.symbol.name]
-    elif child.data.symbol.name in analysis_result.classes:
+    if child.is_builtin:
+        child_name = child.function.name
+    else:
+        child_name = child.function.symbol.name
+
+    if child_name in ("open", "read", "readline", "readlines", "write", "writelines"):
+        purity_result_child = check_open_like_functions(reason.get_call_by_name(child_name))
+    elif child_name in BUILTIN_FUNCTIONS:
+        purity_result_child = BUILTIN_FUNCTIONS[child_name]
+    elif child_name in analysis_result.classes:
         if child.reasons.calls:
             init_fun_id = calc_node_id(child.reasons.calls.pop().node)  # TODO: make sure that there is only one call in the set of the class def reasons object
             purity_result_child = process_node(
@@ -527,7 +532,7 @@ def get_purity_of_child(
             purity_result_child = Pure()
     else:
         purity_result_child = process_node(
-            analysis_result.function_references[child.data.symbol.id],
+            analysis_result.function_references[child.function.symbol.id],
             analysis_result,
             purity_results,
         )
@@ -599,7 +604,7 @@ def transform_reasons_to_impurity_result(
                 reason_id = calc_node_id(reasons.function)  # TODO: maybe add ID to Reasons?
                 if reason_id in analysis_result.call_graph.graphs:
                     graph = analysis_result.call_graph.get_graph(reason_id)
-                    if unknown_call_func_name in graph.data.parameters:
+                    if unknown_call_func_name in graph.function.parameters:
                         impurity_reasons.add(CallOfParameter(ParameterAccess(unknown_call_func_name)))
                     else:
                         impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))

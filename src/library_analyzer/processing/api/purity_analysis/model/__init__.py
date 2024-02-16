@@ -41,6 +41,7 @@ from library_analyzer.processing.api.purity_analysis.model._scope import (
     Reasons,
     Scope,
     Symbol,
+    Reference,
 )
 
 __all__ = [
@@ -80,4 +81,5 @@ __all__ = [
     "NativeCall",
     "UnknownCall",
     "CallOfParameter",
+    "Reference",
 ]
