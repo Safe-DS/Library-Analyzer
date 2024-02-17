@@ -439,20 +439,24 @@ class FunctionScope(Scope):
 
     Attributes
     ----------
-    values : dict[str, Symbol]
+    target_symbols : dict[str, list[Symbol]]
+        The dict of all target nodes used inside the corresponding function.
+        Target nodes are specified as all nodes that can be written to and which can be represented as a Symbol.
+        This includes assignments, parameters,
+    value_references : dict[str, list[Reference]]
         The dict of all value nodes used inside the corresponding function.
-    calls : dict[str, Scope | ClassScope]
+    call_references : dict[str, list[Reference]]
         The dict of all function calls inside the corresponding function.
     parameters : dict[str, Parameter]
         The parameters of the function.
-    globals : dict[str, GlobalVariable]
+    globals : dict[str, list[GlobalVariable]]
         The global variables used inside the function.
         It stores the globally assigned nodes (Assignment of the used variable).
     """
 
-    # targets: dict[str, list[Symbol]] = field(default_factory=dict)
-    values: dict[str, list[Reference]] = field(default_factory=dict)
-    calls: dict[str, list[Reference]] = field(default_factory=dict)
+    target_symbols: dict[str, list[Symbol]] = field(default_factory=dict)
+    value_references: dict[str, list[Reference]] = field(default_factory=dict)
+    call_references: dict[str, list[Reference]] = field(default_factory=dict)
     parameters: dict[str, Parameter] = field(default_factory=dict)
     globals: dict[str, list[GlobalVariable]] = field(default_factory=dict)
 
@@ -467,7 +471,7 @@ class FunctionScope(Scope):
         name  : str
             The name of the call node to remove.
         """
-        self.calls.pop(name, None)
+        self.call_references.pop(name, None)
 
 
 @dataclass

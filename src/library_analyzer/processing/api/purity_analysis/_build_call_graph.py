@@ -79,12 +79,12 @@ def build_call_graph(
                 continue
 
             # Default case where a function calls no other functions in its body - therefore, the tree has just one node
-            if not function_scope.calls:
+            if not function_scope.call_references:
                 continue
 
             # If the function calls other functions in its body, we need to build a tree
             else:
-                for call_name, call in function_scope.calls.items():
+                for call_name, call in function_scope.call_references.items():
                     call = call[0]  # TODO: LARS is this ok? -here we take the first call to represent all calls
                     # Handle self defined function calls
                     if call_name in classes_and_functions:
@@ -272,11 +272,11 @@ def contract_cycle(
     combined_node = CallGraphNode(function=combined_node_data, reasons=combined_reasons, combined_node_names=cycle_ids)
 
     # Add children to the combined node if they are not in the cycle (other calls)
-    if any([isinstance(node.function, FunctionScope) and hasattr(node.function, "calls") for node in cycle]):  # noqa: C419
+    if any([isinstance(node.function, FunctionScope) and hasattr(node.function, "call_references") for node in cycle]):  # noqa: C419
         other_calls = [
             call[0]
             for node in cycle
-            for call_name, call in node.function.calls.items()
+            for call_name, call in node.function.call_references.items()
             if call_name not in cycle_names and call_name not in BUILTINS
         ]
         # Find all function definitions that match the other call names for each call
@@ -285,10 +285,10 @@ def contract_cycle(
             matching_function_defs[call.name] = [called_function for called_function in functions[call.name] if called_function.symbol.name == call.name]
 
         # Find all builtin calls
-        builtin_calls = [call[0] for node in cycle for call in node.function.calls.values() if call[0].name in BUILTINS]
+        builtin_calls = [call[0] for node in cycle for call in node.function.call_references.values() if call[0].name in BUILTINS]
 
         # Add the calls as well as the children of the function defs to the combined node
-        combined_node_data.calls = other_calls + builtin_calls
+        combined_node_data.call_references = other_calls + builtin_calls
         combined_node.children = {
             CallGraphNode(function=matching_function_defs[call.name][i], reasons=function_references[matching_function_defs[call.name][i].symbol.id])
             for call in other_calls
@@ -335,7 +335,7 @@ def update_pointers(node: CallGraphNode, cycle_names: list[str], combined_node: 
             # Update data
             if isinstance(node.function, FunctionScope):
                 node.function.remove_call_node_by_name(child.function.symbol.name)
-                node.function.calls.update({combined_node.function.symbol.name: combined_node.function})
+                node.function.call_references.update({combined_node.function.symbol.name: combined_node.function})
             # Remove the call from the reasons (reasons need to be updated later)
             if isinstance(node.reasons, Reasons):
                 for call in node.reasons.calls.copy():

@@ -49,6 +49,8 @@ class ModuleDataBuilder:
         All found children nodes are stored in children until their scope is determined.
         After the AST is completely walked, the resulting "Module"- Scope is stored in children.
         (children[0])
+    targets : list[Symbol]
+        All found targets are stored in targets until their scope is determined.
     values : list[Reference]
         All found names are stored in names until their scope is determined.
         It Is only used while walking the AST.
@@ -77,7 +79,7 @@ class ModuleDataBuilder:
 
     current_node_stack: list[Scope | ClassScope | FunctionScope] = field(default_factory=list)
     children: list[Scope | ClassScope | FunctionScope] = field(default_factory=list)
-    # targets: list[Symbol] = field(default_factory=list)
+    targets: list[Symbol] = field(default_factory=list)
     values: list[Reference] = field(default_factory=list)
     calls: list[Reference] = field(default_factory=list)
     classes: dict[str, ClassScope] = field(default_factory=dict)
@@ -149,7 +151,7 @@ class ModuleDataBuilder:
         self.current_node_stack.pop()  # Remove the current node from the stack
 
     def _analyze_class(self, current_node: astroid.ClassDef) -> None:
-        """ Analyze a ClassDef node.
+        """Analyze a ClassDef node.
 
         This is called while the scope of a node is detected.
         It must only be called when the current node is of type ClassDef.
@@ -205,23 +207,37 @@ class ModuleDataBuilder:
         if current_node.name == "__init__":
             self._analyze_constructor()
 
+        # Add all targets that are used inside the function body to its targets' dict
+        if self.targets:
+            parent_targets = []
+            for target in self.targets:
+                if self.find_first_parent_function(target.node) == self.current_node_stack[-1].symbol.node:
+                    if target.name not in self.current_node_stack[-1].target_symbols:
+                        self.current_node_stack[-1].target_symbols[target.name] = [target]
+                    else:
+                        self.current_node_stack[-1].target_symbols[target.name].append(target)
+                    self.targets = []
+                else:
+                    parent_targets.append(target)
+            if parent_targets:
+                self.targets = parent_targets
+
         # Add all values that are used inside the function body to its values' dict
         if self.values:
             for value in self.values:
-                # if name.parent is not None and name.parent.symbol.node == current_node:
-                if value.name not in self.current_node_stack[-1].values:
-                    self.current_node_stack[-1].values[value.name] = [value]
+                if value.name not in self.current_node_stack[-1].value_references:
+                    self.current_node_stack[-1].value_references[value.name] = [value]
                 else:
-                    self.current_node_stack[-1].values[value.name].append(value)
+                    self.current_node_stack[-1].value_references[value.name].append(value)
             self.values = []
 
         # Add all calls that are used inside the function body to its calls' dict
         if self.calls:
             for call in self.calls:
-                if call.name not in self.functions[current_node.name][-1].calls:
-                    self.functions[current_node.name][-1].calls[call.name] = [call]
+                if call.name not in self.functions[current_node.name][-1].call_references:
+                    self.functions[current_node.name][-1].call_references[call.name] = [call]
                 else:
-                    self.functions[current_node.name][-1].calls[call.name].append(call)
+                    self.functions[current_node.name][-1].call_references[call.name].append(call)
 
             self.calls = []
 
@@ -260,22 +276,31 @@ class ModuleDataBuilder:
                 if isinstance(self.current_node_stack[-1], FunctionScope):  # better for readability
                     self.functions[node_name] = [self.current_node_stack[-1]]
 
+            # Add all targets that are used inside the function body to its targets' dict
+            if self.targets:
+                for target in self.targets:
+                    if target.name not in self.current_node_stack[-1].target_symbols:
+                        self.current_node_stack[-1].target_symbols[target.name] = [target]
+                    else:
+                        self.current_node_stack[-1].target_symbols[target.name].append(target)
+                self.targets = []
+
             # Add all values that are used inside the function body to its values' dict
             if self.values:
                 for value in self.values:
-                    if value.name not in self.current_node_stack[-1].values:
-                        self.current_node_stack[-1].values[value.name] = [value]
+                    if value.name not in self.current_node_stack[-1].value_references:
+                        self.current_node_stack[-1].value_references[value.name] = [value]
                     else:
-                        self.current_node_stack[-1].values[value.name].append(value)
+                        self.current_node_stack[-1].value_references[value.name].append(value)
                 self.values = []
 
             # Add all calls that are used inside the function body to its calls' dict
             if self.calls:
                 for call in self.calls:
-                    if call.name not in self.functions[current_node.name][-1].calls:
-                        self.functions[current_node.name][-1].calls[call.name] = [call]
+                    if call.name not in self.functions[current_node.name][-1].call_references:
+                        self.functions[current_node.name][-1].call_references[call.name] = [call]
                     else:
-                        self.functions[current_node.name][-1].calls[call.name].append(call)
+                        self.functions[current_node.name][-1].call_references[call.name].append(call)
                 self.calls = []
 
         # Lambda Functions that have no name are hard to deal with when building the call graph. Therefore,
@@ -289,41 +314,50 @@ class ModuleDataBuilder:
             and isinstance(current_node.parent, astroid.Call | astroid.Expr)
         # Call deals  with: (lambda x: x+1)(2) and Expr deals with: lambda x: x+1
         ):
+            # Add all targets that are used inside the function body to its targets' dict
+            if self.targets:
+                for target in self.targets:
+                    if target.name not in self.current_node_stack[-1].target_symbols:
+                        self.current_node_stack[-1].target_symbols[target.name] = [target]
+                    else:
+                        self.current_node_stack[-1].target_symbols[target.name].append(target)
+                self.targets = []
+
             # Add all values that are used inside the lambda body to its parent function values' dict
             if self.values and isinstance(self.current_node_stack[-2], FunctionScope):
                 for value in self.values:
                     if value.name not in self.current_node_stack[-1].parameters:  # type: ignore[union-attr] # we can ignore the linter error because the current scope node is always of type FunctionScope and therefor has a parameter attribute.
-                        if value.name not in self.current_node_stack[-2].values:
-                            self.current_node_stack[-2].values[value.name] = [value]
+                        if value.name not in self.current_node_stack[-2].value_references:
+                            self.current_node_stack[-2].value_references[value.name] = [value]
                         else:
-                            self.current_node_stack[-2].values[value.name].append(value)
+                            self.current_node_stack[-2].value_references[value.name].append(value)
 
             # Add the values to the Lambda FunctionScope
             if self.values and isinstance(self.current_node_stack[-1], FunctionScope) and isinstance(
                 self.current_node_stack[-1].symbol.node, astroid.Lambda):
                 for value in self.values:
-                    if value.name not in self.current_node_stack[-1].values:
-                        self.current_node_stack[-1].values[value.name] = [value]
+                    if value.name not in self.current_node_stack[-1].value_references:
+                        self.current_node_stack[-1].value_references[value.name] = [value]
                     else:
-                        self.current_node_stack[-1].values[value.name].append(value)
+                        self.current_node_stack[-1].value_references[value.name].append(value)
             self.values = []
 
             # Add all calls that are used inside the lambda body to its parent function calls' dict
             if self.calls and isinstance(self.current_node_stack[-2], FunctionScope):
                 for call in self.calls:
-                    if call.name not in self.current_node_stack[-2].calls:
-                        self.current_node_stack[-2].calls[call.name] = [call]
+                    if call.name not in self.current_node_stack[-2].call_references:
+                        self.current_node_stack[-2].call_references[call.name] = [call]
                     else:
-                        self.current_node_stack[-2].calls[call.name].append(call)
+                        self.current_node_stack[-2].call_references[call.name].append(call)
 
             # Add the calls to the Lambda FunctionScope
             if self.calls and isinstance(self.current_node_stack[-1], FunctionScope) and isinstance(
                self.current_node_stack[-1].symbol.node, astroid.Lambda):
                 for call in self.calls:
-                    if call.name not in self.current_node_stack[-1].calls:
-                        self.current_node_stack[-1].calls[call.name] = [call]
+                    if call.name not in self.current_node_stack[-1].call_references:
+                        self.current_node_stack[-1].call_references[call.name] = [call]
                     else:
-                        self.current_node_stack[-1].calls[call.name].append(call)
+                        self.current_node_stack[-1].call_references[call.name].append(call)
             self.calls = []
 
             # Add all globals that are used inside the Lambda to the parent function globals´ list
@@ -357,7 +391,7 @@ class ModuleDataBuilder:
         # Add __init__ function to ClassScope
         self.current_node_stack[-1].parent.init_function = self.current_node_stack[-1]
 
-    def find_first_parent_function(self, node: astroid.NodeNG) -> astroid.NodeNG:
+    def find_first_parent_function(self, node: astroid.NodeNG | MemberAccess) -> astroid.NodeNG:
         """Find the first parent of a call node that is a function.
 
         Parameters
@@ -371,6 +405,8 @@ class ModuleDataBuilder:
             The first parent of the node that is a function.
             If the parent is a module, return the module.
         """
+        if isinstance(node, MemberAccess):
+            node = node.member
         if isinstance(node.parent, astroid.FunctionDef | astroid.Lambda | astroid.Module | None):
             return node.parent
         return self.find_first_parent_function(node.parent)
@@ -431,13 +467,13 @@ class ModuleDataBuilder:
                     if isinstance(self.functions[function_id.name][0], FunctionScope):
                         # Since we do not differentiate between functions with the same name, we can choose the first one
                         # TODO: this is not correct. also cache this since it is called multiple times
-                        function_values = self.functions[function_id.name][0].values
+                        function_values = self.functions[function_id.name][0].value_references
                         if value.name in function_values:
                             if value.name in self.global_variables or isinstance(value, MemberAccessValue):
                                 # Get the correct symbol
                                 sym = None
                                 if isinstance(self.value_nodes[value], FunctionScope):
-                                    for val_list in self.value_nodes[value].values.values():  # type: ignore[union-attr] # we can ignore the linter error because of the if statement above
+                                    for val_list in self.value_nodes[value].value_references.values():  # type: ignore[union-attr] # we can ignore the linter error because of the if statement above
                                         for val in val_list:
                                             if val.node == value:
                                                 sym = val
@@ -468,7 +504,7 @@ class ModuleDataBuilder:
                         call_func_name = call.func.name
 
                     parent_function = self.find_first_parent_function(call)
-                    function_scopes_calls_names = list(function_node.calls.keys())
+                    function_scopes_calls_names = list(function_node.call_references.keys())
                     if call_func_name in function_scopes_calls_names and parent_function.name == function_id.name:
                         # get the correct symbol
                         sym = None
@@ -1020,6 +1056,11 @@ class ModuleDataBuilder:
             | astroid.With,
         ):
             self.target_nodes[node] = self.current_node_stack[-1]
+            if (isinstance(self.current_node_stack[-1], FunctionScope) and  # only add assignments if they are inside a function
+                node.name not in ("self", "cls") and  # exclude self and cls
+                not isinstance(node.parent, astroid.For | astroid.While)  # exclude loop variables
+            ):
+                self.targets.append(Symbol(node, calc_node_id(node), node.name))
 
         # The following nodes are no real target nodes, but astroid generates an AssignName node for them.
         # They still need to be added to the children of the current scope
@@ -1063,6 +1104,8 @@ class ModuleDataBuilder:
 
         if isinstance(member_access, MemberAccessTarget):
             self.target_nodes[member_access] = self.current_node_stack[-1]
+            if isinstance(self.current_node_stack[-1], FunctionScope):
+                self.targets.append(Symbol(member_access, calc_node_id(member_access), member_access.name))
         if isinstance(member_access, MemberAccessValue):
             self.value_nodes[member_access] = self.current_node_stack[-1]
 
@@ -1078,9 +1121,13 @@ class ModuleDataBuilder:
             member_access = _construct_member_access_target(node.expr, node)
             if isinstance(node.expr, astroid.Name):
                 self.target_nodes[node.expr] = self.current_node_stack[-1]
+                if isinstance(self.current_node_stack[-1], FunctionScope):
+                    self.targets.append(Symbol(member_access, calc_node_id(member_access), member_access.name))
 
         if isinstance(member_access, MemberAccessTarget):
             self.target_nodes[member_access] = self.current_node_stack[-1]
+            if isinstance(self.current_node_stack[-1], FunctionScope):
+                self.targets.append(Symbol(member_access, calc_node_id(member_access), member_access.name))
         elif isinstance(member_access, MemberAccessValue):
 
             # We ignore self and cls because they are not relevant for purity by our means.
@@ -1162,10 +1209,10 @@ class ModuleDataBuilder:
                 # Add the call node to the calls of the last function definition to ensure it is considered in the call graph
                 # since it would otherwise be lost in the (local) Scope of the Comprehension
                 if isinstance(self.current_node_stack[-1].symbol.node, _ComprehensionType) and self.last_function_def:
-                    if call_name not in self.last_function_def[-1].calls:
-                        self.last_function_def[-1].calls[call_name] = [call_reference]
+                    if call_name not in self.last_function_def[-1].call_references:
+                        self.last_function_def[-1].call_references[call_name] = [call_reference]
                     else:
-                        self.last_function_def[-1].calls[call_name].append(call_reference)
+                        self.last_function_def[-1].call_references[call_name].append(call_reference)
 
     def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
         parent = self.current_node_stack[-1]
