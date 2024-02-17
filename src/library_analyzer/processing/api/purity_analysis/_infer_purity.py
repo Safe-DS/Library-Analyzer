@@ -3,6 +3,8 @@ from __future__ import annotations
 import astroid
 
 from library_analyzer.processing.api.purity_analysis import calc_node_id
+from library_analyzer.processing.api.purity_analysis._resolve_references import resolve_references
+
 from library_analyzer.processing.api.purity_analysis.model import (
     CallGraphNode,
     ClassScope,
@@ -284,7 +286,7 @@ def check_open_like_functions(symbol: Symbol) -> PurityResult:  # type: ignore[r
 
 
 def infer_purity(
-    analysis_result: ModuleAnalysisResult
+    code: str
 ) -> dict[astroid.FunctionDef, PurityResult]:
     """
     Infer the purity of functions.
@@ -295,8 +297,8 @@ def infer_purity(
 
     Parameters
     ----------
-    analysis_result : ModuleAnalysisResult
-        The result of the analysis of the module.
+    code : str
+        The source code of the module.
 
     Returns
     -------
@@ -304,6 +306,9 @@ def infer_purity(
         The purity results of the functions in the module.
         Keys are the function nodes, values are the purity results.
     """
+    # Analyze the code, resolve the references in the module and build the call graph for the module
+    analysis_result = resolve_references(code)
+
     purity_results: dict[astroid.FunctionDef, PurityResult] = (
         {}
     )  # We use astroid.FunctionDef instead of str as a key so we can access the node later

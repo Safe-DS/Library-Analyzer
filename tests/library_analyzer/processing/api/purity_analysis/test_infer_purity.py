@@ -335,9 +335,7 @@ c = fun1()
     ],  # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods, class inits in cycles
 )
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
-    analysis_result = resolve_references(code)
-
-    purity_results = infer_purity(analysis_result)
+    purity_results = infer_purity(code)
     transformed_purity_results = {
         to_string_function_def(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()
     }
@@ -946,9 +944,7 @@ def fun3():
     ],
 )
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
-    analysis_result = resolve_references(code)
-
-    purity_results = infer_purity(analysis_result)
+    purity_results = infer_purity(code)
 
     transformed_purity_results = {
         to_string_function_def(function_def): to_simple_result(purity_result)
@@ -1030,9 +1026,7 @@ def import_fun(file: str, f_name: str) -> Callable:
     ],
 )
 def test_infer_purity_unknown(code: str, expected: dict[str, SimpleImpure]) -> None:
-    analysis_result = resolve_references(code)
-
-    purity_results = infer_purity(analysis_result)
+    purity_results = infer_purity(code)
 
     transformed_purity_results = {
         to_string_function_def(function_def): to_simple_result(purity_result)
@@ -1181,9 +1175,7 @@ def fun():
     ],
 )
 def test_infer_purity_open(code: str, expected: dict[str, SimpleImpure]) -> None:
-    analysis_result = resolve_references(code)
-
-    purity_results = infer_purity(analysis_result)
+    purity_results = infer_purity(code)
 
     transformed_purity_results = {
         to_string_function_def(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()

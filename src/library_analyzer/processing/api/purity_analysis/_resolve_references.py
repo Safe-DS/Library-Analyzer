@@ -407,7 +407,7 @@ def resolve_references(
     First, we get the module data for the given (module) code.
     Then we call the functions to find all references in the module.
 
-    Attributes
+    Parameters
     ----------
     code : str
         The source code of the module.
