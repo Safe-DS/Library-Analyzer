@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import astroid
 import pytest
@@ -14,6 +14,8 @@ from library_analyzer.processing.api.purity_analysis.model import (
     MemberAccess,
     MemberAccessTarget,
     MemberAccessValue,
+    NodeID,
+    Reasons,
     ReferenceNode,
 )
 
@@ -44,6 +46,186 @@ class ReferenceTestNode:
     def __str__(self) -> str:
         return f"{self.name}.{self.scope}"
 
+
+@dataclass
+class SimpleReasons:
+    """Class for simple reasons.
+
+    A simplified class of the Reasons class for testing purposes.
+
+    Attributes
+    ----------
+    function_name : str
+        The name of the function.
+    writes : set[str]
+        The set of the functions writes.
+    reads : set[str]
+        The set of the function reads.
+    calls : set[str]
+        The set of the function calls.
+    """
+
+    function_name: str
+    writes: set[str] = field(default_factory=set)
+    reads: set[str] = field(default_factory=set)
+    calls: set[str] = field(default_factory=set)
+
+    def __hash__(self) -> int:
+        return hash(self.function_name)
+
+
+def transform_reference_nodes(nodes: list[ReferenceNode]) -> list[ReferenceTestNode]:
+    """Transform a list of ReferenceNodes to a list of ReferenceTestNodes.
+
+    Parameters
+    ----------
+    nodes : list[ReferenceNode]
+        The list of ReferenceNodes to transform.
+
+    Returns
+    -------
+    list[ReferenceTestNode]
+        The transformed list of ReferenceTestNodes.
+    """
+    transformed_nodes: list[ReferenceTestNode] = []
+
+    for node in nodes:
+        transformed_nodes.append(transform_reference_node(node))
+
+    return transformed_nodes
+
+
+def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
+    """Transform a ReferenceNode to a ReferenceTestNode.
+
+    Transforms a ReferenceNode to a ReferenceTestNode, so that they are no longer complex objects and easier to compare.
+
+    Parameters
+    ----------
+    node : ReferenceNode
+        The ReferenceNode to transform.
+
+    Returns
+    -------
+    ReferenceTestNode
+        The transformed ReferenceTestNode.
+    """
+    if isinstance(node.node, MemberAccess | MemberAccessValue | MemberAccessTarget):
+        expression = get_base_expression(node.node)
+        if node.scope.symbol.name == "__init__" and isinstance(node.scope.symbol, ClassVariable | InstanceVariable):
+            return ReferenceTestNode(
+                name=f"{node.node.name}.line{expression.lineno}",
+                scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
+            )
+        return ReferenceTestNode(
+            name=f"{node.node.name}.line{expression.lineno}",
+            scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",
+            referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
+        )
+    if isinstance(node.scope.symbol.node, astroid.Lambda) and not isinstance(
+        node.scope.symbol.node,
+        astroid.FunctionDef,
+    ):
+        if isinstance(node.node, astroid.Call):
+            return ReferenceTestNode(
+                name=f"{node.node.func.name}.line{node.node.func.lineno}",
+                scope=f"{node.scope.symbol.node.__class__.__name__}",
+                referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
+            )
+        return ReferenceTestNode(
+            name=f"{node.node.name}.line{node.node.lineno}",
+            scope=f"{node.scope.symbol.node.__class__.__name__}",
+            referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
+        )
+    if isinstance(node.node, astroid.Call):
+        if (
+            isinstance(node.scope.symbol.node, astroid.FunctionDef)
+            and node.scope.symbol.name == "__init__"
+            and isinstance(node.scope.symbol, ClassVariable | InstanceVariable)
+        ):
+            return ReferenceTestNode(
+                name=f"{node.node.func.name}.line{node.node.lineno}",
+                scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
+            )
+        if isinstance(node.scope.symbol.node, astroid.ListComp):
+            return ReferenceTestNode(
+                name=f"{node.node.func.name}.line{node.node.func.lineno}",
+                scope=f"{node.scope.symbol.node.__class__.__name__}.",
+                referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
+            )
+        return ReferenceTestNode(
+            name=f"{node.node.func.name}.line{node.node.func.lineno}",
+            scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",
+            referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
+        )
+    if isinstance(node.scope.symbol.node, astroid.ListComp):
+        return ReferenceTestNode(
+            name=f"{node.node.name}.line{node.node.lineno}",
+            scope=f"{node.scope.symbol.node.__class__.__name__}.",
+            referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
+        )
+    if (
+        isinstance(node.node, astroid.Name)
+        and node.scope.symbol.name == "__init__"
+        and isinstance(node.scope.symbol, ClassVariable | InstanceVariable)
+    ):
+        return ReferenceTestNode(
+            name=f"{node.node.name}.line{node.node.lineno}",
+            scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+            referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
+        )
+    return ReferenceTestNode(
+        name=f"{node.node.name}.line{node.node.lineno}",
+        scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",
+        referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
+    )
+
+
+def transform_function_references(function_calls: dict[NodeID, Reasons]) -> dict[str, SimpleReasons]:
+    """Transform the function references.
+
+    The function references are transformed to a dictionary with the name of the function as key
+    and the transformed Reasons instance as value.
+
+    Parameters
+    ----------
+    function_calls : dict[str, Reasons]
+        The function references to transform.
+
+    Returns
+    -------
+    dict[str, SimpleReasons]
+        The transformed function references.
+    """
+    transformed_function_references = {}
+    for function_id, function_references in function_calls.items():
+        transformed_function_references.update({
+            function_id.__str__(): SimpleReasons(
+                function_references.function.name,
+                {
+                    f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}"
+                    if isinstance(function_reference.node, MemberAccessTarget) else
+                    f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
+                    for function_reference in function_references.writes
+                },
+                {
+                    f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}"
+                    if isinstance(function_reference.node, MemberAccessValue) else
+                    f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
+                    for function_reference in function_references.reads
+                },
+                {
+                    f"{function_reference.node.__class__.__name__}.{function_reference.node.func.attrname}.line{function_reference.node.fromlineno}"
+                    if isinstance(function_reference.node.func, astroid.Attribute) else
+                    f"{function_reference.node.__class__.__name__}.{function_reference.node.func.name}.line{function_reference.node.fromlineno}"
+                    for function_reference in function_references.calls
+                },
+            ),
+        })
+
+    return transformed_function_references
 
 @pytest.mark.parametrize(
     ("code", "expected"),
@@ -2186,111 +2368,395 @@ def test_resolve_references_dataclasses(code: str, expected: list[ReferenceTestN
     # assert references == expected
     assert set(transformed_references) == set(expected)
 
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "internal stuff"
+            """
+b = 1
+c = 2
+d = 3
+def g():
+    pass
 
-def transform_reference_nodes(nodes: list[ReferenceNode]) -> list[ReferenceTestNode]:
-    """Transform a list of ReferenceNodes to a list of ReferenceTestNodes.
+def f():
+    global b
+    a = 1  # LocaleWrite
+    b = 2  # NonLocalVariableWrite
+    a      # LocaleRead
+    c      # NonLocalVariableRead
+    b = d  # NonLocalVariableWrite, NonLocalVariableRead
+    g()    # Call
+    x = open("text.txt") # LocalWrite, Call
+            """,  # language=none
+            {
+                ".f.8.0": SimpleReasons(
+                    "f",
+                    {
+                        "AssignName.b.line11",
+                        "AssignName.b.line14",
+                    },
+                    {
+                        "Name.c.line13",
+                        "Name.d.line14",
+                    },
+                    {
+                        "Call.g.line15",
+                        "Call.open.line16",
+                    },
+                ),
+                ".g.5.0": SimpleReasons("g", set(), set(), set()),
+            },
+        ),
+        (  # language=Python "control flow statements"
+            """
+b = 1
+c = 0
 
-    Parameters
-    ----------
-    nodes : list[ReferenceNode]
-        The list of ReferenceNodes to transform.
+def f():
+    global b, c
+    if b > 1:  # we ignore all control flow statements
+        a = 1  # LocaleWrite
+    else:
+        c = 2  # NonLocalVariableWrite
 
-    Returns
-    -------
-    list[ReferenceTestNode]
-        The transformed list of ReferenceTestNodes.
-    """
-    transformed_nodes: list[ReferenceTestNode] = []
+    while a < 10:  # we ignore all control flow statements
+        b += 1  # NonLocalVariableWrite
+            """,  # language=none
+            {
+                ".f.5.0": SimpleReasons(
+                    "f",
+                    {
+                        "AssignName.c.line10",
+                        "AssignName.b.line13",
+                    },
+                    {
+                        "Name.b.line7",
+                    }
+                ),
+            },
+        ),
+        (  # language=Python "class attribute"
+            """
+class A:
+    class_attr1 = 20
 
-    for node in nodes:
-        transformed_nodes.append(transform_reference_node(node))
+def f():
+    a = A()
+    a.class_attr1 = 10  # NonLocalVariableWrite
 
-    return transformed_nodes
+def g():
+    a = A()
+    c = a.class_attr1  # NonLocalVariableRead
+            """,  # language=none
+            {
+                ".f.5.0": SimpleReasons(
+                    "f",
+                    {
+                        "MemberAccessTarget.a.class_attr1.line7",
+                    },
+                    set(),
+                    {
+                        "Call.A.line6"
+                    }
+                ),
+                ".g.9.0": SimpleReasons(
+                    "g",
+                    set(),
+                    {
+                        "MemberAccessValue.a.class_attr1.line11"
+                    },
+                    {
+                        "Call.A.line10"
+                    }
+                ),
+            },
+        ),
+        (  # language=Python "instance attribute"
+            """
+class A:
+    def __init__(self):
+        self.instance_attr1 = 20
 
+def f1():
+    a = A()
+    a.instance_attr1 = 10  # NonLocalVariableWrite  # TODO [Later] we should detect that this is a local variable
 
-def transform_reference_node(node: ReferenceNode) -> ReferenceTestNode:
-    """Transform a ReferenceNode to a ReferenceTestNode.
+b = A()
+def f2(x):
+    x.instance_attr1 = 10  # NonLocalVariableWrite
 
-    Transforms a ReferenceNode to a ReferenceTestNode, so that they are no longer complex objects and easier to compare.
+def f3():
+    global b
+    b.instance_attr1 = 10  # NonLocalVariableWrite  # TODO: LARS is this a global read of b? yes
 
-    Parameters
-    ----------
-    node : ReferenceNode
-        The ReferenceNode to transform.
+def g1():
+    a = A()
+    c = a.instance_attr1  # NonLocalVariableWrite  # TODO [Later] we should detect that this is a local variable
 
-    Returns
-    -------
-    ReferenceTestNode
-        The transformed ReferenceTestNode.
-    """
-    if isinstance(node.node, MemberAccess | MemberAccessValue | MemberAccessTarget):
-        expression = get_base_expression(node.node)
-        if node.scope.symbol.name == "__init__" and isinstance(node.scope.symbol, ClassVariable | InstanceVariable):
-            return ReferenceTestNode(
-                name=f"{node.node.name}.line{expression.lineno}",
-                scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-                referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
-            )
-        return ReferenceTestNode(
-            name=f"{node.node.name}.line{expression.lineno}",
-            scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",
-            referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
-        )
-    if isinstance(node.scope.symbol.node, astroid.Lambda) and not isinstance(
-        node.scope.symbol.node,
-        astroid.FunctionDef,
-    ):
-        if isinstance(node.node, astroid.Call):
-            return ReferenceTestNode(
-                name=f"{node.node.func.name}.line{node.node.func.lineno}",
-                scope=f"{node.scope.symbol.node.__class__.__name__}",
-                referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
-            )
-        return ReferenceTestNode(
-            name=f"{node.node.name}.line{node.node.lineno}",
-            scope=f"{node.scope.symbol.node.__class__.__name__}",
-            referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
-        )
-    if isinstance(node.node, astroid.Call):
-        if (
-            isinstance(node.scope.symbol.node, astroid.FunctionDef)
-            and node.scope.symbol.name == "__init__"
-            and isinstance(node.scope.symbol, ClassVariable | InstanceVariable)
-        ):
-            return ReferenceTestNode(
-                name=f"{node.node.func.name}.line{node.node.lineno}",
-                scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-                referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
-            )
-        if isinstance(node.scope.symbol.node, astroid.ListComp):
-            return ReferenceTestNode(
-                name=f"{node.node.func.name}.line{node.node.func.lineno}",
-                scope=f"{node.scope.symbol.node.__class__.__name__}.",
-                referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
-            )
-        return ReferenceTestNode(
-            name=f"{node.node.func.name}.line{node.node.func.lineno}",
-            scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",
-            referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
-        )
-    if isinstance(node.scope.symbol.node, astroid.ListComp):
-        return ReferenceTestNode(
-            name=f"{node.node.name}.line{node.node.lineno}",
-            scope=f"{node.scope.symbol.node.__class__.__name__}.",
-            referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
-        )
-    if (
-        isinstance(node.node, astroid.Name)
-        and node.scope.symbol.name == "__init__"
-        and isinstance(node.scope.symbol, ClassVariable | InstanceVariable)
-    ):
-        return ReferenceTestNode(
-            name=f"{node.node.name}.line{node.node.lineno}",
-            scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.klass.name}.{node.scope.symbol.node.name}",  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-            referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
-        )
-    return ReferenceTestNode(
-        name=f"{node.node.name}.line{node.node.lineno}",
-        scope=f"{node.scope.symbol.node.__class__.__name__}.{node.scope.symbol.node.name}",
-        referenced_symbols=sorted([str(ref) for ref in node.referenced_symbols]),
-    )
+def g2(x):
+    c = x.instance_attr1  # NonLocalVariableRead
+
+def g3():
+    global b
+    c = b.instance_attr1  # NonLocalVariableRead  # TODO: LARS is this a global read of b? yes
+            """,  # language=none
+            {
+                ".__init__.3.4": SimpleReasons(
+                    "__init__"
+                ),
+                ".f1.6.0": SimpleReasons(
+                    "f1", {
+                        "MemberAccessTarget.a.instance_attr1.line8",
+                    },
+                    set(),
+                    {"Call.A.line7"}
+                ),
+                ".f2.11.0": SimpleReasons(
+                    "f2",
+                    {
+                        "MemberAccessTarget.x.instance_attr1.line12",
+                    },
+                ),
+                ".f3.14.0": SimpleReasons(
+                    "f3",
+                    {
+                        "MemberAccessTarget.b.instance_attr1.line16",
+                    },
+                ),
+                ".g1.18.0": SimpleReasons(
+                    "g1", set(), {
+                        "MemberAccessValue.a.instance_attr1.line20",
+                    }, {"Call.A.line19"}
+                ),
+                ".g2.22.0": SimpleReasons(
+                    "g2",
+                    set(),
+                    {
+                        "MemberAccessValue.x.instance_attr1.line23",
+                    },
+                ),
+                ".g3.25.0": SimpleReasons(
+                    "g3",
+                    set(),
+                    {
+                        "MemberAccessValue.b.instance_attr1.line27",
+                    },
+                ),
+            },
+        ),
+        (  # language=Python "chained attributes"
+            """
+class A:
+    def __init__(self):
+        self.name = 10
+
+    def set_name(self, name):
+        self.name = name
+
+class B:
+    upper_class: A = A()
+
+def f():
+    b = B()
+    x = b.upper_class.name
+    b.upper_class.set_name("test")
+            """,  # language=none
+            {
+                ".__init__.3.4": SimpleReasons(
+                    "__init__"
+                ),
+                ".set_name.6.4": SimpleReasons(
+                    "set_name",
+                    {"MemberAccessTarget.self.name.line7"}
+                ),
+                ".f.12.0": SimpleReasons(
+                    "f",
+                    set(),
+                    {
+                        "MemberAccessValue.b.upper_class.name.line14",
+                        "MemberAccessValue.b.upper_class.line14",
+                        "MemberAccessValue.b.upper_class.line15",
+                    },
+                    {
+                        "Call.B.line13",
+                        "Call.set_name.line15",
+                    }
+                ),
+            }
+        ),
+        (  # language=Python "chained class function call"
+            """
+class B:
+    def __init__(self):
+        self.b = 20
+
+    def f(self):
+        pass
+
+class A:
+    class_attr1 = B()
+
+def g():
+    A().class_attr1.f()
+            """,  # language=none
+            {
+                ".__init__.3.4": SimpleReasons(
+                    "__init__"
+                ),
+                ".f.6.4": SimpleReasons(
+                    "f", set(), set(), set()
+                ),
+                ".g.12.0": SimpleReasons(
+                    "g",
+                    set(),
+                    set(),
+                    {
+                        "Call.A.line13",
+                        "Call.f.line13"
+                    }
+                ),
+            }
+        ),
+        (  # language=Python "two classes with same attribute name"
+            """
+class A:
+    name: str = ""
+
+    def __init__(self, name: str):
+        self.name = name
+
+class B:
+    name: str = ""
+
+    def __init__(self, name: str):
+        self.name = name
+
+def f():
+    a = A("value")
+    b = B("test")
+    a.name
+    b.name
+            """,  # language=none
+            {
+                ".__init__.5.4": SimpleReasons(
+                    "__init__"
+                ),
+                ".__init__.11.4": SimpleReasons(
+                    "__init__"
+                ),
+                ".f.14.0": SimpleReasons(
+                    "f",
+                    set(),
+                    {
+                        "MemberAccessValue.a.name.line17",
+                        "MemberAccessValue.b.name.line18",
+                    },
+                    {
+                        "Call.A.line15",
+                        "Call.B.line16"
+                    }
+                )
+            }
+        ),
+        (  # language=Python "multiple classes with same function name - same signature"
+            """
+z = 2
+
+class A:
+    @staticmethod
+    def add(a, b):
+        global z
+        return a + b + z
+
+class B:
+    @staticmethod
+    def add(a, b):
+        return a + 2 * b
+
+def f():
+    x = A.add(1, 2)
+    y = B.add(1, 2)
+    if x == y:
+        pass
+            """,  # language=none
+            {
+                ".add.6.4": SimpleReasons(
+                    "add",
+                    set(),
+                    {
+                        "Name.z.line8"
+                    },
+                    set()
+                ),
+                ".add.12.4": SimpleReasons(
+                    "add",
+                ),
+                ".f.15.0": SimpleReasons(
+                    "f",
+                    set(),
+                    set(),
+                    {
+                        "Call.add.line16",
+                        "Call.add.line17",
+                    }
+                )
+            }
+        ),  # since we only return a list of all possible references, we can't distinguish between the two functions
+        (  # language=Python "multiple classes with same function name - different signature"
+            """
+class A:
+    @staticmethod
+    def add(a, b):
+        return a + b
+
+class B:
+    @staticmethod
+    def add(a, b, c):
+        return a + b + c
+
+def f():
+    A.add(1, 2)
+    B.add(1, 2, 3)
+            """,  # language=none
+            {
+                ".add.4.4": SimpleReasons(
+                    "add",
+                ),
+                ".add.9.4": SimpleReasons(
+                    "add",
+                ),
+                ".f.12.0": SimpleReasons(
+                    "f",
+                    set(),
+                    set(),
+                    {
+                       "Call.add.line13",
+                       "Call.add.line14"
+                    }
+                )
+            }
+        ),  # TODO: [LATER] we should detect the different signatures
+    ],
+    ids=[
+        "internal stuff",
+        "control flow statements",
+        "class attribute",
+        "instance attribute",
+        "chained attributes",
+        "chained class function call",
+        "two classes with same attribute name",
+        "multiple classes with same function name - same signature",
+        "multiple classes with same function name - different signature",
+        # TODO: [LATER] we should detect the different signatures
+    ],
+)
+def test_get_module_data_function_references(code: str, expected: dict[str, SimpleReasons]) -> None:
+    function_references = resolve_references(code).function_references
+
+    transformed_function_references = transform_function_references(function_references)
+    # assert function_references == expected
+
+    assert transformed_function_references == expected
+
+# TODO: testcases for cyclic calls and recursive calls

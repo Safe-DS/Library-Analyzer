@@ -7,11 +7,11 @@ from library_analyzer.processing.api.purity_analysis._resolve_references import 
 
 from library_analyzer.processing.api.purity_analysis.model import (
     CallGraphNode,
+    CallOfParameter,
     ClassScope,
     ClassVariable,
     FileRead,
     FileWrite,
-    Symbol,
     GlobalVariable,
     Impure,
     ImpurityReason,
@@ -27,7 +27,8 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Reasons,
     ReferenceNode,
     StringLiteral,
-    UnknownCall, CallOfParameter,
+    Symbol,
+    UnknownCall,
 )
 
 # TODO: check these for correctness and add reasons for impurity

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from library_analyzer.processing.api.purity_analysis import build_call_graph, get_module_data
+from library_analyzer.processing.api.purity_analysis import build_call_graph, get_module_data, resolve_references
 
 
 @pytest.mark.parametrize(
@@ -293,7 +293,8 @@ double = lambda x: 2 * x
 )
 def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
     module_data = get_module_data(code)
-    call_graph_forest = build_call_graph(module_data.functions, module_data.classes, module_data.function_references)
+    references = resolve_references(code)
+    call_graph_forest = build_call_graph(module_data.functions, module_data.classes, references.function_references)
 
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.graphs.items():
@@ -622,7 +623,8 @@ lambda_add = lambda x, y: A().value.add(x, y)
 )
 def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> None:
     module_data = get_module_data(code)
-    call_graph_forest = build_call_graph(module_data.functions, module_data.classes, module_data.function_references)
+    references = resolve_references(code)
+    call_graph_forest = build_call_graph(module_data.functions, module_data.classes, references.function_references)
 
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.graphs.items():

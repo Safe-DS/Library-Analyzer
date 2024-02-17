@@ -93,7 +93,7 @@ class ModuleDataBuilder:
         default_factory=dict,
     )  # TODO: [LATER] in a refactor:  remove parameters since they are stored inside the FunctionScope in functions now and use these instead
     function_calls: dict[astroid.Call, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
-    function_references: dict[NodeID, Reasons] = field(default_factory=dict)  # TODO: rename to raw_reasons?
+    # function_references: dict[NodeID, Reasons] = field(default_factory=dict)  # TODO: rename to raw_reasons?
     last_function_def: list[FunctionScope] = field(default_factory=list)
 
     def _detect_scope(self, current_node: astroid.NodeNG) -> None:
@@ -119,7 +119,7 @@ class ModuleDataBuilder:
             inner_scope_children = self.children
 
             # add all symbols of a function to the function_references dict
-            self.function_references = self.collect_function_references()
+            # self.function_references = self.collect_function_references()
 
         # We need to look at a nodes' parent node to determine if it is in the scope of the current node.
         else:
@@ -362,15 +362,15 @@ class ModuleDataBuilder:
 
             # Add all globals that are used inside the Lambda to the parent function globals´ list
             if self.current_node_stack[
-                -1].globals:  # type: ignore[union-attr] # we can ignore the linter error because the current scope node is always of type FunctionScope and therefor has a parameter attribute.
+                -1].globals_used:  # type: ignore[union-attr] # we can ignore the linter error because the current scope node is always of type FunctionScope and therefor has a parameter attribute.
                 for glob_name, glob_def_list in self.current_node_stack[
-                    -1].globals.items():  # type: ignore[union-attr] # see above
-                    if glob_name not in self.last_function_def[-2].globals:
-                        self.last_function_def[-2].globals[glob_name] = glob_def_list
+                    -1].globals_used.items():  # type: ignore[union-attr] # see above
+                    if glob_name not in self.last_function_def[-2].globals_used:
+                        self.last_function_def[-2].globals_used[glob_name] = glob_def_list
                     else:
                         for glob_def in glob_def_list:
-                            if glob_def not in self.last_function_def[-2].globals[glob_name]:
-                                self.last_function_def[-2].globals[glob_name].append(glob_def)
+                            if glob_def not in self.last_function_def[-2].globals_used[glob_name]:
+                                self.last_function_def[-2].globals_used[glob_name].append(glob_def)
 
     def _analyze_constructor(self) -> None:
         """Analyze the constructor of a class.
@@ -411,160 +411,160 @@ class ModuleDataBuilder:
             return node.parent
         return self.find_first_parent_function(node.parent)
 
-    def collect_function_references(self) -> dict[NodeID, Reasons]:
-        """Collect all function references in the module.
-
-        This function must only be called after the scope of all nodes has been determined,
-        and the module scope is the current node.
-        Iterate over all functions and find all function references in the module.
-        Therefore, we loop over all target nodes and check if they are used in the function body of each function.
-        The same is done for all value nodes and all calls/class initializations.
-
-        Returns
-        -------
-        dict[NodeID, Reasons]
-            A dict containing all function references in the module.
-            The dict is structured as follows:
-            {
-                "NodeID_of_function": Reasons(
-                    function_def_node,
-                    {Symbol}, # writes
-                    {Symbol}, # reads
-                    {Symbol}, # calls
-                )
-                ...
-            }
-        """
-        python_builtins = dir(builtins)
-        function_references: dict[NodeID, Reasons] = {}
-
-        for function_scopes in self.functions.values():
-            for function_node in function_scopes:  # iterate over all functions with the same name
-                function_id = calc_node_id(function_node.symbol.node)
-                function_def_node = function_node.symbol.node
-
-                # Look at all target nodes and check if they are used in the function body
-                for target in self.target_nodes:
-                    # Only look at global variables (for global reads)
-                    if target.name in self.global_variables or isinstance(target, MemberAccessTarget):  # Filter out all non-global variables
-                        for child in function_node.children:
-                            if target.name == child.symbol.name and child in function_node.children:
-                                ref = child.symbol
-
-                                if function_id in function_references:  # check if the function is already in the dict
-                                    if ref not in function_references[function_id]:
-                                        function_references[function_id].writes.add(ref)
-                                else:  # create a new entry in the dict
-                                    function_references[function_id] = Reasons(
-                                        function_def_node,
-                                        {ref},
-                                        set(),
-                                        set(),
-                                    )  # Add writes
-
-                # Look at all value nodes and check if they are used in the function body
-                for value in self.value_nodes:
-                    if isinstance(self.functions[function_id.name][0], FunctionScope):
-                        # Since we do not differentiate between functions with the same name, we can choose the first one
-                        # TODO: this is not correct. also cache this since it is called multiple times
-                        function_values = self.functions[function_id.name][0].value_references
-                        if value.name in function_values:
-                            if value.name in self.global_variables or isinstance(value, MemberAccessValue):
-                                # Get the correct symbol
-                                sym = None
-                                if isinstance(self.value_nodes[value], FunctionScope):
-                                    for val_list in self.value_nodes[value].value_references.values():  # type: ignore[union-attr] # we can ignore the linter error because of the if statement above
-                                        for val in val_list:
-                                            if val.node == value:
-                                                sym = val
-                                                break
-                                else:
-                                    # raise TypeError(f"{self.value_nodes[value]} is not of type FunctionScope")
-                                    continue
-
-                                ref = sym
-
-                                if function_id in function_references:  # check if the function is already in the dict
-                                    function_references[function_id].reads.add(ref)
-                                else:  # create a new entry in the dict
-                                    function_references[function_id] = Reasons(
-                                        function_def_node,
-                                        set(),
-                                        {ref},
-                                        set(),
-                                    )  # Add reads
-
-                # Look at all calls and check if they are used in the function body
-                unknown = []
-                for call in self.function_calls:
-                    # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
-                    if isinstance(call.func, astroid.Attribute):
-                        call_func_name = call.func.attrname
-                    else:
-                        call_func_name = call.func.name
-
-                    parent_function = self.find_first_parent_function(call)
-                    function_scopes_calls_names = list(function_node.call_references.keys())
-                    if call_func_name in function_scopes_calls_names and parent_function.name == function_id.name:
-                        # get the correct symbol
-                        sym = None
-                        ref = None
-                        # check all self defined functions
-                        if call_func_name in self.functions:
-                            sym = self.functions[call_func_name][0].symbol
-                        # check all self defined classes
-                        elif call_func_name in self.classes:
-                            sym = self.classes[call_func_name].symbol
-                        # check all builtins
-                        elif call_func_name in python_builtins:
-                            sym = Builtin(call, NodeID("builtins", call_func_name, 0, 0), call_func_name)
-                        # check if a parameter of the function is called
-                        # elif isinstance(parent_function, astroid.FunctionDef) and parent_function in self.parameters:
-                        #     for i, p in enumerate(self.parameters[parent_function][1]):
-                        #         if p.name == call_func_name:
-                        #             sym = self.parameters[parent_function][1][i]
-                        #             break
-                        elif isinstance(parent_function, astroid.FunctionDef):
-                            fun_list = self.functions[parent_function.name]
-                            fun = None
-                            for f in fun_list:
-                                if f.symbol.node == parent_function:
-                                    fun = f
-                                    break
-                            if fun is not None:
-                                for par_name, par in fun.parameters.items():
-                                    if par_name == call_func_name:
-                                        sym = par
-                                        break
-
-                        if sym is None:
-                            unknown.append(call)
-                        else:
-                            ref = Symbol(call, calc_node_id(call), call_func_name)
-
-                        if function_id in function_references and ref:  # check if the function is already in the dict
-                            function_references[function_id].calls.add(ref)
-                        else:  # create a new entry in the dict
-                            function_references[function_id] = Reasons(
-                                function_def_node,
-                            )  # Add calls
-                            if ref:
-                                function_references[function_id].calls.add(ref)
-                            if unknown:
-                                function_references[function_id].unknown_calls = unknown
-
-                # Add function to function_references dict if no reason (write, read nor call) was found
-                if function_id not in function_references:
-                    function_references[function_id] = Reasons(function_def_node, set(), set(), set())
-
-        # remove duplicate calls from reads
-        if self.function_calls:
-            for ref in function_references.values():
-                if not isinstance(ref, Reasons):
-                    raise TypeError("ref is not of type Reasons")
-                if ref.calls and ref.reads:
-                    ref.remove_class_method_calls_from_reads()
-        return function_references
+    # def collect_function_references(self) -> dict[NodeID, Reasons]:
+    #     """Collect all function references in the module.
+    #
+    #     This function must only be called after the scope of all nodes has been determined,
+    #     and the module scope is the current node.
+    #     Iterate over all functions and find all function references in the module.
+    #     Therefore, we loop over all target nodes and check if they are used in the function body of each function.
+    #     The same is done for all value nodes and all calls/class initializations.
+    #
+    #     Returns
+    #     -------
+    #     dict[NodeID, Reasons]
+    #         A dict containing all function references in the module.
+    #         The dict is structured as follows:
+    #         {
+    #             "NodeID_of_function": Reasons(
+    #                 function_def_node,
+    #                 {Symbol}, # writes
+    #                 {Symbol}, # reads
+    #                 {Symbol}, # calls
+    #             )
+    #             ...
+    #         }
+    #     """
+    #     python_builtins = dir(builtins)
+    #     function_references: dict[NodeID, Reasons] = {}
+    #
+    #     for function_scopes in self.functions.values():
+    #         for function_node in function_scopes:  # iterate over all functions with the same name
+    #             function_id = calc_node_id(function_node.symbol.node)
+    #             function_def_node = function_node.symbol.node
+    #
+    #             # Look at all target nodes and check if they are used in the function body
+    #             for target in self.target_nodes:
+    #                 # Only look at global variables (for global reads)
+    #                 if target.name in self.global_variables or isinstance(target, MemberAccessTarget):  # Filter out all non-global variables
+    #                     for child in function_node.children:
+    #                         if target.name == child.symbol.name and child in function_node.children:
+    #                             ref = child.symbol
+    #
+    #                             if function_id in function_references:  # check if the function is already in the dict
+    #                                 if ref not in function_references[function_id]:
+    #                                     function_references[function_id].writes.add(ref)
+    #                             else:  # create a new entry in the dict
+    #                                 function_references[function_id] = Reasons(
+    #                                     function_def_node,
+    #                                     {ref},
+    #                                     set(),
+    #                                     set(),
+    #                                 )  # Add writes
+    #
+    #             # Look at all value nodes and check if they are used in the function body
+    #             for value in self.value_nodes:
+    #                 if isinstance(self.functions[function_id.name][0], FunctionScope):
+    #                     # Since we do not differentiate between functions with the same name, we can choose the first one
+    #                     # TODO: this is not correct. also cache this since it is called multiple times
+    #                     function_values = self.functions[function_id.name][0].value_references
+    #                     if value.name in function_values:
+    #                         if value.name in self.global_variables or isinstance(value, MemberAccessValue):
+    #                             # Get the correct symbol
+    #                             sym = None
+    #                             if isinstance(self.value_nodes[value], FunctionScope):
+    #                                 for val_list in self.value_nodes[value].value_references.values():  # type: ignore[union-attr] # we can ignore the linter error because of the if statement above
+    #                                     for val in val_list:
+    #                                         if val.node == value:
+    #                                             sym = val
+    #                                             break
+    #                             else:
+    #                                 # raise TypeError(f"{self.value_nodes[value]} is not of type FunctionScope")
+    #                                 continue
+    #
+    #                             ref = sym
+    #
+    #                             if function_id in function_references:  # check if the function is already in the dict
+    #                                 function_references[function_id].reads.add(ref)
+    #                             else:  # create a new entry in the dict
+    #                                 function_references[function_id] = Reasons(
+    #                                     function_def_node,
+    #                                     set(),
+    #                                     {ref},
+    #                                     set(),
+    #                                 )  # Add reads
+    #
+    #             # Look at all calls and check if they are used in the function body
+    #             unknown = []
+    #             for call in self.function_calls:
+    #                 # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+    #                 if isinstance(call.func, astroid.Attribute):
+    #                     call_func_name = call.func.attrname
+    #                 else:
+    #                     call_func_name = call.func.name
+    #
+    #                 parent_function = self.find_first_parent_function(call)
+    #                 function_scopes_calls_names = list(function_node.call_references.keys())
+    #                 if call_func_name in function_scopes_calls_names and parent_function.name == function_id.name:
+    #                     # get the correct symbol
+    #                     sym = None
+    #                     ref = None
+    #                     # check all self defined functions
+    #                     if call_func_name in self.functions:
+    #                         sym = self.functions[call_func_name][0].symbol
+    #                     # check all self defined classes
+    #                     elif call_func_name in self.classes:
+    #                         sym = self.classes[call_func_name].symbol
+    #                     # check all builtins
+    #                     elif call_func_name in python_builtins:
+    #                         sym = Builtin(call, NodeID("builtins", call_func_name, 0, 0), call_func_name)
+    #                     # check if a parameter of the function is called
+    #                     # elif isinstance(parent_function, astroid.FunctionDef) and parent_function in self.parameters:
+    #                     #     for i, p in enumerate(self.parameters[parent_function][1]):
+    #                     #         if p.name == call_func_name:
+    #                     #             sym = self.parameters[parent_function][1][i]
+    #                     #             break
+    #                     elif isinstance(parent_function, astroid.FunctionDef):
+    #                         fun_list = self.functions[parent_function.name]
+    #                         fun = None
+    #                         for f in fun_list:
+    #                             if f.symbol.node == parent_function:
+    #                                 fun = f
+    #                                 break
+    #                         if fun is not None:
+    #                             for par_name, par in fun.parameters.items():
+    #                                 if par_name == call_func_name:
+    #                                     sym = par
+    #                                     break
+    #
+    #                     if sym is None:
+    #                         unknown.append(call)
+    #                     else:
+    #                         ref = Symbol(call, calc_node_id(call), call_func_name)
+    #
+    #                     if function_id in function_references and ref:  # check if the function is already in the dict
+    #                         function_references[function_id].calls.add(ref)
+    #                     else:  # create a new entry in the dict
+    #                         function_references[function_id] = Reasons(
+    #                             function_def_node,
+    #                         )  # Add calls
+    #                         if ref:
+    #                             function_references[function_id].calls.add(ref)
+    #                         if unknown:
+    #                             function_references[function_id].unknown_calls = unknown
+    #
+    #             # Add function to function_references dict if no reason (write, read nor call) was found
+    #             if function_id not in function_references:
+    #                 function_references[function_id] = Reasons(function_def_node, set(), set(), set())
+    #
+    #     # remove duplicate calls from reads
+    #     if self.function_calls:
+    #         for ref in function_references.values():
+    #             if not isinstance(ref, Reasons):
+    #                 raise TypeError("ref is not of type Reasons")
+    #             if ref.calls and ref.reads:
+    #                 ref.remove_class_method_calls_from_reads()
+    #     return function_references
 
     def enter_module(self, node: astroid.Module) -> None:
         """
@@ -622,11 +622,11 @@ class ModuleDataBuilder:
         This function is called after the ASTWalker has walked all children of a function def and all their scopes are determined.
         It removes all global variables from the globals dict that are shadowed by local variables.
         """
-        if not isinstance(function_scope, FunctionScope) or not function_scope.globals:
+        if not isinstance(function_scope, FunctionScope) or not function_scope.globals_used:
             return
-        for glob_name in function_scope.globals.copy():
+        for glob_name in function_scope.globals_used.copy():
             if glob_name in [child.symbol.name for child in function_scope.children if isinstance(child.symbol, LocalVariable)]:
-                del function_scope.globals[glob_name]
+                del function_scope.globals_used[glob_name]
 
     def get_symbol(self, node: astroid.NodeNG, current_scope: astroid.NodeNG | None) -> Symbol:
         """Get the symbol of a node.
@@ -989,15 +989,15 @@ class ModuleDataBuilder:
                     # Propagate global variables in Comprehension type to the surrounding function if it is a global variable
                     if isinstance(global_node_def, astroid.AssignName) and (isinstance(self.current_node_stack[-1], FunctionScope) or isinstance(self.current_node_stack[-1].symbol.node, _ComprehensionType | astroid.Lambda)):
                         # Create a new dict entry for a global variable (by name)
-                        if node.name not in self.last_function_def[-1].globals:
+                        if node.name not in self.last_function_def[-1].globals_used:
                             symbol = self.get_symbol(global_node_def, self.last_function_def[-1].symbol.node)
                             if isinstance(symbol, GlobalVariable):
-                                self.last_function_def[-1].globals[node.name] = [symbol]
+                                self.last_function_def[-1].globals_used[node.name] = [symbol]
                         # If the name of the global variable already exists, add the new declaration to the list (redeclaration)
                         else:
                             symbol = self.get_symbol(global_node_def, self.last_function_def[-1].symbol.node)
-                            if symbol not in self.last_function_def[-1].globals[node.name] and isinstance(symbol, GlobalVariable):
-                                self.last_function_def[-1].globals[node.name].append(symbol)
+                            if symbol not in self.last_function_def[-1].globals_used[node.name] and isinstance(symbol, GlobalVariable):
+                                self.last_function_def[-1].globals_used[node.name].append(symbol)
                 # TODO: check if the global is used as type annotation, if it is, dont add it
                 return
 
@@ -1187,10 +1187,10 @@ class ModuleDataBuilder:
                        isinstance(self.current_node_stack[-1], FunctionScope)):
                         symbol = self.get_symbol(global_node_def, self.current_node_stack[-1].symbol.node)
                         if isinstance(symbol, GlobalVariable):
-                            if name not in self.current_node_stack[-1].globals:
-                                self.current_node_stack[-1].globals[name] = [symbol]
+                            if name not in self.current_node_stack[-1].globals_used:
+                                self.current_node_stack[-1].globals_used[name] = [symbol]
                             else:
-                                self.current_node_stack[-1].globals[name].append(symbol)
+                                self.current_node_stack[-1].globals_used[name].append(symbol)
 
     def enter_call(self, node: astroid.Call) -> None:
         if isinstance(node.func, astroid.Name | astroid.Attribute):
@@ -1256,7 +1256,10 @@ class ModuleDataBuilder:
         if not isinstance(node, astroid.Module):
             return self.check_if_global(name, node.parent)
         elif isinstance(node, astroid.Module) and name in node.globals:
-            return node.globals[name]
+            # The globals() dict contains all assignments of the node with this name
+            # (this includes assignments in other scopes).
+            # We only want the assignments of the nodes which are assigned on module scope (true global variables).
+            return [node for node in node.globals[name] if isinstance(self.find_first_parent_function(node), astroid.Module)]
         return None
 
     def find_base_classes(self, node: astroid.ClassDef) -> list[ClassScope] | None:
@@ -1550,5 +1553,5 @@ def get_module_data(code: str) -> ModuleData:
         target_nodes=module_data_handler.target_nodes,
         parameters=module_data_handler.parameters,
         function_calls=module_data_handler.function_calls,
-        function_references=module_data_handler.function_references,
+        # function_references=module_data_handler.function_references,
     )

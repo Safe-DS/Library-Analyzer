@@ -54,7 +54,7 @@ class ModuleData:
     ]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]
     function_calls: dict[astroid.Call, Scope | ClassScope]
-    function_references: dict[NodeID, Reasons]
+    # function_references: dict[NodeID, Reasons]
 
 
 @dataclass
@@ -298,16 +298,11 @@ class Reference:
         The id of that node.
     name : str
         The name of the symbol (for easier access).
-    referenced_symbols : list[Symbol] | None
-        The list of referenced symbols.
-        These are the symbols of the nodes that node references.
-        Is None when the references have not been resolved yet.
     """
 
     node: astroid.Call | astroid.Name | MemberAccessValue
     id: NodeID
     name: str
-    referenced_symbols: list[Symbol] | None = None
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
@@ -449,7 +444,7 @@ class FunctionScope(Scope):
         The dict of all function calls inside the corresponding function.
     parameters : dict[str, Parameter]
         The parameters of the function.
-    globals : dict[str, list[GlobalVariable]]
+    globals_used : dict[str, list[GlobalVariable]]
         The global variables used inside the function.
         It stores the globally assigned nodes (Assignment of the used variable).
     """
@@ -458,7 +453,7 @@ class FunctionScope(Scope):
     value_references: dict[str, list[Reference]] = field(default_factory=dict)
     call_references: dict[str, list[Reference]] = field(default_factory=dict)
     parameters: dict[str, Parameter] = field(default_factory=dict)
-    globals: dict[str, list[GlobalVariable]] = field(default_factory=dict)
+    globals_used: dict[str, list[GlobalVariable]] = field(default_factory=dict)
 
     def remove_call_node_by_name(self, name: str) -> None:
         """Remove a call node by name.
