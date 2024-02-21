@@ -22,6 +22,8 @@ from library_analyzer.processing.api.purity_analysis.model._reference import (
     CallGraphNode,
     ModuleAnalysisResult,
     ReferenceNode,
+    TargetReference,
+    ValueReference,
 )
 from library_analyzer.processing.api.purity_analysis.model._scope import (
     Builtin,
@@ -82,4 +84,6 @@ __all__ = [
     "UnknownCall",
     "CallOfParameter",
     "Reference",
+    "TargetReference",
+    "ValueReference",
 ]

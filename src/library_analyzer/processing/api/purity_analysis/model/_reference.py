@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 from dataclasses import dataclass, field
 
 import astroid
@@ -18,7 +19,7 @@ from library_analyzer.processing.api.purity_analysis.model._scope import (
 
 
 @dataclass
-class ReferenceNode:
+class ReferenceNode(ABC):
     """Class for reference nodes.
 
     A reference node represents a reference to a list of its referenced symbols.
@@ -35,7 +36,7 @@ class ReferenceNode:
         These are the symbols of the nodes that node references.
     """
 
-    node: astroid.Name | astroid.AssignName | astroid.Call | MemberAccessTarget | MemberAccessValue
+    node: Symbol | Reference
     scope: Scope
     referenced_symbols: list[Symbol] = field(default_factory=list)
 
@@ -45,6 +46,35 @@ class ReferenceNode:
         if isinstance(self.node, MemberAccessTarget | MemberAccessValue):
             return f"{self.node.name}.line{self.node.member.lineno}"
         return f"{self.node.name}.line{self.node.lineno}"
+
+
+@dataclass
+class TargetReference(ReferenceNode):
+    """Class for target reference nodes.
+
+    A TargetReference represents a reference from a target (=Symbol) to a list of Symbols.
+    This is used to represent a Reference from a reassignment to the original assignment
+    (or another previous assignment) of the same variable.
+    """
+
+    node: Symbol
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+
+@dataclass
+class ValueReference(ReferenceNode):
+    """Class for value reference nodes.
+
+    A ValueReference represents a reference from a value to a list of Symbols.
+    This is used to represent a Reference from a function call to the function definition.
+    """
+
+    node: Reference
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 @dataclass

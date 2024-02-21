@@ -371,7 +371,7 @@ def process_node(  # type: ignore[return] # all cases are handled
 
     # Check if the referenced function is a builtin function
     elif reason.function.name in BUILTIN_FUNCTIONS:
-        if reason.function.name in ("open", "read", "readline", "readlines", "write", "writelines"):
+        if reason.function.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
             purity_results[reason.function] = check_open_like_functions(
                 reason.get_call_by_name(reason.function.name),
             )

@@ -161,7 +161,9 @@ def transform_scope_node(
                         values_transformed.append(string)
             for call in node.call_references.values():
                 for c in call:
-                    calls_transformed.append(to_string_func(c.node))
+                    string = to_string_func(c.node)
+                    if string not in calls_transformed:
+                        calls_transformed.append(string)
             for parameter in node.parameters.values():
                 parameters_transformed.append(to_string_func(parameter.node))
             for globs in node.globals_used.values():
@@ -455,9 +457,10 @@ def g():
                                         SimpleScope("InstanceVariable.MemberAccess.self.value", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self.test", []),
                                     ],
-                                    ["MemberAccessTarget.self.value", "MemberAccessTarget.self.test"],
+                                    ["AssignName.self", "Name.self", "MemberAccessTarget.self.value", "MemberAccessTarget.self.test"],
                                     [],
                                     [],
+                                    ["AssignName.self"],
                                 ),
                                 SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.f",
@@ -465,9 +468,10 @@ def g():
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("LocalVariable.AssignName.var1", []),
                                     ],
-                                    ["AssignName.var1"],
+                                    ["AssignName.self", "AssignName.var1"],
                                     [],
                                     [],
+                                    ["AssignName.self"]
                                 ),
                             ],
                             ["FunctionDef.__init__", "FunctionDef.f"],
@@ -604,9 +608,10 @@ class A:
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("LocalVariable.AssignName.var1", []),
                                     ],
-                                    ["AssignName.var1"],
+                                    ["AssignName.self", "AssignName.var1"],
                                     ["MemberAccessValue.A.class_attr1", "Name.A", "Name.var1"],
                                     [],
+                                    ["AssignName.self"]
                                 ),
                             ],
                             ["AssignName.class_attr1", "FunctionDef.local_class_attr"],
@@ -644,9 +649,10 @@ class B:
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", []),
                                     ],
-                                    ["MemberAccessTarget.self.instance_attr1"],
+                                    ["AssignName.self", "Name.self", "MemberAccessTarget.self.instance_attr1"],
                                     [],
                                     [],
+                                    ["AssignName.self"]
                                 ),
                                 SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.local_instance_attr",
@@ -654,9 +660,10 @@ class B:
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("LocalVariable.AssignName.var1", []),
                                     ],
-                                    ["AssignName.var1"],
-                                    ["MemberAccessValue.self.instance_attr1", "Name.var1"],
+                                    ["AssignName.self", "AssignName.var1"],
+                                    ["MemberAccessValue.self.instance_attr1", "Name.self", "Name.var1"],
                                     [],
+                                    ["AssignName.self"]
                                 ),
                             ],
                             [
@@ -694,9 +701,10 @@ def local_instance_attr():
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self.instance_attr1", []),
                                     ],
-                                    ["MemberAccessTarget.self.instance_attr1"],
+                                    ["AssignName.self", "Name.self","MemberAccessTarget.self.instance_attr1"],
                                     [],
                                     [],
+                                    ["AssignName.self"]
                                 ),
                             ],
                             ["FunctionDef.__init__"],
@@ -883,9 +891,10 @@ def function_scope():
                                                             [],
                                                         ),
                                                     ],
-                                                    ["AssignName.var4"],
+                                                    ["AssignName.self", "AssignName.var4"],
                                                     [],
-                                                    []
+                                                    [],
+                                                    ["AssignName.self"]
                                                 ),
                                             ],
                                             ["AssignName.var3", "FunctionDef.local_class_function_scope"],
@@ -985,10 +994,10 @@ class ASTWalker:
                                         SimpleScope("InstanceVariable.MemberAccess.self._handler", []),
                                         SimpleScope("InstanceVariable.MemberAccess.self._cache", []),
                                     ],
-                                    ["MemberAccessTarget.self._handler", "MemberAccessTarget.self._cache"],
+                                    ["AssignName.self", "Name.self", "AssignName.handler", "MemberAccessTarget.self._handler", "MemberAccessTarget.self._cache"],
                                     ["Name.handler"],
                                     [],
-                                    ["AssignName.handler"],
+                                    ["AssignName.self", "AssignName.handler"],
                                 ),
                                 SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.walk",
@@ -996,10 +1005,10 @@ class ASTWalker:
                                         SimpleScope("Parameter.AssignName.self", []),
                                         SimpleScope("Parameter.AssignName.node", []),
                                     ],
-                                    [],
-                                    ["Name.node"],
+                                    ["AssignName.self", "AssignName.node"],
+                                    ["MemberAccessValue.self.__walk", "Name.self", "Name.node"],
                                     ["Call.__walk", "Call.set"],
-                                    ["AssignName.node"]
+                                    ["AssignName.self", "AssignName.node"]
                                 ),
                                 SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__walk",
@@ -1009,10 +1018,12 @@ class ASTWalker:
                                         SimpleScope("Parameter.AssignName.visited_nodes", []),
                                         SimpleScope("LocalVariable.AssignName.child_node", []),
                                     ],
-                                    [],
-                                    ["Name.node", "Name.visited_nodes", "Name.child_node"],
-                                    ["Call.add", "Call.__enter", "Call.get_children", "Call.__walk", "Call.__leave"],
-                                    ["AssignName.node", "AssignName.visited_nodes"]
+                                    ["AssignName.self", "AssignName.node", "AssignName.visited_nodes", "AssignName.child_node"],
+                                    ["Name.node", "Name.visited_nodes", "MemberAccessValue.visited_nodes.add",
+                                     "MemberAccessValue.self.__enter", "Name.self", "MemberAccessValue.node.get_children", "MemberAccessValue.self.__walk",
+                                      "Name.child_node", "MemberAccessValue.self.__leave"],
+                                    ["Call.AssertionError", "Call.add", "Call.__enter", "Call.get_children", "Call.__walk", "Call.__leave"],
+                                    ["AssignName.self", "AssignName.node", "AssignName.visited_nodes"]
                                 ),
                                 SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__enter",
@@ -1021,10 +1032,10 @@ class ASTWalker:
                                         SimpleScope("Parameter.AssignName.node", []),
                                         SimpleScope("LocalVariable.AssignName.method", []),
                                     ],
-                                    ["AssignName.method"],
-                                    ["Name.node", "Name.method"],
+                                    ["AssignName.self", "AssignName.node", "AssignName.method"],
+                                    ["MemberAccessValue.self.__get_callbacks", "Name.self", "Name.node", "Name.method"],
                                     ["Call.__get_callbacks", "Call.method"],
-                                    ["AssignName.node"]
+                                    ["AssignName.self", "AssignName.node"]
                                 ),
                                 SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__leave",
@@ -1033,10 +1044,10 @@ class ASTWalker:
                                         SimpleScope("Parameter.AssignName.node", []),
                                         SimpleScope("LocalVariable.AssignName.method", []),
                                     ],
-                                    ["AssignName.method"],
-                                    ["Name.node", "Name.method"],
+                                    ["AssignName.self", "AssignName.node", "AssignName.method"],
+                                    ["MemberAccessValue.self.__get_callbacks", "Name.self", "Name.node", "Name.method"],
                                     ["Call.__get_callbacks", "Call.method"],
-                                    ["AssignName.node"]
+                                    ["AssignName.self", "AssignName.node"]
                                 ),
                                 SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__get_callbacks",
@@ -1052,13 +1063,16 @@ class ASTWalker:
                                         SimpleScope("LocalVariable.AssignName.enter_method", []),
                                         SimpleScope("LocalVariable.AssignName.leave_method", []),
                                     ],
-                                    ["AssignName.klass", "AssignName.methods", "AssignName.handler", "AssignName.class_name",
-                                     "AssignName.enter_method", "AssignName.leave_method", "MemberAccessTarget.self._cache"],
-                                    ["Name.node", "MemberAccessValue.node.__class__", "Name.klass", "Name.methods",
-                                     "MemberAccessValue.self._handler", "Name.handler", "Name.class_name",
+                                    ["AssignName.self", "AssignName.node", "AssignName.klass", "AssignName.methods",
+                                     "AssignName.handler", "AssignName.class_name", "AssignName.enter_method",
+                                     "AssignName.leave_method", "MemberAccessTarget.self._cache"],
+                                    ["MemberAccessValue.node.__class__", "Name.node", "MemberAccessValue.self._cache.get",
+                                     "MemberAccessValue.self._cache", "Name.self", "Name.klass", "Name.methods",
+                                     "MemberAccessValue.self._handler", "MemberAccessValue.klass.__name__.lower",
+                                     "MemberAccessValue.klass.__name__", "Name.handler", "Name.class_name",
                                      "Name.enter_method", "Name.leave_method"],
                                     ["Call.get", "Call.lower", "Call.getattr"],
-                                    ["AssignName.node"],
+                                    ["AssignName.self", "AssignName.node"],
                                     []
                                 ),
                             ],
@@ -1230,7 +1244,7 @@ def fun():
                                 SimpleScope("LocalVariable.AssignName.text", []),
                             ],
                             ["AssignName.f", "AssignName.text"],
-                            ["Name.f", "Name.text"],
+                            ["MemberAccessValue.f.read", "Name.f", "Name.text", "MemberAccessValue.f.close"],
                             ["Call.open", "Call.read", "Call.print", "Call.close"],
                         ),
                     ],
@@ -1260,16 +1274,18 @@ with MyContext() as context:
                                 SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__enter__",
                                     [SimpleScope("Parameter.AssignName.self", [])],
-                                    [],
-                                    [],
+                                    ["AssignName.self"],
+                                    ["Name.self"],
                                     ["Call.print"],
+                                    ["AssignName.self"]
                                 ),
                                 SimpleFunctionScope(
                                     "ClassVariable.FunctionDef.__exit__",
                                     [SimpleScope("Parameter.AssignName.self", [])],
-                                    [],
+                                    ["AssignName.self"],
                                     [],
                                     ["Call.print"],
+                                    ["AssignName.self"]
                                 ),
                             ],
                             ["FunctionDef.__enter__", "FunctionDef.__exit__"],
@@ -1339,6 +1355,57 @@ double = lambda x: 2 * x
                 ),
             ],
         ),
+        (  # language=Python "Assign to dict"
+            """
+class A:
+    d = {}
+
+    def f(self):
+        self.d["a"] = 1
+            """,  # language=none
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleClassScope(
+                            "GlobalVariable.ClassDef.A",
+                            [
+                                SimpleScope("ClassVariable.AssignName.d", []),
+                                SimpleFunctionScope(
+                                    "ClassVariable.FunctionDef.f",
+                                    [SimpleScope("Parameter.AssignName.self", [])],
+                                    ["AssignName.self", "MemberAccessTarget.self.d", "Name.self"],
+                                    [],
+                                    [],
+                                    ["AssignName.self"]
+                                ),
+                            ],
+                            ["AssignName.d", "FunctionDef.f"],
+                            [],
+                        ),
+                    ],
+                ),
+            ],
+        ),
+        (  # language=Python "Annotations"
+            """
+from typing import Union
+
+def f(a: int | str, b: Union[int, str]) -> tuple[float, str]:
+    return float(a), str(b)
+            """,  # language=none
+            [SimpleScope("Module", [
+                SimpleScope("Import.ImportFrom.typing.Union", []),
+                SimpleFunctionScope("GlobalVariable.FunctionDef.f",
+                                    [SimpleScope("Parameter.AssignName.a", []),
+                                     SimpleScope("Parameter.AssignName.b", [])],
+                                    ["AssignName.a", "AssignName.b"],
+                                    ["Name.a", "Name.b"],
+                                    ["Call.float", "Call.str"],
+                                    ["AssignName.a", "AssignName.b"]
+                                    ),
+            ])],
+        ),
     ],
     ids=[
         "Seminar Example",
@@ -1370,6 +1437,8 @@ double = lambda x: 2 * x
         "Lambda",
         "Lambda call",
         "Lambda with name",
+        "Assign to dict",
+        "Annotations",
     ],  # TODO: add tests for match, try except
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
@@ -1459,9 +1528,10 @@ class A:
                                 SimpleScope("Parameter.AssignName.self", []),
                                 SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
                             ],
-                            ["MemberAccessTarget.self.var1"],
+                            ["AssignName.self", "Name.self", "MemberAccessTarget.self.var1"],
                             [],
-                            []
+                            [],
+                            ["AssignName.self"]
                         ),
                     ],
                     ["FunctionDef.__init__"],
@@ -1489,9 +1559,10 @@ class A:
                                 SimpleScope("InstanceVariable.MemberAccess.self.name", []),
                                 SimpleScope("InstanceVariable.MemberAccess.self.state", []),
                             ],
-                            ["MemberAccessTarget.self.var1", "MemberAccessTarget.self.name", "MemberAccessTarget.self.state"],
+                            ["AssignName.self", "Name.self", "MemberAccessTarget.self.var1", "MemberAccessTarget.self.name", "MemberAccessTarget.self.state"],
                             [],
-                            []
+                            [],
+                            ["AssignName.self"]
                         ),
                     ],
                     ["FunctionDef.__init__"],
@@ -1519,9 +1590,10 @@ class A:
                                 SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
                                 SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
                             ],
-                            ["MemberAccessTarget.self.var1"],
+                            ["AssignName.self", "Name.self", "MemberAccessTarget.self.var1"],
                             [],
-                            []
+                            [],
+                            ["AssignName.self"]
                         ),
                     ],
                     ["FunctionDef.__init__"],
@@ -1548,9 +1620,10 @@ class A:
                                 SimpleScope("Parameter.AssignName.self", []),
                                 SimpleScope("InstanceVariable.MemberAccess.self.var1", []),
                             ],
-                            ["MemberAccessTarget.self.var1"],
+                            ["AssignName.self", "Name.self", "MemberAccessTarget.self.var1"],
                             [],
-                            []
+                            [],
+                            ["AssignName.self"]
                         ),
                     ],
                     ["AssignName.var1", "FunctionDef.__init__"],
@@ -1762,7 +1835,7 @@ def f(a):
                                               SimpleScope("Parameter.AssignName.a", []),
                                               SimpleScope("LocalVariable.AssignName.i", [])
                                           ],
-                                          ["AssignName.a"],
+                                          ["AssignName.a", "AssignName.i"],
                                           ["Name.a"],
                                           ["Call.range"],
                                           ["AssignName.a"]
@@ -1832,7 +1905,7 @@ def h():
             {
                 "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [], [], [], [], [], ["AssignName.var1"])],
                 "g": [SimpleFunctionScope("GlobalVariable.FunctionDef.g", [], [], [], [], [], ["AssignName.var1", "AssignName.var2"])],
-                "h": [SimpleFunctionScope("GlobalVariable.FunctionDef.h", [SimpleScope("LocalVariable.AssignName.i", [])], [], ["Name.var1"], ["Call.range"], [], ["AssignName.var1", "AssignName.var2"])]
+                "h": [SimpleFunctionScope("GlobalVariable.FunctionDef.h", [SimpleScope("LocalVariable.AssignName.i", [])], ["AssignName.i"], ["Name.var1"], ["Call.range"], [], ["AssignName.var1", "AssignName.var2"])]
             }
         ),
         (  # language=Python "Function with shadowing of global variable"
@@ -1840,7 +1913,7 @@ def h():
 var1 = 10
 
 def f():
-    var1 = 1  # this is not a global variable  # TODO: add detection for shadowing of global variables
+    var1 = 1  # this is not a global variable
     for i in range(var1):
         pass
 
@@ -1851,7 +1924,7 @@ def f():
                                               SimpleScope("LocalVariable.AssignName.var1", []),
                                               SimpleScope("LocalVariable.AssignName.i", [])
                                           ],
-                                          ["AssignName.var1"],
+                                          ["AssignName.var1", "AssignName.i"],
                                           ["Name.var1"],
                                           ["Call.range"],
                                           [],
@@ -2078,70 +2151,70 @@ def test_get_module_data_globals(code: str, expected: str) -> None:
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        (  # language=Python "parameter in function scope"
+        (  # language=Python "Parameter in function scope"
             """
 def local_parameter(pos_arg):
     return 2 * pos_arg
             """,  # language= None
             {"local_parameter": ["pos_arg"]},
         ),
-        (  # language=Python "parameter in function scope with keyword only"
+        (  # language=Python "Parameter in function scope with keyword only"
             """
 def local_parameter(*, key_arg_only):
     return 2 * key_arg_only
             """,  # language= None
             {"local_parameter": ["key_arg_only"]},
         ),
-        (  # language=Python "parameter in function scope with positional only"
+        (  # language=Python "Parameter in function scope with positional only"
             """
 def local_parameter(pos_arg_only, /):
     return 2 * pos_arg_only
             """,  # language= None
             {"local_parameter": ["pos_arg_only"]},
         ),
-        (  # language=Python "parameter in function scope with default value"
+        (  # language=Python "Parameter in function scope with default value"
             """
 def local_parameter(def_arg=10):
     return def_arg
             """,  # language= None
             {"local_parameter": ["def_arg"]},
         ),
-        (  # language=Python "parameter in function scope with type annotation"
+        (  # language=Python "Parameter in function scope with type annotation"
             """
 def local_parameter(def_arg: int):
     return def_arg
             """,  # language= None
             {"local_parameter": ["def_arg"]},
         ),
-        (  # language=Python "parameter in function scope with *args"
+        (  # language=Python "Parameter in function scope with *args"
             """
 def local_parameter(*args):
     return args
             """,  # language= None
             {"local_parameter": ["args"]},
         ),
-        (  # language=Python "parameter in function scope with **kwargs"
+        (  # language=Python "Parameter in function scope with **kwargs"
             """
 def local_parameter(**kwargs):
     return kwargs
             """,  # language= None
             {"local_parameter": ["kwargs"]},
         ),
-        (  # language=Python "parameter in function scope with *args and **kwargs"
+        (  # language=Python "Parameter in function scope with *args and **kwargs"
             """
 def local_parameter(*args, **kwargs):
     return args, kwargs
             """,  # language= None
             {"local_parameter": ["args", "kwargs"]},
         ),
-        (  # language=Python "two parameters in function scope"
+        (  # language=Python "Two Parameters in function scope"
             """
 def local_double_parameter(a, b):
     return a, b
             """,  # language= None
             {"local_double_parameter": ["a", "b"]},
         ),
-        (  # language=Python "two parameters in function scope"
+        (  # language=Python "Two Parameters in function scope"
             """
 def local_parameter1(a):
     return a
@@ -2153,16 +2226,16 @@ def local_parameter2(a):
         ),
     ],
     ids=[
-        "parameter in function scope",
-        "parameter in function scope with keyword only",
-        "parameter in function scope with positional only",
-        "parameter in function scope with default value",
-        "parameter in function scope with type annotation",
-        "parameter in function scope with *args",
-        "parameter in function scope with **kwargs",
-        "parameter in function scope with *args and **kwargs",
-        "two parameters in function scope",
-        "two functions with same parameter name"
+        "Parameter in function scope",
+        "Parameter in function scope with keyword only",
+        "Parameter in function scope with positional only",
+        "Parameter in function scope with default value",
+        "Parameter in function scope with type annotation",
+        "Parameter in function scope with *args",
+        "Parameter in function scope with **kwargs",
+        "Parameter in function scope with *args and **kwargs",
+        "Two parameters in function scope",
+        "Two functions with same parameter name"
     ],
 )
 def test_get_module_data_parameters(code: str, expected: str) -> None:

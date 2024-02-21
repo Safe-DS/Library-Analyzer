@@ -39,8 +39,6 @@ class ModuleData:
         These are used to determine the scope of the parameters for each function.
     function_calls : dict[astroid.Call, Scope | ClassScope]
         All function calls and their Scope or ClassScope.
-    function_references : dict[NodeID, Reasons]
-        All nodes relevant for reference resolving inside functions.
     """
 
     scope: Scope | ClassScope
@@ -54,7 +52,6 @@ class ModuleData:
     ]
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]
     function_calls: dict[astroid.Call, Scope | ClassScope]
-    # function_references: dict[NodeID, Reasons]
 
 
 @dataclass
@@ -287,7 +284,8 @@ class Builtin(Symbol):
 class Reference:
     """Represents a node that references a Name.
 
-    A Reference is a node that references a Name, e.g. a function call, a variable read, etc.
+    A Reference is a node that references a Name,
+    e.g., a function call, a variable read, etc.
 
 
     Attributes
@@ -328,8 +326,9 @@ class Scope:
         Is None if the node is a leaf node.
     _parent : Scope | ClassScope | None
         The parent node in the scope tree, there is None if the node is the root node.
-    """  # TODO: Lars do we want Attributes here or in the properties?
+    """
 
+    # TODO: Lars do we want Attributes here or in the properties?
     _symbol: Symbol
     _children: list[Scope | ClassScope] = field(default_factory=list)
     _parent: Scope | ClassScope | None = None
