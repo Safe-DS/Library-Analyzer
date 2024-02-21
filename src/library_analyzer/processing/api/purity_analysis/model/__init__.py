@@ -16,6 +16,7 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
     PurityResult,
     StringLiteral,
     UnknownCall,
+    APIPurity
 )
 from library_analyzer.processing.api.purity_analysis.model._reference import (
     CallGraphForest,
@@ -86,4 +87,5 @@ __all__ = [
     "Reference",
     "TargetReference",
     "ValueReference",
+    "APIPurity",
 ]

@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import astroid
 
 from library_analyzer.processing.api.purity_analysis import calc_node_id
 from library_analyzer.processing.api.purity_analysis._resolve_references import resolve_references
-
 from library_analyzer.processing.api.purity_analysis.model import (
+    APIPurity,
     CallGraphNode,
     CallOfParameter,
-    ClassScope,
     ClassVariable,
     FileRead,
     FileWrite,
@@ -25,11 +26,13 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Pure,
     PurityResult,
     Reasons,
-    ReferenceNode,
     StringLiteral,
     Symbol,
     UnknownCall,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # TODO: check these for correctness and add reasons for impurity
 BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
@@ -624,3 +627,24 @@ def transform_reasons_to_impurity_result(
         if impurity_reasons:
             return Impure(impurity_reasons)
         return Pure()
+
+
+def get_purity_results(package: str, src_dir_path: Path) -> APIPurity:
+    modules = list(src_dir_path.glob("**/*.py"))
+    package_purity = APIPurity()
+
+    for module in modules:
+        with module.open("r") as file:
+            code = file.read()
+            # TODO: add module_name and path to astroid.parse?
+            # TODO: remove test files?
+            # TODO: what about modules with the same name in different directories?
+            module_purity_results = infer_purity(code)
+            # TODO: do we want the function name or the function def node as result?
+            #  if we want the name we need to use ID or else functions with the same name will be lost
+            # TODO: do we want to differentiate between classes
+            module_purity_results_str = {key.name: value for key, value in module_purity_results.items()}
+
+        package_purity.purity_results[module.name] = module_purity_results_str
+
+    return package_purity

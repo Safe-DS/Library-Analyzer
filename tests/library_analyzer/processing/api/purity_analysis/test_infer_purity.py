@@ -4,7 +4,6 @@ import astroid
 import pytest
 from library_analyzer.processing.api.purity_analysis import (
     infer_purity,
-    resolve_references,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
     CallOfParameter,
