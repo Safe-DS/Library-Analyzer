@@ -85,7 +85,9 @@ class MemberAccess(astroid.NodeNG):  # TODO: since this is a subclass it should 
     def __post_init__(self) -> None:
         if isinstance(self.receiver, astroid.Call):
             self.expression = self.receiver.func
-        if isinstance(self.member, astroid.AssignAttr | astroid.Attribute):
+        if isinstance(self.member, astroid.AssignAttr | astroid.Attribute) and isinstance(self.receiver, astroid.AssignAttr | astroid.Attribute):
+            self.name = f"{self.receiver.attrname}.{self.member.attrname}"
+        elif isinstance(self.member, astroid.AssignAttr | astroid.Attribute):
             self.name = f"{self.receiver.name}.{self.member.attrname}"
         else:
             self.name = f"{self.receiver.name}.{self.member.name}"

@@ -623,182 +623,182 @@ def _find_target_references_new(target_reference: Symbol,
     return result_target_reference
 
 
-def _collect_reasons(module_data: ModuleData) -> dict[NodeID, Reasons]:
-    """Collect all function references in the module.
-
-    This function must only be called after the scope of all nodes has been determined,
-    and the module scope is the current node.
-    Iterate over all functions and find all function references in the module.
-    Therefore, we loop over all target nodes and check if they are used in the function body of each function.
-    The same is done for all value nodes and all calls/class initializations.
-
-    Returns
-    -------
-    dict[NodeID, Reasons]
-        A dict containing all function references in the module.
-        The dict is structured as follows:
-        {
-            "NodeID_of_function": Reasons(
-                function_def_node,
-                {Symbol}, # writes
-                {Symbol}, # reads
-                {Symbol}, # calls
-            )
-            ...
-        }
-    """
-    def find_first_parent_function(node: astroid.NodeNG | MemberAccess) -> astroid.NodeNG:
-        """Find the first parent of a call node that is a function.
-
-        Parameters
-        ----------
-        node : astroid.NodeNG
-            The node to start the search from.
-
-        Returns
-        -------
-        astroid.NodeNG
-            The first parent of the node that is a function.
-            If the parent is a module, return the module.
-        """
-        if isinstance(node, MemberAccess):
-            node = node.member
-        if isinstance(node.parent, astroid.FunctionDef | astroid.Lambda | astroid.Module | None):
-            return node.parent
-        return find_first_parent_function(node.parent)
-
-    python_builtins = dir(builtins)
-    function_references: dict[NodeID, Reasons] = {}
-
-    for function_scopes in module_data.functions.values():
-        for function_node in function_scopes:  # iterate over all functions with the same name
-            function_id = calc_node_id(function_node.symbol.node)
-            function_def_node = function_node.symbol.node
-
-            # Look at all target nodes and check if they are used in the function body
-            for target in module_data.target_nodes:
-                # Only look at global variables (for global reads)
-                if target.name in module_data.global_variables or isinstance(target,
-                                                                             MemberAccessTarget):  # Filter out all non-global variables
-                    for child in function_node.children:
-                        if target.name == child.symbol.name and child in function_node.children:
-                            ref = child.symbol
-
-                            if function_id in function_references:  # check if the function is already in the dict
-                                if ref not in function_references[function_id]:
-                                    function_references[function_id].writes_to.add(ref)
-                            else:  # create a new entry in the dict
-                                function_references[function_id] = Reasons(
-                                    function_def_node,
-                                    {ref},
-                                    set(),
-                                    set(),
-                                )  # Add writes
-
-            # Look at all value nodes and check if they are used in the function body
-            for value in module_data.value_nodes:
-                if isinstance(module_data.functions[function_id.name][0], FunctionScope):
-                    # Since we do not differentiate between functions with the same name, we can choose the first one
-                    # TODO: this is not correct. also cache this since it is called multiple times
-                    function_values = module_data.functions[function_id.name][0].value_references
-                    if value.name in function_values:
-                        if value.name in module_data.global_variables or isinstance(value, MemberAccessValue):
-                            # Get the correct symbol
-                            sym = None
-                            if isinstance(module_data.value_nodes[value], FunctionScope):
-                                for val_list in module_data.value_nodes[
-                                    value].value_references.values():  # type: ignore[union-attr] # we can ignore the linter error because of the if statement above
-                                    for val in val_list:
-                                        if val.node == value:
-                                            sym = val
-                                            break
-                            else:
-                                # raise TypeError(f"{self.value_nodes[value]} is not of type FunctionScope")
-                                continue
-
-                            ref = sym
-
-                            if function_id in function_references:  # check if the function is already in the dict
-                                function_references[function_id].reads_from.add(ref)
-                            else:  # create a new entry in the dict
-                                function_references[function_id] = Reasons(
-                                    function_def_node,
-                                    set(),
-                                    {ref},
-                                    set(),
-                                )  # Add reads
-
-            # Look at all calls and check if they are used in the function body
-            unknown = []
-            for call in module_data.function_calls:
-                # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
-                if isinstance(call.func, astroid.Attribute):
-                    call_func_name = call.func.attrname
-                else:
-                    call_func_name = call.func.name
-
-                parent_function = find_first_parent_function(call)
-                function_scopes_calls_names = list(function_node.call_references.keys())
-                if call_func_name in function_scopes_calls_names and parent_function.name == function_id.name:
-                    # get the correct symbol
-                    sym = None
-                    ref = None
-                    # check all self defined functions
-                    if call_func_name in module_data.functions:
-                        sym = module_data.functions[call_func_name][0].symbol
-                    # check all self defined classes
-                    elif call_func_name in module_data.classes:
-                        sym = module_data.classes[call_func_name].symbol
-                    # check all builtins
-                    elif call_func_name in python_builtins:
-                        sym = Builtin(call, NodeID("builtins", call_func_name, 0, 0), call_func_name)
-                    # check if a parameter of the function is called
-                    # elif isinstance(parent_function, astroid.FunctionDef) and parent_function in self.parameters:
-                    #     for i, p in enumerate(self.parameters[parent_function][1]):
-                    #         if p.name == call_func_name:
-                    #             sym = self.parameters[parent_function][1][i]
-                    #             break
-                    elif isinstance(parent_function, astroid.FunctionDef):
-                        fun_list = module_data.functions[parent_function.name]
-                        fun = None
-                        for f in fun_list:
-                            if f.symbol.node == parent_function:
-                                fun = f
-                                break
-                        if fun is not None:
-                            for par_name, par in fun.parameters.items():
-                                if par_name == call_func_name:
-                                    sym = par
-                                    break
-
-                    if sym is None:
-                        unknown.append(call)
-                    else:
-                        ref = Symbol(call, calc_node_id(call), call_func_name)
-
-                    if function_id in function_references and ref:  # check if the function is already in the dict
-                        function_references[function_id].calls.add(ref)
-                    else:  # create a new entry in the dict
-                        function_references[function_id] = Reasons(
-                            function_def_node,
-                        )  # Add calls
-                        if ref:
-                            function_references[function_id].calls.add(ref)
-                        if unknown:
-                            function_references[function_id].unknown_calls = unknown
-
-            # Add function to function_references dict if no reason (write, read nor call) was found
-            if function_id not in function_references:
-                function_references[function_id] = Reasons(function_def_node, set(), set(), set())
-
-    # remove duplicate calls from reads
-    if module_data.function_calls:
-        for ref in function_references.values():
-            if not isinstance(ref, Reasons):
-                raise TypeError("ref is not of type Reasons")
-            if ref.calls and ref.reads_from:
-                ref.remove_class_method_calls_from_reads()
-    return function_references
+# def _collect_reasons(module_data: ModuleData) -> dict[NodeID, Reasons]:
+#     """Collect all function references in the module.
+#
+#     This function must only be called after the scope of all nodes has been determined,
+#     and the module scope is the current node.
+#     Iterate over all functions and find all function references in the module.
+#     Therefore, we loop over all target nodes and check if they are used in the function body of each function.
+#     The same is done for all value nodes and all calls/class initializations.
+#
+#     Returns
+#     -------
+#     dict[NodeID, Reasons]
+#         A dict containing all function references in the module.
+#         The dict is structured as follows:
+#         {
+#             "NodeID_of_function": Reasons(
+#                 function_def_node,
+#                 {Symbol}, # writes
+#                 {Symbol}, # reads
+#                 {Symbol}, # calls
+#             )
+#             ...
+#         }
+#     """
+#     def find_first_parent_function(node: astroid.NodeNG | MemberAccess) -> astroid.NodeNG:
+#         """Find the first parent of a call node that is a function.
+#
+#         Parameters
+#         ----------
+#         node : astroid.NodeNG
+#             The node to start the search from.
+#
+#         Returns
+#         -------
+#         astroid.NodeNG
+#             The first parent of the node that is a function.
+#             If the parent is a module, return the module.
+#         """
+#         if isinstance(node, MemberAccess):
+#             node = node.member
+#         if isinstance(node.parent, astroid.FunctionDef | astroid.Lambda | astroid.Module | None):
+#             return node.parent
+#         return find_first_parent_function(node.parent)
+#
+#     python_builtins = dir(builtins)
+#     function_references: dict[NodeID, Reasons] = {}
+#
+#     for function_scopes in module_data.functions.values():
+#         for function_node in function_scopes:  # iterate over all functions with the same name
+#             function_id = calc_node_id(function_node.symbol.node)
+#             function_def_node = function_node.symbol.node
+#
+#             # Look at all target nodes and check if they are used in the function body
+#             for target in module_data.target_nodes:
+#                 # Only look at global variables (for global reads)
+#                 if target.name in module_data.global_variables or isinstance(target,
+#                                                                              MemberAccessTarget):  # Filter out all non-global variables
+#                     for child in function_node.children:
+#                         if target.name == child.symbol.name and child in function_node.children:
+#                             ref = child.symbol
+#
+#                             if function_id in function_references:  # check if the function is already in the dict
+#                                 if ref not in function_references[function_id]:
+#                                     function_references[function_id].writes_to.add(ref)
+#                             else:  # create a new entry in the dict
+#                                 function_references[function_id] = Reasons(
+#                                     function_def_node,
+#                                     {ref},
+#                                     set(),
+#                                     set(),
+#                                 )  # Add writes
+#
+#             # Look at all value nodes and check if they are used in the function body
+#             for value in module_data.value_nodes:
+#                 if isinstance(module_data.functions[function_id.name][0], FunctionScope):
+#                     # Since we do not differentiate between functions with the same name, we can choose the first one
+#                     # TODO: this is not correct. also cache this since it is called multiple times
+#                     function_values = module_data.functions[function_id.name][0].value_references
+#                     if value.name in function_values:
+#                         if value.name in module_data.global_variables or isinstance(value, MemberAccessValue):
+#                             # Get the correct symbol
+#                             sym = None
+#                             if isinstance(module_data.value_nodes[value], FunctionScope):
+#                                 for val_list in module_data.value_nodes[
+#                                     value].value_references.values():  # type: ignore[union-attr] # we can ignore the linter error because of the if statement above
+#                                     for val in val_list:
+#                                         if val.node == value:
+#                                             sym = val
+#                                             break
+#                             else:
+#                                 # raise TypeError(f"{self.value_nodes[value]} is not of type FunctionScope")
+#                                 continue
+#
+#                             ref = sym
+#
+#                             if function_id in function_references:  # check if the function is already in the dict
+#                                 function_references[function_id].reads_from.add(ref)
+#                             else:  # create a new entry in the dict
+#                                 function_references[function_id] = Reasons(
+#                                     function_def_node,
+#                                     set(),
+#                                     {ref},
+#                                     set(),
+#                                 )  # Add reads
+#
+#             # Look at all calls and check if they are used in the function body
+#             unknown = []
+#             for call in module_data.function_calls:
+#                 # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+#                 if isinstance(call.func, astroid.Attribute):
+#                     call_func_name = call.func.attrname
+#                 else:
+#                     call_func_name = call.func.name
+#
+#                 parent_function = find_first_parent_function(call)
+#                 function_scopes_calls_names = list(function_node.call_references.keys())
+#                 if call_func_name in function_scopes_calls_names and parent_function.name == function_id.name:
+#                     # get the correct symbol
+#                     sym = None
+#                     ref = None
+#                     # check all self defined functions
+#                     if call_func_name in module_data.functions:
+#                         sym = module_data.functions[call_func_name][0].symbol
+#                     # check all self defined classes
+#                     elif call_func_name in module_data.classes:
+#                         sym = module_data.classes[call_func_name].symbol
+#                     # check all builtins
+#                     elif call_func_name in python_builtins:
+#                         sym = Builtin(call, NodeID("builtins", call_func_name, 0, 0), call_func_name)
+#                     # check if a parameter of the function is called
+#                     # elif isinstance(parent_function, astroid.FunctionDef) and parent_function in self.parameters:
+#                     #     for i, p in enumerate(self.parameters[parent_function][1]):
+#                     #         if p.name == call_func_name:
+#                     #             sym = self.parameters[parent_function][1][i]
+#                     #             break
+#                     elif isinstance(parent_function, astroid.FunctionDef):
+#                         fun_list = module_data.functions[parent_function.name]
+#                         fun = None
+#                         for f in fun_list:
+#                             if f.symbol.node == parent_function:
+#                                 fun = f
+#                                 break
+#                         if fun is not None:
+#                             for par_name, par in fun.parameters.items():
+#                                 if par_name == call_func_name:
+#                                     sym = par
+#                                     break
+#
+#                     if sym is None:
+#                         unknown.append(call)
+#                     else:
+#                         ref = Symbol(call, calc_node_id(call), call_func_name)
+#
+#                     if function_id in function_references and ref:  # check if the function is already in the dict
+#                         function_references[function_id].calls.add(ref)
+#                     else:  # create a new entry in the dict
+#                         function_references[function_id] = Reasons(
+#                             function_def_node,
+#                         )  # Add calls
+#                         if ref:
+#                             function_references[function_id].calls.add(ref)
+#                         if unknown:
+#                             function_references[function_id].unknown_calls = unknown
+#
+#             # Add function to function_references dict if no reason (write, read nor call) was found
+#             if function_id not in function_references:
+#                 function_references[function_id] = Reasons(function_def_node, set(), set(), set())
+#
+#     # remove duplicate calls from reads
+#     if module_data.function_calls:
+#         for ref in function_references.values():
+#             if not isinstance(ref, Reasons):
+#                 raise TypeError("ref is not of type Reasons")
+#             if ref.calls and ref.reads_from:
+#                 ref.remove_class_method_calls_from_reads()
+#     return function_references
 
 
 def resolve_references(
@@ -863,14 +863,15 @@ def resolve_references(
                     raw_reasons[function.symbol.id].calls = {ref_symbol}
 
     raw_reasons: dict[NodeID, Reasons] = {}
-
-    call_references_new: dict[str, list[ValueReference]] = {}
-    value_references_new = {}
-    target_references_new = {}
-    # This is a list because we only analyze the functions by name, therefor a call can reference more than one function.
+    call_references: dict[str, list[ValueReference]] = {}
+    value_references: dict[str, list[ValueReference]] = {}
+    target_references: dict[str, list[TargetReference]] = {}
+    # The call_references value is a list because we only analyze the functions by name, therefor a call can reference more than one function.
     # In the future, we maybe want to differentiate between calls with the same name.
     # This could be done by further specifying the call_references for a function (by analyzing the signature, etc.)
-    reasons = _collect_reasons(module_data)
+    # If we could analyze it with 100% certainty, we could also remove the list and use a single ValueReference.
+
+    # reasons = _collect_reasons(module_data)
     for function_list in module_data.functions.values():
         # iterate over all functions with the same name
         for function in function_list:
@@ -878,7 +879,7 @@ def resolve_references(
             # Collect the reasons while iterating over the functions, so we don't need to iterate over them again later.
             raw_reasons[function.symbol.id] = Reasons(function)
 
-            # TODO: these steps can be done parallel
+            # TODO: these steps can be done parallel - is it necessary
             # Check if the function has call_references (References from a call to the function definition itself).
             if function.call_references:
                 # TODO: move this to a function called: _find_references
@@ -887,12 +888,15 @@ def resolve_references(
                     for call_reference in call_list:
                         call_references_result = _find_call_references_single_call(call_reference, function, module_data.functions, module_data.classes)
 
+                        # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
+                        # If the name does not yet exist, create a new list with the reference.
                         if call_references_result.referenced_symbols:
-                            if call_references_result.node.name not in call_references_new:
-                                call_references_new[call_references_result.node.name] = [call_references_result]
+                            if call_references_result.node.name not in call_references:
+                                call_references[call_references_result.node.name] = [call_references_result]
                             else:
-                                call_references_new[call_references_result.node.name].append(call_references_result)
+                                call_references[call_references_result.node.name].append(call_references_result)
 
+                            # Add the referenced symbols to the calls of the raw_reasons dict for this function
                             for referenced_symbol in call_references_result.referenced_symbols:
                                 if isinstance(referenced_symbol, GlobalVariable | ClassVariable | Builtin):
                                     if referenced_symbol not in raw_reasons[function.symbol.id].calls:
@@ -906,12 +910,15 @@ def resolve_references(
                     for value_reference in value_list:
                         value_reference_result = _find_value_references_new(value_reference, function, module_data.functions, module_data.classes)
 
+                        # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
+                        # If the name does not yet exist, create a new list with the reference.
                         if value_reference_result.referenced_symbols:
-                            if value_reference_result.node.name not in value_references_new:
-                                value_references_new[value_reference_result.node.name] = [value_reference_result]
+                            if value_reference_result.node.name not in value_references:
+                                value_references[value_reference_result.node.name] = [value_reference_result]
                             else:
-                                value_references_new[value_reference_result.node.name].append(value_reference_result)
+                                value_references[value_reference_result.node.name].append(value_reference_result)
 
+                            # Add the referenced symbols to the reads_from of the raw_reasons dict for this function
                             for referenced_symbol in value_reference_result.referenced_symbols:
                                 if isinstance(referenced_symbol, GlobalVariable | ClassVariable | InstanceVariable):
                                     if referenced_symbol not in raw_reasons[function.symbol.id].reads_from:
@@ -925,12 +932,15 @@ def resolve_references(
                     for target_reference in target_list:
                         target_reference_result = _find_target_references_new(target_reference, function, module_data.classes)
 
+                        # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
+                        # If the name does not yet exist, create a new list with the reference.
                         if target_reference_result.referenced_symbols:
-                            if target_reference_result.node.name not in target_references_new:
-                                target_references_new[target_reference_result.node.name] = [target_reference_result]
+                            if target_reference_result.node.name not in target_references:
+                                target_references[target_reference_result.node.name] = [target_reference_result]
                             else:
-                                target_references_new[target_reference_result.node.name].append(target_reference_result)
+                                target_references[target_reference_result.node.name].append(target_reference_result)
 
+                            # Add the referenced symbols to the writes_to of the raw_reasons dict for this function
                             for referenced_symbol in target_reference_result.referenced_symbols:
                                 if isinstance(referenced_symbol, GlobalVariable | ClassVariable | InstanceVariable):
                                     if referenced_symbol not in raw_reasons[function.symbol.id].writes_to:
@@ -938,11 +948,10 @@ def resolve_references(
                                     else:
                                         raw_reasons[function.symbol.id].writes_to = {referenced_symbol}
 
-    name_references_new = merge_dicts(value_references_new, target_references_new)
+    name_references = merge_dicts(value_references, target_references)
+    resolved_references = merge_dicts(call_references, name_references)
 
-    resolved_references = merge_dicts(call_references_new, name_references_new)
-
-    call_graph = build_call_graph(module_data.functions, module_data.classes, reasons)
+    call_graph = build_call_graph(module_data.functions, module_data.classes, raw_reasons)
 
     return ModuleAnalysisResult(resolved_references, raw_reasons, module_data.classes, call_graph)
 

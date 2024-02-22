@@ -1,6 +1,11 @@
 """Data model for purity analysis."""
 
+from library_analyzer.processing.api.purity_analysis.model._call_graph import (
+    CallGraphForest,
+    CallGraphNode,
+)
 from library_analyzer.processing.api.purity_analysis.model._purity import (
+    APIPurity,
     CallOfParameter,
     Expression,
     FileRead,
@@ -16,17 +21,14 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
     PurityResult,
     StringLiteral,
     UnknownCall,
-    APIPurity
 )
 from library_analyzer.processing.api.purity_analysis.model._reference import (
-    CallGraphForest,
-    CallGraphNode,
     ModuleAnalysisResult,
     ReferenceNode,
     TargetReference,
     ValueReference,
 )
-from library_analyzer.processing.api.purity_analysis.model._scope import (
+from library_analyzer.processing.api.purity_analysis.model._module_data import (
     Builtin,
     ClassScope,
     ClassVariable,
@@ -42,9 +44,9 @@ from library_analyzer.processing.api.purity_analysis.model._scope import (
     NodeID,
     Parameter,
     Reasons,
+    Reference,
     Scope,
     Symbol,
-    Reference,
 )
 
 __all__ = [
