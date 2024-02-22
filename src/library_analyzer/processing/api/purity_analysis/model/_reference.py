@@ -206,7 +206,7 @@ class ModuleAnalysisResult:
     resolved_references : dict[str, list[ReferenceNode]]
         The dictionary of references.
         The key is the name of the reference node, the value is the list of ReferenceNodes.
-    function_references : dict[NodeID, Reasons]
+    raw_reasons : dict[NodeID, Reasons]
         The dictionary of function references.
         The key is the NodeID of the function, the value is the Reasons for the function.
     classes : dict[str, ClassScope]
@@ -216,6 +216,6 @@ class ModuleAnalysisResult:
     """
 
     resolved_references: dict[str, list[ReferenceNode]]
-    function_references: dict[NodeID, Reasons]
+    raw_reasons: dict[NodeID, Reasons]
     classes: dict[str, ClassScope]
     call_graph: CallGraphForest

@@ -479,9 +479,9 @@ class Reasons:
     ----------
     function : astroid.FunctionDef | MemberAccess | None
         The function that is analyzed.
-    writes : set[Symbol]
+    writes_to : set[Symbol]
         A set of all nodes that are written to.
-    reads : set[Symbol]
+    reads_from : set[Symbol]
         A set of all nodes that are read from.
     calls : set[Symbol]
         A set of all nodes that are called.
@@ -494,15 +494,15 @@ class Reasons:
         Unknown calls are calls to functions that are not defined in the module or are simply not existing.
     """
 
-    function: astroid.FunctionDef | MemberAccess | None = field(default=None)
-    writes: set[Symbol] = field(default_factory=set)
-    reads: set[Symbol] = field(default_factory=set)
+    function: FunctionScope | None = field(default=None)
+    writes_to: set[Symbol] = field(default_factory=set)
+    reads_from: set[Symbol] = field(default_factory=set)
     calls: set[Symbol] = field(default_factory=set)
     result: PurityResult | None = field(default=None)
     unknown_calls: list[astroid.Call | astroid.NodeNG] | None = field(default=None)
 
     def __iter__(self) -> Iterator[Symbol]:
-        return iter(self.writes.union(self.reads).union(self.calls))
+        return iter(self.writes_to.union(self.reads_from).union(self.calls))
 
     def get_call_by_name(self, name: str) -> Symbol:
         """Get a call by name.
@@ -553,8 +553,8 @@ class Reasons:
         Reasons
             The updated Reasons object.
         """
-        self.writes.update(other.writes)
-        self.reads.update(other.reads)
+        self.writes_to.update(other.writes_to)
+        self.reads_from.update(other.reads_from)
         self.calls.update(other.calls)
         # join unknown calls - since they can be None we need to deal with that
         if self.unknown_calls is not None and other.unknown_calls is not None:
@@ -620,7 +620,7 @@ class Reasons:
 
         filtered_reads: set[Symbol] = set()
 
-        for read in self.reads:
+        for read in self.reads_from:
             if not any(  # check if the read is a class method call, differentiate between MemberAccessValue and normal Name
                 f".{call_name}." in f".{read.node.name}." and read.node.member.fromlineno == call_line
                 if isinstance(read.node, MemberAccessValue)
@@ -629,4 +629,4 @@ class Reasons:
             ):
                 filtered_reads.add(read)
 
-        self.reads = filtered_reads
+        self.reads_from = filtered_reads

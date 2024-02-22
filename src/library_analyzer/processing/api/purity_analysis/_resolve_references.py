@@ -11,6 +11,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ClassScope,
     ClassVariable,
     FunctionScope,
+    GlobalVariable,
     InstanceVariable,
     MemberAccess,
     MemberAccessTarget,
@@ -450,7 +451,7 @@ def _find_call_references_single_call(call_reference: Reference,
     # Find builtins that are called, this includes open-like functions.
     if call_reference.name in _BUILTINS or call_reference.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
         builtin_call = Builtin(
-            call_reference.node,
+            call_reference.node,  # Since we do not have a FunctionDef node for the builtin, we use the Call node
             NodeID("builtins", call_reference.name, 0, 0),
             call_reference.name,
         )
@@ -509,7 +510,6 @@ def _find_value_references_new(value_reference: Reference,
             # This currently is mostly the case for ClassVariables and InstanceVariables that atr used as targets
             missing_refined = [symbol for symbol in symbols if type(symbol) is Symbol]
             for symbol in missing_refined:
-                # TODO: this will not work when more than one class has the same class variable name
                 if isinstance(symbol.node, MemberAccessTarget):
                     for klass in classes.values():
                         if klass.class_variables:
@@ -686,7 +686,7 @@ def _collect_reasons(module_data: ModuleData) -> dict[NodeID, Reasons]:
 
                             if function_id in function_references:  # check if the function is already in the dict
                                 if ref not in function_references[function_id]:
-                                    function_references[function_id].writes.add(ref)
+                                    function_references[function_id].writes_to.add(ref)
                             else:  # create a new entry in the dict
                                 function_references[function_id] = Reasons(
                                     function_def_node,
@@ -719,7 +719,7 @@ def _collect_reasons(module_data: ModuleData) -> dict[NodeID, Reasons]:
                             ref = sym
 
                             if function_id in function_references:  # check if the function is already in the dict
-                                function_references[function_id].reads.add(ref)
+                                function_references[function_id].reads_from.add(ref)
                             else:  # create a new entry in the dict
                                 function_references[function_id] = Reasons(
                                     function_def_node,
@@ -796,7 +796,7 @@ def _collect_reasons(module_data: ModuleData) -> dict[NodeID, Reasons]:
         for ref in function_references.values():
             if not isinstance(ref, Reasons):
                 raise TypeError("ref is not of type Reasons")
-            if ref.calls and ref.reads:
+            if ref.calls and ref.reads_from:
                 ref.remove_class_method_calls_from_reads()
     return function_references
 
@@ -846,28 +846,59 @@ def resolve_references(
     # instead of iterating over all function calls, we can iterate over all functions and their call_references
     # since we do not need to look at other calls outside the functions.
     # -> this leads to an improvement since we do not need to iterate over all function calls
+    def add_result_to_references(result: ValueReference | TargetReference, target: dict[str, list[ValueReference | TargetReference]]) -> None:
+        if result.node.name not in target:
+            target[result.node.name] = [result]
+        else:
+            target[result.node.name].append(result)
+
+        add_raw_reason(result.referenced_symbols)
+
+    def add_raw_reason(referenced_symbols: list[Symbol]) -> None:
+        for ref_symbol in referenced_symbols:
+            if isinstance(ref_symbol, GlobalVariable | ClassVariable | Builtin):
+                if ref_symbol not in raw_reasons[function.symbol.id].calls:
+                    raw_reasons[function.symbol.id].calls.add(ref_symbol)
+                else:
+                    raw_reasons[function.symbol.id].calls = {ref_symbol}
+
+    raw_reasons: dict[NodeID, Reasons] = {}
+
+    call_references_new: dict[str, list[ValueReference]] = {}
     value_references_new = {}
     target_references_new = {}
-    call_references_new: dict[NodeID, list[ValueReference]] = {}
     # This is a list because we only analyze the functions by name, therefor a call can reference more than one function.
     # In the future, we maybe want to differentiate between calls with the same name.
     # This could be done by further specifying the call_references for a function (by analyzing the signature, etc.)
+    reasons = _collect_reasons(module_data)
     for function_list in module_data.functions.values():
         # iterate over all functions with the same name
         for function in function_list:
-            # Check if the function has call_references (References from a call to the function definition itself).
+
+            # Collect the reasons while iterating over the functions, so we don't need to iterate over them again later.
+            raw_reasons[function.symbol.id] = Reasons(function)
+
             # TODO: these steps can be done parallel
+            # Check if the function has call_references (References from a call to the function definition itself).
             if function.call_references:
                 # TODO: move this to a function called: _find_references
                 # TODO: give the result into the function to use it as a cache to look up already determined references
                 for call_list in function.call_references.values():
                     for call_reference in call_list:
-                        call_references = _find_call_references_single_call(call_reference, function, module_data.functions, module_data.classes)
+                        call_references_result = _find_call_references_single_call(call_reference, function, module_data.functions, module_data.classes)
 
-                        if call_references.node.id.__str__() not in call_references_new:
-                            call_references_new[call_references.node.id.__str__()] = [call_references]  # TODO: remove str()
-                        else:
-                            call_references_new[call_references.node.id.__str__()].append(call_references)
+                        if call_references_result.referenced_symbols:
+                            if call_references_result.node.name not in call_references_new:
+                                call_references_new[call_references_result.node.name] = [call_references_result]
+                            else:
+                                call_references_new[call_references_result.node.name].append(call_references_result)
+
+                            for referenced_symbol in call_references_result.referenced_symbols:
+                                if isinstance(referenced_symbol, GlobalVariable | ClassVariable | Builtin):
+                                    if referenced_symbol not in raw_reasons[function.symbol.id].calls:
+                                        raw_reasons[function.symbol.id].calls.add(referenced_symbol)
+                                    else:
+                                        raw_reasons[function.symbol.id].calls = {referenced_symbol}
 
             # Check if the function has value_references (References from a value node to a target node).
             if function.value_references:
@@ -876,10 +907,17 @@ def resolve_references(
                         value_reference_result = _find_value_references_new(value_reference, function, module_data.functions, module_data.classes)
 
                         if value_reference_result.referenced_symbols:
-                            if value_reference_result.node.id.__str__() not in value_references_new:
-                                value_references_new[value_reference_result.node.id.__str__()] = [value_reference_result]
+                            if value_reference_result.node.name not in value_references_new:
+                                value_references_new[value_reference_result.node.name] = [value_reference_result]
                             else:
-                                value_references_new[value_reference_result.node.id.__str__()].append(value_reference_result)
+                                value_references_new[value_reference_result.node.name].append(value_reference_result)
+
+                            for referenced_symbol in value_reference_result.referenced_symbols:
+                                if isinstance(referenced_symbol, GlobalVariable | ClassVariable | InstanceVariable):
+                                    if referenced_symbol not in raw_reasons[function.symbol.id].reads_from:
+                                        raw_reasons[function.symbol.id].reads_from.add(referenced_symbol)
+                                    else:
+                                        raw_reasons[function.symbol.id].reads_from = {referenced_symbol}
 
             # Check if the function has target_references (References from a target node to another target node).
             if function.target_symbols:
@@ -888,13 +926,17 @@ def resolve_references(
                         target_reference_result = _find_target_references_new(target_reference, function, module_data.classes)
 
                         if target_reference_result.referenced_symbols:
-                            if target_reference_result.node.id.__str__() not in target_references_new:
-                                target_references_new[target_reference_result.node.id.__str__()] = [target_reference_result]
+                            if target_reference_result.node.name not in target_references_new:
+                                target_references_new[target_reference_result.node.name] = [target_reference_result]
                             else:
-                                target_references_new[target_reference_result.node.id.__str__()].append(target_reference_result)
+                                target_references_new[target_reference_result.node.name].append(target_reference_result)
 
-    # TODO: we should collect the reasons while iterating over the functions so that we do not need to iterate over them again
-    reasons = _collect_reasons(module_data)
+                            for referenced_symbol in target_reference_result.referenced_symbols:
+                                if isinstance(referenced_symbol, GlobalVariable | ClassVariable | InstanceVariable):
+                                    if referenced_symbol not in raw_reasons[function.symbol.id].writes_to:
+                                        raw_reasons[function.symbol.id].writes_to.add(referenced_symbol)
+                                    else:
+                                        raw_reasons[function.symbol.id].writes_to = {referenced_symbol}
 
     name_references_new = merge_dicts(value_references_new, target_references_new)
 
@@ -902,7 +944,7 @@ def resolve_references(
 
     call_graph = build_call_graph(module_data.functions, module_data.classes, reasons)
 
-    return ModuleAnalysisResult(resolved_references, reasons, module_data.classes, call_graph)
+    return ModuleAnalysisResult(resolved_references, raw_reasons, module_data.classes, call_graph)
 
 
 def merge_dicts(

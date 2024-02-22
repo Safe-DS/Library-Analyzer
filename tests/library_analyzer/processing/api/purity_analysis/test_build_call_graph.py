@@ -294,7 +294,7 @@ double = lambda x: 2 * x
 def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
     module_data = get_module_data(code)
     references = resolve_references(code)
-    call_graph_forest = build_call_graph(module_data.functions, module_data.classes, references.function_references)
+    call_graph_forest = build_call_graph(module_data.functions, module_data.classes, references.raw_reasons)
 
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.graphs.items():
@@ -624,7 +624,7 @@ lambda_add = lambda x, y: A().value.add(x, y)
 def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> None:
     module_data = get_module_data(code)
     references = resolve_references(code)
-    call_graph_forest = build_call_graph(module_data.functions, module_data.classes, references.function_references)
+    call_graph_forest = build_call_graph(module_data.functions, module_data.classes, references.raw_reasons)
 
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.graphs.items():

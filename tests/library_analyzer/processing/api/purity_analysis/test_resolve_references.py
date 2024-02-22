@@ -190,7 +190,7 @@ def transform_reference_node(ref_node: ReferenceNode) -> ReferenceTestNode:
     )
 
 
-def transform_function_references(function_calls: dict[NodeID, Reasons]) -> dict[str, SimpleReasons]:
+def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons]:
     """Transform the function references.
 
     The function references are transformed to a dictionary with the name of the function as key
@@ -198,7 +198,7 @@ def transform_function_references(function_calls: dict[NodeID, Reasons]) -> dict
 
     Parameters
     ----------
-    function_calls : dict[str, Reasons]
+    reasons : dict[str, Reasons]
         The function references to transform.
 
     Returns
@@ -207,26 +207,43 @@ def transform_function_references(function_calls: dict[NodeID, Reasons]) -> dict
         The transformed function references.
     """
     transformed_function_references = {}
-    for function_id, function_references in function_calls.items():
+    for function_id, function_references in reasons.items():
         transformed_function_references.update({
             function_id.__str__(): SimpleReasons(
-                function_references.function.name,
+                function_references.function.symbol.name,
                 {
-                    f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}"
-                    if isinstance(function_reference.node, MemberAccessTarget) else
-                    f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
-                    for function_reference in function_references.writes
+                    f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.name}.line{target_reference.node.fromlineno}"
+                    if isinstance(target_reference, ClassVariable)
+                    else (
+                        f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.member.attrname}.line{target_reference.node.member.fromlineno}"
+                        if isinstance(target_reference, InstanceVariable) else
+                        f"{target_reference.__class__.__name__}.{target_reference.node.name}.line{target_reference.node.fromlineno}")
+                    for target_reference in function_references.writes_to
                 },
                 {
-                    f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.member.fromlineno}"
-                    if isinstance(function_reference.node, MemberAccessValue) else
-                    f"{function_reference.node.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
-                    for function_reference in function_references.reads
+                    f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.name}.line{value_reference.node.fromlineno}"
+                    if isinstance(value_reference, ClassVariable)
+                    else (
+                        f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.member.attrname}.line{value_reference.node.member.fromlineno}"
+                        if isinstance(value_reference, InstanceVariable) else
+                        f"{value_reference.__class__.__name__}.{value_reference.node.name}.line{value_reference.node.fromlineno}")
+                    for value_reference in function_references.reads_from
                 },
                 {
-                    f"{function_reference.node.__class__.__name__}.{function_reference.node.func.attrname}.line{function_reference.node.fromlineno}"
-                    if isinstance(function_reference.node.func, astroid.Attribute) else
-                    f"{function_reference.node.__class__.__name__}.{function_reference.node.func.name}.line{function_reference.node.fromlineno}"
+                    f"{function_reference.__class__.__name__}.{function_reference.node.attrname}.line{function_reference.node.fromlineno}"
+                    if isinstance(function_reference.node, astroid.Attribute)
+                    else (
+                        f"{function_reference.__class__.__name__}.{function_reference.node.func.name}"
+                        if isinstance(function_reference.node, astroid.Call)  # Special case for builtin functions since we do not get their FunctionDef node.
+                        else (
+                            f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
+                            if isinstance(function_reference, ClassVariable)
+                            else (
+                                f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.member.attrname}.line{function_reference.node.member.fromlineno}"
+                                if isinstance(function_reference, InstanceVariable) else
+                                    f"{function_reference.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}")
+                        )
+                    )
                     for function_reference in function_references.calls
                 },
             ),
@@ -2507,16 +2524,15 @@ def f():
                 ".f.8.0": SimpleReasons(
                     "f",
                     {
-                        "AssignName.b.line11",
-                        "AssignName.b.line14",
+                        "GlobalVariable.b.line2",
                     },
                     {
-                        "Name.c.line13",
-                        "Name.d.line14",
+                        "GlobalVariable.c.line3",
+                        "GlobalVariable.d.line4",
                     },
                     {
-                        "Call.g.line15",
-                        "Call.open.line16",
+                        "GlobalVariable.g.line5",
+                        "Builtin.open",
                     },
                 ),
                 ".g.5.0": SimpleReasons("g", set(), set(), set()),
@@ -2541,11 +2557,11 @@ def f():
                 ".f.5.0": SimpleReasons(
                     "f",
                     {
-                        "AssignName.c.line10",
-                        "AssignName.b.line13",
+                        "GlobalVariable.c.line3",
+                        "GlobalVariable.b.line2",
                     },
                     {
-                        "Name.b.line7",
+                        "GlobalVariable.b.line2",
                     }
                 ),
             },
@@ -2567,21 +2583,21 @@ def g():
                 ".f.5.0": SimpleReasons(
                     "f",
                     {
-                        "MemberAccessTarget.a.class_attr1.line7",
+                        "ClassVariable.A.class_attr1.line3",
                     },
                     set(),
                     {
-                        "Call.A.line6"
+                        "GlobalVariable.A.line2"
                     }
                 ),
                 ".g.9.0": SimpleReasons(
                     "g",
                     set(),
                     {
-                        "MemberAccessValue.a.class_attr1.line11"
+                        "ClassVariable.A.class_attr1.line3"
                     },
                     {
-                        "Call.A.line10"
+                        "GlobalVariable.A.line2"
                     }
                 ),
             },
@@ -2602,18 +2618,18 @@ def f2(x):
 
 def f3():
     global b
-    b.instance_attr1 = 10  # NonLocalVariableWrite  # TODO: LARS is this a global read of b? yes
+    b.instance_attr1 = 10  # NonLocalVariableWrite
 
 def g1():
     a = A()
-    c = a.instance_attr1  # NonLocalVariableWrite  # TODO [Later] we should detect that this is a local variable
+    c = a.instance_attr1  # NonLocalVariableRead  # TODO [Later] we should detect that this is a local variable
 
 def g2(x):
     c = x.instance_attr1  # NonLocalVariableRead
 
 def g3():
     global b
-    c = b.instance_attr1  # NonLocalVariableRead  # TODO: LARS is this a global read of b? yes
+    c = b.instance_attr1  # NonLocalVariableRead
             """,  # language=none
             {
                 ".__init__.3.4": SimpleReasons(
@@ -2621,40 +2637,45 @@ def g3():
                 ),
                 ".f1.6.0": SimpleReasons(
                     "f1", {
-                        "MemberAccessTarget.a.instance_attr1.line8",
+                        "InstanceVariable.A.instance_attr1.line4",
                     },
                     set(),
-                    {"Call.A.line7"}
+                    {"GlobalVariable.A.line2"}
                 ),
                 ".f2.11.0": SimpleReasons(
                     "f2",
                     {
-                        "MemberAccessTarget.x.instance_attr1.line12",
+                        "InstanceVariable.A.instance_attr1.line4",
                     },
                 ),
                 ".f3.14.0": SimpleReasons(
                     "f3",
                     {
-                        "MemberAccessTarget.b.instance_attr1.line16",
+                        "GlobalVariable.b.line10",
+                        "InstanceVariable.A.instance_attr1.line4"
                     },
                 ),
                 ".g1.18.0": SimpleReasons(
-                    "g1", set(), {
-                        "MemberAccessValue.a.instance_attr1.line20",
-                    }, {"Call.A.line19"}
+                    "g1",
+                    set(),
+                    {
+                        "InstanceVariable.A.instance_attr1.line4",
+                    },
+                    {"GlobalVariable.A.line2"}
                 ),
                 ".g2.22.0": SimpleReasons(
                     "g2",
                     set(),
                     {
-                        "MemberAccessValue.x.instance_attr1.line23",
+                        "InstanceVariable.A.instance_attr1.line4",
                     },
                 ),
                 ".g3.25.0": SimpleReasons(
                     "g3",
                     set(),
                     {
-                        "MemberAccessValue.b.instance_attr1.line27",
+                        "GlobalVariable.b.line10",
+                        "InstanceVariable.A.instance_attr1.line4",
                     },
                 ),
             },
@@ -2682,19 +2703,18 @@ def f():
                 ),
                 ".set_name.6.4": SimpleReasons(
                     "set_name",
-                    {"MemberAccessTarget.self.name.line7"}
+                    {"InstanceVariable.A.name.line4"}
                 ),
                 ".f.12.0": SimpleReasons(
                     "f",
                     set(),
                     {
-                        "MemberAccessValue.b.upper_class.name.line14",
-                        "MemberAccessValue.b.upper_class.line14",
-                        "MemberAccessValue.b.upper_class.line15",
+                        "InstanceVariable.A.name.line4",
+                        "ClassVariable.B.upper_class.line10",
                     },
                     {
-                        "Call.B.line13",
-                        "Call.set_name.line15",
+                        "GlobalVariable.B.line9",
+                        "ClassVariable.A.set_name.line6",
                     }
                 ),
             }
@@ -2726,8 +2746,8 @@ def g():
                     set(),
                     set(),
                     {
-                        "Call.A.line13",
-                        "Call.f.line13"
+                        "GlobalVariable.A.line9",
+                        "ClassVariable.B.f.line6"
                     }
                 ),
             }
@@ -2754,21 +2774,25 @@ def f():
             """,  # language=none
             {
                 ".__init__.5.4": SimpleReasons(
-                    "__init__"
+                    "__init__",
+                    {"ClassVariable.A.name.line3"}
                 ),
                 ".__init__.11.4": SimpleReasons(
-                    "__init__"
+                    "__init__",
+                    {"ClassVariable.B.name.line9"}
                 ),
                 ".f.14.0": SimpleReasons(
                     "f",
                     set(),
-                    {
-                        "MemberAccessValue.a.name.line17",
-                        "MemberAccessValue.b.name.line18",
+                    {   # Here we find both: ClassVariables and InstanceVariables because we can't distinguish between them
+                        "ClassVariable.A.name.line3",
+                        "ClassVariable.B.name.line9",
+                        "InstanceVariable.A.name.line6",
+                        "InstanceVariable.B.name.line12",
                     },
                     {
-                        "Call.A.line15",
-                        "Call.B.line16"
+                        "GlobalVariable.A.line2",
+                        "GlobalVariable.B.line8"
                     }
                 )
             }
@@ -2799,7 +2823,7 @@ def f():
                     "add",
                     set(),
                     {
-                        "Name.z.line8"
+                        "GlobalVariable.z.line2"
                     },
                     set()
                 ),
@@ -2811,8 +2835,8 @@ def f():
                     set(),
                     set(),
                     {
-                        "Call.add.line16",
-                        "Call.add.line17",
+                        "ClassVariable.A.add.line6",
+                        "ClassVariable.B.add.line12",
                     }
                 )
             }
@@ -2845,8 +2869,8 @@ def f():
                     set(),
                     set(),
                     {
-                        "Call.add.line13",
-                        "Call.add.line14"
+                        "ClassVariable.A.add.line4",
+                        "ClassVariable.B.add.line9",
                     }
                 )
             }
@@ -2865,10 +2889,10 @@ def f():
         # TODO: [LATER] we should detect the different signatures
     ],
 )
-def test_get_module_data_function_references(code: str, expected: dict[str, SimpleReasons]) -> None:
-    function_references = resolve_references(code).function_references
+def test_get_module_data_reasons(code: str, expected: dict[str, SimpleReasons]) -> None:
+    function_references = resolve_references(code).raw_reasons
 
-    transformed_function_references = transform_function_references(function_references)
+    transformed_function_references = transform_reasons(function_references)
     # assert function_references == expected
 
     assert transformed_function_references == expected

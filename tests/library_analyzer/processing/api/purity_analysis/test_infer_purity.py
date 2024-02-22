@@ -363,22 +363,20 @@ def fun(pos_arg):
             """
 var1 = 1
 def fun():
-    var1 = 2  # Impure: VariableWrite to GlobalVariable
-    return var1  # Impure: VariableRead from GlobalVariable  # TODO: [Later] technically this is a local variable read but we handle var1 as global for now
+    var1 = 2  # Pure: VariableWrite to LocalVariable because the global variable is shadowed
+    return var1
             """,  # language= None
             {
-                "fun.line3": SimpleImpure({
-                    "NonLocalVariableWrite.GlobalVariable.var1",
-                    "NonLocalVariableRead.GlobalVariable.var1",
-                }),
+                "fun.line3": Pure(),
             },
         ),
         (  # language=Python "VariableWrite to GlobalVariable with parameter"
             """
 var1 = 1
 def fun(x):
+    global var1
     var1 = x  # Impure: VariableWrite to GlobalVariable
-    return var1  # Impure: VariableRead from GlobalVariable  # TODO: [Later] technically this is a local variable read but we handle var1 as global for now
+    return var1  # Impure: VariableRead from GlobalVariable
             """,  # language= None
             {
                 "fun.line3": SimpleImpure({
