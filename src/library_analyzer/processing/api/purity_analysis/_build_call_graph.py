@@ -18,7 +18,7 @@ BUILTINS = dir(builtins)
 def build_call_graph(
     functions: dict[str, list[FunctionScope]],
     classes: dict[str, ClassScope],
-    function_references: dict[NodeID, Reasons],
+    raw_reasons: dict[NodeID, Reasons],
 ) -> CallGraphForest:
     """Build a call graph from a list of functions.
 
@@ -32,8 +32,8 @@ def build_call_graph(
         The value is a list since there can be multiple functions with the same name.
     classes : dict[str, ClassScope]
         Classnames in the module as key and their corresponding ClassScope instance as value.
-    function_references : dict[str, Reasons]
-        All nodes relevant for reference resolving inside functions.
+    raw_reasons : dict[str, Reasons]
+        The reasons for impurity of the functions.
 
     Returns
     -------
@@ -50,8 +50,8 @@ def build_call_graph(
             function_id = function_scope.symbol.id
             if isinstance(function_scope, ClassScope):
                 function_node = CallGraphNode(function=function_scope, reasons=Reasons())
-            elif function_references[function_id]:
-                function_node = CallGraphNode(function=function_scope, reasons=function_references[function_id])
+            elif raw_reasons[function_id]:
+                function_node = CallGraphNode(function=function_scope, reasons=raw_reasons[function_id])
             else:
                 function_node = CallGraphNode(function=function_scope, reasons=Reasons())
 
@@ -74,7 +74,7 @@ def build_call_graph(
                                     CallGraphNode(function=init_function, reasons=Reasons()),
                                 )
                             function_node.add_child(call_graph_forest.get_graph(init_function.symbol.id))
-                            function_node.reasons.calls.add(Symbol(function_references[init_function.symbol.id].function, init_function.symbol.id, init_function.symbol.name))
+                            function_node.reasons.calls.add(Symbol(raw_reasons[init_function.symbol.id].function.symbol.node, init_function.symbol.id, init_function.symbol.name))
                             break
                 continue
 
@@ -106,15 +106,15 @@ def build_call_graph(
                         else:
                             for called_function_scope in classes_and_functions[call.name]:
                                 # Check if any function def has the same name as the called function
-                                matching_function_defs = [called_function for called_function in classes_and_functions[call.name] if called_function.symbol.name == call.name]
+                                # matching_function_defs = [called_function for called_function in classes_and_functions[call.name] if called_function.symbol.name == call.name]
                                 # TODO: check if this is correct
                                 for f in matching_function_defs:
-                                    if function_references[f.symbol.id]:
+                                    if raw_reasons[f.symbol.id]:
                                         call_graph_forest.add_graph(
                                             f.symbol.id,
                                             CallGraphNode(
                                                 function=called_function_scope,
-                                                reasons=function_references[f.symbol.id],
+                                                reasons=raw_reasons[f.symbol.id],
                                             ),
                                         )
                                     else:
@@ -143,7 +143,7 @@ def build_call_graph(
                                 current_tree_node.reasons.unknown_calls = []
                             current_tree_node.reasons.unknown_calls.append(call.node)
 
-    handle_cycles(call_graph_forest, function_references, functions)
+    handle_cycles(call_graph_forest, raw_reasons, functions)
 
     return call_graph_forest
 
