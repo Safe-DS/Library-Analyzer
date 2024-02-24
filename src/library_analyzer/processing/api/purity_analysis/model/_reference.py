@@ -8,17 +8,18 @@ import astroid
 
 from library_analyzer.processing.api.purity_analysis.model._module_data import (
     ClassScope,
+    FunctionScope,
     MemberAccessTarget,
     MemberAccessValue,
     NodeID,
-    Reasons,
     Reference,
     Scope,
     Symbol,
 )
 
 if TYPE_CHECKING:
-    from library_analyzer.processing.api.purity_analysis.model import CallGraphForest
+    from collections.abc import Iterator
+    from library_analyzer.processing.api.purity_analysis.model import CallGraphForest, PurityResult
 
 
 @dataclass
@@ -104,3 +105,167 @@ class ModuleAnalysisResult:
     raw_reasons: dict[NodeID, Reasons]
     classes: dict[str, ClassScope]
     call_graph: CallGraphForest
+
+
+@dataclass
+class Reasons:
+    """
+    Represents a function and the raw reasons for impurity.
+
+    Raw reasons means that the reasons are just collected and not yet processed.
+
+    Attributes
+    ----------
+    function : FunctionScope | None
+        The function that is analyzed.
+    writes_to : set[Symbol]
+        A set of all nodes that are written to.
+    reads_from : set[Symbol]
+        A set of all nodes that are read from.
+    calls : set[Symbol]
+        A set of all nodes that are called.
+    result : PurityResult | None
+        The result of the purity analysis
+        This also works as a flag to determine if the purity analysis has already been performed:
+        If it is None, the purity analysis has not been performed
+    unknown_calls : list[astroid.Call | astroid.NodeNG] | None
+        A list of all unknown calls.
+        Unknown calls are calls to functions that are not defined in the module or are simply not existing.
+    """
+
+    function: FunctionScope | None = field(default=None)
+    writes_to: set[Symbol] = field(default_factory=set)
+    reads_from: set[Symbol] = field(default_factory=set)
+    calls: set[Symbol] = field(default_factory=set)
+    result: PurityResult | None = field(default=None)
+    unknown_calls: list[astroid.Call | astroid.NodeNG] | None = field(default=None)
+
+    def __iter__(self) -> Iterator[Symbol]:
+        return iter(self.writes_to.union(self.reads_from).union(self.calls))
+
+    def get_call_by_name(self, name: str) -> Symbol:
+        """Get a call by name.
+
+        Parameters
+        ----------
+        name  : str
+            The name of the call to get.
+
+        Returns
+        -------
+        Symbol
+            The Symbol of the call.
+
+        Raises
+        ------
+        ValueError
+            If no call to the function with the given name is found.
+        """
+        for call in self.calls:
+            if isinstance(call.node, astroid.Call):
+                # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+                if isinstance(call.node.func, astroid.Attribute) and call.node.func.attrname == name:
+                    return call
+                return call
+            else:  # noqa: PLR5501
+                # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+                if isinstance(call.node.func, astroid.Attribute) and call.node.attrname == name:  # noqa: SIM114
+                    return call
+                elif call.node.name == name:
+                    return call
+
+        raise ValueError("No call to the function found.")
+
+    def join_reasons(self, other: Reasons) -> Reasons:
+        """Join two Reasons objects.
+
+        When a function has multiple reasons for impurity, the Reasons objects are joined.
+        This means that the writes, reads, calls and unknown_calls are merged.
+
+        Parameters
+        ----------
+        other : Reasons
+            The other Reasons object.
+
+        Returns
+        -------
+        Reasons
+            The updated Reasons object.
+        """
+        self.writes_to.update(other.writes_to)
+        self.reads_from.update(other.reads_from)
+        self.calls.update(other.calls)
+        # join unknown calls - since they can be None we need to deal with that
+        if self.unknown_calls is not None and other.unknown_calls is not None:
+            self.unknown_calls.extend(other.unknown_calls)
+        elif self.unknown_calls is None and other.unknown_calls is not None:
+            self.unknown_calls = other.unknown_calls
+        elif other.unknown_calls is None:
+            pass
+
+        return self
+
+    @staticmethod
+    def join_reasons_list(reasons_list: list[Reasons], combined_node_name: str = None) -> Reasons:
+        """Join a list of Reasons objects.
+
+        Combines a list of Reasons objects into one Reasons object.
+
+        Parameters
+        ----------
+        reasons_list : list[Reasons]
+            The list of Reasons objects.
+
+        combined_node_name : str
+            Indicates if the Reasons object is a combined node.
+            If it is a combined node, the function is set to None since it does not exist.
+
+        Returns
+        -------
+        Reasons
+            The combined Reasons object.
+
+        Raises
+        ------
+        ValueError
+            If the list of Reasons objects is empty.
+        """
+        if not reasons_list:
+            raise ValueError("List of Reasons is empty.")
+
+        result = Reasons()
+        for reason in reasons_list:
+            result.join_reasons(reason)
+        if combined_node_name is not None:
+            result.function = combined_node_name
+        return result
+
+    def remove_class_method_calls_from_reads(self) -> None:
+        """Remove all class method calls from the read set.
+
+        After all read, write and call sets have been filled, we can remove all class method calls from the read sets.
+        This is necessary because class method calls are not considered to be read operations.
+        This is achieved by comparing the call names and lines with the read names and lines and removing the reads if they match.
+        """
+        call_names_and_lines: set[tuple[str, int]] = set()
+        for call in self.calls:
+            if isinstance(call.node, astroid.Call):
+                if isinstance(call.node.func, astroid.Attribute):
+                    name_line_tuple = (call.node.func.attrname, call.node.fromlineno)
+                else:
+                    name_line_tuple = (call.node.func.name, call.node.lineno)
+
+                call_names_and_lines.add(name_line_tuple)
+
+        filtered_reads: set[Symbol] = set()
+
+        for read in self.reads_from:
+            if not any(  # check if the read is a class method call, differentiate between MemberAccessValue and normal Name
+                f".{call_name}." in f".{read.node.name}." and read.node.member.fromlineno == call_line
+                if isinstance(read.node, MemberAccessValue)
+                else f".{call_name}." in f".{read.node.name}." and read.node.lineno == call_line
+                for call_name, call_line in call_names_and_lines
+            ):
+                filtered_reads.add(read)
+
+        self.reads_from = filtered_reads
