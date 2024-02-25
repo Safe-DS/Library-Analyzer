@@ -317,7 +317,7 @@ def infer_purity(
         {}
     )  # We use astroid.FunctionDef instead of str as a key so we can access the node later
 
-    for reasons in analysis_result.function_references.values():
+    for reasons in analysis_result.raw_reasons.values():
         process_node(reasons, analysis_result, purity_results)
 
     # Cleanup the purity results: We do not want the combined nodes in the results
@@ -446,10 +446,12 @@ def process_node(  # type: ignore[return] # all cases are handled
                             combined_node.reasons.result = purity
                         else:
                             combined_node.reasons.result = combined_node.reasons.result.update(purity)
+
                         if function_node not in purity_results:
                             purity_results[function_node] = purity
                         else:
                             purity_results[function_node] = purity_results[function_node].update(purity)
+
                         if combined_node.function.symbol.name not in purity_results:
                             purity_results[combined_node.function.symbol.name] = purity
                         else:
@@ -503,7 +505,7 @@ def get_purity_of_child(
     child: CallGraphNode,
     reason: Reasons,
     analysis_result: ModuleAnalysisResult,
-    purity_results: dict[astroid.FunctionDef, PurityResult],
+    purity_results: dict[astroid.FunctionDef, PurityResult],  # TODO: nodeID
 ) -> None:
     """
     Get the purity of a child node.
@@ -548,6 +550,9 @@ def get_purity_of_child(
             purity_results,
         )
 
+    # Add the result to the child node in the call graph
+    if not child.is_builtin:
+        analysis_result.call_graph.get_graph(child.function.symbol.id).reasons.result = purity_result_child
     # If a result for the child was found, we need to propagate it to the parent
     if purity_result_child:
         function_node = reason.function.symbol.node
@@ -557,11 +562,7 @@ def get_purity_of_child(
             purity_results[function_node] = purity_results[function_node].update(purity_result_child)
 
 
-# TODO: this is not working correctly: whenever a variable is referenced, it is marked as read/written if its is not inside the current function
-def transform_reasons_to_impurity_result(
-    reasons: Reasons,
-    analysis_result: ModuleAnalysisResult,
-) -> PurityResult:
+def transform_reasons_to_impurity_result(reasons: Reasons, analysis_result: ModuleAnalysisResult) -> PurityResult:
     """
     Transform the reasons for impurity to an impurity result.
 
@@ -587,49 +588,39 @@ def transform_reasons_to_impurity_result(
         return Pure()
     else:
         if reasons.writes_to:
+            # We can be sure that write is of the correct type since we only add the correct type to the set
+            write: GlobalVariable | ClassVariable | InstanceVariable
             for write in reasons.writes_to:
-                # TODO: use Reasons instead of ReferenceNode
-                write_ref_list = analysis_result.resolved_references[write.name]
-                for write_ref in write_ref_list:
-                    for sym_ref in write_ref.referenced_symbols:
-                        if isinstance(sym_ref, GlobalVariable | ClassVariable | InstanceVariable):
-                            impurity_reasons.add(NonLocalVariableWrite(sym_ref))
-                        else:
-                            pass
-                            # raise TypeError(f"Unknown symbol reference type: {sym_ref.__class__.__name__}")
+                impurity_reasons.add(NonLocalVariableWrite(write))
 
         if reasons.reads_from:
+            read: GlobalVariable | ClassVariable | InstanceVariable
             for read in reasons.reads_from:
-                read_ref_list = analysis_result.resolved_references[read.name]
-                for read_ref in read_ref_list:
-                    for sym_ref in read_ref.referenced_symbols:
-                        if isinstance(sym_ref, GlobalVariable | ClassVariable | InstanceVariable):
-                            impurity_reasons.add(NonLocalVariableRead(sym_ref))
-                        else:
-                            pass
-                            # raise TypeError(f"Unknown symbol reference type: {sym_ref.__class__.__name__}")
+                # We can be sure that read is of the correct type since we only add the correct type to the set
+                impurity_reasons.add(NonLocalVariableRead(read))
 
-        if reasons.unknown_calls:
-            for unknown_call in reasons.unknown_calls:
-                # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
-                if isinstance(unknown_call.func, astroid.Attribute):
-                    unknown_call_func_name = unknown_call.func.attrname
-                else:
-                    unknown_call_func_name = unknown_call.func.name
-                reason_id = calc_node_id(reasons.function)  # TODO: maybe add ID to Reasons?
-                if reason_id in analysis_result.call_graph.graphs:
-                    graph = analysis_result.call_graph.get_graph(reason_id)
-                    if unknown_call_func_name in graph.function.parameters:
-                        impurity_reasons.add(CallOfParameter(ParameterAccess(unknown_call_func_name)))
-                    else:
-                        impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
-                elif not analysis_result.classes:
-                    impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
-                else:  # noqa: PLR5501 # better for readability
-                    if unknown_call_func_name in analysis_result.classes:  # better for readability
-                        pass
-                    else:
-                        impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
+        # TODO: safe infer before adding the impurity reason
+        # if reasons.unknown_calls:
+        #     for unknown_call in reasons.unknown_calls:
+        #         # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+        #         if isinstance(unknown_call.func, astroid.Attribute):
+        #             unknown_call_func_name = unknown_call.func.attrname
+        #         else:
+        #             unknown_call_func_name = unknown_call.func.name
+        #         reason_id = calc_node_id(reasons.function)  # TODO: maybe add ID to Reasons?
+        #         if reason_id in analysis_result.call_graph.graphs:
+        #             graph = analysis_result.call_graph.get_graph(reason_id)
+        #             if unknown_call_func_name in graph.function.parameters:
+        #                 impurity_reasons.add(CallOfParameter(ParameterAccess(unknown_call_func_name)))
+        #             else:
+        #                 impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
+        #         elif not analysis_result.classes:
+        #             impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
+        #         else:  # noqa: PLR5501 # better for readability
+        #             if unknown_call_func_name in analysis_result.classes:  # better for readability
+        #                 pass
+        #             else:
+        #                 impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
         if impurity_reasons:
             return Impure(impurity_reasons)
         return Pure()
@@ -642,13 +633,14 @@ def get_purity_results(package: str, src_dir_path: Path) -> APIPurity:
     for module in modules:
         with module.open("r") as file:
             code = file.read()
+            # TODO: add logging infos!
             # TODO: add module_name and path to astroid.parse?
-            # TODO: remove test files?
-            # TODO: what about modules with the same name in different directories?
+            # TODO: remove test files? -> yes
+            # TODO: what about modules with the same name in different directories? -> see api
             module_purity_results = infer_purity(code)
-            # TODO: do we want the function name or the function def node as result?
+            # TODO: do we want the function name or the function def node as result? -> NodeID
             #  if we want the name we need to use ID or else functions with the same name will be lost
-            # TODO: do we want to differentiate between classes
+            # TODO: do we want to differentiate between classes -> hierarchical result with classes
             module_purity_results_str = {key.name: value for key, value in module_purity_results.items()}
 
         package_purity.purity_results[module.name] = module_purity_results_str
