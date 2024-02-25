@@ -18,7 +18,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ModuleData,
     NodeID,
     Parameter,
-    Reasons,
     Reference,
     Scope,
     Symbol,
@@ -409,7 +408,7 @@ class ModuleDataBuilder:
             If the parent is a module, return the module.
         """
         if isinstance(node, MemberAccess):
-            node = node.member
+            node = node.node  # This assures that we always have a node to calculate the parent function.
         if isinstance(node.parent, astroid.FunctionDef | astroid.Lambda | astroid.Module | None):
             return node.parent
         return self.find_first_parent_function(node.parent)
@@ -507,28 +506,6 @@ class ModuleDataBuilder:
                         name=node.names[0][1],
                     )  # TODO: this needs fixing when multiple imports are handled
 
-                if isinstance(node, MemberAccessTarget):
-                    klass = self.get_class_for_receiver_node(node.receiver)
-                    if klass is not None:
-                        if (
-                            node.member.attrname in klass.class_variables
-                        ):  # This means that we are dealing with a class variable
-                            return ClassVariable(
-                                node=node,
-                                id=calc_node_id(node),
-                                name=node.member.attrname,
-                                klass=klass.symbol.node,
-                            )
-                    # This means that we are dealing with an instance variable
-                    elif self.classes is not None:
-                        for klass in self.classes.values():
-                            if node.member.attrname in klass.instance_variables:
-                                return InstanceVariable(
-                                    node=node,
-                                    id=calc_node_id(node),
-                                    name=node.member.attrname,
-                                    klass=klass.symbol.node,
-                                )
                 if isinstance(
                     node,
                     _ComprehensionType | astroid.Lambda | astroid.TryExcept | astroid.TryFinally,
@@ -562,7 +539,7 @@ class ModuleDataBuilder:
                     return InstanceVariable(
                         node=node,
                         id=calc_node_id(node),
-                        name=node.member.attrname,
+                        name=node.member,
                         klass=current_scope.parent,
                     )
 
@@ -736,7 +713,6 @@ class ModuleDataBuilder:
             )
             self.handle_arg(constructed_node)
 
-    # TODO: [Refactor] when refactoring the FunctionScope class to use properties, move this to the FunctionScope class
     def add_arg_to_function_scope_parameters(self, argument: astroid.AssignName) -> None:
         """Add an argument to the parameters dict of the current function scope.
 
@@ -855,7 +831,7 @@ class ModuleDataBuilder:
                                 self.current_function_def[-1].globals_used[node.name].append(symbol)
                 return
 
-    def is_annotated(self, node: astroid.NodeNG, found_annotation_node: bool) -> bool:
+    def is_annotated(self, node: astroid.NodeNG | MemberAccess, found_annotation_node: bool) -> bool:
         """Check if the Name node is a type hint.
 
         Parameters
@@ -953,7 +929,7 @@ class ModuleDataBuilder:
 
     def enter_assignattr(self, node: astroid.AssignAttr) -> None:
         parent = self.current_node_stack[-1]
-        member_access = _construct_member_access_target(node.expr, node)
+        member_access = _construct_member_access_target(node)
         scope_node = Scope(
             _symbol=self.get_symbol(member_access, self.current_node_stack[-1].symbol.node),
             _children=[],
@@ -976,13 +952,13 @@ class ModuleDataBuilder:
         # Astroid generates an Attribute node for every attribute access.
         # We therefore need to check if the attribute access is a target or a value.
         if isinstance(node.parent, astroid.AssignAttr) or self.has_assignattr_parent(node):
-            member_access = _construct_member_access_target(node.expr, node)
+            member_access = _construct_member_access_target(node)
             if isinstance(node.expr, astroid.Name):
                 self.target_nodes[node.expr] = self.current_node_stack[-1]
                 if isinstance(self.current_node_stack[-1], FunctionScope):
                     self.targets.append(Symbol(member_access, calc_node_id(member_access), member_access.name))
         else:
-            member_access = _construct_member_access_value(node.expr, node)
+            member_access = _construct_member_access_value(node)
 
         if isinstance(member_access, MemberAccessTarget):
             self.target_nodes[member_access] = self.current_node_stack[-1]
@@ -1168,9 +1144,9 @@ class ModuleDataBuilder:
     def handle_arg(self, constructed_node: astroid.AssignName) -> None:
         """Handle an argument node.
 
-        This function is called when an vararg or a kwarg parameter is found inside of an Argument node.
+        This function is called when a vararg or a kwarg parameter is found inside an Argument node.
         This is needed because astroid does not generate a symbol for these nodes.
-        Therefore, we need to create one manually and add it to the parameters dict.
+        Therefore, we need to create one manually and add it to the parameters' dict.
 
         Parameters
         ----------
@@ -1261,8 +1237,7 @@ def calc_node_id(
         case astroid.Name():
             return NodeID(module, node.name, node.lineno, node.col_offset)
         case MemberAccess():
-            expression = get_base_expression(node)
-            return NodeID(module, node.name, expression.lineno, expression.col_offset)
+            return NodeID(module, node.name, node.node.lineno, node.node.col_offset)
         case astroid.Import():  # TODO: we need a special treatment for imports and import from
             return NodeID(module, node.names[0][0], node.lineno, node.col_offset)
         case astroid.ImportFrom():
@@ -1285,73 +1260,77 @@ def calc_node_id(
         case _:
             raise ValueError(f"Node type {node.__class__.__name__} is not supported yet.")
 
-    # TODO: add fitting default case and merge same types of cases together
-
 
 def _construct_member_access_target(
-    receiver: astroid.Name | astroid.Attribute | astroid.Call,
-    member: astroid.AssignAttr | astroid.Attribute,
+    node: astroid.Attribute | astroid.AssignAttr
 ) -> MemberAccessTarget:
     """Construct a MemberAccessTarget node.
 
-    Constructing a MemberAccessTarget node means constructing a MemberAccessTarget node with the given receiver and member.
-    The receiver is the node that is accessed, and the member is the node that accesses the receiver. The receiver can be nested.
+    Construct a MemberAccessTarget node from an Attribute or AssignAttr node.
+    The receiver is the node that is accessed, and the member is the node that accesses the receiver.
+    The receiver can be nested.
 
     Parameters
     ----------
-    receiver : astroid.Name | astroid.Attribute | astroid.Call
-        The receiver node.
-    member : astroid.AssignAttr | astroid.Attribute
-        The member node.
+    node : astroid.Attribute | astroid.AssignAttr
+        The node to construct the MemberAccessTarget node from.
 
     Returns
     -------
     MemberAccessTarget
         The constructed MemberAccessTarget node.
     """
+    receiver = node.expr
+    member = node.attrname
+
     try:
         if isinstance(receiver, astroid.Name):
-            return MemberAccessTarget(receiver=receiver, member=member)
+            return MemberAccessTarget(node=node, receiver=receiver, member=member)
         elif isinstance(receiver, astroid.Call):
-            return MemberAccessTarget(receiver=receiver.func, member=member)
+            return MemberAccessTarget(node=node, receiver=receiver.func, member=member)
+        elif isinstance(receiver, astroid.Attribute):
+            return MemberAccessTarget(node=node, receiver=_construct_member_access_target(receiver), member=member)
         else:
-            return MemberAccessTarget(receiver=_construct_member_access_target(receiver.expr, receiver), member=member)
+            return MemberAccessTarget(node=node, receiver=None, member=member)
     # Since it is tedious to add testcases for this function, we ignore the coverage for now
     except TypeError as err:  # pragma: no cover
-        raise TypeError(f"Unexpected node type {type(member)}") from err  # pragma: no cover
+        raise TypeError(f"Unexpected node type {type(node)}") from err  # pragma: no cover
 
 
 def _construct_member_access_value(
-    receiver: astroid.Name | astroid.Attribute | astroid.Call,
-    member: astroid.Attribute,
+    node: astroid.Attribute
 ) -> MemberAccessValue:
     """Construct a MemberAccessValue node.
 
-    Constructing a MemberAccessValue node means constructing a MemberAccessValue node with the given receiver and member.
-    The receiver is the node that is accessed, and the member is the node that accesses the receiver. The receiver can be nested.
+    Construct a MemberAccessValue node from an Attribute node.
+    The receiver is the node that is accessed, and the member is the node that accesses the receiver.
+    The receiver can be nested.
 
     Parameters
     ----------
-    receiver : astroid.Name | astroid.Attribute | astroid.Call
-        The receiver node.
-    member : astroid.Attribute
-        The member node.
+    node : astrid.Attribute
+        The node to construct the MemberAccessValue node from.
 
     Returns
     -------
     MemberAccessValue
         The constructed MemberAccessValue node.
     """
+    receiver = node.expr
+    member = node.attrname
+
     try:
         if isinstance(receiver, astroid.Name):
-            return MemberAccessValue(receiver=receiver, member=member)
+            return MemberAccessValue(node=node, receiver=receiver, member=member)
         elif isinstance(receiver, astroid.Call):
-            return MemberAccessValue(receiver=receiver.func, member=member)
+            return MemberAccessValue(node=node, receiver=receiver.func, member=member)
+        elif isinstance(receiver, astroid.Attribute):
+            return MemberAccessValue(node=node, receiver=_construct_member_access_value(receiver), member=member)
         else:
-            return MemberAccessValue(receiver=_construct_member_access_value(receiver.expr, receiver), member=member)
+            return MemberAccessValue(node=node, receiver=None, member=member)
     # Since it is tedious to add testcases for this function, we ignore the coverage for now
     except TypeError as err:  # pragma: no cover
-        raise TypeError(f"Unexpected node type {type(member)}") from err  # pragma: no cover
+        raise TypeError(f"Unexpected node type {type(node)}") from err  # pragma: no cover
 
 
 def get_base_expression(node: MemberAccess) -> astroid.NodeNG:

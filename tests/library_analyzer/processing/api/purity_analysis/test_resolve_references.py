@@ -215,7 +215,7 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                     f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.name}.line{target_reference.node.fromlineno}"
                     if isinstance(target_reference, ClassVariable)
                     else (
-                        f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.member.attrname}.line{target_reference.node.member.fromlineno}"
+                        f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.member}.line{target_reference.node.node.fromlineno}"
                         if isinstance(target_reference, InstanceVariable) else
                         f"{target_reference.__class__.__name__}.{target_reference.node.name}.line{target_reference.node.fromlineno}")
                     for target_reference in function_references.writes_to
@@ -224,7 +224,7 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                     f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.name}.line{value_reference.node.fromlineno}"
                     if isinstance(value_reference, ClassVariable)
                     else (
-                        f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.member.attrname}.line{value_reference.node.member.fromlineno}"
+                        f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.member}.line{value_reference.node.node.fromlineno}"
                         if isinstance(value_reference, InstanceVariable) else
                         f"{value_reference.__class__.__name__}.{value_reference.node.name}.line{value_reference.node.fromlineno}")
                     for value_reference in function_references.reads_from
@@ -239,7 +239,7 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                             f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
                             if isinstance(function_reference, ClassVariable)
                             else (
-                                f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.member.attrname}.line{function_reference.node.member.fromlineno}"
+                                f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.member}.line{function_reference.node.node.fromlineno}"
                                 if isinstance(function_reference, InstanceVariable) else
                                     f"{function_reference.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}")
                         )
@@ -366,196 +366,6 @@ def test_resolve_references_parameters(code: str, expected: list[ReferenceTestNo
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        (  # language=Python "Local variable in function scope"
-            """
-def local_var():
-    var1 = 1
-    return var1
-            """,  # language= None
-            [ReferenceTestNode("var1.line4", "FunctionDef.local_var", ["LocalVariable.var1.line3"])],
-        ),
-        (  # language=Python "Global variable in module scope"
-            """
-glob1 = 10
-glob1
-            """,  # language= None
-            [],  # TODO: LARS - is there any problem with this not being detected?
-        ),
-        (  # language=Python "Global variable in class scope"
-            """
-glob1 = 10
-class A:
-    global glob1
-    glob1
-            """,  # language= None
-            [],  # TODO: LARS - is there any problem with this not being detected?
-        ),
-        (  # language=Python "Global variable in function scope"
-            """
-glob1 = 10
-def local_global():
-    global glob1
-
-    return glob1
-            """,  # language= None
-            [ReferenceTestNode("glob1.line6", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"])],
-        ),
-        (  # language=Python "Global variable in function scope but after definition"
-            """
-def local_global():
-    global glob1
-
-    return glob1
-
-glob1 = 10
-            """,  # language= None
-            [ReferenceTestNode("glob1.line5", "FunctionDef.local_global", ["GlobalVariable.glob1.line7"])],
-        ),
-        (  # language=Python "Global variable in class scope and function scope"
-            """
-glob1 = 10
-class A:
-    global glob1
-    glob1
-
-def local_global():
-    global glob1
-
-    return glob1
-            """,  # language= None
-            [
-                # ReferenceTestNode("glob1.line5", "ClassDef.A", ["GlobalVariable.glob1.line2"]), # TODO: LARS - is there any problem with this not being detected?
-                ReferenceTestNode("glob1.line10", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"]),
-            ],
-        ),
-        (  # language=Python "Access of global variable without global keyword"
-            """
-glob1 = 10
-def local_global_access():
-    return glob1
-            """,  # language= None
-            [ReferenceTestNode("glob1.line4", "FunctionDef.local_global_access", ["GlobalVariable.glob1.line2"])],
-        ),
-        (  # language=Python "Local variable in function scope shadowing global variable without global keyword"
-            """
-glob1 = 10
-def local_global_shadow():
-    glob1 = 20
-
-    return glob1
-            """,  # language= None
-            [
-                ReferenceTestNode(
-                    "glob1.line6",
-                    "FunctionDef.local_global_shadow",
-                    ["LocalVariable.glob1.line4"],
-                ),
-            ],
-        ),
-        (  # language=Python "Two globals in class scope"
-            """
-glob1 = 10
-glob2 = 20
-class A:
-    global glob1, glob2
-    glob1, glob2
-            """,  # language= None
-            [
-                # ReferenceTestNode("glob1.line6", "ClassDef.A", ["GlobalVariable.glob1.line2"]),  # TODO: LARS - is there any problem with this not being detected?
-                # ReferenceTestNode("glob2.line6", "ClassDef.A", ["GlobalVariable.glob2.line3"]),
-            ],
-        ),
-        (  # language=Python "New global variable in class scope"
-            """
-class A:
-    global glob1
-    glob1 = 10
-    glob1
-            """,  # language= None
-            # [ReferenceTestNode("glob1.line5", "ClassDef.A", ["ClassVariable.A.glob1.line4"])],
-            [],  # TODO: LARS - is there any problem with this not being detected?
-            # glob1 is not detected as a global variable since it is defined in the class scope - this is intended
-        ),
-        (  # language=Python "New global variable in function scope"
-            """
-def local_global():
-    global glob1
-
-    return glob1
-            """,  # language= None
-            [],
-            # glob1 is not detected as a global variable since it is defined in the function scope - this is intended
-        ),
-        (  # language=Python "New global variable in class scope with outer scope usage"
-            """
-class A:
-    global glob1
-    value = glob1
-
-def f():
-    a = A().value
-    glob1 = 10
-    b = A().value
-    a, b
-            """,  # language= None
-            [
-                ReferenceTestNode("A.line7", "FunctionDef.f", ["GlobalVariable.A.line2"]),
-                ReferenceTestNode("A.line9", "FunctionDef.f", ["GlobalVariable.A.line2"]),
-                # ReferenceTestNode("glob1.line4", "ClassDef.A", ["GlobalVariable.glob1.line7"]),
-                ReferenceTestNode("A.value.line7", "FunctionDef.f", ["ClassVariable.A.value.line4"]),
-                ReferenceTestNode("A.value.line9", "FunctionDef.f", ["ClassVariable.A.value.line4"]),
-                ReferenceTestNode("a.line10", "FunctionDef.f", ["LocalVariable.a.line7"]),
-                ReferenceTestNode("b.line10", "FunctionDef.f", ["LocalVariable.b.line9"]),
-            ],
-        ),
-        (  # language=Python "New global variable in function scope with outer scope usage"
-            """
-def local_global():
-    global glob1
-    return glob1
-
-def f():
-    lg = local_global()
-    glob1 = 10
-            """,  # language= None
-            [
-                ReferenceTestNode("local_global.line7", "FunctionDef.f", ["GlobalVariable.local_global.line2"]),
-                # ReferenceTestNode("glob1.line4", "FunctionDef.local_global", ["GlobalVariable.glob1.line7"]),
-            ],
-        ),  # Problem: we cannot check weather a function is called before the global variable is declared since
-        # this would need a context-sensitive approach
-        # For now we just check if the global variable is declared in the module scope at the cost of loosing precision.
-    ],
-    ids=[
-        "Local variable in function scope",
-        "Global variable in module scope",
-        "Global variable in class scope",
-        "Global variable in function scope",
-        "Global variable in function scope but after definition",
-        "Global variable in class scope and function scope",
-        "Access of global variable without global keyword",
-        "Local variable in function scope shadowing global variable without global keyword",
-        "Two globals in class scope",
-        "New global variable in class scope",
-        "New global variable in function scope",
-        "New global variable in class scope with outer scope usage",
-        "New global variable in function scope with outer scope usage",
-    ],
-)
-def test_resolve_references_local_global(code: str, expected: list[ReferenceTestNode]) -> None:
-    references = resolve_references(code).resolved_references
-    transformed_references: list[ReferenceTestNode] = []
-
-    for node in references.values():
-        transformed_references.extend(transform_reference_nodes(node))
-
-    # assert references == expected
-    assert transformed_references == expected
-
-
-@pytest.mark.parametrize(
-    ("code", "expected"),
-    [
         (  # language=Python "Class attribute value"
             """
 class A:
@@ -623,7 +433,7 @@ def f():
     x = b.upper_class.class_attr1
             """,  # language=none
             [
-                ReferenceTestNode("b.upper_class.class_attr1.line10", "FunctionDef.f",
+                ReferenceTestNode("UNKNOWN.class_attr1.line10", "FunctionDef.f",  # we do not analyze the target of the member access, hence the name does not matter.
                                   ["ClassVariable.A.class_attr1.line3"]),
                 ReferenceTestNode("b.upper_class.line10", "FunctionDef.f", ["ClassVariable.B.upper_class.line6"]),
                 ReferenceTestNode("b.line10", "FunctionDef.f", ["LocalVariable.b.line9"]),
@@ -756,7 +566,7 @@ def f():
     x = b.upper_class.name
             """,  # language=none
             [
-                ReferenceTestNode("b.upper_class.name.line11", "FunctionDef.f", ["InstanceVariable.A.name.line4"]),
+                ReferenceTestNode("UNKNOWN.name.line11", "FunctionDef.f", ["InstanceVariable.A.name.line4"]),    # we do not analyze the target of the member access, hence the name does not matter.
                 ReferenceTestNode("b.upper_class.line11", "FunctionDef.f", ["ClassVariable.B.upper_class.line7"]),
                 ReferenceTestNode("b.line11", "FunctionDef.f", ["LocalVariable.b.line10"]),
                 ReferenceTestNode("self.line4", "FunctionDef.A.__init__", ["Parameter.self.line3"]),
@@ -782,8 +592,8 @@ def f():
     a.b.c.name
             """,  # language=none
             [
-                ReferenceTestNode("a.b.c.name.line16", "FunctionDef.f", ["InstanceVariable.C.name.line12"]),
-                ReferenceTestNode("a.b.c.line16", "FunctionDef.f", ["InstanceVariable.B.c.line8"]),
+                ReferenceTestNode("UNKNOWN.name.line16", "FunctionDef.f", ["InstanceVariable.C.name.line12"]),  # we do not analyze the target of the member access, hence the name does not matter.
+                ReferenceTestNode("UNKNOWN.c.line16", "FunctionDef.f", ["InstanceVariable.B.c.line8"]),  # we do not analyze the target of the member access, hence the name does not matter.
                 ReferenceTestNode("a.b.line16", "FunctionDef.f", ["InstanceVariable.A.b.line4"]),
                 ReferenceTestNode("a.line16", "FunctionDef.f", ["LocalVariable.a.line15"]),
                 ReferenceTestNode("self.line4", "FunctionDef.A.__init__", ["Parameter.self.line3"]),
@@ -816,8 +626,8 @@ def f():
                 ReferenceTestNode("self.line4", "FunctionDef.A.__init__", ["Parameter.self.line3"]),
                 ReferenceTestNode("self.line8", "FunctionDef.B.__init__", ["Parameter.self.line7"]),
                 ReferenceTestNode("self.line12", "FunctionDef.C.__init__", ["Parameter.self.line11"]),
-                ReferenceTestNode("a.b.c.name.line16", "FunctionDef.f", ["InstanceVariable.C.name.line12"]),
-                ReferenceTestNode("a.b.c.line16", "FunctionDef.f", ["InstanceVariable.B.c.line8"]),
+                ReferenceTestNode("UNKNOWN.name.line16", "FunctionDef.f", ["InstanceVariable.C.name.line12"]),
+                ReferenceTestNode("UNKNOWN.c.line16", "FunctionDef.f", ["InstanceVariable.B.c.line8"]),
                 ReferenceTestNode("a.line16", "FunctionDef.f", ["LocalVariable.a.line15"]),
                 ReferenceTestNode("a.b.line16", "FunctionDef.f", ["InstanceVariable.A.b.line4"]),
                 ReferenceTestNode("B.line4", "FunctionDef.A.__init__", ["GlobalVariable.B.line6"]),
@@ -1238,6 +1048,63 @@ def fun():
             ]
         ),
         # TODO: [Later] we could add a check for the number of parameters in the function call and the function definition
+#         (  # language=Python "Builtins for dict"
+#             """
+# def f():
+#     dictionary = {"a": 1, "b": 2, "c": 3}
+#
+#     dictionary["a"] = 10
+#     dictionary.get("a")
+#     dictionary.update({"d": 4})
+#     dictionary.pop("a")
+#     dictionary.popitem()
+#     dictionary.clear()
+#     dictionary.copy()
+#     dictionary.fromkeys("a")
+#     dictionary.items()
+#     dictionary.keys()
+#     dictionary.values()
+#     dictionary.setdefault("a", 10)
+#
+#     dictionary.__contains__("a")
+#             """,  # language=none
+#             [
+#
+#             ]
+#         ),
+#         (  # language=Python "Builtins for list"
+#             """
+# def f():
+#     list1 = [1, 2, 3]
+#     list2 = [4, 5, 6]
+#
+#     list1.append(4)
+#     list1.clear()
+#     list1.copy()
+#     list1.count(1)
+#     list1.extend(list2)
+#     list1.index(1)
+#     list1.insert(1, 10)
+#     list1.pop()
+#     list1.remove(1)
+#     list1.reverse()
+#     list1.sort()
+#
+#     list1.__contains__(1)
+#             """,  # language=none
+#             [
+#
+#             ]
+#         ),
+#         (  # language=Python "Builtins for set"
+#             """
+# def f():
+#
+#             """,  # language=none
+#             [
+#
+#             ]
+#         ),
     ],
     ids=[
         "Class attribute value",
@@ -1269,8 +1136,10 @@ def fun():
         "Member access - function call of functions with the same name",
         "Member access - function call of functions with the same name and nested calls",
         "Member access - function call of functions with the same name (no distinction possible)",
-        "Member access - function call of functions with the same name (different signatures)"
-
+        "Member access - function call of functions with the same name (different signatures)",
+        # "Builtins for dict",  # TODO: We will only implement these special cases if they are needed
+        # "Builtins for list",
+        # "Builtins for set",
     ],
 )
 def test_resolve_references_member_access(code: str, expected: list[ReferenceTestNode]) -> None:
@@ -1282,6 +1151,196 @@ def test_resolve_references_member_access(code: str, expected: list[ReferenceTes
 
     # assert references == expected
     assert set(transformed_references) == set(expected)
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "Local variable in function scope"
+            """
+def local_var():
+    var1 = 1
+    return var1
+            """,  # language= None
+            [ReferenceTestNode("var1.line4", "FunctionDef.local_var", ["LocalVariable.var1.line3"])],
+        ),
+        (  # language=Python "Global variable in module scope"
+            """
+glob1 = 10
+glob1
+            """,  # language= None
+            [],  # TODO: LARS - is there any problem with this not being detected?
+        ),
+        (  # language=Python "Global variable in class scope"
+            """
+glob1 = 10
+class A:
+    global glob1
+    glob1
+            """,  # language= None
+            [],  # TODO: LARS - is there any problem with this not being detected?
+        ),
+        (  # language=Python "Global variable in function scope"
+            """
+glob1 = 10
+def local_global():
+    global glob1
+
+    return glob1
+            """,  # language= None
+            [ReferenceTestNode("glob1.line6", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"])],
+        ),
+        (  # language=Python "Global variable in function scope but after definition"
+            """
+def local_global():
+    global glob1
+
+    return glob1
+
+glob1 = 10
+            """,  # language= None
+            [ReferenceTestNode("glob1.line5", "FunctionDef.local_global", ["GlobalVariable.glob1.line7"])],
+        ),
+        (  # language=Python "Global variable in class scope and function scope"
+            """
+glob1 = 10
+class A:
+    global glob1
+    glob1
+
+def local_global():
+    global glob1
+
+    return glob1
+            """,  # language= None
+            [
+                # ReferenceTestNode("glob1.line5", "ClassDef.A", ["GlobalVariable.glob1.line2"]), # TODO: LARS - is there any problem with this not being detected?
+                ReferenceTestNode("glob1.line10", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"]),
+            ],
+        ),
+        (  # language=Python "Access of global variable without global keyword"
+            """
+glob1 = 10
+def local_global_access():
+    return glob1
+            """,  # language= None
+            [ReferenceTestNode("glob1.line4", "FunctionDef.local_global_access", ["GlobalVariable.glob1.line2"])],
+        ),
+        (  # language=Python "Local variable in function scope shadowing global variable without global keyword"
+            """
+glob1 = 10
+def local_global_shadow():
+    glob1 = 20
+
+    return glob1
+            """,  # language= None
+            [
+                ReferenceTestNode(
+                    "glob1.line6",
+                    "FunctionDef.local_global_shadow",
+                    ["LocalVariable.glob1.line4"],
+                ),
+            ],
+        ),
+        (  # language=Python "Two globals in class scope"
+            """
+glob1 = 10
+glob2 = 20
+class A:
+    global glob1, glob2
+    glob1, glob2
+            """,  # language= None
+            [
+                # ReferenceTestNode("glob1.line6", "ClassDef.A", ["GlobalVariable.glob1.line2"]),  # TODO: LARS - is there any problem with this not being detected?
+                # ReferenceTestNode("glob2.line6", "ClassDef.A", ["GlobalVariable.glob2.line3"]),
+            ],
+        ),
+        (  # language=Python "New global variable in class scope"
+            """
+class A:
+    global glob1
+    glob1 = 10
+    glob1
+            """,  # language= None
+            # [ReferenceTestNode("glob1.line5", "ClassDef.A", ["ClassVariable.A.glob1.line4"])],
+            [],  # TODO: LARS - is there any problem with this not being detected?
+            # glob1 is not detected as a global variable since it is defined in the class scope - this is intended
+        ),
+        (  # language=Python "New global variable in function scope"
+            """
+def local_global():
+    global glob1
+
+    return glob1
+            """,  # language= None
+            [],
+            # glob1 is not detected as a global variable since it is defined in the function scope - this is intended
+        ),
+        (  # language=Python "New global variable in class scope with outer scope usage"
+            """
+class A:
+    global glob1
+    value = glob1
+
+def f():
+    a = A().value
+    glob1 = 10
+    b = A().value
+    a, b
+            """,  # language= None
+            [
+                ReferenceTestNode("A.line7", "FunctionDef.f", ["GlobalVariable.A.line2"]),
+                ReferenceTestNode("A.line9", "FunctionDef.f", ["GlobalVariable.A.line2"]),
+                # ReferenceTestNode("glob1.line4", "ClassDef.A", ["GlobalVariable.glob1.line7"]),
+                ReferenceTestNode("A.value.line7", "FunctionDef.f", ["ClassVariable.A.value.line4"]),
+                ReferenceTestNode("A.value.line9", "FunctionDef.f", ["ClassVariable.A.value.line4"]),
+                ReferenceTestNode("a.line10", "FunctionDef.f", ["LocalVariable.a.line7"]),
+                ReferenceTestNode("b.line10", "FunctionDef.f", ["LocalVariable.b.line9"]),
+            ],
+        ),
+        (  # language=Python "New global variable in function scope with outer scope usage"
+            """
+def local_global():
+    global glob1
+    return glob1
+
+def f():
+    lg = local_global()
+    glob1 = 10
+            """,  # language= None
+            [
+                ReferenceTestNode("local_global.line7", "FunctionDef.f", ["GlobalVariable.local_global.line2"]),
+                # ReferenceTestNode("glob1.line4", "FunctionDef.local_global", ["GlobalVariable.glob1.line7"]),
+            ],
+        ),  # Problem: we cannot check weather a function is called before the global variable is declared since
+        # this would need a context-sensitive approach
+        # For now we just check if the global variable is declared in the module scope at the cost of loosing precision.
+    ],
+    ids=[
+        "Local variable in function scope",
+        "Global variable in module scope",
+        "Global variable in class scope",
+        "Global variable in function scope",
+        "Global variable in function scope but after definition",
+        "Global variable in class scope and function scope",
+        "Access of global variable without global keyword",
+        "Local variable in function scope shadowing global variable without global keyword",
+        "Two globals in class scope",
+        "New global variable in class scope",
+        "New global variable in function scope",
+        "New global variable in class scope with outer scope usage",
+        "New global variable in function scope with outer scope usage",
+    ],
+)
+def test_resolve_references_local_global(code: str, expected: list[ReferenceTestNode]) -> None:
+    references = resolve_references(code).resolved_references
+    transformed_references: list[ReferenceTestNode] = []
+
+    for node in references.values():
+        transformed_references.extend(transform_reference_nodes(node))
+
+    # assert references == expected
+    assert transformed_references == expected
 
 
 @pytest.mark.parametrize(
@@ -1695,7 +1754,6 @@ def f():
                         "LocalVariable.a.line3",
                         "LocalVariable.a.line4",
                         "LocalVariable.a.line5",
-                        "LocalVariable.a.line6",
                     ],
                 ),
                 ReferenceTestNode(
@@ -2502,7 +2560,7 @@ def test_resolve_references_dataclasses(code: str, expected: list[ReferenceTestN
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        (  # language=Python "internal stuff"
+        (  # language=Python "Basics"
             """
 b = 1
 c = 2
@@ -2525,6 +2583,7 @@ def f():
                     "f",
                     {
                         "GlobalVariable.b.line2",
+                        "GlobalVariable.b.line11"
                     },
                     {
                         "GlobalVariable.c.line3",
@@ -2538,7 +2597,7 @@ def f():
                 ".g.5.0": SimpleReasons("g", set(), set(), set()),
             },
         ),
-        (  # language=Python "control flow statements"
+        (  # language=Python "Control flow statements"
             """
 b = 1
 c = 0
@@ -2566,7 +2625,7 @@ def f():
                 ),
             },
         ),
-        (  # language=Python "class attribute"
+        (  # language=Python "Class attribute"
             """
 class A:
     class_attr1 = 20
@@ -2602,7 +2661,7 @@ def g():
                 ),
             },
         ),
-        (  # language=Python "instance attribute"
+        (  # language=Python "Instance attribute"
             """
 class A:
     def __init__(self):
@@ -2680,7 +2739,7 @@ def g3():
                 ),
             },
         ),
-        (  # language=Python "chained attributes"
+        (  # language=Python "Chained attributes"
             """
 class A:
     def __init__(self):
@@ -2719,7 +2778,7 @@ def f():
                 ),
             }
         ),
-        (  # language=Python "chained class function call"
+        (  # language=Python "Chained class function call"
             """
 class B:
     def __init__(self):
@@ -2744,7 +2803,9 @@ def g():
                 ".g.12.0": SimpleReasons(
                     "g",
                     set(),
-                    set(),
+                    {
+                        "ClassVariable.A.class_attr1.line10",
+                    },
                     {
                         "GlobalVariable.A.line9",
                         "ClassVariable.B.f.line6"
@@ -2752,7 +2813,7 @@ def g():
                 ),
             }
         ),
-        (  # language=Python "two classes with same attribute name"
+        (  # language=Python "Two classes with same attribute name"
             """
 class A:
     name: str = ""
@@ -2797,7 +2858,7 @@ def f():
                 )
             }
         ),
-        (  # language=Python "multiple classes with same function name - same signature"
+        (  # language=Python "Multiple classes with same function name - same signature"
             """
 z = 2
 
@@ -2813,7 +2874,7 @@ class B:
         return a + 2 * b
 
 def f():
-    x = A.add(1, 2)
+    x = A.add(1, 2)  # This is not a global read of A. Since we define classes and functions as immutable.
     y = B.add(1, 2)
     if x == y:
         pass
@@ -2841,7 +2902,7 @@ def f():
                 )
             }
         ),  # since we only return a list of all possible references, we can't distinguish between the two functions
-        (  # language=Python "multiple classes with same function name - different signature"
+        (  # language=Python "Multiple classes with same function name - different signature"
             """
 class A:
     @staticmethod
@@ -2877,15 +2938,15 @@ def f():
         ),  # TODO: [LATER] we should detect the different signatures
     ],
     ids=[
-        "internal stuff",
-        "control flow statements",
-        "class attribute",
-        "instance attribute",
-        "chained attributes",
-        "chained class function call",
-        "two classes with same attribute name",
-        "multiple classes with same function name - same signature",
-        "multiple classes with same function name - different signature",
+        "Basics",
+        "Control flow statements",
+        "Class attribute",
+        "Instance attribute",
+        "Chained attributes",
+        "Chained class function call",
+        "Two classes with same attribute name",
+        "Multiple classes with same function name - same signature",
+        "Multiple classes with same function name - different signature",
         # TODO: [LATER] we should detect the different signatures
     ],
 )

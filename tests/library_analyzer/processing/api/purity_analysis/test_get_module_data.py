@@ -117,7 +117,7 @@ def transform_scope_node(
             super_classes_transformed = []
             for child in node.instance_variables.values():
                 for c in child:
-                    c_str = to_string_class(c.node.member)
+                    c_str = to_string_class(c.node.node)
                     if c_str is not None:
                         instance_vars_transformed.append(
                             c_str)  # type: ignore[misc] # it is not possible that c_str is None
@@ -343,14 +343,15 @@ def transform_member_access(member_access: MemberAccess) -> str:
 
     while isinstance(member_access, MemberAccess):
         if isinstance(member_access.member, astroid.AssignAttr | astroid.Attribute):
-            attribute_names.append(member_access.member.attrname)
+            attribute_names.append(member_access.member)
         else:
-            attribute_names.append(member_access.member.name)
+            attribute_names.append(member_access.member)
         member_access = member_access.receiver
     if isinstance(member_access, astroid.Name):
         attribute_names.append(member_access.name)
 
     return ".".join(reversed(attribute_names))
+
 
 @pytest.mark.parametrize(
     ("node", "expected"),
@@ -2475,10 +2476,3 @@ def test_get_module_data_value_and_target_nodes(code: str, expected: str) -> Non
     value_nodes_transformed = transform_value_nodes(value_nodes)
     target_nodes_transformed = transform_target_nodes(target_nodes)
     assert (value_nodes_transformed, target_nodes_transformed) == expected
-
-
-@pytest.mark.parametrize(("code", "expected"), [])
-def test_get_module_data_function_calls(code: str, expected: str) -> None:
-    function_calls = get_module_data(code).function_calls
-    raise NotImplementedError("TODO: implement test")
-    assert function_calls == expected

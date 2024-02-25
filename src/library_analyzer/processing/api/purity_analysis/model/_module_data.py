@@ -53,7 +53,7 @@ class ModuleData:
 
 
 @dataclass
-class MemberAccess(astroid.NodeNG):  # TODO: since this is a subclass it should implement fromlineno and tolineno since they are expected as @cached_property
+class MemberAccess(astroid.NodeNG):
     """Represents a member access.
 
     Superclass for MemberAccessTarget and MemberAccessValue.
@@ -61,19 +61,27 @@ class MemberAccess(astroid.NodeNG):  # TODO: since this is a subclass it should 
 
     Attributes
     ----------
-    receiver : MemberAccess | astroid.NodeNG
+    node : astroid.Attribute | astroid.AssignAttr
+        The original node that represents the member access.
+        Needed as fallback when determining the parent node if the receiver is None.
+    receiver : MemberAccess | astroid.NodeNG | None
         The receiver is the node that is accessed, it can be nested, e.g. `a` in `a.b` or `a.b` in `a.b.c`.
-    member : astroid.NodeNG
-        The member is the node that accesses the receiver, e.g. `b` in `a.b`.
+        The receiver can be nested.
+        Is None if the receiver is not of type Name, Call or Attribute
+    member : str
+        The member is the name of the node that accesses the receiver, e.g. `b` in `a.b`.
     parent : astroid.NodeNG | None
         The parent node of the member access.
     name : str
         The name of the member access, e.g. `a.b`.
         Is set in __post_init__, after the member access has been created.
+        If the MemberAccess is nested, the name of the receiver will be set to "UNKNOWN" since it is hard to determine
+        correctly for all possible cases, and we do not need it for the analysis.
     """
 
-    receiver: MemberAccess | astroid.NodeNG
-    member: astroid.NodeNG
+    node: astroid.Attribute | astroid.AssignAttr
+    receiver: MemberAccess | astroid.NodeNG | None
+    member: str
     parent: astroid.NodeNG | None = field(default=None)
     name: str = field(init=False)
 
@@ -81,14 +89,12 @@ class MemberAccess(astroid.NodeNG):  # TODO: since this is a subclass it should 
         return f"{self.__class__.__name__}.{self.name}"
 
     def __post_init__(self) -> None:
-        if isinstance(self.receiver, astroid.Call):
-            self.expression = self.receiver.func
-        if isinstance(self.member, astroid.AssignAttr | astroid.Attribute) and isinstance(self.receiver, astroid.AssignAttr | astroid.Attribute):
-            self.name = f"{self.receiver.attrname}.{self.member.attrname}"
-        elif isinstance(self.member, astroid.AssignAttr | astroid.Attribute):
-            self.name = f"{self.receiver.name}.{self.member.attrname}"
+        if isinstance(self.receiver, astroid.AssignAttr | astroid.Attribute):
+            self.name = f"{self.receiver.attrname}.{self.member}"
+        elif isinstance(self.receiver, astroid.Name):
+            self.name = f"{self.receiver.name}.{self.member}"
         else:
-            self.name = f"{self.receiver.name}.{self.member.name}"
+            self.name = f"UNKNOWN.{self.member}"
 
     def get_top_level_receiver(self) -> astroid.NodeNG:
         """Get the top level receiver.
@@ -110,6 +116,8 @@ class MemberAccessTarget(MemberAccess):
     Member access target is a member access written to, e.g. `a.b` in `a.b = 1`.
     """
 
+    node:  astroid.AssignAttr
+
     def __hash__(self) -> int:
         return hash(str(self))
 
@@ -120,6 +128,8 @@ class MemberAccessValue(MemberAccess):
 
     Member access value is a member access read from, e.g. `a.b` in `print(a.b)`.
     """
+
+    node: astroid.Attribute
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -189,6 +199,8 @@ class Symbol(ABC):
 @dataclass
 class Parameter(Symbol):
     """Represents a parameter of a function."""
+
+    node: astroid.AssignName
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -328,10 +340,9 @@ class Scope:
         The parent node in the scope tree, there is None if the node is the root node.
     """
 
-    # TODO: Lars do we want Attributes here or in the properties?
     _symbol: Symbol
-    _children: list[Scope | ClassScope] = field(default_factory=list)
-    _parent: Scope | ClassScope | None = None
+    _children: list[Scope | ClassScope | FunctionScope] = field(default_factory=list)
+    _parent: Scope | ClassScope | FunctionScope | None = None
 
     def __iter__(self) -> Generator[Scope | ClassScope, None, None]:
         yield self
