@@ -20,6 +20,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     PurityResult,
     StringLiteral,
     UnknownCall,
+    NodeID,
 )
 
 
@@ -38,22 +39,22 @@ class SimpleImpure:
     reasons: set[str]
 
 
-def to_string_function_def(func: astroid.FunctionDef | str) -> str:
+def to_string_function_id(node_id: NodeID | str) -> str:
     """Convert a function to a string representation.
 
     Parameters
     ----------
-    func : astroid.FunctionDef | str
-        The function to convert.
+    node_id : NodeID | str
+        The NodeID to convert.
 
     Returns
     -------
     str
-        The string representation of the function.
+        The string representation of the NodeID.
     """
-    if isinstance(func, str):
-        return f"{func}"
-    return f"{func.name}.line{func.fromlineno}"
+    if isinstance(node_id, str):
+        return f"{node_id}"
+    return f"{node_id.name}.line{node_id.line}"
 
 
 def to_simple_result(purity_result: PurityResult) -> Pure | SimpleImpure:  # type: ignore[return] # all cases are handled
@@ -337,7 +338,8 @@ c = fun1()
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     purity_results = infer_purity(code)
     transformed_purity_results = {
-        to_string_function_def(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()
+        to_string_function_id(function_id): to_simple_result(purity_result) for
+        function_id, purity_result in purity_results.items()
     }
 
     assert transformed_purity_results == expected
@@ -946,8 +948,8 @@ def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> No
     purity_results = infer_purity(code)
 
     transformed_purity_results = {
-        to_string_function_def(function_def): to_simple_result(purity_result)
-        for function_def, purity_result in purity_results.items()
+        to_string_function_id(function_id): to_simple_result(purity_result)
+        for function_id, purity_result in purity_results.items()
     }
 
     assert transformed_purity_results == expected
@@ -1029,8 +1031,8 @@ def test_infer_purity_unknown(code: str, expected: dict[str, SimpleImpure]) -> N
     purity_results = infer_purity(code)
 
     transformed_purity_results = {
-        to_string_function_def(function_def): to_simple_result(purity_result)
-        for function_def, purity_result in purity_results.items()
+        to_string_function_id(function_id): to_simple_result(purity_result)
+        for function_id, purity_result in purity_results.items()
     }
 
     assert transformed_purity_results == expected
@@ -1179,7 +1181,8 @@ def test_infer_purity_open(code: str, expected: dict[str, SimpleImpure]) -> None
     purity_results = infer_purity(code)
 
     transformed_purity_results = {
-        to_string_function_def(call): to_simple_result(purity_result) for call, purity_result in purity_results.items()
+        to_string_function_id(function_id): to_simple_result(purity_result)
+        for function_id, purity_result in purity_results.items()
     }
 
     assert transformed_purity_results == expected

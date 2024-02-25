@@ -146,19 +146,21 @@ class NodeID:
         Is None for combined nodes.
     name : str
         The name of the node.
-    line : int | None
+    line : int
         The line of the node in the source code.
+        Is -1 for combined nodes, builtins or any other node that does not have a line.
     col : int | None
         The column of the node in the source code.
+        Is -1 for combined nodes, builtins or any other node that does not have a line.
     """
 
     module: astroid.Module | str | None
     name: str
-    line: int | None = None
-    col: int | None = None
+    line: int
+    col: int
 
     def __repr__(self) -> str:
-        if self.line is None or self.col is None:
+        if self.line == -1 or self.col == -1:
             if self.module is None:
                 return f"{self.name}"
             return f"{self.module}.{self.name}"

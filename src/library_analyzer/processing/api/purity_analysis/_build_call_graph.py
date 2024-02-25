@@ -84,8 +84,8 @@ def build_call_graph(
 
             # If the function calls other functions in its body, we need to build a tree
             else:
-                for call_name, call in function_scope.call_references.items():
-                    call = call[0]  # TODO: LARS is this ok? -here we take the first call to represent all calls
+                for call_name, kall in function_scope.call_references.items():
+                    call = kall[0]  # TODO: LARS is this ok? -here we take the first call to represent all calls
                     # Handle self defined function calls
                     if call_name in classes_and_functions:
                         # Check if any function def has the same name as the called function
@@ -264,7 +264,7 @@ def contract_cycle(
     combined_node_data = FunctionScope(
         Symbol(
             None,
-            NodeID(None, combined_node_name),
+            NodeID(None, combined_node_name, -1, -1),
             combined_node_name,
         ),
     )

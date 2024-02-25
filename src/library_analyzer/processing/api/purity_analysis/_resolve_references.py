@@ -70,13 +70,14 @@ def _find_call_references(call_reference: Reference,
     # Find classes that are called (initialized).
     elif call_reference.name in classes:
         class_def = classes.get(call_reference.name)
-        value_reference.referenced_symbols.append(class_def.symbol)
+        if class_def:
+            value_reference.referenced_symbols.append(class_def.symbol)
 
     # Find builtins that are called, this includes open-like functions.
     if call_reference.name in _BUILTINS or call_reference.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
         builtin_call = Builtin(
             call_reference.node,  # Since we do not have a FunctionDef node for the builtin, we use the Call node
-            NodeID("builtins", call_reference.name, 0, 0),
+            NodeID("builtins", call_reference.name, -1, -1),
             call_reference.name,
         )
         value_reference.referenced_symbols.append(builtin_call)
@@ -160,19 +161,21 @@ def _find_value_references(value_reference: Reference,
 
     # Find global variables that are referenced.
     if value_reference.name in function.globals_used:
-        symbols = function.globals_used[value_reference.name]
+        symbols = function.globals_used[value_reference.name]  # type: ignore[assignment] # globals_used contains GlobalVariable which are a subtype of Symbol.
         result_value_reference.referenced_symbols.extend(symbols)
 
     # Find functions that are referenced (as value).
     if value_reference.name in functions:
         function_def = functions.get(value_reference.name)
-        function_symbols = [func.symbol for func in function_def if function_def]
-        result_value_reference.referenced_symbols.extend(function_symbols)
+        if function_def:
+            function_symbols = [func.symbol for func in function_def if function_def]
+            result_value_reference.referenced_symbols.extend(function_symbols)
 
     # Find classes that are referenced (as value).
     if value_reference.name in classes:
         class_def = classes.get(value_reference.name)
-        result_value_reference.referenced_symbols.append(class_def.symbol)
+        if class_def:
+            result_value_reference.referenced_symbols.append(class_def.symbol)
 
     # Find class and instance variables that are referenced.
     if isinstance(value_reference.node, MemberAccessValue):

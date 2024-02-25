@@ -34,6 +34,6 @@ def _run_api_command(
     out_file_api_dependencies = out_dir_path.joinpath(f"{package}__api_dependencies.json")
     api_dependencies.to_json_file(out_file_api_dependencies)
 
-    # api_purity = get_purity_results(package, src_dir_path)
+    # api_purity = get_purity_results(src_dir_path)
     # out_file_api_purity = out_dir_path.joinpath(f"{package}__api_purity.json")
     # api_purity.to_json_file(out_file_api_purity)

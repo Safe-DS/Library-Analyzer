@@ -45,11 +45,11 @@ class ReferenceNode(ABC):
     referenced_symbols: list[Symbol] = field(default_factory=list)
 
     def __repr__(self) -> str:
-        if isinstance(self.node, astroid.Call):
+        if isinstance(self.node, astroid.Call) and isinstance(self.node.func, astroid.Name):
             return f"{self.node.func.name}.line{self.node.lineno}"
         if isinstance(self.node, MemberAccessTarget | MemberAccessValue):
-            return f"{self.node.name}.line{self.node.member.lineno}"
-        return f"{self.node.name}.line{self.node.lineno}"
+            return f"{self.node.name}.line{self.node.node.lineno}"
+        return f"{self.node.name}.line{self.node.node.lineno}"
 
 
 @dataclass
@@ -206,7 +206,7 @@ class Reasons:
         return self
 
     @staticmethod
-    def join_reasons_list(reasons_list: list[Reasons], combined_node_name: str = None) -> Reasons:
+    def join_reasons_list(reasons_list: list[Reasons], combined_node_name: str | None = None) -> Reasons:
         """Join a list of Reasons objects.
 
         Combines a list of Reasons objects into one Reasons object.
@@ -236,36 +236,6 @@ class Reasons:
         result = Reasons()
         for reason in reasons_list:
             result.join_reasons(reason)
-        if combined_node_name is not None:
-            result.function = combined_node_name
+        # if combined_node_name is not None:
+        #     result.function = combined_node_name
         return result
-
-    def remove_class_method_calls_from_reads(self) -> None:
-        """Remove all class method calls from the read set.
-
-        After all read, write and call sets have been filled, we can remove all class method calls from the read sets.
-        This is necessary because class method calls are not considered to be read operations.
-        This is achieved by comparing the call names and lines with the read names and lines and removing the reads if they match.
-        """
-        call_names_and_lines: set[tuple[str, int]] = set()
-        for call in self.calls:
-            if isinstance(call.node, astroid.Call):
-                if isinstance(call.node.func, astroid.Attribute):
-                    name_line_tuple = (call.node.func.attrname, call.node.fromlineno)
-                else:
-                    name_line_tuple = (call.node.func.name, call.node.lineno)
-
-                call_names_and_lines.add(name_line_tuple)
-
-        filtered_reads: set[Symbol] = set()
-
-        for read in self.reads_from:
-            if not any(  # check if the read is a class method call, differentiate between MemberAccessValue and normal Name
-                f".{call_name}." in f".{read.node.name}." and read.node.member.fromlineno == call_line
-                if isinstance(read.node, MemberAccessValue)
-                else f".{call_name}." in f".{read.node.name}." and read.node.lineno == call_line
-                for call_name, call_line in call_names_and_lines
-            ):
-                filtered_reads.add(read)
-
-        self.reads_from = filtered_reads

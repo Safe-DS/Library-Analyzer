@@ -27,7 +27,7 @@ class PurityResult(ABC):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:  # type: ignore[return] # all cases are handled
         if isinstance(self, Pure):
             return {"purity": self.__class__.__name__}
         elif isinstance(self, Impure):
@@ -176,7 +176,9 @@ class FileRead(Read):
         return hash(str(self))
 
     def to_result_str(self) -> str:
-        return f"{self.__class__.__name__}: {self.source.to_result_str()}"
+        if isinstance(self.source, Expression):
+            return f"{self.__class__.__name__}: {self.source.to_result_str()}"
+        return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
 
 class Write(ImpurityReason, ABC):
@@ -219,7 +221,9 @@ class FileWrite(Write):
         return hash(str(self))
 
     def to_result_str(self) -> str:
-        return f"{self.__class__.__name__}: {self.source.to_result_str()}"
+        if isinstance(self.source, Expression):
+            return f"{self.__class__.__name__}: {self.source.to_result_str()}"
+        return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
 
 class Unknown(ImpurityReason, ABC):
