@@ -291,7 +291,7 @@ def check_open_like_functions(symbol: Symbol) -> PurityResult:  # type: ignore[r
 
 def infer_purity(
     code: str
-) -> dict[astroid.FunctionDef, PurityResult]:
+) -> dict[NodeID, PurityResult]:
     """
     Infer the purity of functions.
 
@@ -313,7 +313,7 @@ def infer_purity(
     # Analyze the code, resolve the references in the module and build the call graph for the module
     analysis_result = resolve_references(code)
 
-    purity_results: dict[astroid.FunctionDef, PurityResult] = (
+    purity_results: dict[NodeID, PurityResult] = (
         {}
     )  # We use astroid.FunctionDef instead of str as a key so we can access the node later
 
@@ -327,7 +327,7 @@ def infer_purity(
 def process_node(  # type: ignore[return] # all cases are handled
     reason: Reasons,
     analysis_result: ModuleAnalysisResult,
-    purity_results: dict[astroid.FunctionDef, PurityResult],
+    purity_results: dict[NodeID, PurityResult],
 ) -> PurityResult:
     """
     Process a node in the call graph.
@@ -347,7 +347,7 @@ def process_node(  # type: ignore[return] # all cases are handled
         The node to process containing the raw reasons for impurity collected.
     analysis_result : ModuleAnalysisResult
         The result of the analysis of the module.
-    purity_results : PurityResult
+    purity_results : dict[NodeID, PurityResult]
         The function nodes as keys and purity results of the functions as values.
         Since we collect them iteratively, we need to pass them as a parameter to check for duplicates.
 
@@ -359,30 +359,31 @@ def process_node(  # type: ignore[return] # all cases are handled
     if not isinstance(reason, Reasons):
         raise TypeError(f"Expected Reasons, got {reason.__class__.__name__}") from None
 
+    # TODO: add ID to Reasons
     # This is the case whenever a combined node is processed
     if isinstance(reason.function.symbol.node, str) or reason.function.symbol.node is None:
         reason.function.symbol.node = astroid.FunctionDef(name=reason.function.symbol.node)  # This is a hack to make the code work but it is not nice
-        reason_id = NodeID(None, reason.function.symbol.node.name)
+        reason_id = NodeID(None, reason.function.symbol.node.name, -1, -1)
     else:  # Normally, the ID can be calculated from the function node as usual
         reason_id = calc_node_id(reason.function.symbol.node)
 
-    function_node = reason.function.symbol.node
+    function_id = reason.function.symbol.id
 
     # Check the forest if the purity of the function is already determined
     if reason_id in analysis_result.call_graph.graphs:
         if analysis_result.call_graph.get_graph(reason_id).reasons.result:
-            purity_results[function_node] = analysis_result.call_graph.get_graph(reason_id).reasons.result  # type: ignore[assignment] # None is not possible here
-            return purity_results[function_node]
+            purity_results[function_id] = analysis_result.call_graph.get_graph(reason_id).reasons.result  # type: ignore[assignment] # None is not possible here
+            return purity_results[function_id]
 
     # Check if the referenced function is a builtin function
-    elif function_node.name in BUILTIN_FUNCTIONS:
-        if function_node.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
-            purity_results[function_node] = check_open_like_functions(
-                reason.get_call_by_name(function_node.name),
+    elif function_id.name in BUILTIN_FUNCTIONS:
+        if function_id.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
+            purity_results[function_id] = check_open_like_functions(
+                reason.get_call_by_name(function_id.name),
             )
         else:
-            purity_results[function_node] = BUILTIN_FUNCTIONS[function_node.name]
-        return purity_results[function_node]
+            purity_results[function_id] = BUILTIN_FUNCTIONS[function_id.name]
+        return purity_results[function_id]
 
     # The purity of the function is not determined yet
     try:
@@ -402,15 +403,15 @@ def process_node(  # type: ignore[return] # all cases are handled
                         )
                     # The child is a combined node and therefore not part of the reference dict
                     else:  # noqa: PLR5501 # better for readability
-                        if function_node not in purity_results:  # better for readability
-                            purity_results[function_node] = analysis_result.call_graph.get_graph(child.function.symbol.id).reasons.result
+                        if function_id not in purity_results:  # better for readability
+                            purity_results[function_id] = analysis_result.call_graph.get_graph(child.function.symbol.id).reasons.result
                         else:
-                            purity_results[function_node] = purity_results[function_node].update(
+                            purity_results[function_id] = purity_results[function_id].update(
                                 analysis_result.call_graph.get_graph(child.function.symbol.id).reasons.result,
                             )
 
                 # After all children are handled, we can propagate the purity of the called functions to the calling function
-                analysis_result.call_graph.get_graph(reason_id).reasons.result = purity_results[function_node]
+                analysis_result.call_graph.get_graph(reason_id).reasons.result = purity_results[function_id]
 
         # If the node is not part of the call graph, we need to check if it is a combined node
         else:
@@ -422,9 +423,9 @@ def process_node(  # type: ignore[return] # all cases are handled
                 # Check if the current node is part of the combined node (therefore part of the cycle)
                 if reason_id.__str__() in combined_node.combined_node_names:
                     # Check if the purity result was already determined
-                    if combined_node.reasons.result and function_node in purity_results:
-                        purity_results[function_node] = combined_node.reasons.result
-                        return purity_results[function_node]
+                    if combined_node.reasons.result and function_id in purity_results:
+                        purity_results[function_id] = combined_node.reasons.result
+                        return purity_results[function_id]
                     else:
                         # We need to check if the combined node has any children that are not part of the cycle
                         # By design all children of a combined node are NOT part of the cycle
@@ -439,7 +440,7 @@ def process_node(  # type: ignore[return] # all cases are handled
                         # TODO: refactor this so it is cleaner
                         purity = transform_reasons_to_impurity_result(
                             analysis_result.call_graph.graphs[combined_node.function.symbol.id].reasons,
-                            analysis_result
+                            # analysis_result
                         )
 
                         if not combined_node.reasons.result:
@@ -447,10 +448,10 @@ def process_node(  # type: ignore[return] # all cases are handled
                         else:
                             combined_node.reasons.result = combined_node.reasons.result.update(purity)
 
-                        if function_node not in purity_results:
-                            purity_results[function_node] = purity
+                        if function_id not in purity_results:
+                            purity_results[function_id] = purity
                         else:
-                            purity_results[function_node] = purity_results[function_node].update(purity)
+                            purity_results[function_id] = purity_results[function_id].update(purity)
 
                         if combined_node.function.symbol.name not in purity_results:
                             purity_results[combined_node.function.symbol.name] = purity
@@ -459,11 +460,11 @@ def process_node(  # type: ignore[return] # all cases are handled
                                 combined_node.function.symbol.name
                             ].update(purity)
 
-                    return purity_results[function_node]
+                    return purity_results[function_id]
 
         # Check if we deal with a self-defined function
         if (
-            isinstance(function_node, astroid.FunctionDef | astroid.Lambda)
+            isinstance(reason.function.symbol.node, astroid.FunctionDef | astroid.Lambda)
             and reason_id in analysis_result.call_graph.graphs
         ):
             # Check if the function does not call other functions (it is a leaf), we can check its (reasons for) impurity directly
@@ -477,23 +478,23 @@ def process_node(  # type: ignore[return] # all cases are handled
                 if analysis_result.call_graph.graphs[reason_id].reasons:
                     purity_self_defined = transform_reasons_to_impurity_result(
                         analysis_result.call_graph.graphs[reason_id].reasons,
-                        analysis_result
+                        # analysis_result
                     )
 
                 # If a result was propagated from the children, it needs to be kept and updated with more reasons if the function itself has more reasons
                 if (
                     analysis_result.call_graph.get_graph(reason_id).reasons.result is None
                 ):  # TODO: this should never happen - check that and remove if statement -> this does happen... but it works
-                    purity_results[function_node] = purity_self_defined
+                    purity_results[function_id] = purity_self_defined
                 else:
-                    purity_results[function_node] = purity_results[function_node].update(purity_self_defined)
+                    purity_results[function_id] = purity_results[function_id].update(purity_self_defined)
 
                 # Store the results in the forest, this also deals as a flag to indicate that the result is already computed completely
-                analysis_result.call_graph.get_graph(reason_id).reasons.result = purity_results[function_node]
+                analysis_result.call_graph.get_graph(reason_id).reasons.result = purity_results[function_id]
 
-                return purity_results[function_node]
+                return purity_results[function_id]
             else:
-                return purity_results[function_node]
+                return purity_results[function_id]
 
     except KeyError:
         raise KeyError(f"Function {reason_id} not found in function_references") from None
@@ -505,7 +506,7 @@ def get_purity_of_child(
     child: CallGraphNode,
     reason: Reasons,
     analysis_result: ModuleAnalysisResult,
-    purity_results: dict[astroid.FunctionDef, PurityResult],  # TODO: nodeID
+    purity_results: dict[NodeID, PurityResult],
 ) -> None:
     """
     Get the purity of a child node.
@@ -520,7 +521,7 @@ def get_purity_of_child(
         The node to process containing the raw reasons for impurity collected.
     analysis_result : ModuleAnalysisResult
         The result of the analysis of the module.
-    purity_results : PurityResult
+    purity_results : dict[NodeID, PurityResult]
         The function nodes as keys and purity results of the functions as values.
         Since we collect them iteratively, we need to pass them as a parameter to check for duplicates.
     """
@@ -555,14 +556,17 @@ def get_purity_of_child(
         analysis_result.call_graph.get_graph(child.function.symbol.id).reasons.result = purity_result_child
     # If a result for the child was found, we need to propagate it to the parent
     if purity_result_child:
-        function_node = reason.function.symbol.node
+        function_node = reason.function.symbol.id
         if function_node not in purity_results:
             purity_results[function_node] = purity_result_child
         else:
             purity_results[function_node] = purity_results[function_node].update(purity_result_child)
 
 
-def transform_reasons_to_impurity_result(reasons: Reasons, analysis_result: ModuleAnalysisResult) -> PurityResult:
+def transform_reasons_to_impurity_result(reasons: Reasons,
+                                         # analysis_result: ModuleAnalysisResult    analysis_result : ModuleAnalysisResult
+                                         #         The result of the analysis of the module.
+                                         ) -> PurityResult:
     """
     Transform the reasons for impurity to an impurity result.
 
@@ -573,8 +577,6 @@ def transform_reasons_to_impurity_result(reasons: Reasons, analysis_result: Modu
     ----------
     reasons : Reasons
         The node to process containing the raw reasons for impurity collected.
-    analysis_result : ModuleAnalysisResult
-        The result of the analysis of the module.
 
     Returns
     -------
@@ -626,7 +628,24 @@ def transform_reasons_to_impurity_result(reasons: Reasons, analysis_result: Modu
         return Pure()
 
 
-def get_purity_results(package: str, src_dir_path: Path) -> APIPurity:
+def get_purity_results(
+    # package: str,
+    src_dir_path: Path) -> APIPurity:
+    """Get the purity results of a package.
+
+    This function is the entry to the purity analysis of a package.
+    It iterates over all modules in the package and infers the purity of the functions in the modules.
+
+    Parameters
+    ----------
+    src_dir_path : Path
+       The path of the source directory of the package.
+
+    Returns
+    -------
+    APIPurity
+        The purity results of the package.
+    """
     modules = list(src_dir_path.glob("**/*.py"))
     package_purity = APIPurity()
 
@@ -641,7 +660,7 @@ def get_purity_results(package: str, src_dir_path: Path) -> APIPurity:
             # TODO: do we want the function name or the function def node as result? -> NodeID
             #  if we want the name we need to use ID or else functions with the same name will be lost
             # TODO: do we want to differentiate between classes -> hierarchical result with classes
-            module_purity_results_str = {key.name: value for key, value in module_purity_results.items()}
+            module_purity_results_str = {func_id.__str__(): value for func_id, value in module_purity_results.items()}
 
         package_purity.purity_results[module.name] = module_purity_results_str
 

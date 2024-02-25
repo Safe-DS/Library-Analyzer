@@ -345,7 +345,7 @@ class APIPurity:
     ----------
     purity_results : dict[str, dict[str, PurityResult]]
         The purity results of the API.
-        The first key is the name of the module, and the second key is the function name.
+        The first key is the name of the module, and the second key is the function id.
     """
 
     purity_results: dict[str, dict[str, PurityResult]] = {}
