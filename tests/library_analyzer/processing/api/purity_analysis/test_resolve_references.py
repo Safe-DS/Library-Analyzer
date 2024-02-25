@@ -255,6 +255,196 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
+        (  # language=Python "Local variable in function scope"
+            """
+def local_var():
+    var1 = 1
+    return var1
+            """,  # language= None
+            [ReferenceTestNode("var1.line4", "FunctionDef.local_var", ["LocalVariable.var1.line3"])],
+        ),
+        (  # language=Python "Global variable in module scope"
+            """
+glob1 = 10
+glob1
+            """,  # language= None
+            [],  # TODO: LARS - is there any problem with this not being detected?
+        ),
+        (  # language=Python "Global variable in class scope"
+            """
+glob1 = 10
+class A:
+    global glob1
+    glob1
+            """,  # language= None
+            [],  # TODO: LARS - is there any problem with this not being detected?
+        ),
+        (  # language=Python "Global variable in function scope"
+            """
+glob1 = 10
+def local_global():
+    global glob1
+
+    return glob1
+            """,  # language= None
+            [ReferenceTestNode("glob1.line6", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"])],
+        ),
+        (  # language=Python "Global variable in function scope but after definition"
+            """
+def local_global():
+    global glob1
+
+    return glob1
+
+glob1 = 10
+            """,  # language= None
+            [ReferenceTestNode("glob1.line5", "FunctionDef.local_global", ["GlobalVariable.glob1.line7"])],
+        ),
+        (  # language=Python "Global variable in class scope and function scope"
+            """
+glob1 = 10
+class A:
+    global glob1
+    glob1
+
+def local_global():
+    global glob1
+
+    return glob1
+            """,  # language= None
+            [
+                # ReferenceTestNode("glob1.line5", "ClassDef.A", ["GlobalVariable.glob1.line2"]), # TODO: LARS - is there any problem with this not being detected?
+                ReferenceTestNode("glob1.line10", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"]),
+            ],
+        ),
+        (  # language=Python "Access of global variable without global keyword"
+            """
+glob1 = 10
+def local_global_access():
+    return glob1
+            """,  # language= None
+            [ReferenceTestNode("glob1.line4", "FunctionDef.local_global_access", ["GlobalVariable.glob1.line2"])],
+        ),
+        (  # language=Python "Local variable in function scope shadowing global variable without global keyword"
+            """
+glob1 = 10
+def local_global_shadow():
+    glob1 = 20
+
+    return glob1
+            """,  # language= None
+            [
+                ReferenceTestNode(
+                    "glob1.line6",
+                    "FunctionDef.local_global_shadow",
+                    ["LocalVariable.glob1.line4"],
+                ),
+            ],
+        ),
+        (  # language=Python "Two globals in class scope"
+            """
+glob1 = 10
+glob2 = 20
+class A:
+    global glob1, glob2
+    glob1, glob2
+            """,  # language= None
+            [
+                # ReferenceTestNode("glob1.line6", "ClassDef.A", ["GlobalVariable.glob1.line2"]),  # TODO: LARS - is there any problem with this not being detected?
+                # ReferenceTestNode("glob2.line6", "ClassDef.A", ["GlobalVariable.glob2.line3"]),
+            ],
+        ),
+        (  # language=Python "New global variable in class scope"
+            """
+class A:
+    global glob1
+    glob1 = 10
+    glob1
+            """,  # language= None
+            # [ReferenceTestNode("glob1.line5", "ClassDef.A", ["ClassVariable.A.glob1.line4"])],
+            [],  # TODO: LARS - is there any problem with this not being detected?
+            # glob1 is not detected as a global variable since it is defined in the class scope - this is intended
+        ),
+        (  # language=Python "New global variable in function scope"
+            """
+def local_global():
+    global glob1
+
+    return glob1
+            """,  # language= None
+            [],
+            # glob1 is not detected as a global variable since it is defined in the function scope - this is intended
+        ),
+        (  # language=Python "New global variable in class scope with outer scope usage"
+            """
+class A:
+    global glob1
+    value = glob1
+
+def f():
+    a = A().value
+    glob1 = 10
+    b = A().value
+    a, b
+            """,  # language= None
+            [
+                ReferenceTestNode("A.line7", "FunctionDef.f", ["GlobalVariable.A.line2"]),
+                ReferenceTestNode("A.line9", "FunctionDef.f", ["GlobalVariable.A.line2"]),
+                # ReferenceTestNode("glob1.line4", "ClassDef.A", ["GlobalVariable.glob1.line7"]),
+                ReferenceTestNode("A.value.line7", "FunctionDef.f", ["ClassVariable.A.value.line4"]),
+                ReferenceTestNode("A.value.line9", "FunctionDef.f", ["ClassVariable.A.value.line4"]),
+                ReferenceTestNode("a.line10", "FunctionDef.f", ["LocalVariable.a.line7"]),
+                ReferenceTestNode("b.line10", "FunctionDef.f", ["LocalVariable.b.line9"]),
+            ],
+        ),
+        (  # language=Python "New global variable in function scope with outer scope usage"
+            """
+def local_global():
+    global glob1
+    return glob1
+
+def f():
+    lg = local_global()
+    glob1 = 10
+            """,  # language= None
+            [
+                ReferenceTestNode("local_global.line7", "FunctionDef.f", ["GlobalVariable.local_global.line2"]),
+                # ReferenceTestNode("glob1.line4", "FunctionDef.local_global", ["GlobalVariable.glob1.line7"]),
+            ],
+        ),  # Problem: we cannot check weather a function is called before the global variable is declared since
+        # this would need a context-sensitive approach
+        # For now we just check if the global variable is declared in the module scope at the cost of loosing precision.
+    ],
+    ids=[
+        "Local variable in function scope",
+        "Global variable in module scope",
+        "Global variable in class scope",
+        "Global variable in function scope",
+        "Global variable in function scope but after definition",
+        "Global variable in class scope and function scope",
+        "Access of global variable without global keyword",
+        "Local variable in function scope shadowing global variable without global keyword",
+        "Two globals in class scope",
+        "New global variable in class scope",
+        "New global variable in function scope",
+        "New global variable in class scope with outer scope usage",
+        "New global variable in function scope with outer scope usage",
+    ],
+)
+def test_resolve_references_local_global(code: str, expected: list[ReferenceTestNode]) -> None:
+    references = resolve_references(code).resolved_references
+    transformed_references: list[ReferenceTestNode] = []
+
+    for node in references.values():
+        transformed_references.extend(transform_reference_nodes(node))
+
+    # assert references == expected
+    assert transformed_references == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
         (  # language=Python "Parameter in function scope"
             """
 def local_parameter(pos_arg):
@@ -804,7 +994,7 @@ class C:
                 ReferenceTestNode(
                     "cls.state.line10",
                     "FunctionDef.set_state",
-                    ["ClassVariable.A.state.line3", "ClassVariable.C.state.line6"],  # TODO: should this be removed?
+                    ["ClassVariable.A.state.line3", "ClassVariable.C.state.line6"],  # TODO: [LATER] A.state should be removed!
                 ),
                 ReferenceTestNode("cls.line10", "FunctionDef.set_state", ["Parameter.cls.line9"]),
             ],
@@ -1151,196 +1341,6 @@ def test_resolve_references_member_access(code: str, expected: list[ReferenceTes
 
     # assert references == expected
     assert set(transformed_references) == set(expected)
-
-
-@pytest.mark.parametrize(
-    ("code", "expected"),
-    [
-        (  # language=Python "Local variable in function scope"
-            """
-def local_var():
-    var1 = 1
-    return var1
-            """,  # language= None
-            [ReferenceTestNode("var1.line4", "FunctionDef.local_var", ["LocalVariable.var1.line3"])],
-        ),
-        (  # language=Python "Global variable in module scope"
-            """
-glob1 = 10
-glob1
-            """,  # language= None
-            [],  # TODO: LARS - is there any problem with this not being detected?
-        ),
-        (  # language=Python "Global variable in class scope"
-            """
-glob1 = 10
-class A:
-    global glob1
-    glob1
-            """,  # language= None
-            [],  # TODO: LARS - is there any problem with this not being detected?
-        ),
-        (  # language=Python "Global variable in function scope"
-            """
-glob1 = 10
-def local_global():
-    global glob1
-
-    return glob1
-            """,  # language= None
-            [ReferenceTestNode("glob1.line6", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"])],
-        ),
-        (  # language=Python "Global variable in function scope but after definition"
-            """
-def local_global():
-    global glob1
-
-    return glob1
-
-glob1 = 10
-            """,  # language= None
-            [ReferenceTestNode("glob1.line5", "FunctionDef.local_global", ["GlobalVariable.glob1.line7"])],
-        ),
-        (  # language=Python "Global variable in class scope and function scope"
-            """
-glob1 = 10
-class A:
-    global glob1
-    glob1
-
-def local_global():
-    global glob1
-
-    return glob1
-            """,  # language= None
-            [
-                # ReferenceTestNode("glob1.line5", "ClassDef.A", ["GlobalVariable.glob1.line2"]), # TODO: LARS - is there any problem with this not being detected?
-                ReferenceTestNode("glob1.line10", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"]),
-            ],
-        ),
-        (  # language=Python "Access of global variable without global keyword"
-            """
-glob1 = 10
-def local_global_access():
-    return glob1
-            """,  # language= None
-            [ReferenceTestNode("glob1.line4", "FunctionDef.local_global_access", ["GlobalVariable.glob1.line2"])],
-        ),
-        (  # language=Python "Local variable in function scope shadowing global variable without global keyword"
-            """
-glob1 = 10
-def local_global_shadow():
-    glob1 = 20
-
-    return glob1
-            """,  # language= None
-            [
-                ReferenceTestNode(
-                    "glob1.line6",
-                    "FunctionDef.local_global_shadow",
-                    ["LocalVariable.glob1.line4"],
-                ),
-            ],
-        ),
-        (  # language=Python "Two globals in class scope"
-            """
-glob1 = 10
-glob2 = 20
-class A:
-    global glob1, glob2
-    glob1, glob2
-            """,  # language= None
-            [
-                # ReferenceTestNode("glob1.line6", "ClassDef.A", ["GlobalVariable.glob1.line2"]),  # TODO: LARS - is there any problem with this not being detected?
-                # ReferenceTestNode("glob2.line6", "ClassDef.A", ["GlobalVariable.glob2.line3"]),
-            ],
-        ),
-        (  # language=Python "New global variable in class scope"
-            """
-class A:
-    global glob1
-    glob1 = 10
-    glob1
-            """,  # language= None
-            # [ReferenceTestNode("glob1.line5", "ClassDef.A", ["ClassVariable.A.glob1.line4"])],
-            [],  # TODO: LARS - is there any problem with this not being detected?
-            # glob1 is not detected as a global variable since it is defined in the class scope - this is intended
-        ),
-        (  # language=Python "New global variable in function scope"
-            """
-def local_global():
-    global glob1
-
-    return glob1
-            """,  # language= None
-            [],
-            # glob1 is not detected as a global variable since it is defined in the function scope - this is intended
-        ),
-        (  # language=Python "New global variable in class scope with outer scope usage"
-            """
-class A:
-    global glob1
-    value = glob1
-
-def f():
-    a = A().value
-    glob1 = 10
-    b = A().value
-    a, b
-            """,  # language= None
-            [
-                ReferenceTestNode("A.line7", "FunctionDef.f", ["GlobalVariable.A.line2"]),
-                ReferenceTestNode("A.line9", "FunctionDef.f", ["GlobalVariable.A.line2"]),
-                # ReferenceTestNode("glob1.line4", "ClassDef.A", ["GlobalVariable.glob1.line7"]),
-                ReferenceTestNode("A.value.line7", "FunctionDef.f", ["ClassVariable.A.value.line4"]),
-                ReferenceTestNode("A.value.line9", "FunctionDef.f", ["ClassVariable.A.value.line4"]),
-                ReferenceTestNode("a.line10", "FunctionDef.f", ["LocalVariable.a.line7"]),
-                ReferenceTestNode("b.line10", "FunctionDef.f", ["LocalVariable.b.line9"]),
-            ],
-        ),
-        (  # language=Python "New global variable in function scope with outer scope usage"
-            """
-def local_global():
-    global glob1
-    return glob1
-
-def f():
-    lg = local_global()
-    glob1 = 10
-            """,  # language= None
-            [
-                ReferenceTestNode("local_global.line7", "FunctionDef.f", ["GlobalVariable.local_global.line2"]),
-                # ReferenceTestNode("glob1.line4", "FunctionDef.local_global", ["GlobalVariable.glob1.line7"]),
-            ],
-        ),  # Problem: we cannot check weather a function is called before the global variable is declared since
-        # this would need a context-sensitive approach
-        # For now we just check if the global variable is declared in the module scope at the cost of loosing precision.
-    ],
-    ids=[
-        "Local variable in function scope",
-        "Global variable in module scope",
-        "Global variable in class scope",
-        "Global variable in function scope",
-        "Global variable in function scope but after definition",
-        "Global variable in class scope and function scope",
-        "Access of global variable without global keyword",
-        "Local variable in function scope shadowing global variable without global keyword",
-        "Two globals in class scope",
-        "New global variable in class scope",
-        "New global variable in function scope",
-        "New global variable in class scope with outer scope usage",
-        "New global variable in function scope with outer scope usage",
-    ],
-)
-def test_resolve_references_local_global(code: str, expected: list[ReferenceTestNode]) -> None:
-    references = resolve_references(code).resolved_references
-    transformed_references: list[ReferenceTestNode] = []
-
-    for node in references.values():
-        transformed_references.extend(transform_reference_nodes(node))
-
-    # assert references == expected
-    assert transformed_references == expected
 
 
 @pytest.mark.parametrize(
@@ -2533,8 +2533,8 @@ def f():
                 ReferenceTestNode("self._state.line14", "FunctionDef.state", ["ClassVariable.State._state.line6"]),
                 ReferenceTestNode("value.line14", "FunctionDef.state", ["Parameter.value.line13"]),
                 ReferenceTestNode("State.line17", "FunctionDef.f", ["GlobalVariable.State.line5"]),
-                ReferenceTestNode("a.state.line18", "FunctionDef.f", ["ClassVariable.State._state.line6"]),
-                # TODO: this does not work it only references self._state in line 9 and 13
+                ReferenceTestNode("a.state.line18", "FunctionDef.f", ["ClassVariable.State.state.line13",
+                                                                      "ClassVariable.State.state.line9"]),
                 ReferenceTestNode("a.line18", "FunctionDef.f", ["LocalVariable.a.line17"]),
             ]
         ),

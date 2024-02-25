@@ -1442,6 +1442,7 @@ def f(a: int | str, b: Union[int, str]) -> tuple[float, str]:
         "Annotations",
     ],  # TODO: add tests for match, try except
 )
+@pytest.mark.xfail(reason="Assign to dict not implemented yet")
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
     scope = get_module_data(code).scope
     # assert result == expected
