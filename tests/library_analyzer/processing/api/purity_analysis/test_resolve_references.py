@@ -110,15 +110,17 @@ def transform_reference_node(ref_node: ReferenceNode) -> ReferenceTestNode:
     ReferenceTestNode
         The transformed ReferenceTestNode.
     """
-    # TODO: use the id for the name
     if isinstance(ref_node.node.node, MemberAccess | MemberAccessValue | MemberAccessTarget):
         expression = get_base_expression(ref_node.node.node)
-        if ref_node.scope.symbol.name == "__init__" and isinstance(ref_node.scope.symbol,
-                                                                   ClassVariable | InstanceVariable):
+        if (ref_node.scope.symbol.name == "__init__"
+            and isinstance(ref_node.scope.symbol, ClassVariable | InstanceVariable)
+            and ref_node.scope.symbol.klass is not None
+        ):
             return ReferenceTestNode(
                 name=f"{ref_node.node.node.name}.line{expression.lineno}",
-                scope=f"{ref_node.scope.symbol.node.__class__.__name__}.{ref_node.scope.symbol.klass.name}.{ref_node.scope.symbol.node.name}",
-                # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                scope=f"{ref_node.scope.symbol.node.__class__.__name__}."
+                      f"{ref_node.scope.symbol.klass.name}."
+                      f"{ref_node.scope.symbol.node.name}",
                 referenced_symbols=sorted([str(ref) for ref in ref_node.referenced_symbols]),
             )
         return ReferenceTestNode(
@@ -146,6 +148,7 @@ def transform_reference_node(ref_node: ReferenceNode) -> ReferenceTestNode:
             isinstance(ref_node.scope.symbol.node, astroid.FunctionDef)
             and ref_node.scope.symbol.name == "__init__"
             and isinstance(ref_node.scope.symbol, ClassVariable | InstanceVariable)
+            and ref_node.scope.symbol.klass is not None
         ):
             return ReferenceTestNode(
                 name=f"{ref_node.node.node.func.name}.line{ref_node.node.node.lineno}",
@@ -176,6 +179,7 @@ def transform_reference_node(ref_node: ReferenceNode) -> ReferenceTestNode:
         isinstance(ref_node.node.node, astroid.Name)
         and ref_node.scope.symbol.name == "__init__"
         and isinstance(ref_node.scope.symbol, ClassVariable | InstanceVariable)
+        and ref_node.scope.symbol.klass is not None
     ):
         return ReferenceTestNode(
             name=f"{ref_node.node.node.name}.line{ref_node.node.node.lineno}",
@@ -213,7 +217,7 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                 function_references.function.symbol.name,
                 {
                     f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.name}.line{target_reference.node.fromlineno}"
-                    if isinstance(target_reference, ClassVariable)
+                    if isinstance(target_reference, ClassVariable) and target_reference.klass is not None
                     else (
                         f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.member}.line{target_reference.node.node.fromlineno}"
                         if isinstance(target_reference, InstanceVariable) else
@@ -222,7 +226,7 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                 },
                 {
                     f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.name}.line{value_reference.node.fromlineno}"
-                    if isinstance(value_reference, ClassVariable)
+                    if isinstance(value_reference, ClassVariable) and value_reference is not None
                     else (
                         f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.member}.line{value_reference.node.node.fromlineno}"
                         if isinstance(value_reference, InstanceVariable) else
@@ -234,14 +238,15 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                     if isinstance(function_reference.node, astroid.Attribute)
                     else (
                         f"{function_reference.__class__.__name__}.{function_reference.node.func.name}"
-                        if isinstance(function_reference.node, astroid.Call)  # Special case for builtin functions since we do not get their FunctionDef node.
+                        if isinstance(function_reference.node,
+                                      astroid.Call)  # Special case for builtin functions since we do not get their FunctionDef node.
                         else (
                             f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
-                            if isinstance(function_reference, ClassVariable)
+                            if isinstance(function_reference, ClassVariable) and function_reference.klass is not None
                             else (
                                 f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.member}.line{function_reference.node.node.fromlineno}"
                                 if isinstance(function_reference, InstanceVariable) else
-                                    f"{function_reference.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}")
+                                f"{function_reference.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}")
                         )
                     )
                     for function_reference in function_references.calls
@@ -623,7 +628,8 @@ def f():
     x = b.upper_class.class_attr1
             """,  # language=none
             [
-                ReferenceTestNode("UNKNOWN.class_attr1.line10", "FunctionDef.f",  # we do not analyze the target of the member access, hence the name does not matter.
+                ReferenceTestNode("UNKNOWN.class_attr1.line10", "FunctionDef.f",
+                                  # we do not analyze the target of the member access, hence the name does not matter.
                                   ["ClassVariable.A.class_attr1.line3"]),
                 ReferenceTestNode("b.upper_class.line10", "FunctionDef.f", ["ClassVariable.B.upper_class.line6"]),
                 ReferenceTestNode("b.line10", "FunctionDef.f", ["LocalVariable.b.line9"]),
@@ -756,7 +762,8 @@ def f():
     x = b.upper_class.name
             """,  # language=none
             [
-                ReferenceTestNode("UNKNOWN.name.line11", "FunctionDef.f", ["InstanceVariable.A.name.line4"]),    # we do not analyze the target of the member access, hence the name does not matter.
+                ReferenceTestNode("UNKNOWN.name.line11", "FunctionDef.f", ["InstanceVariable.A.name.line4"]),
+                # we do not analyze the target of the member access, hence the name does not matter.
                 ReferenceTestNode("b.upper_class.line11", "FunctionDef.f", ["ClassVariable.B.upper_class.line7"]),
                 ReferenceTestNode("b.line11", "FunctionDef.f", ["LocalVariable.b.line10"]),
                 ReferenceTestNode("self.line4", "FunctionDef.A.__init__", ["Parameter.self.line3"]),
@@ -782,8 +789,10 @@ def f():
     a.b.c.name
             """,  # language=none
             [
-                ReferenceTestNode("UNKNOWN.name.line16", "FunctionDef.f", ["InstanceVariable.C.name.line12"]),  # we do not analyze the target of the member access, hence the name does not matter.
-                ReferenceTestNode("UNKNOWN.c.line16", "FunctionDef.f", ["InstanceVariable.B.c.line8"]),  # we do not analyze the target of the member access, hence the name does not matter.
+                ReferenceTestNode("UNKNOWN.name.line16", "FunctionDef.f", ["InstanceVariable.C.name.line12"]),
+                # we do not analyze the target of the member access, hence the name does not matter.
+                ReferenceTestNode("UNKNOWN.c.line16", "FunctionDef.f", ["InstanceVariable.B.c.line8"]),
+                # we do not analyze the target of the member access, hence the name does not matter.
                 ReferenceTestNode("a.b.line16", "FunctionDef.f", ["InstanceVariable.A.b.line4"]),
                 ReferenceTestNode("a.line16", "FunctionDef.f", ["LocalVariable.a.line15"]),
                 ReferenceTestNode("self.line4", "FunctionDef.A.__init__", ["Parameter.self.line3"]),
@@ -994,7 +1003,8 @@ class C:
                 ReferenceTestNode(
                     "cls.state.line10",
                     "FunctionDef.set_state",
-                    ["ClassVariable.A.state.line3", "ClassVariable.C.state.line6"],  # TODO: [LATER] A.state should be removed!
+                    ["ClassVariable.A.state.line3", "ClassVariable.C.state.line6"],
+                    # TODO: [LATER] A.state should be removed!
                 ),
                 ReferenceTestNode("cls.line10", "FunctionDef.set_state", ["Parameter.cls.line9"]),
             ],
@@ -1238,63 +1248,63 @@ def fun():
             ]
         ),
         # TODO: [Later] we could add a check for the number of parameters in the function call and the function definition
-#         (  # language=Python "Builtins for dict"
-#             """
-# def f():
-#     dictionary = {"a": 1, "b": 2, "c": 3}
-#
-#     dictionary["a"] = 10
-#     dictionary.get("a")
-#     dictionary.update({"d": 4})
-#     dictionary.pop("a")
-#     dictionary.popitem()
-#     dictionary.clear()
-#     dictionary.copy()
-#     dictionary.fromkeys("a")
-#     dictionary.items()
-#     dictionary.keys()
-#     dictionary.values()
-#     dictionary.setdefault("a", 10)
-#
-#     dictionary.__contains__("a")
-#             """,  # language=none
-#             [
-#
-#             ]
-#         ),
-#         (  # language=Python "Builtins for list"
-#             """
-# def f():
-#     list1 = [1, 2, 3]
-#     list2 = [4, 5, 6]
-#
-#     list1.append(4)
-#     list1.clear()
-#     list1.copy()
-#     list1.count(1)
-#     list1.extend(list2)
-#     list1.index(1)
-#     list1.insert(1, 10)
-#     list1.pop()
-#     list1.remove(1)
-#     list1.reverse()
-#     list1.sort()
-#
-#     list1.__contains__(1)
-#             """,  # language=none
-#             [
-#
-#             ]
-#         ),
-#         (  # language=Python "Builtins for set"
-#             """
-# def f():
-#
-#             """,  # language=none
-#             [
-#
-#             ]
-#         ),
+        #         (  # language=Python "Builtins for dict"
+        #             """
+        # def f():
+        #     dictionary = {"a": 1, "b": 2, "c": 3}
+        #
+        #     dictionary["a"] = 10
+        #     dictionary.get("a")
+        #     dictionary.update({"d": 4})
+        #     dictionary.pop("a")
+        #     dictionary.popitem()
+        #     dictionary.clear()
+        #     dictionary.copy()
+        #     dictionary.fromkeys("a")
+        #     dictionary.items()
+        #     dictionary.keys()
+        #     dictionary.values()
+        #     dictionary.setdefault("a", 10)
+        #
+        #     dictionary.__contains__("a")
+        #             """,  # language=none
+        #             [
+        #
+        #             ]
+        #         ),
+        #         (  # language=Python "Builtins for list"
+        #             """
+        # def f():
+        #     list1 = [1, 2, 3]
+        #     list2 = [4, 5, 6]
+        #
+        #     list1.append(4)
+        #     list1.clear()
+        #     list1.copy()
+        #     list1.count(1)
+        #     list1.extend(list2)
+        #     list1.index(1)
+        #     list1.insert(1, 10)
+        #     list1.pop()
+        #     list1.remove(1)
+        #     list1.reverse()
+        #     list1.sort()
+        #
+        #     list1.__contains__(1)
+        #             """,  # language=none
+        #             [
+        #
+        #             ]
+        #         ),
+        #         (  # language=Python "Builtins for set"
+        #             """
+        # def f():
+        #
+        #             """,  # language=none
+        #             [
+        #
+        #             ]
+        #         ),
     ],
     ids=[
         "Class attribute value",

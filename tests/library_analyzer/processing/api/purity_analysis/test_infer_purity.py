@@ -92,11 +92,11 @@ def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # a
     if reason is None:
         raise ValueError("Reason must not be None")
     if isinstance(reason, NonLocalVariableRead):
-        if isinstance(reason.symbol, ClassVariable | InstanceVariable):
+        if isinstance(reason.symbol, ClassVariable | InstanceVariable) and reason.symbol.klass is not None:
             return f"NonLocalVariableRead.{reason.symbol.__class__.__name__}.{reason.symbol.klass.name}.{reason.symbol.name}"
         return f"NonLocalVariableRead.{reason.symbol.__class__.__name__}.{reason.symbol.name}"
     elif isinstance(reason, NonLocalVariableWrite):
-        if isinstance(reason.symbol, ClassVariable | InstanceVariable):
+        if isinstance(reason.symbol, ClassVariable | InstanceVariable) and reason.symbol.klass is not None:
             return f"NonLocalVariableWrite.{reason.symbol.__class__.__name__}.{reason.symbol.klass.name}.{reason.symbol.name}"
         return f"NonLocalVariableWrite.{reason.symbol.__class__.__name__}.{reason.symbol.name}"
     elif isinstance(reason, FileRead):

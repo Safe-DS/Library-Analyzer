@@ -116,23 +116,23 @@ def transform_scope_node(
             class_vars_transformed = []
             super_classes_transformed = []
             for child in node.instance_variables.values():
-                for c in child:
-                    c_str = to_string_class(c.node.node)
+                for c1 in child:
+                    c_str = to_string_class(c1.node.node)
                     if c_str is not None:
-                        instance_vars_transformed.append(
-                            c_str)  # type: ignore[misc] # it is not possible that c_str is None
+                        instance_vars_transformed.append(c_str)  # type: ignore[misc]
+                        # it is not possible that c_str is None
             for child in node.class_variables.values():
-                for c in child:
-                    c_str = to_string_class(c.node)
+                for c2 in child:
+                    c_str = to_string_class(c2.node)
                     if c_str is not None:
-                        class_vars_transformed.append(
-                            c_str)  # type: ignore[misc] # it is not possible that c_str is None
+                        class_vars_transformed.append(c_str)  # type: ignore[misc]
+                        # it is not possible that c_str is None
             if node.super_classes:
                 for klass in node.super_classes:
                     c_str = to_string_class(klass)
                     if c_str is not None:
-                        super_classes_transformed.append(
-                            c_str)  # type: ignore[misc] # it is not possible that c_str is None
+                        super_classes_transformed.append(c_str)  # type: ignore[misc]
+                        # it is not possible that c_str is None
 
             return SimpleClassScope(
                 to_string(node.symbol),
@@ -160,8 +160,8 @@ def transform_scope_node(
                     if string not in values_transformed:
                         values_transformed.append(string)
             for call in node.call_references.values():
-                for c in call:
-                    string = to_string_func(c.node)
+                for cl in call:
+                    string = to_string_func(cl.node)
                     if string not in calls_transformed:
                         calls_transformed.append(string)
             for parameter in node.parameters.values():
@@ -346,7 +346,7 @@ def transform_member_access(member_access: MemberAccess) -> str:
             attribute_names.append(member_access.member)
         else:
             attribute_names.append(member_access.member)
-        member_access = member_access.receiver
+        member_access = member_access.receiver  # type: ignore[assignment]
     if isinstance(member_access, astroid.Name):
         attribute_names.append(member_access.name)
 

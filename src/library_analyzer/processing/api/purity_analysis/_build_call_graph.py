@@ -41,7 +41,7 @@ def build_call_graph(
         The call graph forest for the given functions.
     """
     call_graph_forest = CallGraphForest()
-    classes_and_functions = {**classes, **functions}
+    classes_and_functions: dict[str, list[FunctionScope] | ClassScope] = {**classes, **functions}
 
     for function_scopes in classes_and_functions.values():
         # Inner for loop is needed to handle multiple function defs with the same name
@@ -89,7 +89,8 @@ def build_call_graph(
                     # Handle self defined function calls
                     if call_name in classes_and_functions:
                         # Check if any function def has the same name as the called function
-                        matching_function_defs = [called_function for called_function in classes_and_functions[call.name] if called_function.symbol.name == call.name]
+                        matching_function_defs = [called_fun for called_fun in classes_and_functions[call.name]
+                                                  if called_fun.symbol.name == call.name]
                         current_tree_node = call_graph_forest.get_graph(function_id)
                         break_condition = False  # This is used to indicate that one or more functions defs was found inside the forest which match the called function name
 
@@ -102,11 +103,11 @@ def build_call_graph(
                         if break_condition:
                             pass  # Skip the else statement because the function def is already in the forest
 
-                        # If the called function is not in the forest, we need to compute it first and then connect it to the current tree
+                        # If the called function is not in the forest,
+                        # we need to compute it first and then connect it to the current tree
                         else:
                             for called_function_scope in classes_and_functions[call.name]:
                                 # Check if any function def has the same name as the called function
-                                # matching_function_defs = [called_function for called_function in classes_and_functions[call.name] if called_function.symbol.name == call.name]
                                 # TODO: check if this is correct
                                 for f in matching_function_defs:
                                     if raw_reasons[f.symbol.id]:
@@ -124,9 +125,12 @@ def build_call_graph(
                                         )
                                     current_tree_node.add_child(call_graph_forest.get_graph(f.symbol.id))
 
-                    # Handle builtins: builtins are not in the functions dict, and therefore we need to handle them separately
-                    # Since we do not analyze builtins any further at this stage, we can simply add them as a child to the current tree node
-                    # Because a builtin function has no real function def, we will use the call node as the function def - hence its id is always wrong
+                    # Handle builtins: builtins are not in the functions dict,
+                    # and therefore we need to handle them separately.
+                    # Since we do not analyze builtins any further at this stage,
+                    # we can simply add them as a child to the current tree node
+                    # Because a builtin function has no real function def,
+                    # we will use the call node as the function def - hence its id is always wrong
                     elif call.name in BUILTINS or call.name in ("read", "readline", "readlines", "write", "writelines"):
                         current_tree_node = call_graph_forest.get_graph(function_id)
                         current_tree_node.add_child(CallGraphNode(function=call, reasons=Reasons(), is_builtin=True))
@@ -148,7 +152,9 @@ def build_call_graph(
     return call_graph_forest
 
 
-def handle_cycles(call_graph_forest: CallGraphForest, function_references: dict[NodeID, Reasons], functions: dict[str, list[FunctionScope]]) -> CallGraphForest:
+def handle_cycles(call_graph_forest: CallGraphForest,
+                  function_references: dict[NodeID, Reasons],
+                  functions: dict[str, list[FunctionScope]]) -> CallGraphForest:
     """Handle cycles in the call graph.
 
     This function checks for cycles in the call graph forest and contracts them into a single node.
@@ -215,7 +221,7 @@ def test_for_cycles(
         return []
 
     if graph in path:
-        return path[path.index(graph) :]  # A cycle is found, return the path containing the cycle
+        return path[path.index(graph):]  # A cycle is found, return the path containing the cycle
 
     # Mark the current node as visited
     visited_nodes.add(graph)
@@ -268,11 +274,11 @@ def contract_cycle(
             combined_node_name,
         ),
     )
-    combined_reasons = Reasons.join_reasons_list([node.reasons for node in cycle], combined_node_name)
+    combined_reasons = Reasons.join_reasons_list([node.reasons for node in cycle])
     combined_node = CallGraphNode(function=combined_node_data, reasons=combined_reasons, combined_node_names=cycle_ids)
 
     # Add children to the combined node if they are not in the cycle (other calls)
-    if any([isinstance(node.function, FunctionScope) and hasattr(node.function, "call_references") for node in cycle]):  # noqa: C419
+    if any(isinstance(node.function, FunctionScope) and hasattr(node.function, "call_references") for node in cycle):
         other_calls = [
             call[0]
             for node in cycle
@@ -282,19 +288,24 @@ def contract_cycle(
         # Find all function definitions that match the other call names for each call
         matching_function_defs = {}
         for call in other_calls:
-            matching_function_defs[call.name] = [called_function for called_function in functions[call.name] if called_function.symbol.name == call.name]
+            matching_function_defs[call.name] = [called_function for called_function in functions[call.name]
+                                                 if called_function.symbol.name == call.name]
 
         # Find all builtin calls
-        builtin_calls = [call[0] for node in cycle for call in node.function.call_references.values() if call[0].name in BUILTINS]
+        builtin_calls = [call[0] for node in cycle for call in node.function.call_references.values()
+                         if call[0].name in BUILTINS]
 
         # Add the calls as well as the children of the function defs to the combined node
         combined_node_data.call_references = other_calls + builtin_calls
         combined_node.children = {
-            CallGraphNode(function=matching_function_defs[call.name][i], reasons=function_references[matching_function_defs[call.name][i].symbol.id])
+            CallGraphNode(function=matching_function_defs[call.name][i],
+                          reasons=function_references[matching_function_defs[call.name][i].symbol.id])
             for call in other_calls
             for i in range(len(matching_function_defs[call.name]))
-        }  # Add the function def (list of function defs) as children to the combined node if the a function def name matches the call name
-        combined_node.children.update({CallGraphNode(function=call, reasons=Reasons(), is_builtin=True) for call in builtin_calls})
+        }  # Add the function def (list of function defs) as children to the combined node
+        # if the a function def name matches the call name
+        combined_node.children.update({CallGraphNode(function=call, reasons=Reasons(), is_builtin=True)
+                                       for call in builtin_calls})
 
     # Remove all nodes in the cycle from the forest and add the combined node instead
     for node in cycle:

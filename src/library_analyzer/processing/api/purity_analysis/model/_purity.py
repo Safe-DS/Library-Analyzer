@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -352,7 +353,7 @@ class APIPurity:
         The first key is the name of the module, and the second key is the function id.
     """
 
-    purity_results: dict[str, dict[str, PurityResult]] = {}
+    purity_results: typing.ClassVar[dict[str, dict[str, PurityResult]]] = {}
 
     def to_json_file(self, path: Path) -> None:
         ensure_file_exists(path)

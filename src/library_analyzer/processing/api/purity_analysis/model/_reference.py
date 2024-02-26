@@ -206,7 +206,11 @@ class Reasons:
         return self
 
     @staticmethod
-    def join_reasons_list(reasons_list: list[Reasons], combined_node_name: str | None = None) -> Reasons:
+    def join_reasons_list(reasons_list: list[Reasons]) -> Reasons:
+                          # combined_node_name: str | None = None) -> Reasons:
+                          # combined_node_name : str
+                          #    Indicates if the Reasons object is a combined node.
+                          #    If it is a combined node, the function is set to None since it does not exist.
         """Join a list of Reasons objects.
 
         Combines a list of Reasons objects into one Reasons object.
@@ -216,9 +220,6 @@ class Reasons:
         reasons_list : list[Reasons]
             The list of Reasons objects.
 
-        combined_node_name : str
-            Indicates if the Reasons object is a combined node.
-            If it is a combined node, the function is set to None since it does not exist.
 
         Returns
         -------
