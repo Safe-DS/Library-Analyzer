@@ -22,11 +22,11 @@ class CallGraphNode:
 
     Attributes
     ----------
-    function : FunctionScope | ClassScope | Reference
+    function : FunctionScope | ClassScope
         The function that the node represents.
-        This is a FunctionScope if we deal with a function,
-        a ClassScope if we deal with a class initialization,
-        and a Reference if we deal with a builtin function.
+        This is a ClassScope if the class has a __init__ method.
+        In this case, the node is used for propagating the reasons of the
+        __init__ method to function calling the class.
     reasons : Reasons
         The raw Reasons for the node.
     children : set[CallGraphNode]
@@ -39,7 +39,7 @@ class CallGraphNode:
         True if the function is a builtin function, False otherwise.
     """
 
-    function: FunctionScope | ClassScope | Reference
+    function: FunctionScope | ClassScope
     reasons: Reasons
     children: set[CallGraphNode] = field(default_factory=set)
     combined_node_names: list[str] = field(default_factory=list)

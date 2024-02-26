@@ -48,12 +48,12 @@ def build_call_graph(
         for function_scope in function_scopes:
             # Add reasons for impurity to the corresponding function
             function_id = function_scope.symbol.id
-            if isinstance(function_scope, ClassScope):
+            if not isinstance(function_scope, FunctionScope):
                 function_node = CallGraphNode(function=function_scope, reasons=Reasons())
             elif raw_reasons[function_id]:
                 function_node = CallGraphNode(function=function_scope, reasons=raw_reasons[function_id])
             else:
-                function_node = CallGraphNode(function=function_scope, reasons=Reasons())
+                raise ValueError(f"No reasons found for function {function_scope.symbol.name}")
 
             # Case where the function is not called before by any other function
             if function_id not in call_graph_forest.graphs:
@@ -74,31 +74,40 @@ def build_call_graph(
                                     CallGraphNode(function=init_function, reasons=Reasons()),
                                 )
                             function_node.add_child(call_graph_forest.get_graph(init_function.symbol.id))
-                            function_node.reasons.calls.add(Symbol(raw_reasons[init_function.symbol.id].function.symbol.node, init_function.symbol.id, init_function.symbol.name))
+                            function_node.reasons.calls.add(Symbol(
+                                node=raw_reasons[init_function.symbol.id].function.symbol.node,
+                                # type: ignore[union-attr] # function is always of type FunctionScope here
+                                id=init_function.symbol.id,
+                                name=init_function.symbol.name))
                             break
                 continue
 
             # Default case where a function calls no other functions in its body - therefore, the tree has just one node
-            if not function_scope.call_references:
+            if not isinstance(function_scope, FunctionScope) or not function_scope.call_references:
                 continue
 
             # If the function calls other functions in its body, we need to build a tree
             else:
-                for call_name, kall in function_scope.call_references.items():
-                    call = kall[0]  # TODO: LARS is this ok? -here we take the first call to represent all calls
+                for call_name, call_ref in function_scope.call_references.items():
+                    # We take the first call to represent all calls of the same name.
+                    # This does not vary the result and is faster.
+                    call = call_ref[0]
+
                     # Handle self defined function calls
                     if call_name in classes_and_functions:
                         # Check if any function def has the same name as the called function
                         matching_function_defs = [called_fun for called_fun in classes_and_functions[call.name]
                                                   if called_fun.symbol.name == call.name]
                         current_tree_node = call_graph_forest.get_graph(function_id)
-                        break_condition = False  # This is used to indicate that one or more functions defs was found inside the forest which match the called function name
+                        break_condition = False  # This is used to indicate that one or more functions defs was
+                        # found inside the forest that matches the called function name
 
                         # We need to check if the called function is already in the tree
                         for f in matching_function_defs:
                             if call_graph_forest.get_graph(f.symbol.id):
                                 current_tree_node.add_child(call_graph_forest.get_graph(f.symbol.id))
-                                break_condition = True  # We found a function def inside the forest so the following else statement must not be executed
+                                break_condition = True  # A function def inside the forest was found
+                                # so the following else statement must not be executed
 
                         if break_condition:
                             pass  # Skip the else statement because the function def is already in the forest
@@ -108,7 +117,6 @@ def build_call_graph(
                         else:
                             for called_function_scope in classes_and_functions[call.name]:
                                 # Check if any function def has the same name as the called function
-                                # TODO: check if this is correct
                                 for f in matching_function_defs:
                                     if raw_reasons[f.symbol.id]:
                                         call_graph_forest.add_graph(
@@ -128,12 +136,26 @@ def build_call_graph(
                     # Handle builtins: builtins are not in the functions dict,
                     # and therefore we need to handle them separately.
                     # Since we do not analyze builtins any further at this stage,
-                    # we can simply add them as a child to the current tree node
+                    # we can simply add them as a child to the current tree node.
                     # Because a builtin function has no real function def,
                     # we will use the call node as the function def - hence its id is always wrong
                     elif call.name in BUILTINS or call.name in ("read", "readline", "readlines", "write", "writelines"):
                         current_tree_node = call_graph_forest.get_graph(function_id)
-                        current_tree_node.add_child(CallGraphNode(function=call, reasons=Reasons(), is_builtin=True))
+                        # We need to build an artificial FunctionScope node for builtins, since the rest of the analysis
+                        # relies on the function being a FunctionScope instance
+                        builtin_function = astroid.FunctionDef(
+                            name=call.name,
+                            lineno=call.node.lineno,
+                            col_offset=call.node.col_offset,
+                        )
+                        builtin_symbol = Symbol(
+                            node=builtin_function,
+                            id=call.id,
+                            name=call.name,
+                        )
+                        builtin_scope = FunctionScope(builtin_symbol)
+
+                        current_tree_node.add_child(CallGraphNode(function=builtin_scope, reasons=Reasons(), is_builtin=True))
 
                     # Deal with unknown calls:
                     # - calls of unknown code => call node not in functions dict
@@ -283,7 +305,7 @@ def contract_cycle(
             call[0]
             for node in cycle
             for call_name, call in node.function.call_references.items()
-            if call_name not in cycle_names and call_name not in BUILTINS
+            if call_name not in cycle_names and call_name not in BUILTINS or call[0].name in ("read", "readline", "readlines", "write", "writelines")
         ]
         # Find all function definitions that match the other call names for each call
         matching_function_defs = {}
@@ -292,8 +314,25 @@ def contract_cycle(
                                                  if called_function.symbol.name == call.name]
 
         # Find all builtin calls
-        builtin_calls = [call[0] for node in cycle for call in node.function.call_references.values()
-                         if call[0].name in BUILTINS]
+        builtin_calls = []
+        for node in cycle:
+            for call in node.function.call_references.values():
+                if call[0].name in BUILTINS or call[0].name in ("read", "readline", "readlines", "write", "writelines"):
+                    call_node = call[0]
+                    # We need to build an artificial FunctionScope node for builtins, since the rest of the analysis
+                    # relies on the function being a FunctionScope instance
+                    builtin_function = astroid.FunctionDef(
+                        name=call_node.name,
+                        lineno=call_node.node.lineno,
+                        col_offset=call_node.node.col_offset,
+                    )
+                    builtin_symbol = Symbol(
+                        node=builtin_function,
+                        id=call_node.id,
+                        name=call_node.name,
+                    )
+                    builtin_scope = FunctionScope(builtin_symbol)
+                    builtin_calls.append(builtin_scope)
 
         # Add the calls as well as the children of the function defs to the combined node
         combined_node_data.call_references = other_calls + builtin_calls
@@ -303,7 +342,7 @@ def contract_cycle(
             for call in other_calls
             for i in range(len(matching_function_defs[call.name]))
         }  # Add the function def (list of function defs) as children to the combined node
-        # if the a function def name matches the call name
+        # if the function def name matches the call name
         combined_node.children.update({CallGraphNode(function=call, reasons=Reasons(), is_builtin=True)
                                        for call in builtin_calls})
 
@@ -346,11 +385,14 @@ def update_pointers(node: CallGraphNode, cycle_names: list[str], combined_node: 
             # Update data
             if isinstance(node.function, FunctionScope):
                 node.function.remove_call_node_by_name(child.function.symbol.name)
-                node.function.call_references.update({combined_node.function.symbol.name: combined_node.function})
+                node.function.call_references.update(
+                    {combined_node.function.symbol.name: combined_node.function.call_references})
             # Remove the call from the reasons (reasons need to be updated later)
             if isinstance(node.reasons, Reasons):
                 for call in node.reasons.calls.copy():
-                    if isinstance(call.node, astroid.Call) and call.node.func.name == child.function.symbol.name:
+                    if (isinstance(call.node, astroid.Call) and isinstance(call.node.func, astroid.Name)
+                        and call.node.func.name == child.function.symbol.name
+                    ):
                         node.reasons.calls.remove(call)
 
         else:
