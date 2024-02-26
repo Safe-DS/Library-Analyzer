@@ -374,18 +374,18 @@ class ModuleDataBuilder:
         This function must only be called when the name of the FunctionDef node is `__init__`.
         """
         # add instance variables to the instance_variables list of the class
-        for child in self.current_node_stack[-1].children:
+        for child in self.current_function_def[-1].children:
             if isinstance(child.symbol, InstanceVariable) and isinstance(
-                self.current_node_stack[-1].parent,
+                self.current_function_def[-1].parent,
                 ClassScope,
             ):
-                if child.symbol.name in self.current_node_stack[-1].parent.instance_variables:
-                    self.current_node_stack[-1].parent.instance_variables[child.symbol.name].append(child.symbol)
+                if child.symbol.name in self.current_function_def[-1].parent.instance_variables:
+                    self.current_function_def[-1].parent.instance_variables[child.symbol.name].append(child.symbol)
                 else:
-                    self.current_node_stack[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
+                    self.current_function_def[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
         # Add __init__ function to ClassScope
-        if isinstance(self.current_node_stack[-1].parent, ClassScope):
-            self.current_node_stack[-1].parent.init_function = self.current_node_stack[-1]
+        if isinstance(self.current_function_def[-1].parent, ClassScope):
+            self.current_function_def[-1].parent.init_function = self.current_function_def[-1]
 
     def find_first_parent_function(self, node: astroid.NodeNG | MemberAccess) -> astroid.NodeNG:
         """Find the first parent of a call node that is a function.
@@ -457,21 +457,21 @@ class ModuleDataBuilder:
         # self.cleanup_globals(self.current_function_def[-1])
         self.current_function_def.pop()
 
-    @staticmethod
-    def cleanup_globals(function_scope: FunctionScope) -> None:
-        """Remove all global variables that are shadowed by local variables.
-
-        This function is called after the ASTWalker has walked all children of a function def and all their scopes are determined.
-        It removes all global variables from the globals dict that are shadowed by local variables.
-        """
-        if not isinstance(function_scope, FunctionScope) or not function_scope.globals_used:
-            return
-        for glob_name in function_scope.globals_used.copy():
-            if glob_name in function_scope.symbol.node.locals:
-                del function_scope.globals_used[glob_name]
-                for child in function_scope.children:
-                    if isinstance(child.symbol, GlobalVariable) and child.symbol.name == glob_name:
-                        child.symbol.__class__ = LocalVariable
+    # @staticmethod
+    # def cleanup_globals(function_scope: FunctionScope) -> None:
+    #     """Remove all global variables that are shadowed by local variables.
+    #
+    #     This function is called after the ASTWalker has walked all children of a function def and all their scopes are determined.
+    #     It removes all global variables from the globals dict that are shadowed by local variables.
+    #     """
+    #     if not isinstance(function_scope, FunctionScope) or not function_scope.globals_used:
+    #         return
+    #     for glob_name in function_scope.globals_used.copy():
+    #         if glob_name in function_scope.symbol.node.locals:
+    #             del function_scope.globals_used[glob_name]
+    #             for child in function_scope.children:
+    #                 if isinstance(child.symbol, GlobalVariable) and child.symbol.name == glob_name:
+    #                     child.symbol.__class__ = LocalVariable
 
     def get_symbol(self, node: astroid.NodeNG, current_scope: astroid.NodeNG | None) -> Symbol:
         """Get the symbol of a node.

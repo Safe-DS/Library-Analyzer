@@ -301,9 +301,7 @@ def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
             transformed_call_graph_forest[f"{tree_id}"].add(
-                child.function.symbol.id.__str__() if not child.is_builtin
-                else child.function.id.__str__())  # type: ignore[union-attr]
-            # This check deals with the fact that the function attribute is a union of FunctionScope and Reference
+                child.function.symbol.id.__str__())
 
     assert transformed_call_graph_forest == expected
 
@@ -634,8 +632,6 @@ def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> 
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
             transformed_call_graph_forest[f"{tree_id}"].add(
-                child.function.symbol.id.__str__() if not child.is_builtin
-                else child.function.id.__str__())  # type: ignore[union-attr]
-            # This check deals with the fact that the function attribute is a union of FunctionScope and Reference
+                child.function.symbol.id.__str__())
 
     assert transformed_call_graph_forest == expected

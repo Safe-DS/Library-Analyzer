@@ -14,7 +14,7 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
     NodeID,
     Reference,
     Scope,
-    Symbol,
+    Symbol, GlobalVariable, ClassVariable, InstanceVariable,
 )
 
 if TYPE_CHECKING:
@@ -117,7 +117,9 @@ class Reasons:
     Attributes
     ----------
     function : FunctionScope | None
-        The function that is analyzed.
+        The scope of the function which the reasons belong to.
+        Is None if the reasons are not for a function.
+        This is the case when a combined node is created, or a ClassScope is used to propagate reasons.
     writes_to : set[Symbol]
         A set of all nodes that are written to.
     reads_from : set[Symbol]
@@ -134,8 +136,8 @@ class Reasons:
     """
 
     function: FunctionScope | None = field(default=None)
-    writes_to: set[Symbol] = field(default_factory=set)
-    reads_from: set[Symbol] = field(default_factory=set)
+    writes_to: set[GlobalVariable | ClassVariable | InstanceVariable] = field(default_factory=set)
+    reads_from: set[GlobalVariable | ClassVariable | InstanceVariable] = field(default_factory=set)
     calls: set[Symbol] = field(default_factory=set)
     result: PurityResult | None = field(default=None)
     unknown_calls: list[astroid.Call | astroid.NodeNG] | None = field(default=None)

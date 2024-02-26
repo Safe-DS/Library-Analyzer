@@ -156,13 +156,13 @@ def _find_value_references(value_reference: Reference,
 
     # Find parameters that are referenced.
     if value_reference.name in function.parameters:
-        symbols = [function.parameters[value_reference.name]]
-        result_value_reference.referenced_symbols.extend(symbols)
+        local_symbols = [function.parameters[value_reference.name]]
+        result_value_reference.referenced_symbols.extend(local_symbols)
 
     # Find global variables that are referenced.
     if value_reference.name in function.globals_used:
-        symbols = function.globals_used[value_reference.name]  # type: ignore[assignment] # globals_used contains GlobalVariable which are a subtype of Symbol.
-        result_value_reference.referenced_symbols.extend(symbols)
+        global_symbols = function.globals_used[value_reference.name]  # type: ignore[assignment] # globals_used contains GlobalVariable which are a subtype of Symbol.
+        result_value_reference.referenced_symbols.extend(global_symbols)
 
     # Find functions that are referenced (as value).
     if value_reference.name in functions:
@@ -223,18 +223,19 @@ def _find_target_references(target_reference: Symbol,
     # Find local variables that are referenced.
     if target_reference.name in function.target_symbols:
         # Only check for symbols that are defined before the current target_reference.
-        symbols = function.target_symbols[target_reference.name][: function.target_symbols[target_reference.name].index(target_reference)]
-        result_target_reference.referenced_symbols.extend(symbols)
+        local_symbols = function.target_symbols[target_reference.name][: function.target_symbols[target_reference.name].index(target_reference)]
+        result_target_reference.referenced_symbols.extend(local_symbols)
 
     # Find global variables that are referenced.
     if target_reference.name in function.globals_used:
-        symbols = function.globals_used[target_reference.name]
-        result_target_reference.referenced_symbols.extend(symbols)
+        global_symbols = function.globals_used[target_reference.name]
+        result_target_reference.referenced_symbols.extend(global_symbols)
 
     # Find classes that are referenced (as value).
     if target_reference.name in classes:
         class_def = classes.get(target_reference.name)
-        result_target_reference.referenced_symbols.append(class_def.symbol)
+        if class_def:
+            result_target_reference.referenced_symbols.append(class_def.symbol)
 
     # Find class and instance variables that are referenced.
     if isinstance(target_reference.node, MemberAccessTarget):
@@ -242,10 +243,11 @@ def _find_target_references(target_reference: Symbol,
             if klass.class_variables:
                 if target_reference.node.member in klass.class_variables:
                     # Do not add class variables from other classes
-                    if (function.symbol.name == "__init__" and function.parent != klass
-                        or target_reference.node.receiver.name == "self" and function.parent !=klass
-                    ):
-                        continue
+                    if target_reference.node.receiver is not None:
+                        if (function.symbol.name == "__init__" and function.parent != klass
+                            or target_reference.node.receiver.name == "self" and function.parent != klass
+                        ):
+                            continue
                     result_target_reference.referenced_symbols.extend(
                         klass.class_variables[target_reference.node.member])
             if klass.instance_variables:
@@ -397,21 +399,21 @@ def resolve_references(
 
 
 def merge_dicts(
-    d1: dict[str, list[ReferenceNode]],
-    d2: dict[str, list[ReferenceNode]],
-) -> dict[str, list[ReferenceNode]]:
+    d1: dict[str, list[ValueReference | TargetReference]],
+    d2: dict[str, list[ValueReference | TargetReference]],
+) -> dict[str, list[ValueReference | TargetReference]]:
     """Merge two dicts of lists of ReferenceNodes.
 
     Parameters
     ----------
-    d1 : dict[str, list[ReferenceNode]]
+    d1 : dict[str, list[ValueReference | TargetReference]]
         The first dict.
-    d2 : dict[str, list[ReferenceNode]]
+    d2 : dict[str, list[ValueReference | TargetReference]]
         The second dict.
 
     Returns
     -------
-    d3 : dict[str, list[ReferenceNode]]
+    d3 : dict[str, list[ValueReference | TargetReference]]
         The merged dict.
     """
     d3 = d1.copy()
