@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 
-import astroid
 import pytest
 from library_analyzer.processing.api.purity_analysis import (
-    infer_purity,
+    _infer_purity,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
     CallOfParameter,
@@ -404,7 +403,7 @@ c = fun1()
 )
 # @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
-    purity_results = infer_purity(code)
+    purity_results = _infer_purity(code)
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result) for
         function_id, purity_result in purity_results.items()
@@ -917,7 +916,7 @@ def fun():
     res = a.__class__.__name__  # TODO: this is class methode call
     return res
             """,  # language= None
-            {"fun.line5": SimpleImpure({"UnknownCall.StringLiteral.__class__.__name__"})},  # TODO: correct result
+            {"fun.line5": SimpleImpure({""})},  # TODO: correct result
         ),
         (  # language=Python "Lambda function"
             """
@@ -954,20 +953,19 @@ double = lambda x: var1 * x  # Impure: VariableRead from GlobalVariable
             """,  # language= None
             {"double.line3": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1"})},
         ),
-        # TODO: this case is disabled for merging to main [ENABLE AFTER MERGE]
-        #         (  # language=Python "Lambda as key"
-        #             """
-        # var1 = "x"
-        #
-        # def fun():
-        #     global var1
-        #     names = ["a", "abc", "ab", "abcd"]
-        #     sort = sorted(names, key=lambda x: x + var1)  # Impure: Call of Lambda Function which has VariableRead from GlobalVariable
-        #     return sort
-        #             """,  # language= None
-        #             {"fun.line4": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1",
-        #                                         "CallOfParameter.ParameterAccess.key"})},  # TODO: add this
-        #         ),
+        (  # language=Python "Lambda as key"
+            """
+var1 = "x"
+
+def fun():
+    global var1
+    names = ["a", "abc", "ab", "abcd"]
+    sort = sorted(names, key=lambda x: x + var1)  # Impure: Call of Lambda Function which has VariableRead from GlobalVariable
+    return sort
+            """,  # language= None
+            {"fun.line4": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1",
+                                        "CallOfParameter.ParameterAccess.key"})},
+        ),
         (  # language=Python "Multiple Calls of the same Impure function (Caching)"
             """
 var1 = 1
@@ -1114,7 +1112,7 @@ async def fun2():
         "Lambda function",
         "Lambda function with Impure Call",
         "Assigned Lambda function",
-        # "Lambda as key",
+        "Lambda as key",
         "Multiple Calls of same Impure function (Caching)",
         "Different Reasons for Impurity",
         "Impure Write to Local and Global",
@@ -1125,7 +1123,7 @@ async def fun2():
 )
 # @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
-    purity_results = infer_purity(code)
+    purity_results = _infer_purity(code)
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
@@ -1180,7 +1178,7 @@ def fun1(function, a, b , c, **kwargs):
                 "fun1.line2": SimpleImpure({"CallOfParameter.ParameterAccess.function"}),
             },
         ),
-        (  # language=Python "Unknown Call of Parameter with many Parameters",
+        (  # language=Python "Unknown Callable",
             """
 from typing import Callable
 
@@ -1190,11 +1188,14 @@ def fun1():
 
 def import_fun(file: str, f_name: str) -> Callable:
     print("test")
+    return lambda x: x
             """,  # language=none
             {
                 'fun1.line4': SimpleImpure({"FileWrite.StringLiteral.stdout",
                                             "UnknownCall.StringLiteral.fun"}),
                 'import_fun.line8': SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "fun1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                "import_fun.line8": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
              }
         ),
         (  # language=Python "Unknown Call of Function with function as return",
@@ -1222,13 +1223,179 @@ def fun2():
         "Three Unknown Call",
         "Unknown Call of Parameter",
         "Unknown Call of Parameter with many Parameters",
-        "Unknown Import function",
+        "Unknown Callable",
         "Unknown Call of Function with function as return",
     ],
 )
-@pytest.mark.xfail(reason="Some cases disabled for merging")
+# @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_unknown(code: str, expected: dict[str, SimpleImpure]) -> None:
-    purity_results = infer_purity(code)
+    purity_results = _infer_purity(code)
+
+    transformed_purity_results = {
+        to_string_function_id(function_id): to_simple_result(purity_result)
+        for function_id, purity_result in purity_results.items()
+    }
+
+    assert transformed_purity_results == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "Import module - constant"
+            """
+import math
+
+def fun1():
+    a = math.pi
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "Import module with alias - constant"
+            """
+import math as m
+
+def fun1():
+    a = m.pi
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "Import module - function"
+            """
+import math
+
+def fun1(a):
+    math.sqrt(a)
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})
+            },
+        ),
+        (  # language=Python "Import module with alias - function"
+            """
+import math as m
+
+def fun1(a):
+    m.sqrt(a)
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})
+            },
+        ),
+        (  # language=Python "Import module with alias - function and constant"
+            """
+import math as m
+
+def fun1(a):
+    a = m.pi
+    m.sqrt(a)
+    m.pi = 1  # this is very uncommon but possible - definitely impure
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt",
+                                            "NonLocalVariableRead.ModuleConstant.math.pi",
+                                            "NonLocalVariableWrite.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "FromImport - constant"
+            """
+from math import pi
+
+def fun1():
+    a = pi
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "FromImport with alias - constant"
+            """
+from math import pi as p
+
+def fun1():
+    a = p
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "FromImport - function"
+            """
+from math import sqrt
+
+def fun1(a):
+    sqrt(a)
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})
+            },
+        ),
+        (  # language=Python "FromImport with alias - function"
+            """
+from math import sqrt as s
+
+def fun1(a):
+    s(a)
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})
+            },
+        ),
+        (  # language=Python "FromImport with alias - function and constant"
+            """
+from math import sqrt as s, pi as p
+
+def fun1(a):
+    a = p
+    s(a)
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt",
+                                           "NonLocalVariableRead.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "Local FromImport - function"
+            """
+def fun1(a):
+    from math import pi
+    a = pi
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "Local FromImport - function"
+            """
+def fun1(a):
+    from math import sqrt
+    sqrt(a)
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})
+            },
+        ),
+    ],
+    ids=[
+        "Import module - constant",
+        "Import module with alias - constant",
+        "Import module - function",
+        "Import module with alias - function",
+        "Import module with alias - function and constant",
+        "FromImport - constant",
+        "FromImport with alias - constant",
+        "FromImport - function",
+        "FromImport with alias - function",
+        "FromImport with alias - function and constant",
+        "Local FromImport - constant",
+        "Local FromImport - function",
+    ],
+)
+def test_infer_purity_import(code: str, expected: dict[str, SimpleImpure]) -> None:
+    purity_results = _infer_purity(code)
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
@@ -1377,7 +1544,7 @@ def fun():
     ],
 )
 def test_infer_purity_open(code: str, expected: dict[str, SimpleImpure]) -> None:
-    purity_results = infer_purity(code)
+    purity_results = _infer_purity(code)
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)

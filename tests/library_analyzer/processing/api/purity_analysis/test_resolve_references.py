@@ -2425,86 +2425,132 @@ def test_resolve_references_calls(code: str, expected: list[ReferenceTestNode]) 
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        (  # language=Python "Import"
+        (  # language=Python "Import module - constant"
             """
 import math
 
-math
+def f():
+    a = math.pi
             """,  # language=none
-            [""],  # TODO
+            [],
         ),
-        (  # language=Python "Import with use"
-            """
-import math
-
-math.pi
-            """,  # language=none
-            [""],  # TODO
-        ),
-        (  # language=Python "Import multiple"
-            """
-import math, sys
-
-math.pi
-sys.version
-            """,  # language=none
-            [""],  # TODO
-        ),
-        (  # language=Python "Import as"
+        (  # language=Python "Import module with alias - constant"
             """
 import math as m
 
-m.pi
+def f():
+    a = m.pi
             """,  # language=none
-            [""],  # TODO
+            [],
         ),
-        (  # language=Python "Import from"
+        (  # language=Python "Import module - function"
+            """
+import math
+
+def f(a):
+    math.sqrt(a)
+            """,  # language=none
+            [],
+        ),
+        (  # language=Python "Import module with alias - function"
+            """
+import math as m
+
+def f(a):
+    m.sqrt(a)
+            """,  # language=none
+            [],
+        ),
+        (  # language=Python "Import module with alias - function and constant"
+            """
+import math as m
+
+def f(a):
+    a = m.pi
+    m.sqrt(a)
+    m.pi = 1  # this is very uncommon but possible - definitely impure
+            """,  # language=none
+            [],
+        ),
+        (  # language=Python "FromImport - constant"
+            """
+from math import pi
+
+def f():
+    a = pi
+            """,  # language=none
+            [],
+        ),
+        (  # language=Python "FromImport with alias - constant"
+            """
+from math import pi as p
+
+def f():
+    a = p
+            """,  # language=none
+            [],
+        ),
+        (  # language=Python "FromImport - function"
             """
 from math import sqrt
 
-sqrt(4)
+def f(a):
+    sqrt(a)
             """,  # language=none
-            [""],  # TODO
+            [],
         ),
-        (  # language=Python "Import from multiple"
-            """
-from math import pi, sqrt
-
-pi
-sqrt(4)
-            """,  # language=none
-            [""],  # TODO
-        ),
-        (  # language=Python "Import from as"
+        (  # language=Python "FromImport with alias - function"
             """
 from math import sqrt as s
 
-s(4)
+def f(a):
+    s(a)
             """,  # language=none
-            [""],  # TODO
+            [],
         ),
-        (  # language=Python "Import from as multiple"
+        (  # language=Python "FromImport with alias - function and constant"
             """
-from math import pi as p, sqrt as s
+from math import sqrt as s, pi as p
 
-p
-s(4)
+def f(a):
+    a = p
+    s(a)
             """,  # language=none
-            [""],  # TODO
+            [],
+        ),
+        (  # language=Python "Local FromImport - function"
+            """
+def f(a):
+    from math import pi
+    a = pi
+            """,  # language=none
+            [],
+        ),
+        (  # language=Python "Local FromImport - function"
+            """
+def f(a):
+    from math import sqrt
+    sqrt(a)
+            """,  # language=none
+            [],
         ),
     ],
     ids=[
-        "Import",
-        "Import with use",
-        "Import multiple",
-        "Import as",
-        "Import from",
-        "Import from multiple",
-        "Import from as",
-        "Import from as multiple",
+        "Import module - constant",
+        "Import module with alias - constant",
+        "Import module - function",
+        "Import module with alias - function",
+        "Import module with alias - function and constant",
+        "FromImport - constant",
+        "FromImport with alias - constant",
+        "FromImport - function",
+        "FromImport with alias - function",
+        "FromImport with alias - function and constant",
+        "Local FromImport - constant",
+        "Local FromImport - function",
     ],
 )
-@pytest.mark.xfail(reason="Not implemented yet")
+# @pytest.mark.xfail(reason="Not implemented yet")
 def test_resolve_references_imports(code: str, expected: list[ReferenceTestNode]) -> None:
     references = resolve_references(code).resolved_references
     transformed_references: list[ReferenceTestNode] = []
