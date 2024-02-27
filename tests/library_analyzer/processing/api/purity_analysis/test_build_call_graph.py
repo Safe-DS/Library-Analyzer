@@ -239,7 +239,9 @@ def fun2():
             """,  # language=none
             {
                 ".fun1.2.0": {".fun2.5.0"},
-                ".fun2.5.0": {"print"},  # print is a builtin function and therefore has no function def to reference -> therefor it has no line
+                ".fun2.5.0": {
+                    "print",
+                },  # print is a builtin function and therefore has no function def to reference -> therefor it has no line
             },
         ),
         (  # language=Python "external function call",
@@ -300,8 +302,7 @@ def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
     for tree_id, tree in call_graph_forest.graphs.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
-            transformed_call_graph_forest[f"{tree_id}"].add(
-                child.function_scope.symbol.id.__str__())
+            transformed_call_graph_forest[f"{tree_id}"].add(child.function_scope.symbol.id.__str__())
 
     assert transformed_call_graph_forest == expected
 
@@ -446,7 +447,11 @@ def fun_b():
                 ".B.7.0": set(),
                 ".add.4.4": set(),
                 ".add.9.4": set(),
-                ".fun_a.12.0": {".A.2.0", ".add.4.4", ".add.9.4"},  # TODO: [LATER] is it possible to distinguish between the two add functions?
+                ".fun_a.12.0": {
+                    ".A.2.0",
+                    ".add.4.4",
+                    ".add.9.4",
+                },  # TODO: [LATER] is it possible to distinguish between the two add functions?
                 ".fun_b.16.0": {".B.7.0", ".add.4.4", ".add.9.4"},
             },
         ),
@@ -474,7 +479,9 @@ class B:
                 ".A.8.0": set(),
                 ".B.14.0": set(),
                 ".fun1.2.0": set(),
-                ".fun2.5.0": {"print"},  # print is a builtin function and therefore has no function def to reference -> therefor it has no line
+                ".fun2.5.0": {
+                    "print",
+                },  # print is a builtin function and therefore has no function def to reference -> therefor it has no line
                 ".add.10.4": {".fun1.2.0"},
                 ".add.16.4": {".fun2.5.0"},
             },
@@ -503,7 +510,12 @@ def fun_out(a):
                 ".B.7.0": set(),
                 ".fun.4.4": set(),
                 ".fun.9.4": set(),
-                ".fun_out.12.0": {".A.2.0", ".B.7.0", ".fun.4.4", ".fun.9.4"},   # here we cannot distinguish between the two fun functions
+                ".fun_out.12.0": {
+                    ".A.2.0",
+                    ".B.7.0",
+                    ".fun.4.4",
+                    ".fun.9.4",
+                },  # here we cannot distinguish between the two fun functions
             },
         ),
         (  # language=Python "member access - function call of functions with same name (different signatures)"
@@ -529,7 +541,12 @@ def fun():
                 ".B.7.0": set(),
                 ".add.4.4": set(),
                 ".add.9.4": set(),
-                ".fun.12.0": {".A.2.0", ".B.7.0", ".add.4.4", ".add.9.4"},   # TODO: [LATER] maybe we can distinguish between the two add functions because of their signature
+                ".fun.12.0": {
+                    ".A.2.0",
+                    ".B.7.0",
+                    ".add.4.4",
+                    ".add.9.4",
+                },  # TODO: [LATER] maybe we can distinguish between the two add functions because of their signature
             },
         ),
         (  # language=Python "member access - function call of functions with same name (but different instance variables)"
@@ -564,7 +581,11 @@ def fun_b():
                 ".C.11.0": set(),
                 ".add.13.4": set(),
                 ".fun_a.16.0": {".A.2.0", ".add.4.4", ".add.13.4"},
-                ".fun_b.20.0": {".B.7.0", ".add.4.4", ".add.13.4"},   # TODO: [LATER] maybe we can distinguish between the two add functions because of their instance variables
+                ".fun_b.20.0": {
+                    ".B.7.0",
+                    ".add.4.4",
+                    ".add.13.4",
+                },  # TODO: [LATER] maybe we can distinguish between the two add functions because of their instance variables
             },
         ),
         (  # language=Python "member access - lambda function call"
@@ -631,7 +652,6 @@ def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> 
     for tree_id, tree in call_graph_forest.graphs.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
-            transformed_call_graph_forest[f"{tree_id}"].add(
-                child.function_scope.symbol.id.__str__())
+            transformed_call_graph_forest[f"{tree_id}"].add(child.function_scope.symbol.id.__str__())
 
     assert transformed_call_graph_forest == expected

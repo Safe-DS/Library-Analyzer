@@ -2,6 +2,7 @@ from pathlib import Path
 
 from library_analyzer.processing.api import get_api
 from library_analyzer.processing.api.docstring_parsing import DocstringStyle
+
 # from library_analyzer.processing.api.purity_analysis import get_purity_results
 from library_analyzer.processing.dependencies import get_dependencies
 

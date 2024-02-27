@@ -8,17 +8,21 @@ import astroid
 
 from library_analyzer.processing.api.purity_analysis.model._module_data import (
     ClassScope,
+    ClassVariable,
     FunctionScope,
+    GlobalVariable,
+    InstanceVariable,
     MemberAccessTarget,
     MemberAccessValue,
     NodeID,
     Reference,
     Scope,
-    Symbol, GlobalVariable, ClassVariable, InstanceVariable,
+    Symbol,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+
     from library_analyzer.processing.api.purity_analysis.model import CallGraphForest, PurityResult
 
 
@@ -209,10 +213,10 @@ class Reasons:
 
     @staticmethod
     def join_reasons_list(reasons_list: list[Reasons]) -> Reasons:
-                          # combined_node_name: str | None = None) -> Reasons:
-                          # combined_node_name : str
-                          #    Indicates if the Reasons object is a combined node.
-                          #    If it is a combined node, the function is set to None since it does not exist.
+        # combined_node_name: str | None = None) -> Reasons:
+        # combined_node_name : str
+        #    Indicates if the Reasons object is a combined node.
+        #    If it is a combined node, the function is set to None since it does not exist.
         """Join a list of Reasons objects.
 
         Combines a list of Reasons objects into one Reasons object.

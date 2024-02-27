@@ -116,7 +116,7 @@ class MemberAccessTarget(MemberAccess):
     Member access target is a member access written to, e.g. `a.b` in `a.b = 1`.
     """
 
-    node:  astroid.AssignAttr
+    node: astroid.AssignAttr
 
     def __hash__(self) -> int:
         return hash(str(self))

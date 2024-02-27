@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-import astroid
 import pytest
 from library_analyzer.processing.api.purity_analysis import (
     infer_purity,
@@ -13,6 +12,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Impure,
     ImpurityReason,
     InstanceVariable,
+    NodeID,
     NonLocalVariableRead,
     NonLocalVariableWrite,
     ParameterAccess,
@@ -20,7 +20,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     PurityResult,
     StringLiteral,
     UnknownCall,
-    NodeID,
 )
 
 
@@ -177,11 +176,7 @@ def fun1():
 def fun2():
     b = B()
             """,  # language= None
-            {
-             "__init__.line6": Pure(),
-             "fun1.line9": Pure(),
-             "fun2.line12": Pure()
-             },
+            {"__init__.line6": Pure(), "fun1.line9": Pure(), "fun2.line12": Pure()},
         ),
         (  # language=Python "VariableWrite to InstanceVariable - but actually a LocalVariable"
             """
@@ -193,9 +188,7 @@ def fun():
     a = A()
     a.instance_attr1 = 20  # Pure: VariableWrite to InstanceVariable - but actually a LocalVariable
             """,  # language= None
-            {
-             "__init__.line3": Pure(),
-             "fun.line6": Pure()},
+            {"__init__.line3": Pure(), "fun.line6": Pure()},
         ),
         (  # language=Python "VariableRead from InstanceVariable - but actually a LocalVariable"
             """
@@ -208,9 +201,7 @@ def fun():
     res = a.instance_attr1  # Pure: VariableRead from InstanceVariable - but actually a LocalVariable
     return res
             """,  # language= None
-            {
-             "__init__.line3": Pure(),
-             "fun.line6": Pure()},
+            {"__init__.line3": Pure(), "fun.line6": Pure()},
         ),
         (  # language=Python "Call of Pure Function"
             """
@@ -338,8 +329,8 @@ c = fun1()
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     purity_results = infer_purity(code)
     transformed_purity_results = {
-        to_string_function_id(function_id): to_simple_result(purity_result) for
-        function_id, purity_result in purity_results.items()
+        to_string_function_id(function_id): to_simple_result(purity_result)
+        for function_id, purity_result in purity_results.items()
     }
 
     assert transformed_purity_results == expected
@@ -407,9 +398,9 @@ def fun():
     a = A()
             """,  # language= None
             {
-             "__init__.line3": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-             "fun.line6": SimpleImpure({"FileWrite.StringLiteral.stdout"})
-             },
+                "__init__.line3": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "fun.line6": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+            },
         ),
         (  # language=Python "Class methode call"
             """
@@ -425,10 +416,10 @@ def fun2():
     a = A().g()
             """,  # language= None
             {
-             "g.line3": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-             "fun1.line6": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-             "fun2.line10": SimpleImpure({"FileWrite.StringLiteral.stdout"})
-             },
+                "g.line3": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "fun1.line6": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "fun2.line10": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+            },
         ),
         (  # language=Python "Instance methode call"
             """
@@ -455,13 +446,13 @@ def fun3():
     a = A().a_inst.b_fun()
             """,  # language= None
             {
-             "__init__.line3": Pure(),
-             "__init__.line7": Pure(),
-             "b_fun.line10": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-             "fun1.line13": Pure(),
-             "fun2.line17": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-             "fun3.line21": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-             },
+                "__init__.line3": Pure(),
+                "__init__.line7": Pure(),
+                "b_fun.line10": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "fun1.line13": Pure(),
+                "fun2.line17": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "fun3.line21": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+            },
         ),
         (  # language=Python "VariableWrite to ClassVariable"
             """
@@ -474,8 +465,10 @@ def fun1():
 def fun2():
     A().class_attr1 = 30  # Impure: VariableWrite to ClassVariable
             """,  # language= None
-            {"fun1.line5": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.class_attr1"}),
-             "fun2.line8": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.class_attr1"})},
+            {
+                "fun1.line5": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.class_attr1"}),
+                "fun2.line8": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.class_attr1"}),
+            },
         ),
         (  # language=Python "VariableRead from ClassVariable"
             """
@@ -490,8 +483,10 @@ def fun2():
     res = A().class_attr1  # Impure: VariableRead from ClassVariable
     return res
             """,  # language= None
-            {"fun1.line5": SimpleImpure({"NonLocalVariableRead.ClassVariable.A.class_attr1"}),
-             "fun2.line9": SimpleImpure({"NonLocalVariableRead.ClassVariable.A.class_attr1"})},
+            {
+                "fun1.line5": SimpleImpure({"NonLocalVariableRead.ClassVariable.A.class_attr1"}),
+                "fun2.line9": SimpleImpure({"NonLocalVariableRead.ClassVariable.A.class_attr1"}),
+            },
         ),
         (  # language=Python "VariableWrite to InstanceVariable"
             """
@@ -505,8 +500,10 @@ def fun(c):
 b = B()
 fun(b)
             """,  # language= None
-            {"__init__.line3": Pure(),
-             "fun.line6": SimpleImpure({"NonLocalVariableWrite.InstanceVariable.B.instance_attr1"})},
+            {
+                "__init__.line3": Pure(),
+                "fun.line6": SimpleImpure({"NonLocalVariableWrite.InstanceVariable.B.instance_attr1"}),
+            },
         ),
         (  # language=Python "VariableRead from InstanceVariable"
             """
@@ -521,8 +518,10 @@ def fun(c):
 b = B()
 a = fun(b)
             """,  # language= None
-            {"__init__.line3": Pure(),
-             "fun.line6": SimpleImpure({"NonLocalVariableRead.InstanceVariable.B.instance_attr1"})},
+            {
+                "__init__.line3": Pure(),
+                "fun.line6": SimpleImpure({"NonLocalVariableRead.InstanceVariable.B.instance_attr1"}),
+            },
         ),
         (  # language=Python "Function call of functions with same name and different purity"
             """
@@ -544,11 +543,14 @@ def fun1():
 def fun2():
     B.add(1, 2)
             """,  # language=none
-            {"add.line4": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-             "add.line10": Pure(),
-             "fun1.line13": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-             "fun2.line17": SimpleImpure({"FileWrite.StringLiteral.stdout"}),  # here we need to be conservative and assume that the call is impure
-             },
+            {
+                "add.line4": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "add.line10": Pure(),
+                "fun1.line13": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "fun2.line17": SimpleImpure(
+                    {"FileWrite.StringLiteral.stdout"},
+                ),  # here we need to be conservative and assume that the call is impure
+            },
         ),
         (  # language=Python "Function call of functions with same name (different signatures)"
             """
@@ -572,9 +574,11 @@ def fun2():
             {
                 "add.line4": Pure(),
                 "add.line9": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-                "fun1.line13": SimpleImpure({"FileWrite.StringLiteral.stdout"}),  # here we need to be conservative and assume that the call is impure
+                "fun1.line13": SimpleImpure(
+                    {"FileWrite.StringLiteral.stdout"},
+                ),  # here we need to be conservative and assume that the call is impure
                 "fun2.line16": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-            }  # TODO: [Later] we could also check the signature of the function and see that the call is actually pure
+            },  # TODO: [Later] we could also check the signature of the function and see that the call is actually pure
         ),
         (  # language=Python "Call of Impure Function"
             """
@@ -899,7 +903,7 @@ def fun3():
             """,  # language=none
             {
                 "fun1.line2": SimpleImpure({
-                     "FileWrite.StringLiteral.stdout",
+                    "FileWrite.StringLiteral.stdout",
                 }),
                 "fun2.line6": Pure(),
                 "fun3.line9": SimpleImpure({
@@ -1012,10 +1016,9 @@ def import_fun(file: str, f_name: str) -> Callable:
     print("test")
             """,  # language=none
             {
-                'fun1.line4': SimpleImpure({"FileWrite.StringLiteral.stdout",
-                                            "UnknownCall.StringLiteral.fun"}),
-                'import_fun.line8': SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-             }
+                "fun1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout", "UnknownCall.StringLiteral.fun"}),
+                "import_fun.line8": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+            },
         ),
     ],
     ids=[
@@ -1023,7 +1026,7 @@ def import_fun(file: str, f_name: str) -> Callable:
         "Three Unknown Call",
         "Unknown Call of Parameter",
         "Unknown Call of Parameter with many Parameters",
-        "Unknown Import function"
+        "Unknown Import function",
     ],
 )
 @pytest.mark.xfail(reason="Some cases disabled for merging")

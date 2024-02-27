@@ -9,6 +9,7 @@ from library_analyzer.processing.api.purity_analysis import (
     resolve_references,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
+    Builtin,
     ClassVariable,
     InstanceVariable,
     MemberAccess,
@@ -16,7 +17,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     MemberAccessValue,
     NodeID,
     Reasons,
-    ReferenceNode, Builtin,
+    ReferenceNode,
 )
 
 
@@ -112,15 +113,18 @@ def transform_reference_node(ref_node: ReferenceNode) -> ReferenceTestNode:
     """
     if isinstance(ref_node.node.node, MemberAccess | MemberAccessValue | MemberAccessTarget):
         expression = get_base_expression(ref_node.node.node)
-        if (ref_node.scope.symbol.name == "__init__"
+        if (
+            ref_node.scope.symbol.name == "__init__"
             and isinstance(ref_node.scope.symbol, ClassVariable | InstanceVariable)
             and ref_node.scope.symbol.klass is not None
         ):
             return ReferenceTestNode(
                 name=f"{ref_node.node.node.name}.line{expression.lineno}",
-                scope=f"{ref_node.scope.symbol.node.__class__.__name__}."
-                      f"{ref_node.scope.symbol.klass.name}."
-                      f"{ref_node.scope.symbol.node.name}",
+                scope=(
+                    f"{ref_node.scope.symbol.node.__class__.__name__}."
+                    f"{ref_node.scope.symbol.klass.name}."
+                    f"{ref_node.scope.symbol.node.name}"
+                ),
                 referenced_symbols=sorted([str(ref) for ref in ref_node.referenced_symbols]),
             )
         return ReferenceTestNode(
@@ -163,9 +167,11 @@ def transform_reference_node(ref_node: ReferenceNode) -> ReferenceTestNode:
                 referenced_symbols=sorted([str(ref) for ref in ref_node.referenced_symbols]),
             )
         return ReferenceTestNode(
-            name=f"{ref_node.node.node.func.attrname}.line{ref_node.node.node.func.lineno}" if isinstance(
-                ref_node.node.node.func,
-                astroid.Attribute) else f"{ref_node.node.node.func.name}.line{ref_node.node.node.func.lineno}",
+            name=(
+                f"{ref_node.node.node.func.attrname}.line{ref_node.node.node.func.lineno}"
+                if isinstance(ref_node.node.node.func, astroid.Attribute)
+                else f"{ref_node.node.node.func.name}.line{ref_node.node.node.func.lineno}"
+            ),
             scope=f"{ref_node.scope.symbol.node.__class__.__name__}.{ref_node.scope.symbol.node.name}",
             referenced_symbols=sorted([str(ref) for ref in ref_node.referenced_symbols]),
         )
@@ -216,36 +222,49 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
             function_id.__str__(): SimpleReasons(
                 function_references.function_scope.symbol.name,  # type: ignore[union-attr] # function_scope is not None
                 {
-                    f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.name}.line{target_reference.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-                    if isinstance(target_reference, ClassVariable) and target_reference.klass is not None
-                    else (
-                        f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.member}.line{target_reference.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-                        if isinstance(target_reference, InstanceVariable) else
-                        f"{target_reference.__class__.__name__}.{target_reference.node.name}.line{target_reference.node.fromlineno}")
+                    (
+                        f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.name}.line{target_reference.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                        if isinstance(target_reference, ClassVariable) and target_reference.klass is not None
+                        else (
+                            f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.member}.line{target_reference.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                            if isinstance(target_reference, InstanceVariable)
+                            else f"{target_reference.__class__.__name__}.{target_reference.node.name}.line{target_reference.node.fromlineno}"
+                        )
+                    )
                     for target_reference in function_references.writes_to
                 },
                 {
-                    f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.name}.line{value_reference.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-                    if isinstance(value_reference, ClassVariable) and value_reference is not None
-                    else (
-                        f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.member}.line{value_reference.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-                        if isinstance(value_reference, InstanceVariable) else
-                        f"{value_reference.__class__.__name__}.{value_reference.node.name}.line{value_reference.node.fromlineno}")
+                    (
+                        f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.name}.line{value_reference.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                        if isinstance(value_reference, ClassVariable) and value_reference is not None
+                        else (
+                            f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.member}.line{value_reference.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                            if isinstance(value_reference, InstanceVariable)
+                            else f"{value_reference.__class__.__name__}.{value_reference.node.name}.line{value_reference.node.fromlineno}"
+                        )
+                    )
                     for value_reference in function_references.reads_from
                 },
                 {
-                    f"{function_reference.__class__.__name__}.{function_reference.node.attrname}.line{function_reference.node.fromlineno}"
-                    if isinstance(function_reference.node, astroid.Attribute)
-                    else (
-                        f"{function_reference.__class__.__name__}.{function_reference.node.name}"
-                        if isinstance(function_reference, Builtin)  # Special case for builtin functions since we do not get their line.
+                    (
+                        f"{function_reference.__class__.__name__}.{function_reference.node.attrname}.line{function_reference.node.fromlineno}"
+                        if isinstance(function_reference.node, astroid.Attribute)
                         else (
-                            f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
-                            if isinstance(function_reference, ClassVariable) and function_reference.klass is not None
+                            f"{function_reference.__class__.__name__}.{function_reference.node.name}"
+                            if isinstance(
+                                function_reference, Builtin,
+                            )  # Special case for builtin functions since we do not get their line.
                             else (
-                                f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.member}.line{function_reference.node.node.fromlineno}" # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-                                if isinstance(function_reference, InstanceVariable) and function_reference.klass is not None else
-                                f"{function_reference.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}")
+                                f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
+                                if isinstance(function_reference, ClassVariable)
+                                and function_reference.klass is not None
+                                else (
+                                    f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.member}.line{function_reference.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                                    if isinstance(function_reference, InstanceVariable)
+                                    and function_reference.klass is not None
+                                    else f"{function_reference.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
+                                )
+                            )
                         )
                     )
                     for function_reference in function_references.calls
@@ -627,9 +646,12 @@ def f():
     x = b.upper_class.class_attr1
             """,  # language=none
             [
-                ReferenceTestNode("UNKNOWN.class_attr1.line10", "FunctionDef.f",
-                                  # we do not analyze the target of the member access, hence the name does not matter.
-                                  ["ClassVariable.A.class_attr1.line3"]),
+                ReferenceTestNode(
+                    "UNKNOWN.class_attr1.line10",
+                    "FunctionDef.f",
+                    # we do not analyze the target of the member access, hence the name does not matter.
+                    ["ClassVariable.A.class_attr1.line3"],
+                ),
                 ReferenceTestNode("b.upper_class.line10", "FunctionDef.f", ["ClassVariable.B.upper_class.line6"]),
                 ReferenceTestNode("b.line10", "FunctionDef.f", ["LocalVariable.b.line9"]),
                 ReferenceTestNode("B.line9", "FunctionDef.f", ["GlobalVariable.B.line5"]),
@@ -646,8 +668,9 @@ def f():
     var1 = b.instance_attr1
             """,  # language=none
             [
-                ReferenceTestNode("b.instance_attr1.line8", "FunctionDef.f",
-                                  ["InstanceVariable.B.instance_attr1.line4"]),
+                ReferenceTestNode(
+                    "b.instance_attr1.line8", "FunctionDef.f", ["InstanceVariable.B.instance_attr1.line4"],
+                ),
                 ReferenceTestNode("b.line8", "FunctionDef.f", ["LocalVariable.b.line7"]),
                 ReferenceTestNode("self.line4", "FunctionDef.B.__init__", ["Parameter.self.line3"]),
                 ReferenceTestNode("B.line7", "FunctionDef.f", ["GlobalVariable.B.line2"]),
@@ -672,8 +695,9 @@ def f():
                 ),
                 ReferenceTestNode("b.line9", "FunctionDef.f", ["LocalVariable.b.line7"]),
                 ReferenceTestNode("self.line4", "FunctionDef.B.__init__", ["Parameter.self.line3"]),
-                ReferenceTestNode("b.instance_attr1.line8", "FunctionDef.f",
-                                  ["InstanceVariable.B.instance_attr1.line4"]),
+                ReferenceTestNode(
+                    "b.instance_attr1.line8", "FunctionDef.f", ["InstanceVariable.B.instance_attr1.line4"],
+                ),
                 ReferenceTestNode("b.line8", "FunctionDef.f", ["LocalVariable.b.line7"]),
                 ReferenceTestNode("B.line7", "FunctionDef.f", ["GlobalVariable.B.line2"]),
             ],
@@ -1019,7 +1043,7 @@ def fun():
             """,  # language=none
             [
                 ReferenceTestNode("A.line6", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
-            ]
+            ],
         ),
         (  # language=Python "Member access - class",
             """
@@ -1033,7 +1057,7 @@ def fun():
             [
                 ReferenceTestNode("A.line6", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
                 ReferenceTestNode("A.class_attr1.line6", "FunctionDef.fun", ["ClassVariable.A.class_attr1.line3"]),
-            ]
+            ],
         ),
         (  # language=Python "Member access - class without init",
             """
@@ -1047,7 +1071,7 @@ def fun():
             [
                 ReferenceTestNode("A.line6", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
                 ReferenceTestNode("A.class_attr1.line6", "FunctionDef.fun", ["ClassVariable.A.class_attr1.line3"]),
-            ]
+            ],
         ),
         (  # language=Python "Member access - methode",
             """
@@ -1070,7 +1094,7 @@ def fun2():
                 ReferenceTestNode("g.line10", "FunctionDef.fun1", ["ClassVariable.A.g.line5"]),
                 ReferenceTestNode("A.line13", "FunctionDef.fun2", ["GlobalVariable.A.line2"]),
                 ReferenceTestNode("g.line13", "FunctionDef.fun2", ["ClassVariable.A.g.line5"]),
-            ]
+            ],
         ),
         (  # language=Python "Member access - init",
             """
@@ -1084,7 +1108,7 @@ def fun():
             """,  # language=none
             [
                 ReferenceTestNode("A.line7", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
-            ]
+            ],
         ),
         (  # language=Python "Member access - instance function",
             """
@@ -1116,7 +1140,7 @@ def fun2():
                 ReferenceTestNode("A.line18", "FunctionDef.fun2", ["GlobalVariable.A.line2"]),
                 ReferenceTestNode("A.a_inst.line18", "FunctionDef.fun2", ["InstanceVariable.A.a_inst.line4"]),
                 ReferenceTestNode("b_fun.line18", "FunctionDef.fun2", ["ClassVariable.B.b_fun.line10"]),
-            ]
+            ],
         ),
         (  # language=Python "Member access - function call of functions with same name"
             """
@@ -1145,13 +1169,15 @@ def fun_b():
                 ReferenceTestNode("b.line10", "FunctionDef.add", ["Parameter.b.line9"]),
                 ReferenceTestNode("A.line13", "FunctionDef.fun_a", ["GlobalVariable.A.line2"]),
                 ReferenceTestNode("x.line14", "FunctionDef.fun_a", ["LocalVariable.x.line13"]),
-                ReferenceTestNode("add.line14", "FunctionDef.fun_a", ["ClassVariable.A.add.line4",
-                                                                      "ClassVariable.B.add.line9"]),
+                ReferenceTestNode(
+                    "add.line14", "FunctionDef.fun_a", ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                ),
                 ReferenceTestNode("B.line17", "FunctionDef.fun_b", ["GlobalVariable.B.line7"]),
                 ReferenceTestNode("x.line18", "FunctionDef.fun_b", ["LocalVariable.x.line17"]),
-                ReferenceTestNode("add.line18", "FunctionDef.fun_b", ["ClassVariable.A.add.line4",
-                                                                      "ClassVariable.B.add.line9"]),
-            ]
+                ReferenceTestNode(
+                    "add.line18", "FunctionDef.fun_b", ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                ),
+            ],
         ),
         (  # language=Python "Member access - function call of functions with same name and nested calls",
             """
@@ -1181,8 +1207,7 @@ class B:
                 ReferenceTestNode("a.line18", "FunctionDef.add", ["Parameter.a.line16"]),
                 ReferenceTestNode("b.line18", "FunctionDef.add", ["Parameter.b.line16"]),
                 ReferenceTestNode("fun2.line17", "FunctionDef.add", ["GlobalVariable.fun2.line5"]),
-
-            ]
+            ],
         ),
         (  # language=Python "Member access - function call of functions with same name (no distinction possible)"
             """
@@ -1209,12 +1234,14 @@ def fun_out(a):
                 ReferenceTestNode("B.line16", "FunctionDef.fun_out", ["GlobalVariable.B.line7"]),
                 ReferenceTestNode("x.line16", "FunctionDef.fun_out", ["LocalVariable.x.line14"]),
                 # this is an assumption we need to make since we cannot differentiate between branches before runtime
-                ReferenceTestNode("x.line17", "FunctionDef.fun_out", ["LocalVariable.x.line14",
-                                                                      "LocalVariable.x.line16"]),
-                ReferenceTestNode("fun.line17", "FunctionDef.fun_out", ["ClassVariable.A.fun.line4",
-                                                                        "ClassVariable.B.fun.line9"]),
+                ReferenceTestNode(
+                    "x.line17", "FunctionDef.fun_out", ["LocalVariable.x.line14", "LocalVariable.x.line16"],
+                ),
+                ReferenceTestNode(
+                    "fun.line17", "FunctionDef.fun_out", ["ClassVariable.A.fun.line4", "ClassVariable.B.fun.line9"],
+                ),
                 # here we can't distinguish between the two functions
-            ]
+            ],
         ),
         (  # language=Python "Member access - function call of functions with same name (different signatures)"
             """
@@ -1239,12 +1266,14 @@ def fun():
                 ReferenceTestNode("b.line10", "FunctionDef.add", ["Parameter.b.line9"]),
                 ReferenceTestNode("c.line10", "FunctionDef.add", ["Parameter.c.line9"]),
                 ReferenceTestNode("A.line13", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
-                ReferenceTestNode("add.line13", "FunctionDef.fun", ["ClassVariable.A.add.line4",
-                                                                    "ClassVariable.B.add.line9"]),
+                ReferenceTestNode(
+                    "add.line13", "FunctionDef.fun", ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                ),
                 ReferenceTestNode("B.line14", "FunctionDef.fun", ["GlobalVariable.B.line7"]),
-                ReferenceTestNode("add.line14", "FunctionDef.fun", ["ClassVariable.A.add.line4",
-                                                                    "ClassVariable.B.add.line9"]),
-            ]
+                ReferenceTestNode(
+                    "add.line14", "FunctionDef.fun", ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                ),
+            ],
         ),
         # TODO: [Later] we could add a check for the number of parameters in the function call and the function definition
         #         (  # language=Python "Builtins for dict"
@@ -1813,8 +1842,7 @@ def f():
                 ReferenceTestNode("a.line10", "FunctionDef.f", ["LocalVariable.a.line9"]),
                 ReferenceTestNode("inp.line10", "FunctionDef.f", ["LocalVariable.inp.line7"]),
                 ReferenceTestNode("var1.line11", "FunctionDef.f", ["LocalVariable.var1.line9"]),
-                ReferenceTestNode("a.line11", "FunctionDef.f", ["LocalVariable.a.line10",
-                                                                "LocalVariable.a.line9"]),
+                ReferenceTestNode("a.line11", "FunctionDef.f", ["LocalVariable.a.line10", "LocalVariable.a.line9"]),
                 ReferenceTestNode("var3.line11", "FunctionDef.f", ["GlobalVariable.var3.line4"]),
             ],
         ),
@@ -1837,15 +1865,17 @@ def f(a):
                 ReferenceTestNode("a.line10", "FunctionDef.f", ["Parameter.a.line6"]),
                 ReferenceTestNode("inp.line10", "FunctionDef.f", ["LocalVariable.inp.line8"]),
                 ReferenceTestNode("var1.line10", "FunctionDef.f", ["GlobalVariable.var1.line2"]),
-                ReferenceTestNode("a.line11", "FunctionDef.f", ["LocalVariable.a.line10",
-                                                                "Parameter.a.line6"]),
+                ReferenceTestNode("a.line11", "FunctionDef.f", ["LocalVariable.a.line10", "Parameter.a.line6"]),
                 ReferenceTestNode("var2.line11", "FunctionDef.f", ["GlobalVariable.var2.line3"]),
                 ReferenceTestNode("inp.line11", "FunctionDef.f", ["LocalVariable.inp.line8"]),
-                ReferenceTestNode("var1.line12", "FunctionDef.f", ["GlobalVariable.var1.line10",
-                                                                   "GlobalVariable.var1.line2"]),
-                ReferenceTestNode("a.line12", "FunctionDef.f", ["LocalVariable.a.line10",
-                                                                "LocalVariable.a.line11",
-                                                                "Parameter.a.line6"]),
+                ReferenceTestNode(
+                    "var1.line12", "FunctionDef.f", ["GlobalVariable.var1.line10", "GlobalVariable.var1.line2"],
+                ),
+                ReferenceTestNode(
+                    "a.line12",
+                    "FunctionDef.f",
+                    ["LocalVariable.a.line10", "LocalVariable.a.line11", "Parameter.a.line6"],
+                ),
                 ReferenceTestNode("var3.line12", "FunctionDef.f", ["GlobalVariable.var3.line4"]),
             ],
         ),
@@ -2542,10 +2572,13 @@ def f():
                 ReferenceTestNode("self._state.line14", "FunctionDef.state", ["ClassVariable.State._state.line6"]),
                 ReferenceTestNode("value.line14", "FunctionDef.state", ["Parameter.value.line13"]),
                 ReferenceTestNode("State.line17", "FunctionDef.f", ["GlobalVariable.State.line5"]),
-                ReferenceTestNode("a.state.line18", "FunctionDef.f", ["ClassVariable.State.state.line13",
-                                                                      "ClassVariable.State.state.line9"]),
+                ReferenceTestNode(
+                    "a.state.line18",
+                    "FunctionDef.f",
+                    ["ClassVariable.State.state.line13", "ClassVariable.State.state.line9"],
+                ),
                 ReferenceTestNode("a.line18", "FunctionDef.f", ["LocalVariable.a.line17"]),
-            ]
+            ],
         ),
     ],
     ids=[
@@ -2590,10 +2623,7 @@ def f():
             {
                 ".f.8.0": SimpleReasons(
                     "f",
-                    {
-                        "GlobalVariable.b.line2",
-                        "GlobalVariable.b.line11"
-                    },
+                    {"GlobalVariable.b.line2", "GlobalVariable.b.line11"},
                     {
                         "GlobalVariable.c.line3",
                         "GlobalVariable.d.line4",
@@ -2630,7 +2660,7 @@ def f():
                     },
                     {
                         "GlobalVariable.b.line2",
-                    }
+                    },
                 ),
             },
         ),
@@ -2654,20 +2684,9 @@ def g():
                         "ClassVariable.A.class_attr1.line3",
                     },
                     set(),
-                    {
-                        "GlobalVariable.A.line2"
-                    }
+                    {"GlobalVariable.A.line2"},
                 ),
-                ".g.9.0": SimpleReasons(
-                    "g",
-                    set(),
-                    {
-                        "ClassVariable.A.class_attr1.line3"
-                    },
-                    {
-                        "GlobalVariable.A.line2"
-                    }
-                ),
+                ".g.9.0": SimpleReasons("g", set(), {"ClassVariable.A.class_attr1.line3"}, {"GlobalVariable.A.line2"}),
             },
         ),
         (  # language=Python "Instance attribute"
@@ -2700,15 +2719,14 @@ def g3():
     c = b.instance_attr1  # NonLocalVariableRead
             """,  # language=none
             {
-                ".__init__.3.4": SimpleReasons(
-                    "__init__"
-                ),
+                ".__init__.3.4": SimpleReasons("__init__"),
                 ".f1.6.0": SimpleReasons(
-                    "f1", {
+                    "f1",
+                    {
                         "InstanceVariable.A.instance_attr1.line4",
                     },
                     set(),
-                    {"GlobalVariable.A.line2"}
+                    {"GlobalVariable.A.line2"},
                 ),
                 ".f2.11.0": SimpleReasons(
                     "f2",
@@ -2718,10 +2736,7 @@ def g3():
                 ),
                 ".f3.14.0": SimpleReasons(
                     "f3",
-                    {
-                        "GlobalVariable.b.line10",
-                        "InstanceVariable.A.instance_attr1.line4"
-                    },
+                    {"GlobalVariable.b.line10", "InstanceVariable.A.instance_attr1.line4"},
                 ),
                 ".g1.18.0": SimpleReasons(
                     "g1",
@@ -2729,7 +2744,7 @@ def g3():
                     {
                         "InstanceVariable.A.instance_attr1.line4",
                     },
-                    {"GlobalVariable.A.line2"}
+                    {"GlobalVariable.A.line2"},
                 ),
                 ".g2.22.0": SimpleReasons(
                     "g2",
@@ -2766,13 +2781,8 @@ def f():
     b.upper_class.set_name("test")
             """,  # language=none
             {
-                ".__init__.3.4": SimpleReasons(
-                    "__init__"
-                ),
-                ".set_name.6.4": SimpleReasons(
-                    "set_name",
-                    {"InstanceVariable.A.name.line4"}
-                ),
+                ".__init__.3.4": SimpleReasons("__init__"),
+                ".set_name.6.4": SimpleReasons("set_name", {"InstanceVariable.A.name.line4"}),
                 ".f.12.0": SimpleReasons(
                     "f",
                     set(),
@@ -2783,9 +2793,9 @@ def f():
                     {
                         "GlobalVariable.B.line9",
                         "ClassVariable.A.set_name.line6",
-                    }
+                    },
                 ),
-            }
+            },
         ),
         (  # language=Python "Chained class function call"
             """
@@ -2803,24 +2813,17 @@ def g():
     A().class_attr1.f()
             """,  # language=none
             {
-                ".__init__.3.4": SimpleReasons(
-                    "__init__"
-                ),
-                ".f.6.4": SimpleReasons(
-                    "f", set(), set(), set()
-                ),
+                ".__init__.3.4": SimpleReasons("__init__"),
+                ".f.6.4": SimpleReasons("f", set(), set(), set()),
                 ".g.12.0": SimpleReasons(
                     "g",
                     set(),
                     {
                         "ClassVariable.A.class_attr1.line10",
                     },
-                    {
-                        "GlobalVariable.A.line9",
-                        "ClassVariable.B.f.line6"
-                    }
+                    {"GlobalVariable.A.line9", "ClassVariable.B.f.line6"},
                 ),
-            }
+            },
         ),
         (  # language=Python "Two classes with same attribute name"
             """
@@ -2843,29 +2846,20 @@ def f():
     b.name
             """,  # language=none
             {
-                ".__init__.5.4": SimpleReasons(
-                    "__init__",
-                    {"ClassVariable.A.name.line3"}
-                ),
-                ".__init__.11.4": SimpleReasons(
-                    "__init__",
-                    {"ClassVariable.B.name.line9"}
-                ),
+                ".__init__.5.4": SimpleReasons("__init__", {"ClassVariable.A.name.line3"}),
+                ".__init__.11.4": SimpleReasons("__init__", {"ClassVariable.B.name.line9"}),
                 ".f.14.0": SimpleReasons(
                     "f",
                     set(),
-                    {   # Here we find both: ClassVariables and InstanceVariables because we can't distinguish between them
+                    {  # Here we find both: ClassVariables and InstanceVariables because we can't distinguish between them
                         "ClassVariable.A.name.line3",
                         "ClassVariable.B.name.line9",
                         "InstanceVariable.A.name.line6",
                         "InstanceVariable.B.name.line12",
                     },
-                    {
-                        "GlobalVariable.A.line2",
-                        "GlobalVariable.B.line8"
-                    }
-                )
-            }
+                    {"GlobalVariable.A.line2", "GlobalVariable.B.line8"},
+                ),
+            },
         ),
         (  # language=Python "Multiple classes with same function name - same signature"
             """
@@ -2889,14 +2883,7 @@ def f():
         pass
             """,  # language=none
             {
-                ".add.6.4": SimpleReasons(
-                    "add",
-                    set(),
-                    {
-                        "GlobalVariable.z.line2"
-                    },
-                    set()
-                ),
+                ".add.6.4": SimpleReasons("add", set(), {"GlobalVariable.z.line2"}, set()),
                 ".add.12.4": SimpleReasons(
                     "add",
                 ),
@@ -2907,9 +2894,9 @@ def f():
                     {
                         "ClassVariable.A.add.line6",
                         "ClassVariable.B.add.line12",
-                    }
-                )
-            }
+                    },
+                ),
+            },
         ),  # since we only return a list of all possible references, we can't distinguish between the two functions
         (  # language=Python "Multiple classes with same function name - different signature"
             """
@@ -2941,9 +2928,9 @@ def f():
                     {
                         "ClassVariable.A.add.line4",
                         "ClassVariable.B.add.line9",
-                    }
-                )
-            }
+                    },
+                ),
+            },
         ),  # TODO: [LATER] we should detect the different signatures
     ],
     ids=[
@@ -2966,5 +2953,6 @@ def test_get_module_data_reasons(code: str, expected: dict[str, SimpleReasons]) 
     # assert function_references == expected
 
     assert transformed_function_references == expected
+
 
 # TODO: testcases for cyclic calls and recursive calls

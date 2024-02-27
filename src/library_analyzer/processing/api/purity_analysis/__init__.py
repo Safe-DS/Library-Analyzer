@@ -10,8 +10,8 @@ from ._get_module_data import (
     get_module_data,
 )
 from ._infer_purity import (
-    infer_purity,
     get_purity_results,
+    infer_purity,
 )
 from ._resolve_references import (
     resolve_references,

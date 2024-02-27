@@ -11,6 +11,7 @@ from library_analyzer.utils import ensure_file_exists
 
 if TYPE_CHECKING:
     from pathlib import Path
+
     from library_analyzer.processing.api.purity_analysis.model import (
         ClassVariable,
         GlobalVariable,
@@ -123,7 +124,7 @@ class Impure(PurityResult):
         return super()._update(other)
 
 
-class ImpurityReason(ABC):  # noqa: B024 # this is just a base class, and it is important that it cannot be instantiated
+class ImpurityReason(ABC):  # this is just a base class, and it is important that it cannot be instantiated
     """Superclass for impurity reasons.
 
     If a function is impure it is because of one or more impurity reasons.
@@ -298,7 +299,7 @@ class CallOfParameter(Unknown):  # ParameterCall
         return f"{self.__class__.__name__}: {self.expression.to_result_str()}"
 
 
-class Expression(ABC):  # noqa: B024 # this is just a base class, and it is important that it cannot be instantiated
+class Expression(ABC):  # this is just a base class, and it is important that it cannot be instantiated
     """Superclass for expressions.
 
     Expressions are used to represent code.
@@ -362,10 +363,7 @@ class APIPurity:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            module_name: {
-                function_def: purity.to_dict()
-                for function_def, purity in purity_result.items()
-            }
+            module_name: {function_def: purity.to_dict() for function_def, purity in purity_result.items()}
             for module_name, purity_result in self.purity_results.items()
         }
 
