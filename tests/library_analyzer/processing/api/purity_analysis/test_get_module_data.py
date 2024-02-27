@@ -2050,7 +2050,13 @@ def h():
                 "f": [SimpleFunctionScope("GlobalVariable.FunctionDef.f", [], [], [], [], [], ["AssignName.var1"])],
                 "g": [
                     SimpleFunctionScope(
-                        "GlobalVariable.FunctionDef.g", [], [], [], [], [], ["AssignName.var1", "AssignName.var2"],
+                        "GlobalVariable.FunctionDef.g",
+                        [],
+                        [],
+                        [],
+                        [],
+                        [],
+                        ["AssignName.var1", "AssignName.var2"],
                     ),
                 ],
                 "h": [

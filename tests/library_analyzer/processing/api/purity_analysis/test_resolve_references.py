@@ -252,7 +252,8 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                         else (
                             f"{function_reference.__class__.__name__}.{function_reference.node.name}"
                             if isinstance(
-                                function_reference, Builtin,
+                                function_reference,
+                                Builtin,
                             )  # Special case for builtin functions since we do not get their line.
                             else (
                                 f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
@@ -669,7 +670,9 @@ def f():
             """,  # language=none
             [
                 ReferenceTestNode(
-                    "b.instance_attr1.line8", "FunctionDef.f", ["InstanceVariable.B.instance_attr1.line4"],
+                    "b.instance_attr1.line8",
+                    "FunctionDef.f",
+                    ["InstanceVariable.B.instance_attr1.line4"],
                 ),
                 ReferenceTestNode("b.line8", "FunctionDef.f", ["LocalVariable.b.line7"]),
                 ReferenceTestNode("self.line4", "FunctionDef.B.__init__", ["Parameter.self.line3"]),
@@ -696,7 +699,9 @@ def f():
                 ReferenceTestNode("b.line9", "FunctionDef.f", ["LocalVariable.b.line7"]),
                 ReferenceTestNode("self.line4", "FunctionDef.B.__init__", ["Parameter.self.line3"]),
                 ReferenceTestNode(
-                    "b.instance_attr1.line8", "FunctionDef.f", ["InstanceVariable.B.instance_attr1.line4"],
+                    "b.instance_attr1.line8",
+                    "FunctionDef.f",
+                    ["InstanceVariable.B.instance_attr1.line4"],
                 ),
                 ReferenceTestNode("b.line8", "FunctionDef.f", ["LocalVariable.b.line7"]),
                 ReferenceTestNode("B.line7", "FunctionDef.f", ["GlobalVariable.B.line2"]),
@@ -1170,12 +1175,16 @@ def fun_b():
                 ReferenceTestNode("A.line13", "FunctionDef.fun_a", ["GlobalVariable.A.line2"]),
                 ReferenceTestNode("x.line14", "FunctionDef.fun_a", ["LocalVariable.x.line13"]),
                 ReferenceTestNode(
-                    "add.line14", "FunctionDef.fun_a", ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                    "add.line14",
+                    "FunctionDef.fun_a",
+                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
                 ),
                 ReferenceTestNode("B.line17", "FunctionDef.fun_b", ["GlobalVariable.B.line7"]),
                 ReferenceTestNode("x.line18", "FunctionDef.fun_b", ["LocalVariable.x.line17"]),
                 ReferenceTestNode(
-                    "add.line18", "FunctionDef.fun_b", ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                    "add.line18",
+                    "FunctionDef.fun_b",
+                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
                 ),
             ],
         ),
@@ -1235,10 +1244,14 @@ def fun_out(a):
                 ReferenceTestNode("x.line16", "FunctionDef.fun_out", ["LocalVariable.x.line14"]),
                 # this is an assumption we need to make since we cannot differentiate between branches before runtime
                 ReferenceTestNode(
-                    "x.line17", "FunctionDef.fun_out", ["LocalVariable.x.line14", "LocalVariable.x.line16"],
+                    "x.line17",
+                    "FunctionDef.fun_out",
+                    ["LocalVariable.x.line14", "LocalVariable.x.line16"],
                 ),
                 ReferenceTestNode(
-                    "fun.line17", "FunctionDef.fun_out", ["ClassVariable.A.fun.line4", "ClassVariable.B.fun.line9"],
+                    "fun.line17",
+                    "FunctionDef.fun_out",
+                    ["ClassVariable.A.fun.line4", "ClassVariable.B.fun.line9"],
                 ),
                 # here we can't distinguish between the two functions
             ],
@@ -1267,11 +1280,15 @@ def fun():
                 ReferenceTestNode("c.line10", "FunctionDef.add", ["Parameter.c.line9"]),
                 ReferenceTestNode("A.line13", "FunctionDef.fun", ["GlobalVariable.A.line2"]),
                 ReferenceTestNode(
-                    "add.line13", "FunctionDef.fun", ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                    "add.line13",
+                    "FunctionDef.fun",
+                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
                 ),
                 ReferenceTestNode("B.line14", "FunctionDef.fun", ["GlobalVariable.B.line7"]),
                 ReferenceTestNode(
-                    "add.line14", "FunctionDef.fun", ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                    "add.line14",
+                    "FunctionDef.fun",
+                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
                 ),
             ],
         ),
@@ -1869,7 +1886,9 @@ def f(a):
                 ReferenceTestNode("var2.line11", "FunctionDef.f", ["GlobalVariable.var2.line3"]),
                 ReferenceTestNode("inp.line11", "FunctionDef.f", ["LocalVariable.inp.line8"]),
                 ReferenceTestNode(
-                    "var1.line12", "FunctionDef.f", ["GlobalVariable.var1.line10", "GlobalVariable.var1.line2"],
+                    "var1.line12",
+                    "FunctionDef.f",
+                    ["GlobalVariable.var1.line10", "GlobalVariable.var1.line2"],
                 ),
                 ReferenceTestNode(
                     "a.line12",

@@ -329,7 +329,9 @@ def contract_cycle(
     )
     combined_reasons = Reasons.join_reasons_list([node.reasons for node in cycle])
     combined_node = CallGraphNode(
-        function_scope=combined_node_data, reasons=combined_reasons, combined_node_names=cycle_ids,
+        function_scope=combined_node_data,
+        reasons=combined_reasons,
+        combined_node_names=cycle_ids,
     )
 
     # Add children to the combined node if they are not in the cycle (other calls).
@@ -443,7 +445,8 @@ def update_pointers(node: CallGraphNode, cycle_names: list[str], combined_node: 
             node.children.add(combined_node)
             # Update data
             if isinstance(node.function_scope, FunctionScope) and isinstance(
-                combined_node.function_scope, FunctionScope,
+                combined_node.function_scope,
+                FunctionScope,
             ):
                 node.function_scope.remove_call_node_by_name(child.function_scope.symbol.name)
                 call_refs: list[Reference] = []

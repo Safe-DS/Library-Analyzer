@@ -847,7 +847,8 @@ class ModuleDataBuilder:
                         else:
                             symbol = self.get_symbol(global_node_def, self.current_function_def[-1].symbol.node)
                             if symbol not in self.current_function_def[-1].globals_used[node.name] and isinstance(
-                                symbol, GlobalVariable,
+                                symbol,
+                                GlobalVariable,
                             ):
                                 self.current_function_def[-1].globals_used[node.name].append(symbol)
                 return
@@ -1041,7 +1042,8 @@ class ModuleDataBuilder:
                 # Since this can only be determined at runtime, add all global assignments to the list.
                 for global_node_def in global_node_defs:
                     if isinstance(global_node_def, astroid.AssignName) and isinstance(
-                        self.current_node_stack[-1], FunctionScope,
+                        self.current_node_stack[-1],
+                        FunctionScope,
                     ):
                         symbol = self.get_symbol(global_node_def, self.current_node_stack[-1].symbol.node)
                         if isinstance(symbol, GlobalVariable):

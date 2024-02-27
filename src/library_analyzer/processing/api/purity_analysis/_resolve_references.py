@@ -234,7 +234,9 @@ def _find_value_references(
 
 
 def _find_target_references(
-    target_reference: Symbol, function: FunctionScope, classes: dict[str, ClassScope],
+    target_reference: Symbol,
+    function: FunctionScope,
+    classes: dict[str, ClassScope],
 ) -> TargetReference:
     """Find all references for a target node.
 
@@ -360,7 +362,10 @@ def resolve_references(
                     for call_reference in call_list:
                         call_references_result: ReferenceNode
                         call_references_result = _find_call_references(
-                            call_reference, function, module_data.functions, module_data.classes,
+                            call_reference,
+                            function,
+                            module_data.functions,
+                            module_data.classes,
                         )
 
                         # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
@@ -374,7 +379,8 @@ def resolve_references(
                             # Add the referenced symbols to the calls of the raw_reasons dict for this function
                             for referenced_symbol in call_references_result.referenced_symbols:
                                 if isinstance(
-                                    referenced_symbol, GlobalVariable | ClassVariable | Builtin | BuiltinOpen,
+                                    referenced_symbol,
+                                    GlobalVariable | ClassVariable | Builtin | BuiltinOpen,
                                 ):
                                     if referenced_symbol not in raw_reasons[function.symbol.id].calls:
                                         raw_reasons[function.symbol.id].calls.add(referenced_symbol)
@@ -385,7 +391,10 @@ def resolve_references(
                     for value_reference in value_list:
                         value_reference_result: ReferenceNode
                         value_reference_result = _find_value_references(
-                            value_reference, function, module_data.functions, module_data.classes,
+                            value_reference,
+                            function,
+                            module_data.functions,
+                            module_data.classes,
                         )
 
                         # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
@@ -413,7 +422,9 @@ def resolve_references(
                     for target_reference in target_list:
                         target_reference_result: ReferenceNode
                         target_reference_result = _find_target_references(
-                            target_reference, function, module_data.classes,
+                            target_reference,
+                            function,
+                            module_data.classes,
                         )
 
                         # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
