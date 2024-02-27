@@ -173,9 +173,9 @@ class Reasons:
     #             if isinstance(call.node.func, astroid.Attribute) and call.node.func.attrname == name:
     #                 return call
     #             return call
-    #         else:  # noqa: PLR5501
+    #         else:
     #             # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
-    #             if isinstance(call.node.func, astroid.Attribute) and call.node.attrname == name:  # noqa: SIM114
+    #             if isinstance(call.node.func, astroid.Attribute) and call.node.attrname == name:
     #                 return call
     #             elif call.node.name == name:
     #                 return call
