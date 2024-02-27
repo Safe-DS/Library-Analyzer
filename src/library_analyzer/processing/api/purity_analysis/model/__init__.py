@@ -1,6 +1,31 @@
 """Data model for purity analysis."""
 
+from library_analyzer.processing.api.purity_analysis.model._call_graph import (
+    CallGraphForest,
+    CallGraphNode,
+)
+from library_analyzer.processing.api.purity_analysis.model._module_data import (
+    Builtin,
+    BuiltinOpen,
+    ClassScope,
+    ClassVariable,
+    FunctionScope,
+    GlobalVariable,
+    Import,
+    InstanceVariable,
+    LocalVariable,
+    MemberAccess,
+    MemberAccessTarget,
+    MemberAccessValue,
+    ModuleData,
+    NodeID,
+    Parameter,
+    Reference,
+    Scope,
+    Symbol,
+)
 from library_analyzer.processing.api.purity_analysis.model._purity import (
+    APIPurity,
     CallOfParameter,
     Expression,
     FileRead,
@@ -18,37 +43,19 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
     UnknownCall,
 )
 from library_analyzer.processing.api.purity_analysis.model._reference import (
-    CallGraphForest,
-    CallGraphNode,
-    ReferenceNode,
-)
-from library_analyzer.processing.api.purity_analysis.model._scope import (
-    Builtin,
-    ClassScope,
-    ClassVariable,
-    FunctionReference,
-    FunctionScope,
-    GlobalVariable,
-    Import,
-    InstanceVariable,
-    LocalVariable,
-    MemberAccess,
-    MemberAccessTarget,
-    MemberAccessValue,
-    ModuleData,
-    NodeID,
-    Parameter,
+    ModuleAnalysisResult,
     Reasons,
-    Scope,
-    Symbol,
+    ReferenceNode,
+    TargetReference,
+    ValueReference,
 )
 
 __all__ = [
+    "ModuleAnalysisResult",
     "ModuleData",
     "Scope",
     "ClassScope",
     "FunctionScope",
-    "FunctionReference",
     "MemberAccess",
     "MemberAccessTarget",
     "MemberAccessValue",
@@ -80,4 +87,9 @@ __all__ = [
     "NativeCall",
     "UnknownCall",
     "CallOfParameter",
+    "Reference",
+    "TargetReference",
+    "ValueReference",
+    "APIPurity",
+    "BuiltinOpen",
 ]

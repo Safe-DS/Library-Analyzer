@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import json
+import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from library_analyzer.utils import ensure_file_exists
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from library_analyzer.processing.api.purity_analysis.model import (
         ClassVariable,
         GlobalVariable,
@@ -19,6 +25,18 @@ class PurityResult(ABC):
 
     Purity results are either pure, impure or unknown.
     """
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def to_dict(self) -> dict[str, Any]:  # type: ignore[return] # all cases are handled
+        if isinstance(self, Pure):
+            return {"purity": self.__class__.__name__}
+        elif isinstance(self, Impure):
+            return {
+                "purity": self.__class__.__name__,
+                "reasons": [reason.to_result_str() for reason in self.reasons],
+            }
 
     @abstractmethod
     def update(self, other: PurityResult | None) -> PurityResult:
@@ -105,15 +123,16 @@ class Impure(PurityResult):
         """
         return super()._update(other)
 
-    def __hash__(self) -> int:
-        return hash(str(self))
 
-
-class ImpurityReason(ABC):  # noqa: B024 # this is just a base class, and it is important that it cannot be instantiated
+class ImpurityReason(ABC):  # this is just a base class, and it is important that it cannot be instantiated
     """Superclass for impurity reasons.
 
-    If a funtion is impure it is because of one or more impurity reasons.
+    If a function is impure it is because of one or more impurity reasons.
     """
+
+    @abstractmethod
+    def to_result_str(self) -> str:
+        pass
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -138,6 +157,9 @@ class NonLocalVariableRead(Read):
     def __hash__(self) -> int:
         return hash(str(self))
 
+    def to_result_str(self) -> str:
+        return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
+
 
 @dataclass
 class FileRead(Read):
@@ -154,6 +176,11 @@ class FileRead(Read):
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    def to_result_str(self) -> str:
+        if isinstance(self.source, Expression):
+            return f"{self.__class__.__name__}: {self.source.to_result_str()}"
+        return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
 
 class Write(ImpurityReason, ABC):
@@ -175,6 +202,9 @@ class NonLocalVariableWrite(Write):
     def __hash__(self) -> int:
         return hash(str(self))
 
+    def to_result_str(self) -> str:
+        return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
+
 
 @dataclass
 class FileWrite(Write):
@@ -191,6 +221,11 @@ class FileWrite(Write):
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    def to_result_str(self) -> str:
+        if isinstance(self.source, Expression):
+            return f"{self.__class__.__name__}: {self.source.to_result_str()}"
+        return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
 
 class Unknown(ImpurityReason, ABC):
@@ -214,6 +249,9 @@ class UnknownCall(Unknown):
     def __hash__(self) -> int:
         return hash(str(self))
 
+    def to_result_str(self) -> str:
+        return f"{self.__class__.__name__}: {self.expression.to_result_str()}"
+
 
 @dataclass
 class NativeCall(Unknown):  # ExternalCall
@@ -231,6 +269,9 @@ class NativeCall(Unknown):  # ExternalCall
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    def to_result_str(self) -> str:
+        return f"{self.__class__.__name__}: {self.expression.to_result_str()}"
 
 
 @dataclass
@@ -254,12 +295,19 @@ class CallOfParameter(Unknown):  # ParameterCall
     def __hash__(self) -> int:
         return hash(str(self))
 
+    def to_result_str(self) -> str:
+        return f"{self.__class__.__name__}: {self.expression.to_result_str()}"
 
-class Expression(ABC):  # noqa: B024 # this is just a base class, and it is important that it cannot be instantiated
+
+class Expression(ABC):  # this is just a base class, and it is important that it cannot be instantiated
     """Superclass for expressions.
 
     Expressions are used to represent code.
     """
+
+    @abstractmethod
+    def to_result_str(self) -> str:
+        pass
 
 
 @dataclass
@@ -274,6 +322,9 @@ class ParameterAccess(Expression):
 
     parameter: Parameter
 
+    def to_result_str(self) -> str:
+        return f"ParameterAccess.{self.parameter.name}"
+
 
 @dataclass
 class StringLiteral(Expression):
@@ -286,6 +337,35 @@ class StringLiteral(Expression):
     """
 
     value: str
+
+    def to_result_str(self) -> str:
+        return f"StringLiteral.{self.value}"
+
+
+class APIPurity:
+    """Class for API purity.
+
+    The API purity is used to represent the purity result of an API.
+
+    Attributes
+    ----------
+    purity_results : dict[str, dict[str, PurityResult]]
+        The purity results of the API.
+        The first key is the name of the module, and the second key is the function id.
+    """
+
+    purity_results: typing.ClassVar[dict[str, dict[str, PurityResult]]] = {}
+
+    def to_json_file(self, path: Path) -> None:
+        ensure_file_exists(path)
+        with path.open("w") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            module_name: {function_def: purity.to_dict() for function_def, purity in purity_result.items()}
+            for module_name, purity_result in self.purity_results.items()
+        }
 
 
 class OpenMode(Enum):
