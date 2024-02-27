@@ -101,7 +101,7 @@ class ModuleAnalysisResult:
         The call graph forest of the module.
     """
 
-    resolved_references: dict[str, list[ValueReference | TargetReference]]
+    resolved_references: dict[str, list[ReferenceNode]]
     raw_reasons: dict[NodeID, Reasons]
     classes: dict[str, ClassScope]
     call_graph: CallGraphForest

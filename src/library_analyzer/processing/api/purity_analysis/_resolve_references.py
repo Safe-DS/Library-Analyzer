@@ -299,9 +299,9 @@ def resolve_references(
     module_data = get_module_data(code)
 
     raw_reasons: dict[NodeID, Reasons] = {}
-    call_references: dict[str, list[ValueReference]] = {}
-    value_references: dict[str, list[ValueReference]] = {}
-    target_references: dict[str, list[TargetReference]] = {}
+    call_references: dict[str, list[ReferenceNode]] = {}
+    value_references: dict[str, list[ReferenceNode]] = {}
+    target_references: dict[str, list[ReferenceNode]] = {}
     # The call_references value is a list because the analysis analyzes the functions by name,
     # therefor a call can reference more than one function.
     # In the future, it is possible to differentiate between calls with the same name.
@@ -321,6 +321,7 @@ def resolve_references(
                 # TODO: give the result into the function to use it as a cache to look up already determined references
                 for call_list in function.call_references.values():
                     for call_reference in call_list:
+                        call_references_result: ReferenceNode
                         call_references_result = _find_call_references(call_reference, function, module_data.functions, module_data.classes)
 
                         # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
@@ -341,6 +342,7 @@ def resolve_references(
             if function.value_references:
                 for value_list in function.value_references.values():
                     for value_reference in value_list:
+                        value_reference_result: ReferenceNode
                         value_reference_result = _find_value_references(value_reference, function, module_data.functions, module_data.classes)
 
                         # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
@@ -366,6 +368,7 @@ def resolve_references(
             if function.target_symbols:
                 for target_list in function.target_symbols.values():
                     for target_reference in target_list:
+                        target_reference_result: ReferenceNode
                         target_reference_result = _find_target_references(target_reference, function, module_data.classes)
 
                         # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
@@ -379,7 +382,7 @@ def resolve_references(
                             # Add the referenced symbols to the writes_to of the raw_reasons dict for this function
                             for referenced_symbol in target_reference_result.referenced_symbols:
                                 if isinstance(referenced_symbol, GlobalVariable | ClassVariable | InstanceVariable):
-                                    # Since classes and functions are defined as immutable
+                                    # Since classes and functions are defined as immutable,
                                     # writing to them is not a reason for impurity.
                                     # Also, it is not common to do so anyway.
                                     if isinstance(referenced_symbol.node, astroid.ClassDef | astroid.FunctionDef):
@@ -388,8 +391,8 @@ def resolve_references(
                                     if referenced_symbol not in raw_reasons[function.symbol.id].writes_to:
                                         raw_reasons[function.symbol.id].writes_to.add(referenced_symbol)
 
-    name_references = merge_dicts(value_references, target_references)
-    resolved_references = merge_dicts(call_references, name_references)
+    name_references: dict[str, list[ReferenceNode]] = merge_dicts(value_references, target_references)
+    resolved_references: dict[str, list[ReferenceNode]] = merge_dicts(call_references, name_references)
 
     call_graph = build_call_graph(module_data.functions, module_data.classes, raw_reasons)
 
@@ -399,21 +402,21 @@ def resolve_references(
 
 
 def merge_dicts(
-    d1: dict[str, list[ValueReference]] | dict[str, list[TargetReference]] | dict[str, list[ValueReference] | list[TargetReference]],
-    d2: dict[str, list[ValueReference]] | dict[str, list[TargetReference]] | dict[str, list[ValueReference] | list[TargetReference]],
-) -> dict[str, list[ValueReference | TargetReference]]:
+    d1: dict[str, list[ReferenceNode]],
+    d2: dict[str, list[ReferenceNode]],
+) -> dict[str, list[ReferenceNode]]:
     """Merge two dicts of lists of ReferenceNodes.
 
     Parameters
     ----------
-    d1 : dict[str, list[ValueReference]] | dict[str, list[TargetReference]] | dict[str, list[ValueReference] | list[TargetReference]]
+    d1 : dict[str, list[ReferenceNode]]
         The first dict.
-    d2 : dict[str, list[ValueReference]] | dict[str, list[TargetReference]] | dict[str, list[ValueReference] | list[TargetReference]]
+    d2 : dict[str, list[ReferenceNode]]
         The second dict.
 
     Returns
     -------
-    d3 : dict[str, list[ValueReference | TargetReference]]
+    d3 : dict[str, list[ReferenceNode]]
         The merged dict.
     """
     d3 = d1.copy()

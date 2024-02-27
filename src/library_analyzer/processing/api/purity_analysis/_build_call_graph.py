@@ -319,7 +319,7 @@ def contract_cycle(
         other_calls: dict[str, list[Reference]] = {
             call[0].name: [call[0]]
             for node in cycle
-            for call_name, call in node.function_scope.call_references.items()
+            for call_name, call in node.function_scope.call_references.items()  # type: ignore[union-attr] # Mypy does not recognize that function_scope is of type FunctionScope here even it is.
             if isinstance(node.function_scope, FunctionScope)
             and call_name not in cycle_names
             and call_name not in BUILTINS or call[0].name in ("read", "readline", "readlines", "write", "writelines")
@@ -332,7 +332,7 @@ def contract_cycle(
 
         # Find all builtin calls.
         builtin_calls: dict[str, list[Reference]] = {call[0].name: [call[0]] for node in cycle for call in
-                                                     node.function_scope.call_references.values()
+                                                     node.function_scope.call_references.values()  # type: ignore[union-attr] # Mypy does not recognize that function_scope is of type FunctionScope here even it is.
                                                      if isinstance(node.function_scope, FunctionScope)
                                                      and call[0].name in BUILTINS
                                                      or call[0].name in (
@@ -417,8 +417,11 @@ def update_pointers(node: CallGraphNode, cycle_names: list[str], combined_node: 
             if isinstance(node.function_scope, FunctionScope) and isinstance(combined_node.function_scope,
                                                                              FunctionScope):
                 node.function_scope.remove_call_node_by_name(child.function_scope.symbol.name)
-                node.function_scope.call_references.update(
-                    {combined_node.function_scope.symbol.name: combined_node.function_scope.call_references.values()})
+                call_refs: list[Reference] = []
+                for ref in child.function_scope.call_references.values():
+                    call_refs.extend(ref)
+                calls: dict[str, list[Reference]] = {combined_node.function_scope.symbol.name: call_refs}
+                node.function_scope.call_references.update(calls)
             # Remove the call from the reasons (reasons need to be updated later)
             if isinstance(node.reasons, Reasons):
                 for call in node.reasons.calls.copy():

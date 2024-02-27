@@ -28,7 +28,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Reasons,
     StringLiteral,
     Symbol,
-    UnknownCall, BuiltinOpen,
+    UnknownCall, BuiltinOpen, FunctionScope,
 )
 
 if TYPE_CHECKING:
@@ -316,12 +316,19 @@ def infer_purity(
     analysis_result = resolve_references(code)
 
     purity_results: dict[NodeID, PurityResult] = {}
+    combined_node_names: set[str] = set()
 
     for reasons in analysis_result.raw_reasons.values():
         process_node(reasons, analysis_result, purity_results)
 
+    for graph in analysis_result.call_graph.graphs.values():
+        if graph.combined_node_names:
+            combined_node_name = "+".join(sorted(combined_node_name for combined_node_name in graph.combined_node_names))
+            combined_node_names.add(combined_node_name)
+
+    # TODO: can we do this more efficiently?
     # Cleanup the purity results: combined nodes are not needed in the result
-    return {key: value for key, value in purity_results.items() if not isinstance(key, str)}
+    return {key: value for key, value in purity_results.items() if key.name not in combined_node_names}
 
 
 def process_node(  # type: ignore[return] # all cases are handled
@@ -356,7 +363,7 @@ def process_node(  # type: ignore[return] # all cases are handled
     PurityResult
         The purity result of the function node.
     """
-    if not isinstance(reason, Reasons):
+    if not isinstance(reason, Reasons) or not isinstance(reason.function_scope, FunctionScope):
         raise TypeError(f"Expected Reasons, got {reason.__class__.__name__}") from None
 
     # TODO: add ID to Reasons
@@ -406,7 +413,9 @@ def process_node(  # type: ignore[return] # all cases are handled
                     # The child is a combined node and therefore not part of the reference dict.
                     else:  # noqa: PLR5501 # better for readability
                         if function_id not in purity_results:  # better for readability
-                            purity_results[function_id] = analysis_result.call_graph.get_graph(child_id).reasons.result
+                            res = analysis_result.call_graph.get_graph(child_id).reasons.result
+                            if res:
+                                purity_results[function_id] = res
                         else:
                             purity_results[function_id] = purity_results[function_id].update(
                                 analysis_result.call_graph.get_graph(child_id).reasons.result,
@@ -456,17 +465,18 @@ def process_node(  # type: ignore[return] # all cases are handled
                             purity_results[function_id] = purity_results[function_id].update(purity)
 
                         if combined_node.function_scope.symbol.name not in purity_results:
-                            purity_results[combined_node.function_scope.symbol.name] = purity
+                            purity_results[combined_node.function_scope.symbol.id] = purity
                         else:
-                            purity_results[combined_node.function_scope.symbol.name] = purity_results[
-                                combined_node.function_scope.symbol.name
+                            purity_results[combined_node.function_scope.symbol.id] = purity_results[
+                                combined_node.function_scope.symbol.id
                             ].update(purity)
 
                     return purity_results[function_id]
 
         # Check if the node represents a self-defined function.
         if (
-            isinstance(reason.function_scope.symbol.node, astroid.FunctionDef | astroid.Lambda)
+            isinstance(reason.function_scope, FunctionScope)
+            and isinstance(reason.function_scope.symbol.node, astroid.FunctionDef | astroid.Lambda)
             and reason_id in analysis_result.call_graph.graphs
         ):
             # Check if the function does not call other functions (it is a leaf),
