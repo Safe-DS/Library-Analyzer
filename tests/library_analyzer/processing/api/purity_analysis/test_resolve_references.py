@@ -216,7 +216,7 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
             function_id.__str__(): SimpleReasons(
                 function_references.function_scope.symbol.name,
                 {
-                    f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.name}.line{target_reference.node.fromlineno}"
+                    f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.name}.line{target_reference.node.fromlineno}" # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                     if isinstance(target_reference, ClassVariable) and target_reference.klass is not None
                     else (
                         f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.member}.line{target_reference.node.node.fromlineno}"
@@ -225,10 +225,10 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                     for target_reference in function_references.writes_to
                 },
                 {
-                    f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.name}.line{value_reference.node.fromlineno}"
+                    f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.name}.line{value_reference.node.fromlineno}" # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                     if isinstance(value_reference, ClassVariable) and value_reference is not None
                     else (
-                        f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.member}.line{value_reference.node.node.fromlineno}"
+                        f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.member}.line{value_reference.node.node.fromlineno}" # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                         if isinstance(value_reference, InstanceVariable) else
                         f"{value_reference.__class__.__name__}.{value_reference.node.name}.line{value_reference.node.fromlineno}")
                     for value_reference in function_references.reads_from
@@ -243,8 +243,8 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                             f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
                             if isinstance(function_reference, ClassVariable) and function_reference.klass is not None
                             else (
-                                f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.member}.line{function_reference.node.node.fromlineno}"
-                                if isinstance(function_reference, InstanceVariable) else
+                                f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.member}.line{function_reference.node.node.fromlineno}" # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                                if isinstance(function_reference, InstanceVariable) and function_reference.klass is not None else
                                 f"{function_reference.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}")
                         )
                     )
@@ -1858,12 +1858,12 @@ def fun():
         f.close()
             """,  # language=none
             [
-                ReferenceTestNode("open.line3", "FunctionDef.fun", ["Builtin.open"]),
-                ReferenceTestNode("read.line4", "FunctionDef.fun", ["Builtin.read"]),
+                ReferenceTestNode("open.line3", "FunctionDef.fun", ["BuiltinOpen.open"]),
+                ReferenceTestNode("read.line4", "FunctionDef.fun", ["BuiltinOpen.read"]),
                 ReferenceTestNode("f.line4", "FunctionDef.fun", ["LocalVariable.f.line3"]),
                 ReferenceTestNode("print.line5", "FunctionDef.fun", ["Builtin.print"]),
                 ReferenceTestNode("text.line5", "FunctionDef.fun", ["LocalVariable.text.line4"]),
-                ReferenceTestNode("close.line6", "FunctionDef.fun", ["Builtin.close"]),
+                ReferenceTestNode("close.line6", "FunctionDef.fun", ["BuiltinOpen.close"]),
                 ReferenceTestNode("f.line6", "FunctionDef.fun", ["LocalVariable.f.line3"]),
             ],
         ),
@@ -2600,7 +2600,7 @@ def f():
                     },
                     {
                         "GlobalVariable.g.line5",
-                        "Builtin.open",
+                        "BuiltinOpen.open",
                     },
                 ),
                 ".g.5.0": SimpleReasons("g", set(), set(), set()),

@@ -89,7 +89,7 @@ class ModuleAnalysisResult:
 
     Attributes
     ----------
-    resolved_references : dict[str, list[ReferenceNode]]
+    resolved_references : dict[str, list[ValueReference | TargetReference]]
         The dictionary of references.
         The key is the name of the reference node, the value is the list of ReferenceNodes.
     raw_reasons : dict[NodeID, Reasons]
@@ -101,7 +101,7 @@ class ModuleAnalysisResult:
         The call graph forest of the module.
     """
 
-    resolved_references: dict[str, list[ReferenceNode]]
+    resolved_references: dict[str, list[ValueReference | TargetReference]]
     raw_reasons: dict[NodeID, Reasons]
     classes: dict[str, ClassScope]
     call_graph: CallGraphForest

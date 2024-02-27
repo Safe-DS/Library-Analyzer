@@ -22,7 +22,7 @@ class CallGraphNode:
 
     Attributes
     ----------
-    function : FunctionScope | ClassScope
+    function_scope : FunctionScope | ClassScope
         The function that the node represents.
         This is a ClassScope if the class has a __init__ method.
         In this case, the node is used for propagating the reasons of the
@@ -39,7 +39,7 @@ class CallGraphNode:
         True if the function is a builtin function, False otherwise.
     """
 
-    function: FunctionScope | ClassScope
+    function_scope: FunctionScope | ClassScope
     reasons: Reasons
     children: set[CallGraphNode] = field(default_factory=set)
     combined_node_names: list[str] = field(default_factory=list)
@@ -49,11 +49,11 @@ class CallGraphNode:
         return hash(str(self))
 
     def __repr__(self) -> str:
-        if isinstance(self.function, FunctionScope | ClassScope):
-            return f"{self.function.symbol.id}"
-        if isinstance(self.function, Reference):
-            return f"{self.function.id}"
-        return f"{self.function}"
+        if isinstance(self.function_scope, FunctionScope | ClassScope):
+            return f"{self.function_scope.symbol.id}"
+        if isinstance(self.function_scope, Reference):
+            return f"{self.function_scope.id}"
+        return f"{self.function_scope}"
 
     def add_child(self, child: CallGraphNode) -> None:
         """Add a child to the node.

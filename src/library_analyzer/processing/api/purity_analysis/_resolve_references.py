@@ -22,7 +22,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ReferenceNode,
     Symbol,
     TargetReference,
-    ValueReference,
+    ValueReference, BuiltinOpen,
 )
 
 _BUILTINS = dir(builtins)
@@ -74,6 +74,7 @@ def _find_call_references(call_reference: Reference,
             value_reference.referenced_symbols.append(class_def.symbol)
 
     # Find builtins that are called, this includes open-like functions.
+    # Because the parameters of the call node are relevant for the analysis, they are added to the (Builtin) Symbol.
     if call_reference.name in _BUILTINS or call_reference.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
         # Construct an artificial FunctionDef node for the builtin function.
         builtin_function = astroid.FunctionDef(
@@ -87,6 +88,13 @@ def _find_call_references(call_reference: Reference,
             id=NodeID(None, call_reference.name, -1, -1),
             name=call_reference.name,
         )
+        if call_reference.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
+            builtin_call = BuiltinOpen(
+                node=builtin_function,
+                id=NodeID(None, call_reference.name, -1, -1),
+                name=call_reference.name,
+                call=call_reference.node
+            )
         value_reference.referenced_symbols.append(builtin_call)
 
     # Find function parameters that are called (passed as arguments), like:
@@ -290,22 +298,6 @@ def resolve_references(
     """
     module_data = get_module_data(code)
 
-    def add_result_to_references(result: ValueReference | TargetReference, target: dict[str, list[ValueReference | TargetReference]]) -> None:
-        if result.node.name not in target:
-            target[result.node.name] = [result]
-        else:
-            target[result.node.name].append(result)
-
-        add_raw_reason(result.referenced_symbols)
-
-    def add_raw_reason(referenced_symbols: list[Symbol]) -> None:
-        for ref_symbol in referenced_symbols:
-            if isinstance(ref_symbol, GlobalVariable | ClassVariable | Builtin):
-                if ref_symbol not in raw_reasons[function.symbol.id].calls:
-                    raw_reasons[function.symbol.id].calls.add(ref_symbol)
-                else:
-                    raw_reasons[function.symbol.id].calls = {ref_symbol}
-
     raw_reasons: dict[NodeID, Reasons] = {}
     call_references: dict[str, list[ValueReference]] = {}
     value_references: dict[str, list[ValueReference]] = {}
@@ -316,11 +308,9 @@ def resolve_references(
     # This could be done by further specifying the call_references for a function (by analyzing the signature, etc.)
     # If it is analyzed with 100% certainty, it is possible to remove the list and use a single ValueReference.
 
-    # reasons = _collect_reasons(module_data)
     for function_list in module_data.functions.values():
         # iterate over all functions with the same name
         for function in function_list:
-
             # Collect the reasons while iterating over the functions, so there is no need to iterate over them again.
             raw_reasons[function.symbol.id] = Reasons(function)
 
@@ -343,7 +333,7 @@ def resolve_references(
 
                             # Add the referenced symbols to the calls of the raw_reasons dict for this function
                             for referenced_symbol in call_references_result.referenced_symbols:
-                                if isinstance(referenced_symbol, GlobalVariable | ClassVariable | Builtin):
+                                if isinstance(referenced_symbol, GlobalVariable | ClassVariable | Builtin | BuiltinOpen):
                                     if referenced_symbol not in raw_reasons[function.symbol.id].calls:
                                         raw_reasons[function.symbol.id].calls.add(referenced_symbol)
 
@@ -409,16 +399,16 @@ def resolve_references(
 
 
 def merge_dicts(
-    d1: dict[str, list[ValueReference] | list[TargetReference]],
-    d2: dict[str, list[ValueReference] | list[TargetReference]],
+    d1: dict[str, list[ValueReference]] | dict[str, list[TargetReference]] | dict[str, list[ValueReference] | list[TargetReference]],
+    d2: dict[str, list[ValueReference]] | dict[str, list[TargetReference]] | dict[str, list[ValueReference] | list[TargetReference]],
 ) -> dict[str, list[ValueReference | TargetReference]]:
     """Merge two dicts of lists of ReferenceNodes.
 
     Parameters
     ----------
-    d1 : dict[str, list[ValueReference] | list[TargetReference]]
+    d1 : dict[str, list[ValueReference]] | dict[str, list[TargetReference]] | dict[str, list[ValueReference] | list[TargetReference]]
         The first dict.
-    d2 : dict[str, list[ValueReference] | list[TargetReference]]
+    d2 : dict[str, list[ValueReference]] | dict[str, list[TargetReference]] | dict[str, list[ValueReference] | list[TargetReference]]
         The second dict.
 
     Returns

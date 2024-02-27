@@ -295,6 +295,27 @@ class Builtin(Symbol):
 
 
 @dataclass
+class BuiltinOpen(Builtin):
+    """Represents the builtin open like function.
+
+    When dealing with open-like functions the call node is needed to determine the file path.
+
+    Attributes
+    ----------
+    call : astroid.Call
+        The call node of the open-like function.
+    """
+
+    call: astroid.Call
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}"
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+
+@dataclass
 class Reference:
     """Represents a node that references a Name.
 
@@ -454,6 +475,7 @@ class FunctionScope(Scope):
         The dict of all value nodes used inside the corresponding function.
     call_references : dict[str, list[Reference]]
         The dict of all function calls inside the corresponding function.
+        The key is the name of the call node, the value is a list of all References of call nodes with that name.
     parameters : dict[str, Parameter]
         The parameters of the function.
     globals_used : dict[str, list[GlobalVariable]]

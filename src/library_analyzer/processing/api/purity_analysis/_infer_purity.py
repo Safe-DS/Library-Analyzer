@@ -28,7 +28,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Reasons,
     StringLiteral,
     Symbol,
-    UnknownCall,
+    UnknownCall, BuiltinOpen,
 )
 
 if TYPE_CHECKING:
@@ -225,15 +225,15 @@ OPEN_MODES = {
 
 
 # TODO: remove type ignore after implementing all cases
-def check_open_like_functions(symbol: Symbol) -> PurityResult:  # type: ignore[return] # all cases are handled
+def check_open_like_functions(call: astroid.Call) -> PurityResult:  # type: ignore[return] # all cases are handled
     """Check open-like function for impurity.
 
     This includes functions like open, read, readline, readlines, write, writelines.
 
     Parameters
     ----------
-    symbol: Symbol
-        The symbol to check.
+    call: astrid.Call
+        The call to check.
 
     Returns
     -------
@@ -241,52 +241,54 @@ def check_open_like_functions(symbol: Symbol) -> PurityResult:  # type: ignore[r
         The purity result of the function.
 
     """
-    if isinstance(symbol.node, astroid.Call):
-        # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
-        if isinstance(symbol.node.func, astroid.Attribute):
-            func_ref_node_func_name = symbol.node.func.attrname
-        else:
-            func_ref_node_func_name = symbol.node.func.name
+    if not isinstance(call, astroid.Call):
+        raise TypeError(f"Expected astroid.Call, got {call.__class__.__name__}") from None
 
-        # Check if the function is open
-        if func_ref_node_func_name == "open":
-            open_mode_str: str = "r"
-            open_mode: OpenMode | None = None
-            # Check if a mode is set and if the value is a string literal
-            if len(symbol.node.args) >= 2 and isinstance(symbol.node.args[1], astroid.Const):
-                if symbol.node.args[1].value in OPEN_MODES:
-                    open_mode_str = symbol.node.args[1].value
-            # Exclude the case where the mode is a variable since it cannot be determined in this case,
-            # therefore, set it to be the worst case (read and write).
-            elif len(symbol.node.args) == 2 and not isinstance(symbol.node.args[1], astroid.Const):
-                open_mode = OpenMode.READ_WRITE
+    # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
+    if isinstance(call.func, astroid.Attribute):
+        func_ref_node_func_name = call.func.attrname
+    else:
+        func_ref_node_func_name = call.func.name
 
-            # Check if the file name is a variable or a string literal
-            if isinstance(symbol.node.args[0], astroid.Name):
-                file_var = symbol.node.args[0].name
-                if not open_mode:
-                    open_mode = OPEN_MODES[open_mode_str]
-                match open_mode:
-                    case OpenMode.READ:
-                        return Impure({FileRead(ParameterAccess(file_var))})
-                    case OpenMode.WRITE:
-                        return Impure({FileWrite(ParameterAccess(file_var))})
-                    case OpenMode.READ_WRITE:
-                        return Impure({FileRead(ParameterAccess(file_var)), FileWrite(ParameterAccess(file_var))})
+    # Check if the function is open
+    if func_ref_node_func_name == "open":
+        open_mode_str: str = "r"
+        open_mode: OpenMode | None = None
+        # Check if a mode is set and if the value is a string literal
+        if len(call.args) >= 2 and isinstance(call.args[1], astroid.Const):
+            if call.args[1].value in OPEN_MODES:
+                open_mode_str = call.args[1].value
+        # Exclude the case where the mode is a variable since it cannot be determined in this case,
+        # therefore, set it to be the worst case (read and write).
+        elif len(call.args) == 2 and not isinstance(call.args[1], astroid.Const):
+            open_mode = OpenMode.READ_WRITE
 
-            # The file name is a string literal
-            else:
-                file_str = symbol.node.args[0].value
+        # Check if the file name is a variable or a string literal
+        if isinstance(call.args[0], astroid.Name):
+            file_var = call.args[0].name
+            if not open_mode:
                 open_mode = OPEN_MODES[open_mode_str]
-                match open_mode:
-                    case OpenMode.READ:
-                        return Impure({FileRead(StringLiteral(file_str))})
-                    case OpenMode.WRITE:
-                        return Impure({FileWrite(StringLiteral(file_str))})
-                    case OpenMode.READ_WRITE:
-                        return Impure({FileRead(StringLiteral(file_str)), FileWrite(StringLiteral(file_str))})
+            match open_mode:
+                case OpenMode.READ:
+                    return Impure({FileRead(ParameterAccess(file_var))})
+                case OpenMode.WRITE:
+                    return Impure({FileWrite(ParameterAccess(file_var))})
+                case OpenMode.READ_WRITE:
+                    return Impure({FileRead(ParameterAccess(file_var)), FileWrite(ParameterAccess(file_var))})
+
+        # The file name is a string literal
         else:
-            pass  # TODO: [Later] for now it is good enough to deal with open() only, but we MAYBE need to deal with the other open-like functions too
+            file_str = call.args[0].value
+            open_mode = OPEN_MODES[open_mode_str]
+            match open_mode:
+                case OpenMode.READ:
+                    return Impure({FileRead(StringLiteral(file_str))})
+                case OpenMode.WRITE:
+                    return Impure({FileWrite(StringLiteral(file_str))})
+                case OpenMode.READ_WRITE:
+                    return Impure({FileRead(StringLiteral(file_str)), FileWrite(StringLiteral(file_str))})
+    else:
+        pass  # TODO: [Later] for now it is good enough to deal with open() only, but we MAYBE need to deal with the other open-like functions too
 
 
 def infer_purity(
@@ -365,7 +367,7 @@ def process_node(  # type: ignore[return] # all cases are handled
     # Normally, the ID can be calculated from the function node as usual.
     else:
         reason_id = calc_node_id(reason.function_scope.symbol.node)
-
+    # TODO: reason_id == function_id ??
     function_id = reason.function_scope.symbol.id
 
     # Check the forest if the purity of the function is already determined
@@ -375,14 +377,14 @@ def process_node(  # type: ignore[return] # all cases are handled
             return purity_results[function_id]
 
     # Check if the referenced function is a builtin function.
-    elif function_id.name in BUILTIN_FUNCTIONS:
-        if function_id.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
-            purity_results[function_id] = check_open_like_functions(
-                reason.get_call_by_name(function_id.name),
-            )
-        else:
-            purity_results[function_id] = BUILTIN_FUNCTIONS[function_id.name]
-        return purity_results[function_id]
+    # elif function_id.name in BUILTIN_FUNCTIONS:
+    #     if function_id.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
+    #         purity_results[function_id] = check_open_like_functions(
+    #             reason.get_call_by_name(function_id.name),
+    #         )
+    #     else:
+    #         purity_results[function_id] = BUILTIN_FUNCTIONS[function_id.name]
+    #     return purity_results[function_id]
 
     # The purity of the function is not determined yet.
     try:
@@ -392,7 +394,7 @@ def process_node(  # type: ignore[return] # all cases are handled
             # If the node is part of the call graph, check if it has any children (called functions) = not a leaf.
             if not analysis_result.call_graph.get_graph(reason_id).is_leaf():
                 for child in analysis_result.call_graph.get_graph(reason_id).children:
-                    child_id = child.function.symbol.id
+                    child_id = child.function_scope.symbol.id
                     # Check if the node is a combined node (would throw a KeyError otherwise).
                     if not child.combined_node_names:
                         get_purity_of_child(
@@ -417,7 +419,7 @@ def process_node(  # type: ignore[return] # all cases are handled
         else:
             # Check if the node is a combined node since they need to be handled differently.
             combined_nodes = {
-                node.function.symbol.name: node for node in analysis_result.call_graph.graphs.values() if node.combined_node_names
+                node.function_scope.symbol.name: node for node in analysis_result.call_graph.graphs.values() if node.combined_node_names
             }
             for combined_node in combined_nodes.values():
                 # Check if the current node is part of the combined node (therefore part of the cycle).
@@ -439,7 +441,7 @@ def process_node(  # type: ignore[return] # all cases are handled
 
                         # TODO: refactor this so it is cleaner
                         purity = transform_reasons_to_impurity_result(
-                            analysis_result.call_graph.graphs[combined_node.function.symbol.id].reasons,
+                            analysis_result.call_graph.graphs[combined_node.function_scope.symbol.id].reasons,
                             # analysis_result
                         )
 
@@ -453,11 +455,11 @@ def process_node(  # type: ignore[return] # all cases are handled
                         else:
                             purity_results[function_id] = purity_results[function_id].update(purity)
 
-                        if combined_node.function.symbol.name not in purity_results:
-                            purity_results[combined_node.function.symbol.name] = purity
+                        if combined_node.function_scope.symbol.name not in purity_results:
+                            purity_results[combined_node.function_scope.symbol.name] = purity
                         else:
-                            purity_results[combined_node.function.symbol.name] = purity_results[
-                                combined_node.function.symbol.name
+                            purity_results[combined_node.function_scope.symbol.name] = purity_results[
+                                combined_node.function_scope.symbol.name
                             ].update(purity)
 
                     return purity_results[function_id]
@@ -527,11 +529,11 @@ def get_purity_of_child(
         The function ids as keys and purity results of the functions as values.
         Since the collection runs recursively, pass them as a parameter to check for already determined results.
     """
-    child_name = child.function.symbol.name
-    child_id = child.function.symbol.id
+    child_name = child.function_scope.symbol.name
+    child_id = child.function_scope.symbol.id
 
-    if child_name in ("open", "read", "readline", "readlines", "write", "writelines"):
-        purity_result_child = check_open_like_functions(reason.get_call_by_name(child_name))
+    if isinstance(child.function_scope.symbol, BuiltinOpen):
+        purity_result_child = check_open_like_functions(child.function_scope.symbol.call)
     elif child_name in BUILTIN_FUNCTIONS:
         purity_result_child = BUILTIN_FUNCTIONS[child_name]
     elif child_name in analysis_result.classes:

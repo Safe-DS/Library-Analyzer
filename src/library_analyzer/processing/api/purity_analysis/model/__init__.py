@@ -6,6 +6,7 @@ from library_analyzer.processing.api.purity_analysis.model._call_graph import (
 )
 from library_analyzer.processing.api.purity_analysis.model._module_data import (
     Builtin,
+    BuiltinOpen,
     ClassScope,
     ClassVariable,
     FunctionScope,
@@ -90,4 +91,5 @@ __all__ = [
     "TargetReference",
     "ValueReference",
     "APIPurity",
+    "BuiltinOpen",
 ]
