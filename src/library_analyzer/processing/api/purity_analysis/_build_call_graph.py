@@ -418,7 +418,7 @@ def update_pointers(node: CallGraphNode, cycle_names: list[str], combined_node: 
                                                                              FunctionScope):
                 node.function_scope.remove_call_node_by_name(child.function_scope.symbol.name)
                 call_refs: list[Reference] = []
-                for ref in child.function_scope.call_references.values():
+                for ref in child.function_scope.call_references.values():  # type: ignore[union-attr] # Mypy does not recognize that function_scope is of type FunctionScope here even it is.
                     call_refs.extend(ref)
                 calls: dict[str, list[Reference]] = {combined_node.function_scope.symbol.name: call_refs}
                 node.function_scope.call_references.update(calls)

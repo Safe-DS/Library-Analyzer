@@ -214,21 +214,21 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
     for function_id, function_references in reasons.items():
         transformed_function_references.update({
             function_id.__str__(): SimpleReasons(
-                function_references.function_scope.symbol.name,
+                function_references.function_scope.symbol.name,  # type: ignore[union-attr] # function_scope is not None
                 {
-                    f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.name}.line{target_reference.node.fromlineno}" # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                    f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.name}.line{target_reference.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                     if isinstance(target_reference, ClassVariable) and target_reference.klass is not None
                     else (
-                        f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.member}.line{target_reference.node.node.fromlineno}"
+                        f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.member}.line{target_reference.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                         if isinstance(target_reference, InstanceVariable) else
                         f"{target_reference.__class__.__name__}.{target_reference.node.name}.line{target_reference.node.fromlineno}")
                     for target_reference in function_references.writes_to
                 },
                 {
-                    f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.name}.line{value_reference.node.fromlineno}" # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                    f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.name}.line{value_reference.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                     if isinstance(value_reference, ClassVariable) and value_reference is not None
                     else (
-                        f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.member}.line{value_reference.node.node.fromlineno}" # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                        f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.member}.line{value_reference.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                         if isinstance(value_reference, InstanceVariable) else
                         f"{value_reference.__class__.__name__}.{value_reference.node.name}.line{value_reference.node.fromlineno}")
                     for value_reference in function_references.reads_from
