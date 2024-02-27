@@ -16,7 +16,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     MemberAccessValue,
     NodeID,
     Reasons,
-    ReferenceNode,
+    ReferenceNode, Builtin,
 )
 
 
@@ -214,7 +214,7 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
     for function_id, function_references in reasons.items():
         transformed_function_references.update({
             function_id.__str__(): SimpleReasons(
-                function_references.function.symbol.name,
+                function_references.function_scope.symbol.name,
                 {
                     f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.name}.line{target_reference.node.fromlineno}"
                     if isinstance(target_reference, ClassVariable) and target_reference.klass is not None
@@ -237,9 +237,8 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                     f"{function_reference.__class__.__name__}.{function_reference.node.attrname}.line{function_reference.node.fromlineno}"
                     if isinstance(function_reference.node, astroid.Attribute)
                     else (
-                        f"{function_reference.__class__.__name__}.{function_reference.node.func.name}"
-                        if isinstance(function_reference.node,
-                                      astroid.Call)  # Special case for builtin functions since we do not get their FunctionDef node.
+                        f"{function_reference.__class__.__name__}.{function_reference.node.name}"
+                        if isinstance(function_reference, Builtin)  # Special case for builtin functions since we do not get their line.
                         else (
                             f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
                             if isinstance(function_reference, ClassVariable) and function_reference.klass is not None

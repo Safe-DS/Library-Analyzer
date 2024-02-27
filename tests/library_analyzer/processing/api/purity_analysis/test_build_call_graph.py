@@ -239,7 +239,7 @@ def fun2():
             """,  # language=none
             {
                 ".fun1.2.0": {".fun2.5.0"},
-                ".fun2.5.0": {".print.6.4"},  # print is a builtin function and therefore has no function def to reference -> we use the id of the call node for simplicity
+                ".fun2.5.0": {"print"},  # print is a builtin function and therefore has no function def to reference -> therefor it has no line
             },
         ),
         (  # language=Python "external function call",
@@ -474,7 +474,7 @@ class B:
                 ".A.8.0": set(),
                 ".B.14.0": set(),
                 ".fun1.2.0": set(),
-                ".fun2.5.0": {".print.6.4"},  # print is a builtin function and therefore has no function def to reference -> we use the id of the call node for simplicity
+                ".fun2.5.0": {"print"},  # print is a builtin function and therefore has no function def to reference -> therefor it has no line
                 ".add.10.4": {".fun1.2.0"},
                 ".add.16.4": {".fun2.5.0"},
             },

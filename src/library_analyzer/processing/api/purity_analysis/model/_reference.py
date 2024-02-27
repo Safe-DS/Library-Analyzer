@@ -116,7 +116,7 @@ class Reasons:
 
     Attributes
     ----------
-    function : FunctionScope | None
+    function_scope : FunctionScope | None
         The scope of the function which the reasons belong to.
         Is None if the reasons are not for a function.
         This is the case when a combined node is created, or a ClassScope is used to propagate reasons.
@@ -135,7 +135,7 @@ class Reasons:
         Unknown calls are calls to functions that are not defined in the module or are simply not existing.
     """
 
-    function: FunctionScope | None = field(default=None)
+    function_scope: FunctionScope | None = field(default=None)
     writes_to: set[GlobalVariable | ClassVariable | InstanceVariable] = field(default_factory=set)
     reads_from: set[GlobalVariable | ClassVariable | InstanceVariable] = field(default_factory=set)
     calls: set[Symbol] = field(default_factory=set)

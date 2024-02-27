@@ -87,7 +87,9 @@ class ModuleDataBuilder:
     value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope | FunctionScope] = field(
         default_factory=dict,
     )
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
+    target_nodes: dict[
+        astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope | FunctionScope] = field(
+        default_factory=dict)
     global_variables: dict[str, Scope | ClassScope | FunctionScope] = field(default_factory=dict)
     parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope | FunctionScope, list[astroid.AssignName]]] = field(
         default_factory=dict,
@@ -111,42 +113,38 @@ class ModuleDataBuilder:
         """
         outer_scope_children: list[Scope | ClassScope] = []
         inner_scope_children: list[Scope | ClassScope] = []
-        # This is only the case when we leave the module: every child must be in the inner scope(=module scope)
-        # This speeds up the process of finding the scope of the children and guarantees that no child is lost
+        # This is only the case when the module is left: every child must be in the inner scope (=module scope).
+        # This speeds up the process of finding the scope of the children.
         if isinstance(current_node, astroid.Module):
             inner_scope_children = self.children
-
-            # add all symbols of a function to the function_references dict
-            # self.function_references = self.collect_function_references()
-
-        # We need to look at a nodes' parent node to determine if it is in the scope of the current node.
+        # Look at a nodes' parent node to determine if it is in the scope of the current node.
         else:
             for child in self.children:
                 if (
                     child.parent is not None and child.parent.symbol.node != current_node
-                ):  # Check if the child is in the scope of the current node
-                    outer_scope_children.append(child)  # Add the child to the outer scope
+                ):  # Check if the child is in the scope of the current node.
+                    outer_scope_children.append(child)  # Add the child to the outer scope.
                 else:
-                    inner_scope_children.append(child)  # Add the child to the inner scope
+                    inner_scope_children.append(child)  # Add the child to the inner scope.
 
-        self.current_node_stack[-1].children = inner_scope_children  # Set the children of the current node
-        self.children = outer_scope_children  # Keep the children that are not in the scope of the current node
-        self.children.append(self.current_node_stack[-1])  # Add the current node to the children
+        self.current_node_stack[-1].children = inner_scope_children  # Set the children of the current node.
+        self.children = outer_scope_children  # Keep the children that are not in the scope of the current node.
+        self.children.append(self.current_node_stack[-1])  # Add the current node to the children.
 
         # TODO: ideally this should not be part of detect_scope since it is just called when we leave the corresponding node
-        # Analyze the current node regarding class exclusive property's
+        # Analyze the current node regarding class exclusive property's.
         if isinstance(current_node, astroid.ClassDef):
             self._analyze_class(current_node)
 
-        # Analyze the current node regarding function exclusive property's
+        # Analyze the current node regarding function exclusive property's.
         if isinstance(current_node, astroid.FunctionDef):
             self._analyze_function(current_node)
 
-        # Analyze the current node regarding lambda exclusive property's
+        # Analyze the current node regarding lambda exclusive property's.
         if isinstance(current_node, astroid.Lambda):
             self._analyze_lambda(current_node)
 
-        self.current_node_stack.pop()  # Remove the current node from the stack
+        self.current_node_stack.pop()  # Remove the current node from the stack.
 
     def _analyze_class(self, current_node: astroid.ClassDef) -> None:
         """Analyze a ClassDef node.
@@ -162,10 +160,11 @@ class ModuleDataBuilder:
         """
         if not isinstance(current_node, astroid.ClassDef):
             return
-        # Add classdef to the classes dict
-        self.classes[current_node.name] = self.current_node_stack[-1]  # type: ignore[assignment] # we can ignore the linter error because of the if statement above
+        # Add classdef to the classes dict.
+        self.classes[current_node.name] = self.current_node_stack[
+            -1]  # type: ignore[assignment] # current_node_stack[-1] is always of type ClassScope
 
-        # Add class variables to the class_variables dict
+        # Add class variables to the class_variables dict.
         for child in self.current_node_stack[-1].children:
             if isinstance(child.symbol, ClassVariable) and isinstance(self.current_node_stack[-1], ClassScope):
                 if child.symbol.name in self.current_node_stack[-1].class_variables:
@@ -196,11 +195,11 @@ class ModuleDataBuilder:
         else:  # noqa: PLR5501 # better for readability
             self.functions[current_node.name] = [self.current_function_def[-1]]
 
-        # If we deal with a constructor, we need to analyze it to find the instance variables of the class
+        # If the function is the constructor of a class, analyze it to find the instance variables of the class.
         if current_node.name == "__init__":
             self._analyze_constructor()
 
-        # Add all calls that are used inside the function body to its calls' dict
+        # Add all calls that are used inside the function body to its calls' dict.
         if self.calls:
             for call in self.calls:
                 if call.name not in self.functions[current_node.name][-1].call_references:
@@ -210,7 +209,7 @@ class ModuleDataBuilder:
 
             self.calls = []
 
-        # Add all targets that are used inside the function body to its targets' dict
+        # Add all targets that are used inside the function body to its targets' dict.
         if self.targets:
             parent_targets = []
             for target in self.targets:
@@ -225,7 +224,7 @@ class ModuleDataBuilder:
             if parent_targets:
                 self.targets = parent_targets
 
-        # Add all values that are used inside the function body to its values' dict
+        # Add all values that are used inside the function body to its values' dict.
         if self.values:
             for value in self.values:
                 # Do not add calls to value references
@@ -252,26 +251,26 @@ class ModuleDataBuilder:
         if not isinstance(current_node, astroid.Lambda):
             return
 
-        # Add lambda functions that are assigned to a name (and therefor are callable) to the functions dict
+        # Add lambda functions that are assigned to a name (and therefor are callable) to the functions' dict.
         if isinstance(current_node, astroid.Lambda) and isinstance(current_node.parent, astroid.Assign):
-            # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+            # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
             if isinstance(current_node.parent.targets[0], astroid.AssignAttr):
                 node_name = current_node.parent.targets[0].attrname
             else:
                 node_name = current_node.parent.targets[0].name
-            # If the Lambda function is assigned to a name, it can be called just as a normal function
-            # Since Lambdas normally do not have names, we need to add its assigned name manually
+            # If the Lambda function is assigned to a name, it can be called just as a normal function.
+            # Since Lambdas normally do not have names, they need to be assigned manually.
             self.current_function_def[-1].symbol.name = node_name
             self.current_function_def[-1].symbol.node.name = node_name
             self.current_function_def[-1].symbol.id.name = node_name
 
-            # Extend the dict of functions with the current node or create a new list with the current node
+            # Extend the dict of functions with the current node or create a new list with the current node.
             if node_name in self.functions:
                 self.functions[node_name].append(self.current_function_def[-1])
             else:  # noqa: PLR5501 # better for readability
                 self.functions[node_name] = [self.current_function_def[-1]]
 
-            # Add all targets that are used inside the function body to its targets' dict
+            # Add all targets that are used inside the function body to its targets' dict.
             if self.targets:
                 for target in self.targets:
                     if target.name not in self.current_function_def[-1].target_symbols:
@@ -280,7 +279,7 @@ class ModuleDataBuilder:
                         self.current_function_def[-1].target_symbols[target.name].append(target)
                 self.targets = []
 
-            # Add all values that are used inside the function body to its values' dict
+            # Add all values that are used inside the function body to its values' dict.
             if self.values:
                 for value in self.values:
                     if value.name not in self.current_function_def[-1].value_references:
@@ -289,7 +288,7 @@ class ModuleDataBuilder:
                         self.current_function_def[-1].value_references[value.name].append(value)
                 self.values = []
 
-            # Add all calls that are used inside the function body to its calls' dict
+            # Add all calls that are used inside the function body to its calls' dict.
             if self.calls:
                 for call in self.calls:
                     if call.name not in self.functions[current_node.name][-1].call_references:
@@ -299,17 +298,18 @@ class ModuleDataBuilder:
                 self.calls = []
 
         # Lambda Functions that have no name are hard to deal with when building the call graph. Therefore,
-        # we simply add all of their names/calls to the parent function to indirectly add the needed impurity info
-        # to the parent function. We assume that lambda functions are only used inside a function body (other cases
-        # would be irrelevant for function purity anyway). Anyway, all names in the lambda function are of local
-        # scope. Therefore, we assign a FunctionScope instance with the name 'Lambda' to represent that.
+        # add all of their targets/values/calls to the parent function to indirectly add the needed impurity info
+        # to the parent function. From here, assume that lambda functions are only used inside a function body
+        # (other cases would be irrelevant for function purity anyway).
+        # Anyway, all names in the lambda function are of local scope.
+        # Therefore, assign a FunctionScope instance with the name 'Lambda' to represent that.
         if (
             isinstance(current_node, astroid.Lambda)
             and not isinstance(current_node, astroid.FunctionDef)
             and isinstance(current_node.parent, astroid.Call | astroid.Expr)
-        # Call deals  with: (lambda x: x+1)(2) and Expr deals with: lambda x: x+1
+            # Call deals  with: (lambda x: x+1)(2) and Expr deals with: lambda x: x+1
         ):
-            # Add all targets that are used inside the function body to its targets' dict
+            # Add all targets that are used inside the function body to its targets' dict.
             if self.targets:
                 for target in self.targets:
                     if target.name not in self.current_function_def[-1].target_symbols:
@@ -318,16 +318,17 @@ class ModuleDataBuilder:
                         self.current_function_def[-1].target_symbols[target.name].append(target)
                 self.targets = []
 
-            # Add all values that are used inside the lambda body to its parent function values' dict
+            # Add all values that are used inside the lambda body to its parent function values' dict.
             if self.values and isinstance(self.current_node_stack[-2], FunctionScope):
                 for value in self.values:
-                    if value.name not in self.current_function_def[-1].parameters:  # type: ignore[union-attr] # we can ignore the linter error because the current scope node is always of type FunctionScope and therefor has a parameter attribute.
+                    if value.name not in self.current_function_def[
+                        -1].parameters:  # type: ignore[union-attr] # ignore the linter error because the current scope node is always of type FunctionScope and therefor has a parameter attribute.
                         if value.name not in self.current_node_stack[-2].value_references:
                             self.current_node_stack[-2].value_references[value.name] = [value]
                         else:
                             self.current_node_stack[-2].value_references[value.name].append(value)
 
-            # Add the values to the Lambda FunctionScope
+            # Add the values to the Lambda FunctionScope.
             if self.values and isinstance(self.current_function_def[-1], FunctionScope) and isinstance(
                 self.current_function_def[-1].symbol.node, astroid.Lambda):
                 for value in self.values:
@@ -337,7 +338,7 @@ class ModuleDataBuilder:
                         self.current_function_def[-1].value_references[value.name].append(value)
             self.values = []
 
-            # Add all calls that are used inside the lambda body to its parent function calls' dict
+            # Add all calls that are used inside the lambda body to its parent function calls' dict.
             if self.calls and isinstance(self.current_node_stack[-2], FunctionScope):
                 for call in self.calls:
                     if call.name not in self.current_node_stack[-2].call_references:
@@ -345,9 +346,9 @@ class ModuleDataBuilder:
                     else:
                         self.current_node_stack[-2].call_references[call.name].append(call)
 
-            # Add the calls to the Lambda FunctionScope
+            # Add the calls to the Lambda FunctionScope.
             if self.calls and isinstance(self.current_function_def[-1], FunctionScope) and isinstance(
-               self.current_function_def[-1].symbol.node, astroid.Lambda):
+                self.current_function_def[-1].symbol.node, astroid.Lambda):
                 for call in self.calls:
                     if call.name not in self.current_function_def[-1].call_references:
                         self.current_function_def[-1].call_references[call.name] = [call]
@@ -355,11 +356,12 @@ class ModuleDataBuilder:
                         self.current_function_def[-1].call_references[call.name].append(call)
             self.calls = []
 
-            # Add all globals that are used inside the Lambda to the parent function globals list
+            # Add all globals that are used inside the Lambda to the parent function globals list.
             if self.current_node_stack[-1].globals_used:  # type: ignore[union-attr]
-                # we can ignore the linter error because the current scope node is always of
+                # Ignore the linter error because the current scope node is always of
                 # type FunctionScope and therefor has a parameter attribute.
-                for glob_name, glob_def_list in self.current_node_stack[-1].globals_used.items():  # type: ignore[union-attr] # see above
+                for glob_name, glob_def_list in self.current_node_stack[
+                    -1].globals_used.items():  # type: ignore[union-attr] # see above
                     if glob_name not in self.current_function_def[-2].globals_used:
                         self.current_function_def[-2].globals_used[glob_name] = glob_def_list
                     else:
@@ -373,7 +375,7 @@ class ModuleDataBuilder:
         The constructor of a class is a special function called when an instance of the class is created.
         This function must only be called when the name of the FunctionDef node is `__init__`.
         """
-        # add instance variables to the instance_variables list of the class
+        # Add instance variables to the instance_variables list of the class.
         for child in self.current_function_def[-1].children:
             if isinstance(child.symbol, InstanceVariable) and isinstance(
                 self.current_function_def[-1].parent,
@@ -383,7 +385,7 @@ class ModuleDataBuilder:
                     self.current_function_def[-1].parent.instance_variables[child.symbol.name].append(child.symbol)
                 else:
                     self.current_function_def[-1].parent.instance_variables[child.symbol.name] = [child.symbol]
-        # Add __init__ function to ClassScope
+        # Add __init__ function to ClassScope.
         if isinstance(self.current_function_def[-1].parent, ClassScope):
             self.current_function_def[-1].parent.init_function = self.current_function_def[-1]
 
@@ -402,7 +404,7 @@ class ModuleDataBuilder:
             If the parent is a module, return the module.
         """
         if isinstance(node, MemberAccess):
-            node = node.node  # This assures that we always have a node to calculate the parent function.
+            node = node.node  # This assures that the node to calculate the parent function exists.
         if isinstance(node.parent, astroid.FunctionDef | astroid.Lambda | astroid.Module | None):
             return node.parent
         return self.find_first_parent_function(node.parent)
@@ -450,7 +452,7 @@ class ModuleDataBuilder:
             ),
         )
         self.current_function_def.append(self.current_node_stack[-1])  # type: ignore[arg-type]
-        # we can be sure that the top of the current node stack is of type FunctionScope
+        # The current_node_stack[-1] is always of type FunctionScope here.
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
         self._detect_scope(node)
@@ -509,7 +511,7 @@ class ModuleDataBuilder:
                 return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
 
             case astroid.ClassDef():
-                # We defined that functions are class variables if they are defined in the class scope
+                # Functions inside a class are defined as class variables if they are defined in the class scope.
                 # if isinstance(node, astroid.FunctionDef):
                 #     return LocalVariable(node=node, id=_calc_node_id(node), name=node.name)
                 if isinstance(
@@ -547,7 +549,7 @@ class ModuleDataBuilder:
                 ):
                     return Parameter(node=node, id=calc_node_id(node), name=node.name)
 
-                # Special cases for nodes inside functions that we defined as LocalVariables but which do not have a name
+                # Special cases for nodes inside functions that are defined as LocalVariables but which do not have a name
                 if isinstance(node, _ComprehensionType | astroid.Lambda | astroid.TryExcept | astroid.TryFinally):
                     return LocalVariable(node=node, id=calc_node_id(node), name=node.__class__.__name__)
 
@@ -557,7 +559,7 @@ class ModuleDataBuilder:
                     return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
 
                 if isinstance(node, astroid.Call):
-                    # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+                    # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
                     if isinstance(node.func, astroid.Attribute):
                         return LocalVariable(node=node, id=calc_node_id(node), name=node.func.attrname)
                     return LocalVariable(node=node, id=calc_node_id(node), name=node.func.name)
@@ -566,7 +568,7 @@ class ModuleDataBuilder:
 
             case astroid.Lambda() | astroid.ListComp() | astroid.DictComp() | astroid.SetComp() | astroid.GeneratorExp():
                 if isinstance(node, astroid.Call):
-                    # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+                    # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
                     if isinstance(node.func, astroid.Attribute):
                         return LocalVariable(node=node, id=calc_node_id(node), name=node.func.attrname)
                     return LocalVariable(node=node, id=calc_node_id(node), name=node.func.name)
@@ -579,7 +581,7 @@ class ModuleDataBuilder:
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
             case (
-                astroid.TryExcept() | astroid.TryFinally()
+            astroid.TryExcept() | astroid.TryFinally()
             ):  # TODO: can we summarize Lambda and ListComp here? -> only if nodes in try except are not global
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
@@ -595,7 +597,7 @@ class ModuleDataBuilder:
             ),
         )
         self.current_function_def.append(self.current_node_stack[-1])  # type: ignore[arg-type]
-        # we can be sure that the top of the current node stack is of type FunctionScope
+        # The current_node_stack[-1] is always of type FunctionScope here.
 
     def leave_lambda(self, node: astroid.Lambda) -> None:
         self._detect_scope(node)
@@ -750,11 +752,11 @@ class ModuleDataBuilder:
             | astroid.Attribute,
         ):
             # The following if statement is necessary to avoid adding the same node to
-            # both the target_nodes and the value_nodes dict since there is a case where a name node is used as a
-            # target we need to check if the node is already in the target_nodes dict this is only the case if the
-            # name node is the receiver of a MemberAccessTarget node it is made sure that in this case the node is
+            # both the target_nodes and the value_nodes dict. Since there is a case where a name node is used as a
+            # target, a check is needed if the node is already in the target_nodes dict. This is only the case if the
+            # name node is the receiver of a MemberAccessTarget node. It is made sure that in this case the node is
             # definitely in the target_nodes dict because the MemberAccessTarget node is added to the dict before the
-            # name node
+            # name node.
             if node not in self.target_nodes:
                 self.value_nodes[node] = self.current_node_stack[-1]
 
@@ -772,16 +774,17 @@ class ModuleDataBuilder:
         func_def = self.find_first_parent_function(node)
 
         if self.current_function_def and func_def == self.current_function_def[-1].symbol.node:
-            # Exclude propagation to a function scope if we deal with a scope within that function that defined a local scope itself
+            # Exclude propagation to a function scope if the scope within that function defines a local scope itself.
             # e.g. ListComp, SetComp, DictComp, GeneratorExp
-            # Except the name node is a global variable
+            # Except the name node is a global variable, than it must be propagated to the function scope.
             # TODO: dazu zählen ListComp, Lambda, TryExcept??, TryFinally??
-            if isinstance(self.current_node_stack[-1].symbol.node, _ComprehensionType) and node.name not in self.global_variables:
+            if isinstance(self.current_node_stack[-1].symbol.node,
+                          _ComprehensionType) and node.name not in self.global_variables:
                 return
 
             # Deal with some special cases that need to be excluded
             if isinstance(node, astroid.Name):
-                # We ignore self and cls because they are not relevant for purity by our means
+                # Ignore self and cls because they are not relevant for purity by our means.
                 # if node.name in ("self", "cls"):
                 #     return
 
@@ -789,7 +792,7 @@ class ModuleDataBuilder:
                 if isinstance(node.parent, astroid.AssignAttr):
                     return
 
-                # Call removes the function name
+                # Call removes the function name.
                 if isinstance(node.parent, astroid.Call):
                     if isinstance(node.parent.func, astroid.Attribute):
                         if node.parent.func.attrname == node.name:
@@ -798,7 +801,7 @@ class ModuleDataBuilder:
                         if node.parent.func.name == node.name:
                             return
 
-                # Check if the Name belongs to a type hint
+                # Check if the Name belongs to a type hint.
                 if self.is_annotated(node, found_annotation_node=False):
                     return
 
@@ -806,28 +809,29 @@ class ModuleDataBuilder:
             if reference not in self.values:
                 self.values.append(reference)
 
-            # Add the name to the globals list of the surrounding function if it is a variable of global scope
+            # Add the name to the globals list of the surrounding function if it is a variable of global scope.
             global_node_defs = self.check_if_global(node.name, node)
             if global_node_defs is not None:
-                # It is possible that a variable has more than one global assignment
-                # (particularly in cases where the variable is depending on a condition.
-                # Since we do not check if those are met, we add them all)
+                # It is possible that a variable has more than one global assignment,
+                # particularly in cases where the variable is depending on a condition.
+                # Since this can only be determined at runtime, add all global assignments to the list.
                 for global_node_def in global_node_defs:
                     # Propagate global variables in Comprehension type to
-                    # the surrounding function if it is a global variable
+                    # the surrounding function if it is a global variable.
                     if (isinstance(global_node_def, astroid.AssignName)
                         and (isinstance(self.current_node_stack[-1], FunctionScope) or
                              isinstance(self.current_node_stack[-1].symbol.node, _ComprehensionType | astroid.Lambda))):
-                        # Create a new dict entry for a global variable (by name)
+                        # Create a new dict entry for a global variable (by name).
                         if node.name not in self.current_function_def[-1].globals_used:
                             symbol = self.get_symbol(global_node_def, self.current_function_def[-1].symbol.node)
                             if isinstance(symbol, GlobalVariable):
                                 self.current_function_def[-1].globals_used[node.name] = [symbol]
                         # If the name of the global variable already exists,
-                        # add the new declaration to the list (redeclaration)
+                        # add the new declaration to the list (redeclaration).
                         else:
                             symbol = self.get_symbol(global_node_def, self.current_function_def[-1].symbol.node)
-                            if symbol not in self.current_function_def[-1].globals_used[node.name] and isinstance(symbol, GlobalVariable):
+                            if symbol not in self.current_function_def[-1].globals_used[node.name] and isinstance(
+                                symbol, GlobalVariable):
                                 self.current_function_def[-1].globals_used[node.name].append(symbol)
                 return
 
@@ -867,11 +871,12 @@ class ModuleDataBuilder:
         return found_annotation_node
 
     def enter_assignname(self, node: astroid.AssignName) -> None:
-        # We do not want lambda assignments to be added to the target_nodes dict because they are handled as functions
+        # Lambda assignments will not be added to the target_nodes dict because they are handled as functions.
         if isinstance(node.parent, astroid.Assign) and isinstance(node.parent.value, astroid.Lambda):
             return
 
-        # The following nodes are added to the target_nodes dict because they are real assignments and therefore targets
+        # The following nodes are added to the target_nodes dict,
+        # because they are real assignments and therefore targets.
         if isinstance(
             node.parent,
             astroid.Assign
@@ -891,14 +896,15 @@ class ModuleDataBuilder:
             | astroid.With,
         ):
             self.target_nodes[node] = self.current_node_stack[-1]
-            if (isinstance(self.current_node_stack[-1], FunctionScope)  # only add assignments if they are inside a function
+            if (isinstance(self.current_node_stack[-1], FunctionScope)
+            # only add assignments if they are inside a function
                 # and node.name not in ("self", "cls")  # exclude self and cls
                 # and not isinstance(node.parent, astroid.For | astroid.While)  # exclude loop variables
             ):
                 self.targets.append(self.get_symbol(node, self.current_node_stack[-1].symbol.node))
 
         # The following nodes are no real target nodes, but astroid generates an AssignName node for them.
-        # They still need to be added to the children of the current scope
+        # They still need to be added to the children of the current scope.
         if isinstance(
             node.parent,
             astroid.Assign
@@ -923,7 +929,7 @@ class ModuleDataBuilder:
             )
             self.children.append(scope_node)
 
-            # Detect global assignments and add them to the global_variables dict
+            # Detect global assignments and add them to the global_variables dict.
             if isinstance(node.root(), astroid.Module) and node.name in node.root().globals:
                 self.global_variables[node.name] = scope_node
 
@@ -945,12 +951,12 @@ class ModuleDataBuilder:
             self.value_nodes[member_access] = self.current_node_stack[-1]
 
     def enter_attribute(self, node: astroid.Attribute) -> None:
-        # We do not want to handle names used in decorators
+        # Do not handle names used in decorators since this would be to complex for now.
         if isinstance(node.parent, astroid.Decorators):
             return
 
         # Astroid generates an Attribute node for every attribute access.
-        # We therefore need to check if the attribute access is a target or a value.
+        # Check if the attribute access is a target or a value.
         if isinstance(node.parent, astroid.AssignAttr) or self.has_assignattr_parent(node):
             member_access = _construct_member_access_target(node)
             if isinstance(node.expr, astroid.Name):
@@ -965,7 +971,7 @@ class ModuleDataBuilder:
             if isinstance(self.current_node_stack[-1], FunctionScope):
                 self.targets.append(Symbol(member_access, calc_node_id(member_access), member_access.name))
         elif isinstance(member_access, MemberAccessValue):
-            # We ignore type annotations because they are not relevant for purity.
+            # Ignore type annotations because they are not relevant for purity.
             top_receiver = member_access.get_top_level_receiver()
             if self.is_annotated(top_receiver, found_annotation_node=False):
                 return
@@ -981,7 +987,7 @@ class ModuleDataBuilder:
         Since astroid generates an Attribute node for every attribute access,
         and it is possible to have nested attribute accesses,
         it is possible that the direct parent is not an AssignAttr node.
-        In this case, we need to check if any parent of the given node is an AssignAttr node.
+        In this case, check if any parent of the given node is an AssignAttr node.
 
         Parameters
         ----------
@@ -1007,17 +1013,17 @@ class ModuleDataBuilder:
         """Enter a global node.
 
         Global nodes are used to declare global variables inside a function.
-        We will collect all these global variable usages and add them to the globals dict of that FunctionScope
+        Collect all these global variable usages and add them to the globals_used dict of that FunctionScope.
         """
         for name in node.names:
             global_node_defs = self.check_if_global(name, node)
             if global_node_defs:
-                # It is possible that a variable has more than one global assignment
-                # (particularly in cases where the variable is depending on a condition.
-                # Since we do not check if those are met, we add them all)
+                # It is possible that a variable has more than one global assignment,
+                # particularly in cases where the variable is depending on a condition.
+                # Since this can only be determined at runtime, add all global assignments to the list.
                 for global_node_def in global_node_defs:
                     if (isinstance(global_node_def, astroid.AssignName) and
-                       isinstance(self.current_node_stack[-1], FunctionScope)):
+                        isinstance(self.current_node_stack[-1], FunctionScope)):
                         symbol = self.get_symbol(global_node_def, self.current_node_stack[-1].symbol.node)
                         if isinstance(symbol, GlobalVariable):
                             if name not in self.current_node_stack[-1].globals_used:
@@ -1035,13 +1041,14 @@ class ModuleDataBuilder:
                 call_name = node.func.name
 
             call_reference = Reference(node, calc_node_id(node), call_name)
-            # Add the call node to the calls of the parent scope if it is of type FunctionScope
+            # Add the call node to the calls of the parent scope if it is of type FunctionScope.
             if isinstance(self.current_node_stack[-1], FunctionScope):
                 self.calls.append(call_reference)
             else:  # noqa: PLR5501
                 # Add the call node to the calls of the last function definition to ensure it is considered in the call graph
-                # since it would otherwise be lost in the (local) Scope of the Comprehension
-                if isinstance(self.current_node_stack[-1].symbol.node, _ComprehensionType) and self.current_function_def:
+                # since it would otherwise be lost in the (local) Scope of the Comprehension.
+                if isinstance(self.current_node_stack[-1].symbol.node,
+                              _ComprehensionType) and self.current_function_def:
                     if call_name not in self.current_function_def[-1].call_references:
                         self.current_function_def[-1].call_references[call_name] = [call_reference]
                     else:
@@ -1091,8 +1098,9 @@ class ModuleDataBuilder:
         elif isinstance(node, astroid.Module) and name in node.globals:
             # The globals() dict contains all assignments of the node with this name
             # (this includes assignments in other scopes).
-            # We only want the assignments of the nodes which are assigned on module scope (true global variables).
-            return [node for node in node.globals[name] if isinstance(self.find_first_parent_function(node), astroid.Module)]
+            # Only add the assignments of the nodes which are assigned on module scope (true global variables).
+            return [node for node in node.globals[name] if
+                    isinstance(self.find_first_parent_function(node), astroid.Module)]
         return None
 
     def find_base_classes(self, node: astroid.ClassDef) -> list[ClassScope] | None:
@@ -1133,12 +1141,12 @@ class ModuleDataBuilder:
         -------
         ClassScope | None
             The class with the given name if it exists, None otherwise.
-            None will never be returned since we only call this function when we know that the class exists.
+            None will never be returned since this function is only called when it is certain that the class exists.
         """
         for klass in self.classes:
             if klass == name:
                 return self.classes[klass]
-        # This is not possible because we only call this function when we know that the class exists
+        # This is not possible because the class is always added to the classes dict when it is defined.
         return None  # pragma: no cover
 
     def handle_arg(self, constructed_node: astroid.AssignName) -> None:
@@ -1146,7 +1154,7 @@ class ModuleDataBuilder:
 
         This function is called when a vararg or a kwarg parameter is found inside an Argument node.
         This is needed because astroid does not generate a symbol for these nodes.
-        Therefore, we need to create one manually and add it to the parameters' dict.
+        Therefore, create one manually and add it to the parameters' dict.
 
         Parameters
         ----------
@@ -1166,26 +1174,25 @@ class ModuleDataBuilder:
         else:
             self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], [constructed_node])
 
-    # TODO: move this to MemberAccessTarget
-    def get_class_for_receiver_node(self, receiver: MemberAccessTarget) -> ClassScope | None:
-        """Get the class for the given receiver node.
-
-        When dealing with MemberAccessTarget nodes,
-        we need to find the class of the receiver node since the MemberAccessTarget node does not have a symbol.
-
-        Parameters
-        ----------
-        receiver : MemberAccessTarget
-            The receiver node whose class is to be found.
-
-        Returns
-        -------
-        ClassScope | None
-            The class of the given receiver node if it exists, None otherwise.
-        """
-        if isinstance(receiver, astroid.Name) and receiver.name in self.classes:
-            return self.classes[receiver.name]
-        return None
+    # def get_class_for_receiver_node(self, receiver: MemberAccessTarget) -> ClassScope | None:
+    #     """Get the class for the given receiver node.
+    #
+    #     When dealing with MemberAccessTarget nodes,
+    #     find the class of the receiver node since the MemberAccessTarget node does not have a symbol.
+    #
+    #     Parameters
+    #     ----------
+    #     receiver : MemberAccessTarget
+    #         The receiver node whose class is to be found.
+    #
+    #     Returns
+    #     -------
+    #     ClassScope | None
+    #         The class of the given receiver node if it exists, None otherwise.
+    #     """
+    #     if isinstance(receiver, astroid.Name) and receiver.name in self.classes:
+    #         return self.classes[receiver.name]
+    #     return None
 
 
 def calc_node_id(
@@ -1245,7 +1252,7 @@ def calc_node_id(
         case astroid.AssignAttr():
             return NodeID(module, node.attrname, node.lineno, node.col_offset)
         case astroid.Call():
-            # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+            # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
             if isinstance(node.func, astroid.Attribute):
                 return NodeID(module, node.func.attrname, node.lineno, node.col_offset)
             return NodeID(module, node.func.name, node.lineno, node.col_offset)
@@ -1292,7 +1299,7 @@ def _construct_member_access_target(
             return MemberAccessTarget(node=node, receiver=_construct_member_access_target(receiver), member=member)
         else:
             return MemberAccessTarget(node=node, receiver=None, member=member)
-    # Since it is tedious to add testcases for this function, we ignore the coverage for now
+    # Since it is tedious to add testcases for this function, ignore the coverage for now
     except TypeError as err:  # pragma: no cover
         raise TypeError(f"Unexpected node type {type(node)}") from err  # pragma: no cover
 
@@ -1328,7 +1335,7 @@ def _construct_member_access_value(
             return MemberAccessValue(node=node, receiver=_construct_member_access_value(receiver), member=member)
         else:
             return MemberAccessValue(node=node, receiver=None, member=member)
-    # Since it is tedious to add testcases for this function, we ignore the coverage for now
+    # Since it is tedious to add testcases for this function, ignore the coverage for now
     except TypeError as err:  # pragma: no cover
         raise TypeError(f"Unexpected node type {type(node)}") from err  # pragma: no cover
 

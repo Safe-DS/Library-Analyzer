@@ -36,12 +36,12 @@ def _find_call_references(call_reference: Reference,
 
     This function finds all referenced Symbols for a call reference.
     A reference for a call node can be either a FunctionDef or a ClassDef node.
-    We also analyze builtins calls and calls of function parameters.
+    Also analyze builtins calls and calls of function parameters.
 
     Parameters
     ----------
     call_reference : Reference
-        The call reference we want to analyze.
+        The call reference which should be analyzed.
     function : FunctionScope
         The function in which the call is made.
     functions : dict[str, list[FunctionScope]]
@@ -64,7 +64,7 @@ def _find_call_references(call_reference: Reference,
     # Find functions that are called.
     if call_reference.name in functions:
         function_def = functions.get(call_reference.name)
-        function_symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but we check for it
+        function_symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but it is checked before
         value_reference.referenced_symbols.extend(function_symbols)
 
     # Find classes that are called (initialized).
@@ -75,10 +75,17 @@ def _find_call_references(call_reference: Reference,
 
     # Find builtins that are called, this includes open-like functions.
     if call_reference.name in _BUILTINS or call_reference.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
+        # Construct an artificial FunctionDef node for the builtin function.
+        builtin_function = astroid.FunctionDef(
+            name=call_reference.node.func.attrname if isinstance(call_reference.node.func, astroid.Attribute)
+            else call_reference.node.func.name,
+            lineno=call_reference.node.lineno,
+            col_offset=call_reference.node.col_offset,
+        )
         builtin_call = Builtin(
-            call_reference.node,  # Since we do not have a FunctionDef node for the builtin, we use the Call node
-            NodeID("builtins", call_reference.name, -1, -1),
-            call_reference.name,
+            node=builtin_function,
+            id=NodeID(None, call_reference.name, -1, -1),
+            name=call_reference.name,
         )
         value_reference.referenced_symbols.append(builtin_call)
 
@@ -107,7 +114,7 @@ def _find_value_references(value_reference: Reference,
     Parameters
     ----------
     value_reference : Reference
-        The value reference we want to analyze.
+        The value reference which should be analyzed.
     function : FunctionScope
         The function in which the value is used.
     functions : dict[str, list[FunctionScope]]
@@ -135,8 +142,8 @@ def _find_value_references(value_reference: Reference,
             # This currently is mostly the case for ClassVariables and InstanceVariables that are used as targets
 
             missing_refined = [symbol for symbol in symbols if type(symbol) is Symbol]
-            # Because we add the missing refined symbols separately above,
-            # we need to remove the unrefined symbols from the list to avoid duplicates.
+            # Because the missing refined symbols are added separately above,
+            # remove the unrefined symbols from the list to avoid duplicates.
             symbols = list(set(symbols) - set(missing_refined))
 
             for symbol in missing_refined:
@@ -203,7 +210,7 @@ def _find_target_references(target_reference: Symbol,
     Parameters
     ----------
     target_reference : Symbol
-        The target reference we want to analyze.
+        The target reference which should be analyzed.
     function : FunctionScope
         The function in which the value is used.
     classes : dict[str, ClassScope]
@@ -267,8 +274,8 @@ def resolve_references(
 
     This function is the entry point for the reference resolving.
     It calls all other functions that are needed to resolve the references.
-    First, we get the module data for the given (module) code.
-    Then we call the functions to find all references in the module.
+    First, get the module data for the given (module) code.
+    Then call the functions to find all references in the module.
 
     Parameters
     ----------
@@ -303,17 +310,18 @@ def resolve_references(
     call_references: dict[str, list[ValueReference]] = {}
     value_references: dict[str, list[ValueReference]] = {}
     target_references: dict[str, list[TargetReference]] = {}
-    # The call_references value is a list because we only analyze the functions by name, therefor a call can reference more than one function.
-    # In the future, we maybe want to differentiate between calls with the same name.
+    # The call_references value is a list because the analysis analyzes the functions by name,
+    # therefor a call can reference more than one function.
+    # In the future, it is possible to differentiate between calls with the same name.
     # This could be done by further specifying the call_references for a function (by analyzing the signature, etc.)
-    # If we could analyze it with 100% certainty, we could also remove the list and use a single ValueReference.
+    # If it is analyzed with 100% certainty, it is possible to remove the list and use a single ValueReference.
 
     # reasons = _collect_reasons(module_data)
     for function_list in module_data.functions.values():
         # iterate over all functions with the same name
         for function in function_list:
 
-            # Collect the reasons while iterating over the functions, so we don't need to iterate over them again later.
+            # Collect the reasons while iterating over the functions, so there is no need to iterate over them again.
             raw_reasons[function.symbol.id] = Reasons(function)
 
             # TODO: these steps can be done parallel - is it necessary
@@ -356,7 +364,8 @@ def resolve_references(
                             # Add the referenced symbols to the reads_from of the raw_reasons dict for this function
                             for referenced_symbol in value_reference_result.referenced_symbols:
                                 if isinstance(referenced_symbol, GlobalVariable | ClassVariable | InstanceVariable):
-                                    # Since we define classes and functions as immutable Reading from them is not a reason for impurity.
+                                    # Since classes and functions are defined as immutable
+                                    # reading from them is not a reason for impurity.
                                     if isinstance(referenced_symbol.node, astroid.ClassDef | astroid.FunctionDef):
                                         continue
                                     # Add the referenced symbol to the list of symbols whom are read from.
@@ -380,7 +389,8 @@ def resolve_references(
                             # Add the referenced symbols to the writes_to of the raw_reasons dict for this function
                             for referenced_symbol in target_reference_result.referenced_symbols:
                                 if isinstance(referenced_symbol, GlobalVariable | ClassVariable | InstanceVariable):
-                                    # Since we define classes and functions as immutable, writing to them is not a reason for impurity.
+                                    # Since classes and functions are defined as immutable
+                                    # writing to them is not a reason for impurity.
                                     # Also, it is not common to do so anyway.
                                     if isinstance(referenced_symbol.node, astroid.ClassDef | astroid.FunctionDef):
                                         continue
@@ -394,21 +404,21 @@ def resolve_references(
     call_graph = build_call_graph(module_data.functions, module_data.classes, raw_reasons)
 
     # The resolved_references are not needed in the next step anymore since raw_reasons contains all the information.
-    # We do need them for testing though, so we return them.
+    # They are needed for testing though, so they are returned.
     return ModuleAnalysisResult(resolved_references, raw_reasons, module_data.classes, call_graph)
 
 
 def merge_dicts(
-    d1: dict[str, list[ValueReference | TargetReference]],
-    d2: dict[str, list[ValueReference | TargetReference]],
+    d1: dict[str, list[ValueReference] | list[TargetReference]],
+    d2: dict[str, list[ValueReference] | list[TargetReference]],
 ) -> dict[str, list[ValueReference | TargetReference]]:
     """Merge two dicts of lists of ReferenceNodes.
 
     Parameters
     ----------
-    d1 : dict[str, list[ValueReference | TargetReference]]
+    d1 : dict[str, list[ValueReference] | list[TargetReference]]
         The first dict.
-    d2 : dict[str, list[ValueReference | TargetReference]]
+    d2 : dict[str, list[ValueReference] | list[TargetReference]]
         The second dict.
 
     Returns
