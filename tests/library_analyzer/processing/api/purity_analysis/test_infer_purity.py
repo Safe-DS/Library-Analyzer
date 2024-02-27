@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+import astroid
 import pytest
 from library_analyzer.processing.api.purity_analysis import (
     infer_purity,
@@ -12,7 +13,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Impure,
     ImpurityReason,
     InstanceVariable,
-    NodeID,
     NonLocalVariableRead,
     NonLocalVariableWrite,
     ParameterAccess,
@@ -20,6 +20,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     PurityResult,
     StringLiteral,
     UnknownCall,
+    NodeID,
 )
 
 
@@ -161,6 +162,58 @@ def fun():
             """,  # language= None
             {"fun.line2": Pure()},
         ),
+        (  # language=Python "VariableWrite to InstanceVariable - but actually a LocalVariable"
+            """
+class A:
+    def __init__(self):
+        self.instance_attr1 = 10
+
+def fun():
+    a = A()
+    a.instance_attr1 = 20  # Pure: VariableWrite to InstanceVariable - but actually a LocalVariable
+            """,  # language= None
+            {
+             "__init__.line3": Pure(),
+             "fun.line6": Pure()},
+        ),
+        (  # language=Python "VariableRead from InstanceVariable - but actually a LocalVariable"
+            """
+class A:
+    def __init__(self):
+        self.instance_attr1 = 10
+
+def fun():
+    a = A()
+    res = a.instance_attr1  # Pure: VariableRead from InstanceVariable - but actually a LocalVariable
+    return res
+            """,  # language= None
+            {
+             "__init__.line3": Pure(),
+             "fun.line6": Pure()},
+        ),
+        (  # language=Python "VariableRead and VariableWrite in chained class attribute and instance attribute"
+            """
+class A:
+    def __init__(self):
+        self.name = 10
+
+class B:
+    upper_class: A = A()
+
+def f():
+    b = B()
+    x = b.upper_class.name
+
+def g():
+    b = B()
+    b.upper_class.name = 20
+            """,  # language=none
+            {
+                "__init__.line3": Pure(),
+                "f.line9": Pure(),
+                "g.line13": Pure(),
+            },
+        ),
         (  # language=Python "Pure Class initialization"
             """
 class A:
@@ -170,38 +223,48 @@ class B:
     def __init__(self):
         pass
 
+class C:
+    def __init__(self):
+        self.name = "test"
+
 def fun1():
     a = A()
 
 def fun2():
     b = B()
+
             """,  # language= None
-            {"__init__.line6": Pure(), "fun1.line9": Pure(), "fun2.line12": Pure()},
-        ),
-        (  # language=Python "VariableWrite to InstanceVariable - but actually a LocalVariable"
+            {
+             "__init__.line6": Pure(),
+             "__init__.line10": Pure(),
+             "fun1.line13": Pure(),
+             "fun2.line16": Pure()
+             },
+        ),        (  # language=Python "Pure Class initialization with propagated purity in init"
             """
 class A:
-    def __init__(self):  # TODO: for init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
-        self.instance_attr1 = 10
+    def __init__(self):
+        self.name = self.fun1()
+        self.value = self.fun2()
+        self.test = None
+        self.fun3()
 
-def fun():
-    a = A()
-    a.instance_attr1 = 20  # Pure: VariableWrite to InstanceVariable - but actually a LocalVariable
-            """,  # language= None
-            {"__init__.line3": Pure(), "fun.line6": Pure()},
-        ),
-        (  # language=Python "VariableRead from InstanceVariable - but actually a LocalVariable"
-            """
-class A:
-    def __init__(self):  # TODO: for init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
-        self.instance_attr1 = 10
+    @staticmethod
+    def fun1():
+        return "test"
 
-def fun():
-    a = A()
-    res = a.instance_attr1  # Pure: VariableRead from InstanceVariable - but actually a LocalVariable
-    return res
+    def fun2(self):
+        return self.name  # Impure: VariableRead from InstanceVariable
+
+    def fun3(self):
+        self.test = 10  # Impure: VariableWrite to InstanceVariable
             """,  # language= None
-            {"__init__.line3": Pure(), "fun.line6": Pure()},
+            {
+             "__init__.line3": Pure(),  # For init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
+             "fun1.line10": Pure(),
+             "fun2.line13": SimpleImpure({"NonLocalVariableRead.InstanceVariable.A.name"}),
+             "fun3.line16": SimpleImpure({"NonLocalVariableWrite.InstanceVariable.A.test"})
+             },
         ),
         (  # language=Python "Call of Pure Function"
             """
@@ -293,6 +356,17 @@ def fun():
             """,  # language= None
             {"fun.line2": Pure()},
         ),
+        (  # language=Python "Async Function"
+            """
+async def fun1():
+    res = await fun2()  # Pure: Call of Pure Function
+
+async def fun2():
+    pass
+            """,  # language= None
+            {"fun1.line2": Pure(),
+             "fun2.line5": Pure()},
+        ),
         (  # language=Python "Multiple Calls of the same Pure function (Caching)"
             """
 def fun1():
@@ -311,9 +385,11 @@ c = fun1()
         "VariableWrite to LocalVariable",
         "VariableWrite to LocalVariable with parameter",
         "VariableRead from LocalVariable",
-        "Pure Class initialization",
         "VariableWrite to InstanceVariable - but actually a LocalVariable",
         "VariableRead from InstanceVariable - but actually a LocalVariable",
+        "VariableRead and VariableWrite in chained class attribute and instance attribute",
+        "Pure Class initialization",
+        "Pure Class initialization with propagated purity in init",
         "Call of Pure Function",
         "Call of Pure Chain of Functions",
         "Call of Pure Chain of Functions with cycle - one entry point",
@@ -322,15 +398,16 @@ c = fun1()
         "Lambda function",
         "Assigned Lambda function",
         "Lambda as key",
+        "Async Function",
         "Multiple Calls of same Pure function (Caching)",
-    ],  # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods, class inits in cycles
+    ],  # TODO: class inits in cycles
 )
-@pytest.mark.xfail(reason="Some cases disabled for merging")
+# @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     purity_results = infer_purity(code)
     transformed_purity_results = {
-        to_string_function_id(function_id): to_simple_result(purity_result)
-        for function_id, purity_result in purity_results.items()
+        to_string_function_id(function_id): to_simple_result(purity_result) for
+        function_id, purity_result in purity_results.items()
     }
 
     assert transformed_purity_results == expected
@@ -398,27 +475,91 @@ def fun():
     a = A()
             """,  # language= None
             {
-                "__init__.line3": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-                "fun.line6": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-            },
+             "__init__.line3": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+             "fun.line6": SimpleImpure({"FileWrite.StringLiteral.stdout"})
+             },
         ),
         (  # language=Python "Class methode call"
             """
 class A:
-    def g(self):
+    state: str = "A"
+
+class C:
+    state: int = 0
+
+    @classmethod
+    def set_state(cls, state):
+        cls.state = state
+
+def fun1():
+    c = C()
+    c.set_state(1)
+
+def fun2():
+    C().set_state(1)
+            """,  # language= None
+            {
+             "set_state.line9": SimpleImpure({"NonLocalVariableWrite.ClassVariable.C.state"}),
+             "fun1.line12": SimpleImpure({"NonLocalVariableWrite.ClassVariable.C.state"}),
+             "fun2.line16": SimpleImpure({"NonLocalVariableWrite.ClassVariable.C.state"}),
+             },
+        ),
+        (  # language=Python "Class methode call of superclass"  # TODO: propagate methods from super class to sub class
+            """
+class A:
+    state: str = "A"
+
+    @classmethod
+    def set_state(cls, state):
+        cls.state = state
+
+class C(A):
+    state: int = 0
+
+def fun1():
+    c = C()
+    c.set_state(1)
+
+def fun2():
+    C().set_state(1)
+            """,  # language= None
+            {
+             "set_state.line6": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.state"}),
+             "fun1.line12": SimpleImpure({"NonLocalVariableWrite.ClassVariable.C.state"}),
+             "fun2.line16": SimpleImpure({"NonLocalVariableWrite.ClassVariable.C.state"}),
+             },
+        ),
+        (  # language=Python "Class methode call of superclass (overwritten method)"
+            """
+class A:
+    state: str = "A"
+
+    @classmethod
+    def set_state(cls, state):
+        cls.state = state
+
+class C(A):
+    state: int = 0
+
+    @classmethod
+    def set_state(cls, state):
+        cls.state = state
         print("test")  # Impure: FileWrite
 
 def fun1():
     a = A()
-    a.g()
+    a.set_state(1)
 
 def fun2():
-    a = A().g()
+    C().set_state(1)
             """,  # language= None
             {
-                "g.line3": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-                "fun1.line6": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-                "fun2.line10": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "set_state.line6": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.state"}),
+                "set_state.line13": SimpleImpure({"NonLocalVariableWrite.ClassVariable.C.state",
+                                                  "FileWrite.StringLiteral.stdout"}),
+                "fun1.line17": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.state"}),
+                "fun2.line21": SimpleImpure({"NonLocalVariableWrite.ClassVariable.C.state",
+                                             "FileWrite.StringLiteral.stdout"}),
             },
         ),
         (  # language=Python "Instance methode call"
@@ -446,13 +587,13 @@ def fun3():
     a = A().a_inst.b_fun()
             """,  # language= None
             {
-                "__init__.line3": Pure(),
-                "__init__.line7": Pure(),
-                "b_fun.line10": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-                "fun1.line13": Pure(),
-                "fun2.line17": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-                "fun3.line21": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-            },
+             "__init__.line3": Pure(),
+             "__init__.line7": Pure(),
+             "b_fun.line10": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+             "fun1.line13": Pure(),
+             "fun2.line17": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+             "fun3.line21": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+             },
         ),
         (  # language=Python "VariableWrite to ClassVariable"
             """
@@ -465,10 +606,8 @@ def fun1():
 def fun2():
     A().class_attr1 = 30  # Impure: VariableWrite to ClassVariable
             """,  # language= None
-            {
-                "fun1.line5": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.class_attr1"}),
-                "fun2.line8": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.class_attr1"}),
-            },
+            {"fun1.line5": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.class_attr1"}),
+             "fun2.line8": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.class_attr1"})},
         ),
         (  # language=Python "VariableRead from ClassVariable"
             """
@@ -483,15 +622,13 @@ def fun2():
     res = A().class_attr1  # Impure: VariableRead from ClassVariable
     return res
             """,  # language= None
-            {
-                "fun1.line5": SimpleImpure({"NonLocalVariableRead.ClassVariable.A.class_attr1"}),
-                "fun2.line9": SimpleImpure({"NonLocalVariableRead.ClassVariable.A.class_attr1"}),
-            },
+            {"fun1.line5": SimpleImpure({"NonLocalVariableRead.ClassVariable.A.class_attr1"}),
+             "fun2.line9": SimpleImpure({"NonLocalVariableRead.ClassVariable.A.class_attr1"})},
         ),
         (  # language=Python "VariableWrite to InstanceVariable"
             """
 class B:
-    def __init__(self):  # TODO: for init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
+    def __init__(self):
         self.instance_attr1 = 10
 
 def fun(c):
@@ -500,15 +637,13 @@ def fun(c):
 b = B()
 fun(b)
             """,  # language= None
-            {
-                "__init__.line3": Pure(),
-                "fun.line6": SimpleImpure({"NonLocalVariableWrite.InstanceVariable.B.instance_attr1"}),
-            },
+            {"__init__.line3": Pure(),
+             "fun.line6": SimpleImpure({"NonLocalVariableWrite.InstanceVariable.B.instance_attr1"})},  # TODO: LARS is this corrct?
         ),
         (  # language=Python "VariableRead from InstanceVariable"
             """
 class B:
-    def __init__(self):  # TODO: for init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
+    def __init__(self):
         self.instance_attr1 = 10
 
 def fun(c):
@@ -518,9 +653,39 @@ def fun(c):
 b = B()
 a = fun(b)
             """,  # language= None
+            {"__init__.line3": Pure(),
+             "fun.line6": SimpleImpure({"NonLocalVariableRead.InstanceVariable.B.instance_attr1"})},  # TODO: LARS is this corrct?
+        ),
+        (  # language=Python "VariableRead and VariableWrite in chained class attribute and instance attribute"
+            """
+class A:
+    def __init__(self):
+        self.name = 10
+
+    def a_fun(self):
+        print(self.name)  # Impure: FileWrite
+
+class B:
+    upper_class: A = A()
+
+    def b_fun(self):
+        inp = input()  # Impure: FileRead
+        return self.upper_class
+
+def f():
+    b = B()
+    b.upper_class.a_fun()
+
+def g():
+    b = B()
+    x = b.b_fun().name
+            """,  # language=none
             {
                 "__init__.line3": Pure(),
-                "fun.line6": SimpleImpure({"NonLocalVariableRead.InstanceVariable.B.instance_attr1"}),
+                "a_fun.line6": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "b_fun.line12": SimpleImpure({"FileRead.StringLiteral.stdin"}),
+                "f.line16": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "g.line20": SimpleImpure({"FileRead.StringLiteral.stdin"}),
             },
         ),
         (  # language=Python "Function call of functions with same name and different purity"
@@ -543,14 +708,11 @@ def fun1():
 def fun2():
     B.add(1, 2)
             """,  # language=none
-            {
-                "add.line4": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-                "add.line10": Pure(),
-                "fun1.line13": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-                "fun2.line17": SimpleImpure(
-                    {"FileWrite.StringLiteral.stdout"},
-                ),  # here we need to be conservative and assume that the call is impure
-            },
+            {"add.line4": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+             "add.line10": Pure(),
+             "fun1.line13": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+             "fun2.line17": SimpleImpure({"FileWrite.StringLiteral.stdout"}),  # here we need to be conservative and assume that the call is impure
+             },
         ),
         (  # language=Python "Function call of functions with same name (different signatures)"
             """
@@ -574,11 +736,9 @@ def fun2():
             {
                 "add.line4": Pure(),
                 "add.line9": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-                "fun1.line13": SimpleImpure(
-                    {"FileWrite.StringLiteral.stdout"},
-                ),  # here we need to be conservative and assume that the call is impure
+                "fun1.line13": SimpleImpure({"FileWrite.StringLiteral.stdout"}),  # here we need to be conservative and assume that the call is impure
                 "fun2.line16": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-            },  # TODO: [Later] we could also check the signature of the function and see that the call is actually pure
+            }  # TODO: [Later] we could also check the signature of the function and see that the call is actually pure
         ),
         (  # language=Python "Call of Impure Function"
             """
@@ -757,7 +917,7 @@ def fun():
     res = a.__class__.__name__  # TODO: this is class methode call
     return res
             """,  # language= None
-            {"fun.line5": Pure()},
+            {"fun.line5": SimpleImpure({"UnknownCall.StringLiteral.__class__.__name__"})},  # TODO: correct result
         ),
         (  # language=Python "Lambda function"
             """
@@ -878,7 +1038,7 @@ def fun1(a):
     return fun1
 
 def fun2():
-    x = fun1(1)(2)(3)
+    x = fun1(1)
             """,  # language=none
             {
                 "fun1.line2": SimpleImpure({
@@ -903,7 +1063,7 @@ def fun3():
             """,  # language=none
             {
                 "fun1.line2": SimpleImpure({
-                    "FileWrite.StringLiteral.stdout",
+                     "FileWrite.StringLiteral.stdout",
                 }),
                 "fun2.line6": Pure(),
                 "fun3.line9": SimpleImpure({
@@ -911,20 +1071,36 @@ def fun3():
                 }),
             },
         ),
+        (  # language=Python "Async Function"
+            """
+async def fun1():
+    res = await fun2()  # Pure: Call of Pure Function
+
+async def fun2():
+    print("test")  # Impure: FileWrite
+            """,  # language= None
+            {
+                "fun1.line2": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "fun2.line5": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+            },
+        ),
     ],
     ids=[
         "Print with str",
         "Print with parameter",
-        "VariableWrite to GlobalVariable",  # TODO: this just passes due to the conversion to a set
-        "VariableWrite to GlobalVariable with parameter",  # TODO: this just passes due to the conversion a set
+        "VariableWrite to GlobalVariable",
+        "VariableWrite to GlobalVariable with parameter",
         "VariableRead from GlobalVariable",
         "Impure Class initialization",
         "Class methode call",
+        "Class methode call of superclass",
+        "Class methode call of superclass (overwritten method)",
         "Instance methode call",
         "VariableWrite to ClassVariable",
         "VariableRead from ClassVariable",
         "VariableWrite to InstanceVariable",
         "VariableRead from InstanceVariable",
+        "VariableRead and VariableWrite in chained class attribute and instance attribute",
         "Function call of functions with same name and different purity",
         "Function call of functions with same name (different signatures)",
         "Call of Impure Function",
@@ -944,10 +1120,10 @@ def fun3():
         "Impure Write to Local and Global",
         "Call of Function with function as return",
         "Call within a call",
-        # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods, class instantiation?
+        "Async Function"
     ],
 )
-@pytest.mark.xfail(reason="Some cases disabled for merging")
+# @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
     purity_results = infer_purity(code)
 
@@ -1016,8 +1192,28 @@ def import_fun(file: str, f_name: str) -> Callable:
     print("test")
             """,  # language=none
             {
-                "fun1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout", "UnknownCall.StringLiteral.fun"}),
-                "import_fun.line8": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                'fun1.line4': SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                            "UnknownCall.StringLiteral.fun"}),
+                'import_fun.line8': SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+             }
+        ),
+        (  # language=Python "Unknown Call of Function with function as return",
+            """
+def fun1(a):
+    print(a)  # Impure: FileWrite
+    return fun1
+
+def fun2():
+    x = fun1(1)(2)(3)
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({
+                    "FileWrite.StringLiteral.stdout",
+                }),
+                "fun2.line6": SimpleImpure({
+                    "FileWrite.StringLiteral.stdout",
+                    "UnknownCall",
+                }),
             },
         ),
     ],
@@ -1027,6 +1223,7 @@ def import_fun(file: str, f_name: str) -> Callable:
         "Unknown Call of Parameter",
         "Unknown Call of Parameter with many Parameters",
         "Unknown Import function",
+        "Unknown Call of Function with function as return",
     ],
 )
 @pytest.mark.xfail(reason="Some cases disabled for merging")
