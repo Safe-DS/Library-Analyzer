@@ -2432,7 +2432,7 @@ import math
 def f():
     a = math.pi
             """,  # language=none
-            [],
+            [""],  # TODO
         ),
         (  # language=Python "Import module with alias - constant"
             """
@@ -2441,7 +2441,7 @@ import math as m
 def f():
     a = m.pi
             """,  # language=none
-            [],
+            [""],  # TODO
         ),
         (  # language=Python "Import module - function"
             """
@@ -2450,7 +2450,7 @@ import math
 def f(a):
     math.sqrt(a)
             """,  # language=none
-            [],
+            [""],  # TODO
         ),
         (  # language=Python "Import module with alias - function"
             """
@@ -2459,7 +2459,7 @@ import math as m
 def f(a):
     m.sqrt(a)
             """,  # language=none
-            [],
+            [""],  # TODO
         ),
         (  # language=Python "Import module with alias - function and constant"
             """
@@ -2470,7 +2470,7 @@ def f(a):
     m.sqrt(a)
     m.pi = 1  # this is very uncommon but possible - definitely impure
             """,  # language=none
-            [],
+            [""],  # TODO
         ),
         (  # language=Python "FromImport - constant"
             """
@@ -2479,7 +2479,7 @@ from math import pi
 def f():
     a = pi
             """,  # language=none
-            [],
+            [""],  # TODO
         ),
         (  # language=Python "FromImport with alias - constant"
             """
@@ -2488,7 +2488,7 @@ from math import pi as p
 def f():
     a = p
             """,  # language=none
-            [],
+            [""],  # TODO
         ),
         (  # language=Python "FromImport - function"
             """
@@ -2497,7 +2497,7 @@ from math import sqrt
 def f(a):
     sqrt(a)
             """,  # language=none
-            [],
+            [""],  # TODO,
         ),
         (  # language=Python "FromImport with alias - function"
             """
@@ -2506,7 +2506,7 @@ from math import sqrt as s
 def f(a):
     s(a)
             """,  # language=none
-            [],
+            [""],  # TODO
         ),
         (  # language=Python "FromImport with alias - function and constant"
             """
@@ -2516,7 +2516,7 @@ def f(a):
     a = p
     s(a)
             """,  # language=none
-            [],
+            [""],  # TODO
         ),
         (  # language=Python "Local FromImport - function"
             """
@@ -2524,7 +2524,7 @@ def f(a):
     from math import pi
     a = pi
             """,  # language=none
-            [],
+            [""],  # TODO
         ),
         (  # language=Python "Local FromImport - function"
             """
@@ -2532,7 +2532,7 @@ def f(a):
     from math import sqrt
     sqrt(a)
             """,  # language=none
-            [],
+            [""],  # TODO
         ),
     ],
     ids=[

@@ -144,7 +144,7 @@ class Reasons:
     reads_from: set[GlobalVariable | ClassVariable | InstanceVariable] = field(default_factory=set)
     calls: set[Symbol] = field(default_factory=set)
     result: PurityResult | None = field(default=None)
-    unknown_calls: list[astroid.Call | astroid.NodeNG] | None = field(default=None)
+    unknown_calls: list[astroid.Call] | None = field(default=None)
 
     def __iter__(self) -> Iterator[Symbol]:
         return iter(self.writes_to.union(self.reads_from).union(self.calls))

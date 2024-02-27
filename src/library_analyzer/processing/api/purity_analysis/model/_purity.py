@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 import typing
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Any
+
+import astroid
 
 from library_analyzer.utils import ensure_file_exists
 
@@ -340,6 +342,35 @@ class StringLiteral(Expression):
 
     def to_result_str(self) -> str:
         return f"StringLiteral.{self.value}"
+
+
+@dataclass
+class CallOfFunction(Expression):
+    """Class for function calls.
+
+    Attributes
+    ----------
+    call : astroid.Call
+        The call node.
+    """
+
+    call: astroid.Call
+    inferred_function: astroid.FunctionDef | None = None
+    name: str = field(init=False)
+
+    def __post_init__(self):
+        if self.inferred_function is not None:
+            self.name = f"{self.inferred_function.root().name}.{self.inferred_function.name}"
+        elif isinstance(self.call.func, astroid.Attribute):
+            self.name = self.call.func.attrname
+        else:
+            self.name = self.call.func.name
+
+    def to_result_str(self) -> str:
+        if isinstance(self.call.func, astroid.Attribute):
+            return f"CallOfFunction.{self.call.func.attrname}"
+        else:
+            return f"CallOfFunction.{self.call.func.name}"
 
 
 class APIPurity:

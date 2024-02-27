@@ -19,7 +19,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     PurityResult,
     StringLiteral,
     UnknownCall,
-    NodeID,
+    NodeID, CallOfFunction,
 )
 
 
@@ -111,6 +111,10 @@ def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # a
     elif isinstance(reason, UnknownCall):
         if isinstance(reason.expression, StringLiteral):
             return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.value}"
+        elif isinstance(reason.expression, ParameterAccess):
+            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.parameter}"
+        elif isinstance(reason.expression, CallOfFunction):
+            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.name}"
     elif isinstance(reason, CallOfParameter):
         if isinstance(reason.expression, StringLiteral):
             return f"CallOfParameter.{reason.expression.__class__.__name__}.{reason.expression.value}"
@@ -1142,7 +1146,7 @@ def fun1():
     call()
             """,  # language=none
             {
-                "fun1.line2": SimpleImpure({"UnknownCall.StringLiteral.call"}),
+                "fun1.line2": SimpleImpure({"UnknownCall.CallOfFunction.call"}),
             },
         ),
         (  # language=Python "Three Unknown Call",
@@ -1154,9 +1158,9 @@ def fun1():
             """,  # language=none
             {
                 "fun1.line2": SimpleImpure({
-                    "UnknownCall.StringLiteral.call1",
-                    "UnknownCall.StringLiteral.call2",
-                    "UnknownCall.StringLiteral.call3",
+                    "UnknownCall.CallOfFunction.call1",
+                    "UnknownCall.CallOfFunction.call2",
+                    "UnknownCall.CallOfFunction.call3",
                 }),
             },
         ),
@@ -1191,10 +1195,8 @@ def import_fun(file: str, f_name: str) -> Callable:
     return lambda x: x
             """,  # language=none
             {
-                'fun1.line4': SimpleImpure({"FileWrite.StringLiteral.stdout",
-                                            "UnknownCall.StringLiteral.fun"}),
-                'import_fun.line8': SimpleImpure({"FileWrite.StringLiteral.stdout"}),
                 "fun1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                            "UnknownCall.CallOfFunction.fun"}),
                 "import_fun.line8": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
              }
         ),
@@ -1213,7 +1215,7 @@ def fun2():
                 }),
                 "fun2.line6": SimpleImpure({
                     "FileWrite.StringLiteral.stdout",
-                    "UnknownCall",
+                    "UnknownCall.CallOfFunction.fun1",  # this is the worst case where we do not even know the call node
                 }),
             },
         ),

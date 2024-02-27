@@ -11,7 +11,7 @@ from ._get_module_data import (
 )
 from ._infer_purity import (
     get_purity_results,
-    infer_purity,
+    _infer_purity,
 )
 from ._resolve_references import (
     resolve_references,
@@ -23,7 +23,7 @@ __all__ = [
     "get_base_expression",
     "ModuleDataBuilder",
     "resolve_references",
-    "infer_purity",
+    "_infer_purity",
     "build_call_graph",
     "get_purity_results",
 ]

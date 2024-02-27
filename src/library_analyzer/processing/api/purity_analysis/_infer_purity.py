@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import astroid
+from astroid.helpers import safe_infer
 
 from library_analyzer.processing.api.purity_analysis import calc_node_id
 from library_analyzer.processing.api.purity_analysis._resolve_references import resolve_references
@@ -24,8 +25,9 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Pure,
     PurityResult,
     Reasons,
-    StringLiteral,
+    StringLiteral, CallOfParameter, UnknownCall,
 )
+from library_analyzer.processing.api.purity_analysis.model._purity import CallOfFunction
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -223,7 +225,7 @@ OPEN_MODES = {
 
 
 # TODO: remove type ignore after implementing all cases
-def check_open_like_functions(call: astroid.Call) -> PurityResult:  # type: ignore[return] # all cases are handled
+def _check_open_like_functions(call: astroid.Call) -> PurityResult:  # type: ignore[return] # all cases are handled
     """Check open-like function for impurity.
 
     This includes functions like open, read, readline, readlines, write, writelines.
@@ -289,7 +291,7 @@ def check_open_like_functions(call: astroid.Call) -> PurityResult:  # type: igno
         pass  # TODO: [Later] for now it is good enough to deal with open() only, but we MAYBE need to deal with the other open-like functions too
 
 
-def infer_purity(code: str) -> dict[NodeID, PurityResult]:
+def _infer_purity(code: str) -> dict[NodeID, PurityResult]:
     """
     Infer the purity of functions.
 
@@ -315,7 +317,7 @@ def infer_purity(code: str) -> dict[NodeID, PurityResult]:
     combined_node_names: set[str] = set()
 
     for reasons in analysis_result.raw_reasons.values():
-        process_node(reasons, analysis_result, purity_results)
+        _process_node(reasons, analysis_result, purity_results)
 
     for graph in analysis_result.call_graph.graphs.values():
         if graph.combined_node_names:
@@ -329,7 +331,7 @@ def infer_purity(code: str) -> dict[NodeID, PurityResult]:
     return {key: value for key, value in purity_results.items() if key.name not in combined_node_names}
 
 
-def process_node(  # type: ignore[return] # all cases are handled
+def _process_node(  # type: ignore[return] # all cases are handled
     reason: Reasons,
     analysis_result: ModuleAnalysisResult,
     purity_results: dict[NodeID, PurityResult],
@@ -394,7 +396,7 @@ def process_node(  # type: ignore[return] # all cases are handled
                     child_id = child.function_scope.symbol.id
                     # Check if the node is a combined node (would throw a KeyError otherwise).
                     if not child.combined_node_names:
-                        get_purity_of_child(
+                        _get_purity_of_child(
                             child,
                             reason,
                             analysis_result,
@@ -433,7 +435,7 @@ def process_node(  # type: ignore[return] # all cases are handled
                         # Check if the combined node has any children that are not part of the cycle.
                         # By design, all children of a combined node are NOT part of the cycle.
                         for child_of_combined in combined_node.children:
-                            get_purity_of_child(
+                            _get_purity_of_child(
                                 child_of_combined,
                                 reason,
                                 analysis_result,
@@ -441,9 +443,9 @@ def process_node(  # type: ignore[return] # all cases are handled
                             )
 
                         # TODO: refactor this so it is cleaner
-                        purity = transform_reasons_to_impurity_result(
+                        purity = _transform_reasons_to_impurity_result(
                             analysis_result.call_graph.graphs[combined_node.function_scope.symbol.id].reasons,
-                            # analysis_result
+                            analysis_result
                         )
 
                         if not combined_node.reasons.result:
@@ -479,9 +481,9 @@ def process_node(  # type: ignore[return] # all cases are handled
             ):
                 purity_self_defined: PurityResult = Pure()
                 if analysis_result.call_graph.graphs[function_id].reasons:
-                    purity_self_defined = transform_reasons_to_impurity_result(
+                    purity_self_defined = _transform_reasons_to_impurity_result(
                         analysis_result.call_graph.graphs[function_id].reasons,
-                        # analysis_result
+                        analysis_result
                     )
 
                 # If a result was propagated from the children,
@@ -506,7 +508,7 @@ def process_node(  # type: ignore[return] # all cases are handled
 
 # TODO: [Refactor] make this return a PurityResult??
 # TODO: add statement, that adds the result to the purity_results dict before returning
-def get_purity_of_child(
+def _get_purity_of_child(
     child: CallGraphNode,
     reason: Reasons,
     analysis_result: ModuleAnalysisResult,
@@ -533,7 +535,7 @@ def get_purity_of_child(
     child_id = child.function_scope.symbol.id
 
     if isinstance(child.function_scope.symbol, BuiltinOpen):
-        purity_result_child = check_open_like_functions(child.function_scope.symbol.call)
+        purity_result_child = _check_open_like_functions(child.function_scope.symbol.call)
     elif child_name in BUILTIN_FUNCTIONS:
         purity_result_child = BUILTIN_FUNCTIONS[child_name]
     elif child_name in analysis_result.classes:
@@ -541,7 +543,7 @@ def get_purity_of_child(
             init_fun_id = calc_node_id(
                 child.reasons.calls.pop().node,
             )  # TODO: make sure that there is only one call in the set of the class def reasons object
-            purity_result_child = process_node(
+            purity_result_child = _process_node(
                 analysis_result.raw_reasons[init_fun_id],
                 analysis_result,
                 purity_results,
@@ -549,7 +551,7 @@ def get_purity_of_child(
         else:
             purity_result_child = Pure()
     else:
-        purity_result_child = process_node(
+        purity_result_child = _process_node(
             analysis_result.raw_reasons[child_id],
             analysis_result,
             purity_results,
@@ -567,10 +569,9 @@ def get_purity_of_child(
             purity_results[function_node] = purity_results[function_node].update(purity_result_child)
 
 
-def transform_reasons_to_impurity_result(
+def _transform_reasons_to_impurity_result(
     reasons: Reasons,
-    # analysis_result: ModuleAnalysisResult    analysis_result : ModuleAnalysisResult
-    #         The result of the analysis of the module.
+    analysis_result: ModuleAnalysisResult
 ) -> PurityResult:
     """
     Transform the reasons for impurity to an impurity result.
@@ -582,6 +583,8 @@ def transform_reasons_to_impurity_result(
     ----------
     reasons : Reasons
         The node to process containing the raw reasons for impurity collected.
+    analysis_result : ModuleAnalysisResult
+        The result of the analysis of the module.
 
     Returns
     -------
@@ -605,27 +608,31 @@ def transform_reasons_to_impurity_result(
                 impurity_reasons.add(NonLocalVariableRead(read))
 
         # TODO: safe infer before adding the impurity reason
-        # if reasons.unknown_calls:
-        #     for unknown_call in reasons.unknown_calls:
-        #          # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
-        #         if isinstance(unknown_call.func, astroid.Attribute):
-        #             unknown_call_func_name = unknown_call.func.attrname
-        #         else:
-        #             unknown_call_func_name = unknown_call.func.name
-        #         function_id = calc_node_id(reasons.function)
-        #         if function_id in analysis_result.call_graph.graphs:
-        #             graph = analysis_result.call_graph.get_graph(function_id)
-        #             if unknown_call_func_name in graph.function.parameters:
-        #                 impurity_reasons.add(CallOfParameter(ParameterAccess(unknown_call_func_name)))
-        #             else:
-        #                 impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
-        #         elif not analysis_result.classes:
-        #             impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
-        #         else:  # better for readability
-        #             if unknown_call_func_name in analysis_result.classes:  # better for readability
-        #                 pass
-        #             else:
-        #                 impurity_reasons.add(UnknownCall(StringLiteral(unknown_call_func_name)))
+        if reasons.unknown_calls:
+            for unknown_call in reasons.unknown_calls:
+                # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
+                if isinstance(unknown_call.func, astroid.Attribute):
+                    unknown_call_func_name = unknown_call.func.attrname
+                else:
+                    unknown_call_func_name = unknown_call.func.name
+
+                function_id = reasons.function_scope.symbol.id
+                inferred_function_def = safe_infer(unknown_call.func)
+                # print(inferred_function_def)
+
+                if function_id in analysis_result.call_graph.graphs:
+                    graph = analysis_result.call_graph.get_graph(function_id)
+                    # Check if the unknown call is a call of a parameter of that function.
+                    if unknown_call_func_name in graph.function_scope.parameters:
+                        impurity_reasons.add(CallOfParameter(ParameterAccess(unknown_call_func_name)))
+
+                    # The unknown call is a call of a function that is not defined in the module.
+                    # In this case, the function can either be a builtin function (which is not in the builtin dir)
+                    # or an imported function from another module.
+                    elif inferred_function_def and isinstance(inferred_function_def, astroid.FunctionDef):
+                        impurity_reasons.add(UnknownCall(CallOfFunction(call=unknown_call, inferred_function=inferred_function_def)))
+                    else:
+                        impurity_reasons.add(UnknownCall(CallOfFunction(unknown_call)))
         if impurity_reasons:
             return Impure(impurity_reasons)
         return Pure()
@@ -660,7 +667,7 @@ def get_purity_results(
             # TODO: add module_name and path to astroid.parse?
             # TODO: remove test files? -> yes
             # TODO: what about modules with the same name in different directories? -> see api
-            module_purity_results = infer_purity(code)
+            module_purity_results = _infer_purity(code)
             # TODO: do we want the function name or the function def node as result? -> NodeID
             #  if we want the name we need to use ID or else functions with the same name will be lost
             # TODO: do we want to differentiate between classes -> hierarchical result with classes

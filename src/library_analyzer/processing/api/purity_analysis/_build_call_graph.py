@@ -187,10 +187,11 @@ def build_call_graph(
                         )
 
                     # Deal with unknown calls:
-                    # - calls of unknown code => call node not in functions dict
-                    # - calls of external code => call node not in function_reference dict
-                    # - calls of parameters # TODO: parameter calls are not handled yet
-                    # These functions get an unknown flag
+                    # - calls of imported functions
+                    # - calls of native code
+                    # - calls of function parameters
+                    # These calls are not in the functions dict and therefore need to be handled separately later.
+                    # This step is done in _infer_purity.py/transform_reasons_to_impurity_result()
                     else:
                         current_tree_node = call_graph_forest.get_graph(function_id)
                         if isinstance(current_tree_node.reasons, Reasons):
