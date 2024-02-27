@@ -569,22 +569,11 @@ class ModuleDataBuilder:
                 ):
                     return GlobalVariable(node=node, id=calc_node_id(node), name=node.name)
 
-                if isinstance(node, astroid.Call):
-                    # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
-                    if isinstance(node.func, astroid.Attribute):
-                        return LocalVariable(node=node, id=calc_node_id(node), name=node.func.attrname)
-                    return LocalVariable(node=node, id=calc_node_id(node), name=node.func.name)
-
                 return LocalVariable(node=node, id=calc_node_id(node), name=node.name)
 
             case (
                 astroid.Lambda() | astroid.ListComp() | astroid.DictComp() | astroid.SetComp() | astroid.GeneratorExp()
             ):
-                if isinstance(node, astroid.Call):
-                    # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
-                    if isinstance(node.func, astroid.Attribute):
-                        return LocalVariable(node=node, id=calc_node_id(node), name=node.func.attrname)
-                    return LocalVariable(node=node, id=calc_node_id(node), name=node.func.name)
                 # This deals with the case where a lambda function has parameters
                 if isinstance(node, astroid.AssignName) and isinstance(node.parent, astroid.Arguments):
                     return Parameter(node=node, id=calc_node_id(node), name=node.name)

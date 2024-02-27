@@ -149,38 +149,38 @@ class Reasons:
     def __iter__(self) -> Iterator[Symbol]:
         return iter(self.writes_to.union(self.reads_from).union(self.calls))
 
-    def get_call_by_name(self, name: str) -> Symbol:
-        """Get a call by name.
-
-        Parameters
-        ----------
-        name  : str
-            The name of the call to get.
-
-        Returns
-        -------
-        Symbol
-            The Symbol of the call.
-
-        Raises
-        ------
-        ValueError
-            If no call to the function with the given name is found.
-        """
-        for call in self.calls:
-            if isinstance(call.node, astroid.Call):
-                # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
-                if isinstance(call.node.func, astroid.Attribute) and call.node.func.attrname == name:
-                    return call
-                return call
-            else:  # noqa: PLR5501
-                # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
-                if isinstance(call.node.func, astroid.Attribute) and call.node.attrname == name:  # noqa: SIM114
-                    return call
-                elif call.node.name == name:
-                    return call
-
-        raise ValueError("No call to the function found.")
+    # def get_call_by_name(self, name: str) -> Symbol:
+    #     """Get a call by name.
+    #
+    #     Parameters
+    #     ----------
+    #     name  : str
+    #         The name of the call to get.
+    #
+    #     Returns
+    #     -------
+    #     Symbol
+    #         The Symbol of the call.
+    #
+    #     Raises
+    #     ------
+    #     ValueError
+    #         If no call to the function with the given name is found.
+    #     """
+    #     for call in self.calls:
+    #         if isinstance(call.node, astroid.Call):
+    #             # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+    #             if isinstance(call.node.func, astroid.Attribute) and call.node.func.attrname == name:
+    #                 return call
+    #             return call
+    #         else:  # noqa: PLR5501
+    #             # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
+    #             if isinstance(call.node.func, astroid.Attribute) and call.node.attrname == name:  # noqa: SIM114
+    #                 return call
+    #             elif call.node.name == name:
+    #                 return call
+    #
+    #     raise ValueError("No call to the function found.")
 
     def join_reasons(self, other: Reasons) -> Reasons:
         """Join two Reasons objects.
