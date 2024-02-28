@@ -467,21 +467,20 @@ class ModuleDataBuilder:
         # self.cleanup_globals(self.current_function_def[-1])
         self.current_function_def.pop()
 
-    # @staticmethod
-    # def cleanup_globals(function_scope: FunctionScope) -> None:
-    #     """Remove all global variables that are shadowed by local variables.
-    #
-    #     This function is called after the ASTWalker has walked all children of a function def and all their scopes are determined.
-    #     It removes all global variables from the globals dict that are shadowed by local variables.
-    #     """
-    #     if not isinstance(function_scope, FunctionScope) or not function_scope.globals_used:
-    #         return
-    #     for glob_name in function_scope.globals_used.copy():
-    #         if glob_name in function_scope.symbol.node.locals:
-    #             del function_scope.globals_used[glob_name]
-    #             for child in function_scope.children:
-    #                 if isinstance(child.symbol, GlobalVariable) and child.symbol.name == glob_name:
-    #                     child.symbol.__class__ = LocalVariable
+    def enter_asyncfunctiondef(self, node: astroid.AsyncFunctionDef) -> None:
+        self.current_node_stack.append(
+            FunctionScope(
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                _children=[],
+                _parent=self.current_node_stack[-1],
+            ),
+        )
+        self.current_function_def.append(self.current_node_stack[-1])  # type: ignore[arg-type]
+        # The current_node_stack[-1] is always of type FunctionScope here.
+
+    def leave_asyncfunctiondef(self, node: astroid.AsyncFunctionDef) -> None:
+        self._detect_scope(node)
+        self.current_function_def.pop()
 
     def get_symbol(self, node: astroid.NodeNG, current_scope: astroid.NodeNG | None) -> Symbol:
         """Get the symbol of a node.
