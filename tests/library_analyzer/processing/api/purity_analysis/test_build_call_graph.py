@@ -302,7 +302,7 @@ def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
     for tree_id, tree in call_graph_forest.graphs.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
-            transformed_call_graph_forest[f"{tree_id}"].add(child.function_scope.symbol.id.__str__())
+            transformed_call_graph_forest[f"{tree_id}"].add(child.scope.symbol.id.__str__())
 
     assert transformed_call_graph_forest == expected
 
@@ -652,6 +652,6 @@ def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> 
     for tree_id, tree in call_graph_forest.graphs.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
-            transformed_call_graph_forest[f"{tree_id}"].add(child.function_scope.symbol.id.__str__())
+            transformed_call_graph_forest[f"{tree_id}"].add(child.scope.symbol.id.__str__())
 
     assert transformed_call_graph_forest == expected
