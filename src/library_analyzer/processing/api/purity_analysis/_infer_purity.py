@@ -434,7 +434,7 @@ def _process_node(  # type: ignore[return] # all cases are handled
 
                         # TODO: refactor this so it is cleaner
                         purity = _transform_reasons_to_impurity_result(
-                            analysis_result.call_graph.graphs[combined_node.function_scope.symbol.id].reasons,
+                            analysis_result.call_graph.graphs[combined_node.scope.symbol.id].reasons,
                             analysis_result
                         )
 
@@ -525,7 +525,7 @@ def _get_purity_of_child(
     child_id = child.scope.symbol.id
 
     if isinstance(child.scope.symbol, BuiltinOpen):
-        purity_result_child = _check_open_like_functions(child.function_scope.symbol.call)
+        purity_result_child = _check_open_like_functions(child.scope.symbol.call)
     elif child_name in BUILTIN_FUNCTIONS:
         purity_result_child = BUILTIN_FUNCTIONS[child_name]
     elif child_name in analysis_result.classes:
@@ -607,8 +607,8 @@ def _transform_reasons_to_impurity_result(
                     unknown_call_func_name = unknown_call.func.name
 
                 function_id = reasons.function_scope.symbol.id
-                inferred_function_def = safe_infer(unknown_call.func)
-                # print(inferred_function_def)
+                inferred_result = safe_infer(unknown_call.func)
+                # print(inferred_result)
 
                 if function_id in analysis_result.call_graph.graphs:
                     graph = analysis_result.call_graph.get_graph(function_id)
@@ -621,6 +621,8 @@ def _transform_reasons_to_impurity_result(
                     # or an imported function from another module.
                     elif inferred_function_def and isinstance(inferred_function_def, astroid.FunctionDef):
                         impurity_reasons.add(UnknownCall(CallOfFunction(call=unknown_call, inferred_function=inferred_function_def)))
+                    elif inferred_result and isinstance(inferred_result, astroid.FunctionDef):
+                        impurity_reasons.add(UnknownCall(CallOfFunction(call=unknown_call, inferred_def=inferred_result)))
                     else:
                         impurity_reasons.add(UnknownCall(CallOfFunction(unknown_call)))
         if impurity_reasons:

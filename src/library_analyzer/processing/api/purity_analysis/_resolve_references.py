@@ -3,6 +3,7 @@ from __future__ import annotations
 import builtins
 
 import astroid
+from astroid.helpers import safe_infer
 
 from library_analyzer.processing.api.purity_analysis import get_module_data
 from library_analyzer.processing.api.purity_analysis._build_call_graph import build_call_graph
@@ -23,7 +24,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ReferenceNode,
     Symbol,
     TargetReference,
-    ValueReference,
+    ValueReference, Import,
 )
 
 _BUILTINS = dir(builtins)
@@ -34,6 +35,7 @@ def _find_call_references(
     function: FunctionScope,
     functions: dict[str, list[FunctionScope]],
     classes: dict[str, ClassScope],
+    imports: dict[str, Import]
 ) -> ValueReference:
     """Find all references for a function call.
 
@@ -62,19 +64,19 @@ def _find_call_references(
     if not isinstance(call_reference, Reference):
         raise TypeError(f"call is not of type Reference, but of type {type(call_reference)}")
 
-    value_reference = ValueReference(call_reference, function, [])
+    result_value_reference = ValueReference(call_reference, function, [])
 
     # Find functions that are called.
     if call_reference.name in functions:
         function_def = functions.get(call_reference.name)
         function_symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but it is checked before
-        value_reference.referenced_symbols.extend(function_symbols)
+        result_value_reference.referenced_symbols.extend(function_symbols)
 
     # Find classes that are called (initialized).
     elif call_reference.name in classes:
         class_def = classes.get(call_reference.name)
         if class_def:
-            value_reference.referenced_symbols.append(class_def.symbol)
+            result_value_reference.referenced_symbols.append(class_def.symbol)
 
     # Find builtins that are called, this includes open-like functions.
     # Because the parameters of the call node are relevant for the analysis, they are added to the (Builtin) Symbol.
@@ -109,7 +111,7 @@ def _find_call_references(
                 name=call_reference.name,
                 call=call_reference.node,
             )
-        value_reference.referenced_symbols.append(builtin_call)
+        result_value_reference.referenced_symbols.append(builtin_call)
 
     # Find function parameters that are called (passed as arguments), like:
     # def f(a):
@@ -117,9 +119,15 @@ def _find_call_references(
     # It is not possible to analyze this any further before runtime, so they will later be marked as unknown.
     if call_reference.name in function.parameters:
         param = function.parameters[call_reference.name]
-        value_reference.referenced_symbols.append(param)
+        result_value_reference.referenced_symbols.append(param)
 
-    return value_reference
+    # Find imported functions or classes that are called.
+    if call_reference.name in imports:
+        import_def = imports.get(call_reference.name)
+        if import_def:
+            result_value_reference.referenced_symbols.append(import_def)
+
+    return result_value_reference
 
 
 def _find_value_references(
@@ -127,6 +135,7 @@ def _find_value_references(
     function: FunctionScope,
     functions: dict[str, list[FunctionScope]],
     classes: dict[str, ClassScope],
+    imports: dict[str, Import]
 ) -> ValueReference:
     """Find all references for a value node.
 
@@ -164,9 +173,9 @@ def _find_value_references(
         # Check if all symbols are refined (refined means that they are of any subtyp of Symbol)
         if any(isinstance(symbol, Symbol) for symbol in symbols):
             # This currently is mostly the case for ClassVariables and InstanceVariables that are used as targets
-
             missing_refined = [symbol for symbol in symbols if type(symbol) is Symbol]
-            # Because the missing refined symbols are added separately above,
+
+            # Because the missing refined symbols are added separately below,
             # remove the unrefined symbols from the list to avoid duplicates.
             symbols = list(set(symbols) - set(missing_refined))
 
@@ -212,6 +221,12 @@ def _find_value_references(
         if class_def:
             result_value_reference.referenced_symbols.append(class_def.symbol)
 
+    # Find imported modules that are referenced (as value).
+    if not isinstance(value_reference.node, MemberAccessValue) and value_reference.name in imports:
+        import_def = imports.get(value_reference.name)
+        if import_def:
+            result_value_reference.referenced_symbols.append(import_def)
+
     # Find class and instance variables that are referenced.
     if isinstance(value_reference.node, MemberAccessValue):
         for klass in classes.values():
@@ -229,6 +244,21 @@ def _find_value_references(
                     result_value_reference.referenced_symbols.extend(
                         klass.instance_variables[value_reference.node.member],
                     )
+
+        # Find imported functions, classes or variables that are referenced (for the member of a MemberAccessValue).
+        if value_reference.node.receiver.name in imports:
+            import_def = imports.get(value_reference.node.receiver.name)
+            if import_def and value_reference.node.node is not None:
+                # Check if the imported module contains the referenced symbol.
+                node_def = safe_infer(value_reference.node.node)
+                if node_def is None:
+                    raise ValueError(f"Could not resolve the node {value_reference.node.node} for the import {import_def}")
+                possible_names = node_def.root().globals
+                if value_reference.node.member in possible_names:
+                    # import_def.name = value_reference.node.member
+                    # TODO: is this necessary? -> if so we need to overcome the problem that the import symbol object
+                    #  is the same for all possible functions and classes that are imported from the same module
+                    result_value_reference.referenced_symbols.append(import_def)
 
     return result_value_reference
 
@@ -366,15 +396,13 @@ def resolve_references(
                             function,
                             module_data.functions,
                             module_data.classes,
+                            module_data.imports
                         )
 
                         # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
                         # If the name does not yet exist, create a new list with the reference.
                         if call_references_result.referenced_symbols:
-                            if call_references_result.node.name not in call_references:
-                                call_references[call_references_result.node.name] = [call_references_result]
-                            else:
-                                call_references[call_references_result.node.name].append(call_references_result)
+                            call_references.setdefault(call_references_result.node.name, []).append(call_references_result)
 
                             # Add the referenced symbols to the calls of the raw_reasons dict for this function
                             for referenced_symbol in call_references_result.referenced_symbols:
@@ -395,15 +423,13 @@ def resolve_references(
                             function,
                             module_data.functions,
                             module_data.classes,
+                            module_data.imports,
                         )
 
                         # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
                         # If the name does not yet exist, create a new list with the reference.
                         if value_reference_result.referenced_symbols:
-                            if value_reference_result.node.name not in value_references:
-                                value_references[value_reference_result.node.name] = [value_reference_result]
-                            else:
-                                value_references[value_reference_result.node.name].append(value_reference_result)
+                            value_references.setdefault(value_reference_result.node.name, []).append(value_reference_result)
 
                             # Add the referenced symbols to the reads_from of the raw_reasons dict for this function
                             for referenced_symbol in value_reference_result.referenced_symbols:
@@ -430,10 +456,7 @@ def resolve_references(
                         # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
                         # If the name does not yet exist, create a new list with the reference.
                         if target_reference_result.referenced_symbols:
-                            if target_reference_result.node.name not in target_references:
-                                target_references[target_reference_result.node.name] = [target_reference_result]
-                            else:
-                                target_references[target_reference_result.node.name].append(target_reference_result)
+                            target_references.setdefault(target_reference_result.node.name, []).append(target_reference_result)
 
                             # Add the referenced symbols to the writes_to of the raw_reasons dict for this function
                             for referenced_symbol in target_reference_result.referenced_symbols:

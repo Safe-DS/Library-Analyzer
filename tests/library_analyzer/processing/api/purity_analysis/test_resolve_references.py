@@ -193,6 +193,12 @@ def transform_reference_node(ref_node: ReferenceNode) -> ReferenceTestNode:
             # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
             referenced_symbols=sorted([str(ref) for ref in ref_node.referenced_symbols]),
         )
+    if isinstance(ref_node.node.node, astroid.Name):
+        return ReferenceTestNode(
+            name=f"{ref_node.node.name}.line{ref_node.node.node.lineno}",
+            scope=f"{ref_node.scope.symbol.node.__class__.__name__}.{ref_node.scope.symbol.node.name}",
+            referenced_symbols=sorted([str(ref) for ref in ref_node.referenced_symbols]),
+        )
     return ReferenceTestNode(
         name=f"{ref_node.node.node.name}.line{ref_node.node.node.lineno}",
         scope=f"{ref_node.scope.symbol.node.__class__.__name__}.{ref_node.scope.symbol.node.name}",
@@ -650,7 +656,7 @@ def f():
                 ReferenceTestNode(
                     "UNKNOWN.class_attr1.line10",
                     "FunctionDef.f",
-                    # we do not analyze the target of the member access, hence the name does not matter.
+                    # we do not analyze the receiver of the member access, hence the name does not matter.
                     ["ClassVariable.A.class_attr1.line3"],
                 ),
                 ReferenceTestNode("b.upper_class.line10", "FunctionDef.f", ["ClassVariable.B.upper_class.line6"]),
@@ -791,7 +797,7 @@ def f():
             """,  # language=none
             [
                 ReferenceTestNode("UNKNOWN.name.line11", "FunctionDef.f", ["InstanceVariable.A.name.line4"]),
-                # we do not analyze the target of the member access, hence the name does not matter.
+                # we do not analyze the receiver of the member access, hence the name does not matter.
                 ReferenceTestNode("b.upper_class.line11", "FunctionDef.f", ["ClassVariable.B.upper_class.line7"]),
                 ReferenceTestNode("b.line11", "FunctionDef.f", ["LocalVariable.b.line10"]),
                 ReferenceTestNode("self.line4", "FunctionDef.A.__init__", ["Parameter.self.line3"]),
@@ -818,9 +824,9 @@ def f():
             """,  # language=none
             [
                 ReferenceTestNode("UNKNOWN.name.line16", "FunctionDef.f", ["InstanceVariable.C.name.line12"]),
-                # we do not analyze the target of the member access, hence the name does not matter.
+                # we do not analyze the receiver of the member access, hence the name does not matter.
                 ReferenceTestNode("UNKNOWN.c.line16", "FunctionDef.f", ["InstanceVariable.B.c.line8"]),
-                # we do not analyze the target of the member access, hence the name does not matter.
+                # we do not analyze the receiver of the member access, hence the name does not matter.
                 ReferenceTestNode("a.b.line16", "FunctionDef.f", ["InstanceVariable.A.b.line4"]),
                 ReferenceTestNode("a.line16", "FunctionDef.f", ["LocalVariable.a.line15"]),
                 ReferenceTestNode("self.line4", "FunctionDef.A.__init__", ["Parameter.self.line3"]),
@@ -855,6 +861,7 @@ def f():
                 ReferenceTestNode("self.line12", "FunctionDef.C.__init__", ["Parameter.self.line11"]),
                 ReferenceTestNode("UNKNOWN.name.line16", "FunctionDef.f", ["InstanceVariable.C.name.line12"]),
                 ReferenceTestNode("UNKNOWN.c.line16", "FunctionDef.f", ["InstanceVariable.B.c.line8"]),
+                # we do not analyze the receiver of the member access, hence the name does not matter.
                 ReferenceTestNode("a.line16", "FunctionDef.f", ["LocalVariable.a.line15"]),
                 ReferenceTestNode("a.b.line16", "FunctionDef.f", ["InstanceVariable.A.b.line4"]),
                 ReferenceTestNode("B.line4", "FunctionDef.A.__init__", ["GlobalVariable.B.line6"]),
@@ -2432,7 +2439,8 @@ import math
 def f():
     a = math.pi
             """,  # language=none
-            [""],  # TODO
+            [ReferenceTestNode("math.line5", "FunctionDef.f", ["Import.math.line2"]),
+             ReferenceTestNode("math.pi.line5", "FunctionDef.f", ["Import.math.pi.line2"])],
         ),
         (  # language=Python "Import module with alias - constant"
             """
@@ -2441,7 +2449,8 @@ import math as m
 def f():
     a = m.pi
             """,  # language=none
-            [""],  # TODO
+            [ReferenceTestNode("m.line5", "FunctionDef.f", ["Import.math.line2"]),
+             ReferenceTestNode("m.pi.line5", "FunctionDef.f", ["Import.math.pi.line2"])],
         ),
         (  # language=Python "Import module - function"
             """
@@ -2450,7 +2459,9 @@ import math
 def f(a):
     math.sqrt(a)
             """,  # language=none
-            [""],  # TODO
+            [ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+             ReferenceTestNode("math.line5", "FunctionDef.f", ["Import.math.line2"]),
+             ReferenceTestNode("sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"])],
         ),
         (  # language=Python "Import module with alias - function"
             """
@@ -2459,7 +2470,9 @@ import math as m
 def f(a):
     m.sqrt(a)
             """,  # language=none
-            [""],  # TODO
+            [ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+             ReferenceTestNode("m.line5", "FunctionDef.f", ["Import.math.line2"]),
+             ReferenceTestNode("sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"])],
         ),
         (  # language=Python "Import module with alias - function and constant"
             """
@@ -2468,9 +2481,32 @@ import math as m
 def f(a):
     a = m.pi
     m.sqrt(a)
-    m.pi = 1  # this is very uncommon but possible - definitely impure
+    m.pi = 1  # this is very uncommon but possible - make sure we detect targets as well since this is very impure
             """,  # language=none
-            [""],  # TODO
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("m.line5", "FunctionDef.f", ["Import.math.line2"]),
+                ReferenceTestNode("m.pi.line5", "FunctionDef.f", ["Import.math.pi.line2"]),
+                ReferenceTestNode("a.line6", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("m.line6", "FunctionDef.f", ["Import.math.line2"]),
+                ReferenceTestNode("m.sqrt.line6", "FunctionDef.f", ["Import.math.sqrt.line2"]),
+                ReferenceTestNode("m.pi.line7", "FunctionDef.f", ["Import.math.pi.line2"]),
+             ],
+        ),
+        (  # language=Python "Import two modules with alias - function and constant"
+            """
+import math as m, sys as s
+
+def f(a):
+    m.sqrt(a)
+    x = s
+            """,  # language=none
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("m.line5", "FunctionDef.f", ["Import.math.line2"]),
+                ReferenceTestNode("sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"]),
+                ReferenceTestNode("s.line6", "FunctionDef.f", ["Import.sys.line2"]),
+            ],
         ),
         (  # language=Python "FromImport - constant"
             """
@@ -2479,7 +2515,7 @@ from math import pi
 def f():
     a = pi
             """,  # language=none
-            [""],  # TODO
+            [ReferenceTestNode("pi.line5", "FunctionDef.f", ["Import.math.pi.line2"])],
         ),
         (  # language=Python "FromImport with alias - constant"
             """
@@ -2488,7 +2524,7 @@ from math import pi as p
 def f():
     a = p
             """,  # language=none
-            [""],  # TODO
+            [ReferenceTestNode("p.line5", "FunctionDef.f", ["Import.math.pi.line2"])],
         ),
         (  # language=Python "FromImport - function"
             """
@@ -2497,7 +2533,10 @@ from math import sqrt
 def f(a):
     sqrt(a)
             """,  # language=none
-            [""],  # TODO,
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"])
+            ],
         ),
         (  # language=Python "FromImport with alias - function"
             """
@@ -2506,7 +2545,10 @@ from math import sqrt as s
 def f(a):
     s(a)
             """,  # language=none
-            [""],  # TODO
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("s.line5", "FunctionDef.f", ["Import.math.sqrt.line2"])
+            ],
         ),
         (  # language=Python "FromImport with alias - function and constant"
             """
@@ -2516,7 +2558,12 @@ def f(a):
     a = p
     s(a)
             """,  # language=none
-            [""],  # TODO
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("p.line5", "FunctionDef.f", ["Import.math.pi.line2"]),
+                ReferenceTestNode("a.line6", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("s.line6", "FunctionDef.f", ["Import.math.sqrt.line2"])
+            ],
         ),
         (  # language=Python "Local FromImport - function"
             """
@@ -2524,15 +2571,17 @@ def f(a):
     from math import pi
     a = pi
             """,  # language=none
-            [""],  # TODO
+            [ReferenceTestNode("a.line4", "FunctionDef.f", ["Parameter.a.line2"]),
+             ReferenceTestNode("pi.line4", "FunctionDef.f", ["Import.math.pi.line3"])],
         ),
         (  # language=Python "Local FromImport - function"
             """
 def f(a):
-    from math import sqrt
-    sqrt(a)
+    from math import sqrt as s
+    s(a)
             """,  # language=none
-            [""],  # TODO
+            [ReferenceTestNode("a.line4", "FunctionDef.f", ["Parameter.a.line2"]),
+             ReferenceTestNode("s.line4", "FunctionDef.f", ["Import.math.sqrt.line3"])],
         ),
     ],
     ids=[
@@ -2541,6 +2590,7 @@ def f(a):
         "Import module - function",
         "Import module with alias - function",
         "Import module with alias - function and constant",
+        "Import two modules with alias - function and constant",
         "FromImport - constant",
         "FromImport with alias - constant",
         "FromImport - function",

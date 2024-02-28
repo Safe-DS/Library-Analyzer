@@ -46,9 +46,9 @@ def build_call_graph(
     call_graph_forest = CallGraphForest()
     classes_and_functions: dict[str, list[FunctionScope] | ClassScope] = {**classes, **functions}
 
-    for function_scopes in classes_and_functions.values():
+    for scopes in classes_and_functions.values():
         # Inner for loop is needed to handle multiple function defs with the same name.
-        for scope in function_scopes:
+        for scope in scopes:
             # Add reasons for impurity to the corresponding function.
             function_id = scope.symbol.id
             if isinstance(scope, ClassScope):

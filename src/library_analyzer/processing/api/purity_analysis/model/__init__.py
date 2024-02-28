@@ -42,6 +42,7 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
     StringLiteral,
     UnknownCall,
     CallOfFunction,
+    ClassInit,
 )
 from library_analyzer.processing.api.purity_analysis.model._reference import (
     ModuleAnalysisResult,
@@ -93,5 +94,6 @@ __all__ = [
     "ValueReference",
     "APIPurity",
     "BuiltinOpen",
-    "CallOfFunction"
+    "CallOfFunction",
+    "ClassInit",
 ]

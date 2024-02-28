@@ -47,6 +47,7 @@ class ModuleData:
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope]
     parameters: dict[astroid.FunctionDef, tuple[Scope, list[astroid.AssignName]]]
     function_calls: dict[astroid.Call, Scope]
+    imports: dict[str, Import]
 
 
 @dataclass
@@ -82,7 +83,7 @@ class MemberAccess(astroid.NodeNG):
     parent: astroid.NodeNG | None = field(default=None)
     name: str = field(init=False)
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
 
     def __post_init__(self) -> None:
@@ -144,7 +145,7 @@ class NodeID:
     line: int
     col: int
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         if self.line == -1 or self.col == -1:
             if self.module is None:
                 return f"{self.name}"
@@ -176,7 +177,7 @@ class Symbol(ABC):
     id: NodeID
     name: str
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
     def __hash__(self) -> int:
@@ -192,7 +193,7 @@ class Parameter(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
 
@@ -203,7 +204,7 @@ class LocalVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
 
@@ -214,7 +215,7 @@ class GlobalVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
 
@@ -233,7 +234,7 @@ class ClassVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         if self.klass is None:
             return f"{self.__class__.__name__}.UNKNOWN_CLASS.{self.name}.line{self.id.line}"
         return f"{self.__class__.__name__}.{self.klass.name}.{self.name}.line{self.id.line}"
@@ -254,7 +255,7 @@ class InstanceVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         if self.klass is None:
             return f"{self.__class__.__name__}.UNKNOWN_CLASS.{self.name}.line{self.id.line}"
         return f"{self.__class__.__name__}.{self.klass.name}.{self.name}.line{self.id.line}"
@@ -262,7 +263,32 @@ class InstanceVariable(Symbol):
 
 @dataclass
 class Import(Symbol):
-    """Represents an import."""
+    """Represents an import.
+
+    Attributes
+    ----------
+    node : astroid.ImportFrom | astroid.Import
+        The node that defines the import.
+    module : str
+        The module that is imported.
+    alias : str | None
+        If the node is of type Import alias is the name for the module name if any is given.
+        If the node is of type ImportFrom alias is the name for the name of the symbol if any is given.
+    """
+
+    node: astroid.ImportFrom | astroid.Import
+    module: str
+    alias: str | None = None
+
+    def __str__(self) -> str:
+        if isinstance(self.node, astroid.ImportFrom):
+            if self.name:
+                return f"{self.__class__.__name__}.{self.module}.{self.name}.line{self.id.line}"
+            return f"{self.__class__.__name__}.{self.module}.line{self.id.line}"
+        else:
+            # if self.name != self.module:
+            #     return f"{self.__class__.__name__}.{self.module}.{self.name}.line{self.id.line}"
+            return f"{self.__class__.__name__}.{self.module}.line{self.id.line}"
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -272,7 +298,7 @@ class Import(Symbol):
 class Builtin(Symbol):
     """Represents a builtin (function)."""
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
 
     def __hash__(self) -> int:
@@ -293,7 +319,7 @@ class BuiltinOpen(Builtin):
 
     call: astroid.Call
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
 
     def __hash__(self) -> int:
@@ -322,7 +348,7 @@ class Reference:
     id: NodeID
     name: str
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
     def __hash__(self) -> int:
@@ -358,7 +384,7 @@ class Scope:
     def __next__(self) -> Scope | ClassScope:
         return self
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.symbol.name}.line{self.symbol.id.line}"
 
     def __hash__(self) -> int:

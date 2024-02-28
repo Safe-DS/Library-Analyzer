@@ -93,6 +93,7 @@ class ModuleDataBuilder:
         default_factory=dict,
     )  # TODO: [LATER] in a refactor:  remove parameters since they are stored inside the FunctionScope in functions now and use these instead
     function_calls: dict[astroid.Call, Scope] = field(default_factory=dict)
+    imports: dict[str, Import] = field(default_factory=dict)
 
     def _detect_scope(self, current_node: astroid.NodeNG) -> None:
         """
@@ -1011,23 +1012,49 @@ class ModuleDataBuilder:
                 ):
                     self.current_function_def[-1].call_references.setdefault(call_name, []).append(call_reference)
 
-    def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
+    def enter_import(self, node: astroid.Import) -> None:
+        # TODO: do we want import nodes to be added to the scope tree?
         parent = self.current_node_stack[-1]
-        scope_node = Scope(
-            _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-            _children=[],
-            _parent=parent,
-        )
-        self.children.append(scope_node)
+        symbols: dict[str, Import] = {}
+        for name_tuple in node.names:
+            module = name_tuple[0]
+            alias = name_tuple[1]
+            if alias:
+                import_symbol = Import(node=node, id=calc_node_id(node), name=alias, module=module, alias=alias)
+            else:
+                import_symbol = Import(node=node, id=calc_node_id(node), name=module, module=module)
+            symbols[import_symbol.name] = import_symbol
+            scope_node = Scope(
+                _symbol=import_symbol,
+                _children=[],
+                _parent=parent,
+            )
+            self.children.append(scope_node)
 
-    def enter_importfrom(self, node: astroid.ImportFrom) -> None:  # TODO: handle multiple imports and aliases
+        self.imports.update(symbols)
+
+    def enter_importfrom(self, node: astroid.ImportFrom) -> None:
+        # TODO: do we want import nodes to be added to the scope tree?
         parent = self.current_node_stack[-1]
-        scope_node = Scope(
-            _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-            _children=[],
-            _parent=parent,
-        )
-        self.children.append(scope_node)
+        symbols: dict[str, Import] = {}
+        for name_tuple in node.names:
+            module = node.modname
+            name = name_tuple[0]
+            alias = name_tuple[1]
+            if alias:
+                import_symbol = Import(node=node, id=calc_node_id(node), name=name, module=module, alias=alias)
+                symbols[import_symbol.alias] = import_symbol
+            else:
+                import_symbol = Import(node=node, id=calc_node_id(node), name=name, module=module)
+                symbols[import_symbol.name] = import_symbol
+            scope_node = Scope(
+                _symbol=import_symbol,
+                _children=[],
+                _parent=parent,
+            )
+            self.children.append(scope_node)
+
+        self.imports.update(symbols)
 
     # TODO: this lookup could be more efficient if we would add all global nodes to the dict when 'enter_module' is called
     #  we than can be sure that all globals are detected already and we do not need to traverse the tree
@@ -1327,4 +1354,5 @@ def get_module_data(code: str) -> ModuleData:
         target_nodes=module_data_handler.target_nodes,
         parameters=module_data_handler.parameters,
         function_calls=module_data_handler.function_calls,
+        imports=module_data_handler.imports,
     )

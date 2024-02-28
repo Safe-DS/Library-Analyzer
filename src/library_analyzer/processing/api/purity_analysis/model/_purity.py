@@ -350,12 +350,12 @@ class CallOfFunction(Expression):
     """
 
     call: astroid.Call
-    inferred_function: astroid.FunctionDef | None = None
+    inferred_def: astroid.FunctionDef | None = None
     name: str = field(init=False)
 
     def __post_init__(self):
-        if self.inferred_function is not None:
-            self.name = f"{self.inferred_function.root().name}.{self.inferred_function.name}"
+        if self.inferred_def is not None:
+            self.name = f"{self.inferred_def.root().name}.{self.inferred_def.name}"
         elif isinstance(self.call.func, astroid.Attribute):
             self.name = self.call.func.attrname
         else:
@@ -364,6 +364,8 @@ class CallOfFunction(Expression):
     def to_result_str(self) -> str:
         if isinstance(self.call.func, astroid.Attribute):
             return f"CallOfFunction.{self.call.func.attrname}"
+    def __str__(self) -> str:
+        return f"CallOfFunction.{self.name}"
         else:
             return f"CallOfFunction.{self.call.func.name}"
 
