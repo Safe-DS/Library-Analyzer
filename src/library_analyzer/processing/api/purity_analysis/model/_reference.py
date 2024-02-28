@@ -76,7 +76,7 @@ class ValueReference(ReferenceNode):
     """Class for value reference nodes.
 
     A ValueReference represents a reference from a value to a list of Symbols.
-    This is used to represent a Reference from a function call to the function definition.
+    This is used to represent a reference from a function call to the function definition.
     """
 
     node: Reference
@@ -89,7 +89,7 @@ class ValueReference(ReferenceNode):
 class ModuleAnalysisResult:
     """Class for module analysis results.
 
-    After the references of aaa module have been resolved, all necessary information for the purity analysis is available in this class.
+    After the references of a module have been resolved, all necessary information for the purity analysis is available in this class.
 
     Attributes
     ----------
@@ -122,7 +122,7 @@ class Reasons:
     ----------
     function_scope : FunctionScope | None
         The scope of the function which the reasons belong to.
-        Is None if the reasons are not for a function.
+        Is None if the reasons are not for a FunctionDef node.
         This is the case when a combined node is created, or a ClassScope is used to propagate reasons.
     writes_to : set[Symbol]
         A set of all nodes that are written to.
@@ -144,79 +144,10 @@ class Reasons:
     reads_from: set[GlobalVariable | ClassVariable | InstanceVariable] = field(default_factory=set)
     calls: set[Symbol] = field(default_factory=set)
     result: PurityResult | None = field(default=None)
-    unknown_calls: list[astroid.Call] | None = field(default=None)
-
-    def __iter__(self) -> Iterator[Symbol]:
-        return iter(self.writes_to.union(self.reads_from).union(self.calls))
-
-    # def get_call_by_name(self, name: str) -> Symbol:
-    #     """Get a call by name.
-    #
-    #     Parameters
-    #     ----------
-    #     name  : str
-    #         The name of the call to get.
-    #
-    #     Returns
-    #     -------
-    #     Symbol
-    #         The Symbol of the call.
-    #
-    #     Raises
-    #     ------
-    #     ValueError
-    #         If no call to the function with the given name is found.
-    #     """
-    #     for call in self.calls:
-    #         if isinstance(call.node, astroid.Call):
-    #             # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
-    #             if isinstance(call.node.func, astroid.Attribute) and call.node.func.attrname == name:
-    #                 return call
-    #             return call
-    #         else:
-    #             # make sure we do not get an AttributeError because of the inconsistent names in the astroid API
-    #             if isinstance(call.node.func, astroid.Attribute) and call.node.attrname == name:
-    #                 return call
-    #             elif call.node.name == name:
-    #                 return call
-    #
-    #     raise ValueError("No call to the function found.")
-
-    def join_reasons(self, other: Reasons) -> Reasons:
-        """Join two Reasons objects.
-
-        When a function has multiple reasons for impurity, the Reasons objects are joined.
-        This means that the writes, reads, calls and unknown_calls are merged.
-
-        Parameters
-        ----------
-        other : Reasons
-            The other Reasons object.
-
-        Returns
-        -------
-        Reasons
-            The updated Reasons object.
-        """
-        self.writes_to.update(other.writes_to)
-        self.reads_from.update(other.reads_from)
-        self.calls.update(other.calls)
-        # join unknown calls - since they can be None we need to deal with that
-        if self.unknown_calls is not None and other.unknown_calls is not None:
-            self.unknown_calls.extend(other.unknown_calls)
-        elif self.unknown_calls is None and other.unknown_calls is not None:
-            self.unknown_calls = other.unknown_calls
-        elif other.unknown_calls is None:
-            pass
-
-        return self
+    unknown_calls: set[astroid.Call] = field(default_factory=set)
 
     @staticmethod
     def join_reasons_list(reasons_list: list[Reasons]) -> Reasons:
-        # combined_node_name: str | None = None) -> Reasons:
-        # combined_node_name : str
-        #    Indicates if the Reasons object is a combined node.
-        #    If it is a combined node, the function is set to None since it does not exist.
         """Join a list of Reasons objects.
 
         Combines a list of Reasons objects into one Reasons object.
@@ -243,6 +174,30 @@ class Reasons:
         result = Reasons()
         for reason in reasons_list:
             result.join_reasons(reason)
-        # if combined_node_name is not None:
-        #     result.function = combined_node_name
         return result
+
+    def __iter__(self) -> Iterator[Symbol]:
+        return iter(self.writes_to.union(self.reads_from).union(self.calls))
+
+    def join_reasons(self, other: Reasons) -> Reasons:
+        """Join two Reasons objects.
+
+        When a function has multiple reasons for impurity, the Reasons objects are joined.
+        This means that the writes, reads, calls and unknown_calls are merged.
+
+        Parameters
+        ----------
+        other : Reasons
+            The other Reasons object.
+
+        Returns
+        -------
+        Reasons
+            The updated Reasons object.
+        """
+        self.writes_to.update(other.writes_to)
+        self.reads_from.update(other.reads_from)
+        self.calls.update(other.calls)
+        self.unknown_calls.update(other.unknown_calls)
+
+        return self

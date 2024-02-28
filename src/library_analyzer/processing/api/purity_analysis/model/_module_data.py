@@ -24,32 +24,29 @@ class ModuleData:
     functions : dict[str, list[FunctionScope]]
         All functions and a list of their FunctionScopes.
         The value is a list since there can be multiple functions with the same name.
-    global_variables : dict[str, Scope | ClassScope]
-        All global variables and their Scope or ClassScope.
-    value_nodes : dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
-        All value nodes and their Scope or ClassScope.
+    global_variables : dict[str, Scope]
+        All global variables and their Scope.
+    value_nodes : dict[astroid.Name | MemberAccessValue, Scope]
+        All value nodes and their Scope.
         Value nodes are nodes that are read from.
-    target_nodes : dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]
-        All target nodes and their Scope or ClassScope.
+    target_nodes : dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope]
+        All target nodes and their Scope.
         Target nodes are nodes that are written to.
-    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]
-        All parameters of functions and a tuple of their Scope or ClassScope and a set of their target nodes.
+    parameters : dict[astroid.FunctionDef, tuple[Scope, list[astroid.AssignName]]]
+        All parameters of functions and a tuple of their Scope and a set of their target nodes.
         These are used to determine the scope of the parameters for each function.
-    function_calls : dict[astroid.Call, Scope | ClassScope]
-        All function calls and their Scope or ClassScope.
+    function_calls : dict[astroid.Call, Scope]
+        All function calls and their Scope.
     """
 
-    scope: Scope | ClassScope
+    scope: Scope
     classes: dict[str, ClassScope]
     functions: dict[str, list[FunctionScope]]
-    global_variables: dict[str, Scope | ClassScope | FunctionScope]
-    value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
-    target_nodes: dict[
-        astroid.AssignName | astroid.Name | MemberAccessTarget,
-        Scope | ClassScope,
-    ]
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, list[astroid.AssignName]]]
-    function_calls: dict[astroid.Call, Scope | ClassScope]
+    global_variables: dict[str, Scope]
+    value_nodes: dict[astroid.Name | MemberAccessValue, Scope]
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope]
+    parameters: dict[astroid.FunctionDef, tuple[Scope, list[astroid.AssignName]]]
+    function_calls: dict[astroid.Call, Scope]
 
 
 @dataclass
@@ -96,18 +93,6 @@ class MemberAccess(astroid.NodeNG):
         else:
             self.name = f"UNKNOWN.{self.member}"
 
-    def get_top_level_receiver(self) -> astroid.NodeNG:
-        """Get the top level receiver.
-
-        Returns
-        -------
-        astroid.NodeNG
-            The top level receiver.
-        """
-        if isinstance(self.receiver, MemberAccess):
-            return self.receiver.get_top_level_receiver()
-        return self.receiver
-
 
 @dataclass
 class MemberAccessTarget(MemberAccess):
@@ -148,10 +133,10 @@ class NodeID:
         The name of the node.
     line : int
         The line of the node in the source code.
-        Is -1 for combined nodes, builtins or any other node that does not have a line.
+        Is -1 for combined nodes, builtins or any other node that do not have a line.
     col : int | None
         The column of the node in the source code.
-        Is -1 for combined nodes, builtins or any other node that does not have a line.
+        Is -1 for combined nodes, builtins or any other node that do not have a line.
     """
 
     module: astroid.Module | str | None
@@ -364,8 +349,8 @@ class Scope:
     """
 
     _symbol: Symbol
-    _children: list[Scope | ClassScope | FunctionScope] = field(default_factory=list)
-    _parent: Scope | ClassScope | FunctionScope | None = None
+    _children: list[Scope] = field(default_factory=list)
+    _parent: Scope | None = None
 
     def __iter__(self) -> Generator[Scope | ClassScope, None, None]:
         yield self
@@ -406,7 +391,7 @@ class Scope:
         self._children = new_children
 
     @property
-    def parent(self) -> Scope | ClassScope | None:
+    def parent(self) -> Scope | None:
         """Scope | ClassScope | None : Parent of the scope.
 
         The parent node in the scope tree.
@@ -415,8 +400,8 @@ class Scope:
         return self._parent
 
     @parent.setter
-    def parent(self, new_parent: Scope | ClassScope | None) -> None:
-        if not isinstance(new_parent, Scope | ClassScope | None):
+    def parent(self, new_parent: Scope | None) -> None:
+        if not isinstance(new_parent, Scope | None):
             raise TypeError("Invalid parent type.")
         self._parent = new_parent
 
@@ -451,14 +436,14 @@ class ClassScope(Scope):
         The name of the instance variable and a list of its Symbols (which represent a declaration).
     init_function : FunctionScope | None
         The init function of the class if it exists else None.
-    super_classes : list[ClassScope] | None
-        The list of super classes of the class if it exists else None.
+    super_classes : list[ClassScope]
+        The list of super classes of the class if any.
     """
 
     class_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     instance_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     init_function: FunctionScope | None = None
-    super_classes: list[ClassScope] | None = None
+    super_classes: list[ClassScope] = field(default_factory=list)
 
 
 @dataclass
@@ -489,7 +474,7 @@ class FunctionScope(Scope):
     parameters: dict[str, Parameter] = field(default_factory=dict)
     globals_used: dict[str, list[GlobalVariable]] = field(default_factory=dict)
 
-    def remove_call_node_by_name(self, name: str) -> None:
+    def remove_call_reference_by_id(self, call_id: str) -> None:
         """Remove a call node by name.
 
         Removes a call node from the dict of call nodes by name.
@@ -497,7 +482,7 @@ class FunctionScope(Scope):
 
         Parameters
         ----------
-        name  : str
+        call_id  : str
             The name of the call node to remove.
         """
-        self.call_references.pop(name, None)
+        self.call_references.pop(call_id, None)

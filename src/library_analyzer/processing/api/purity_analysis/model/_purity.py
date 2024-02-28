@@ -31,40 +31,27 @@ class PurityResult(ABC):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def to_dict(self) -> dict[str, Any]:  # type: ignore[return] # all cases are handled
-        if isinstance(self, Pure):
-            return {"purity": self.__class__.__name__}
-        elif isinstance(self, Impure):
-            return {
-                "purity": self.__class__.__name__,
-                "reasons": [reason.to_result_str() for reason in self.reasons],
-            }
+    @abstractmethod
+    def to_dict(self) -> dict[str, Any]:
+        pass
 
     @abstractmethod
+    def update(self, other: PurityResult | None) -> PurityResult:
+        """Update the current result with another result."""
+
+
+@dataclass
+class Pure(PurityResult):
+    """Class for pure results.
+
+    A function is pure if it has no (External-, Internal-)Read nor (External-, Internal-)Write side effects.
+    A pure function must also have no unknown reasons.
+    """
+
     def update(self, other: PurityResult | None) -> PurityResult:
         """Update the current result with another result.
 
         See PurityResult._update
-        """
-        return self._update(other)
-
-    def _update(self, other: PurityResult | None) -> PurityResult:  # type: ignore[return] # all cases are handled
-        """Update the current result with another result.
-
-        Parameters
-        ----------
-        other : PurityResult
-            The other result.
-
-        Returns
-        -------
-        PurityResult
-            The updated result.
-
-        Raises
-        ------
-        TypeError
-            If the result cannot be updated with the other result.
         """
         if other is None:
             pass
@@ -81,21 +68,8 @@ class PurityResult(ABC):
         else:
             raise TypeError(f"Cannot update {self} with {other}")
 
-
-@dataclass
-class Pure(PurityResult):
-    """Class for pure results.
-
-    A function is pure if it has no (External-, Internal-)Read nor (External-, Internal-)Write side effects.
-    A pure function must also have no unknown reasons.
-    """
-
-    def update(self, other: PurityResult | None) -> PurityResult:
-        """Update the current result with another result.
-
-        See PurityResult._update
-        """
-        return super()._update(other)
+    def to_dict(self) -> dict[str, Any]:
+        return {"purity": self.__class__.__name__}
 
 
 @dataclass
@@ -123,7 +97,26 @@ class Impure(PurityResult):
 
         See PurityResult._update
         """
-        return super()._update(other)
+        if other is None:
+            pass
+        elif isinstance(self, Pure):
+            if isinstance(other, Pure):
+                return self
+            elif isinstance(other, Impure):
+                return other
+        elif isinstance(self, Impure):
+            if isinstance(other, Pure):
+                return self
+            elif isinstance(other, Impure):
+                return Impure(reasons=self.reasons | other.reasons)
+        else:
+            raise TypeError(f"Cannot update {self} with {other}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "purity": self.__class__.__name__,
+            "reasons": [reason.__str__() for reason in self.reasons],
+        }
 
 
 class ImpurityReason(ABC):  # this is just a base class, and it is important that it cannot be instantiated
@@ -133,7 +126,7 @@ class ImpurityReason(ABC):  # this is just a base class, and it is important tha
     """
 
     @abstractmethod
-    def to_result_str(self) -> str:
+    def __str__(self) -> str:
         pass
 
     def __hash__(self) -> int:
@@ -159,7 +152,7 @@ class NonLocalVariableRead(Read):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def to_result_str(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
 
 
@@ -179,9 +172,9 @@ class FileRead(Read):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def to_result_str(self) -> str:
+    def __str__(self) -> str:
         if isinstance(self.source, Expression):
-            return f"{self.__class__.__name__}: {self.source.to_result_str()}"
+            return f"{self.__class__.__name__}: {self.source.__str__()}"
         return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
 
@@ -204,7 +197,7 @@ class NonLocalVariableWrite(Write):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def to_result_str(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
 
 
@@ -224,9 +217,9 @@ class FileWrite(Write):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def to_result_str(self) -> str:
+    def __str__(self) -> str:
         if isinstance(self.source, Expression):
-            return f"{self.__class__.__name__}: {self.source.to_result_str()}"
+            return f"{self.__class__.__name__}: {self.source.__str__()}"
         return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
 
@@ -251,8 +244,8 @@ class UnknownCall(Unknown):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def to_result_str(self) -> str:
-        return f"{self.__class__.__name__}: {self.expression.to_result_str()}"
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
 
 @dataclass
@@ -272,8 +265,8 @@ class NativeCall(Unknown):  # ExternalCall
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def to_result_str(self) -> str:
-        return f"{self.__class__.__name__}: {self.expression.to_result_str()}"
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
 
 @dataclass
@@ -297,8 +290,8 @@ class CallOfParameter(Unknown):  # ParameterCall
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def to_result_str(self) -> str:
-        return f"{self.__class__.__name__}: {self.expression.to_result_str()}"
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
 
 class Expression(ABC):  # this is just a base class, and it is important that it cannot be instantiated
@@ -308,7 +301,7 @@ class Expression(ABC):  # this is just a base class, and it is important that it
     """
 
     @abstractmethod
-    def to_result_str(self) -> str:
+    def __str__(self) -> str:
         pass
 
 
@@ -324,7 +317,9 @@ class ParameterAccess(Expression):
 
     parameter: Parameter
 
-    def to_result_str(self) -> str:
+    def __str__(self) -> str:
+        if isinstance(self.parameter, str):
+            return self.parameter
         return f"ParameterAccess.{self.parameter.name}"
 
 
@@ -340,7 +335,7 @@ class StringLiteral(Expression):
 
     value: str
 
-    def to_result_str(self) -> str:
+    def __str__(self) -> str:
         return f"StringLiteral.{self.value}"
 
 

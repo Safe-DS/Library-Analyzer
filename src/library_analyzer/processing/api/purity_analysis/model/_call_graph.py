@@ -22,7 +22,7 @@ class CallGraphNode:
 
     Attributes
     ----------
-    function_scope : FunctionScope | ClassScope
+    scope : FunctionScope | ClassScope
         The function that the node represents.
         This is a ClassScope if the class has a __init__ method.
         In this case, the node is used for propagating the reasons of the
@@ -31,7 +31,7 @@ class CallGraphNode:
         The raw Reasons for the node.
     children : set[CallGraphNode]
         The set of children of the node, (i.e., the set of nodes that this node calls)
-    combined_node_names : list[str]
+    combined_node_ids : list[NodeID]
         A list of the names of all nodes that are combined into this node.
         This is only set if the node is a combined node.
         This is later used for transferring the reasons of the combined node to the original nodes.
@@ -39,21 +39,17 @@ class CallGraphNode:
         True if the function is a builtin function, False otherwise.
     """
 
-    function_scope: FunctionScope | ClassScope
+    scope: FunctionScope | ClassScope
     reasons: Reasons
     children: set[CallGraphNode] = field(default_factory=set)
-    combined_node_names: list[str] = field(default_factory=list)
+    combined_node_ids: list[NodeID] = field(default_factory=list)
     is_builtin: bool = False
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __repr__(self) -> str:
-        if isinstance(self.function_scope, FunctionScope | ClassScope):
-            return f"{self.function_scope.symbol.id}"
-        if isinstance(self.function_scope, Reference):
-            return f"{self.function_scope.id}"
-        return f"{self.function_scope}"
+        return f"{self.scope.symbol.id}"
 
     def add_child(self, child: CallGraphNode) -> None:
         """Add a child to the node.
@@ -74,6 +70,16 @@ class CallGraphNode:
             True if the node is a leaf node, False otherwise.
         """
         return len(self.children) == 0
+
+    def combined_node_id_to_string(self) -> list[str]:
+        """Return the combined node IDs as a string.
+
+        Returns
+        -------
+        str
+            The combined node IDs as a string.
+        """
+        return [str(node_id) for node_id in self.combined_node_ids]
 
 
 @dataclass
@@ -103,7 +109,9 @@ class CallGraphForest:
         """
         self.graphs[graph_id] = graph
 
-    def get_graph(self, graph_id: NodeID) -> CallGraphNode:  # type: ignore[return] # see TODO below
+    # TODO: is it necessary to check for None after every call?
+    #  why cant we raise the error in the function?
+    def get_graph(self, graph_id: NodeID) -> CallGraphNode | None:
         """Get a call graph tree from the forest.
 
         Parameters
@@ -116,10 +124,7 @@ class CallGraphForest:
         CallGraphNode
             The CallGraphNode that is the root of the tree.
         """
-        try:
-            return self.graphs[graph_id]
-        except KeyError:
-            pass  # TODO: this is not a good idea, but it works -  LARS how to change this?
+        return self.graphs.get(graph_id)
 
     def delete_graph(self, graph_id: NodeID) -> None:
         """Delete a call graph tree from the forest.

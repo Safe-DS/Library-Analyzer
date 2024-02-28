@@ -320,9 +320,9 @@ def _infer_purity(code: str) -> dict[NodeID, PurityResult]:
         _process_node(reasons, analysis_result, purity_results)
 
     for graph in analysis_result.call_graph.graphs.values():
-        if graph.combined_node_names:
+        if graph.combined_node_ids:
             combined_node_name = "+".join(
-                sorted(combined_node_name for combined_node_name in graph.combined_node_names),
+                sorted(combined_node_id_str for combined_node_id_str in graph.combined_node_id_to_string()),
             )
             combined_node_names.add(combined_node_name)
 
@@ -375,16 +375,6 @@ def _process_node(  # type: ignore[return] # all cases are handled
             purity_results[function_id] = analysis_result.call_graph.get_graph(function_id).reasons.result  # type: ignore[assignment] # None is not possible here
             return purity_results[function_id]
 
-    # Check if the referenced function is a builtin function.
-    # elif function_id.name in BUILTIN_FUNCTIONS:
-    #     if function_id.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
-    #         purity_results[function_id] = check_open_like_functions(
-    #             reason.get_call_by_name(function_id.name),
-    #         )
-    #     else:
-    #         purity_results[function_id] = BUILTIN_FUNCTIONS[function_id.name]
-    #     return purity_results[function_id]
-
     # The purity of the function is not determined yet.
     try:
         # Check if the function has any child nodes and if so, check their purity first and propagate the results afterward.
@@ -393,9 +383,9 @@ def _process_node(  # type: ignore[return] # all cases are handled
             # If the node is part of the call graph, check if it has any children (called functions) = not a leaf.
             if not analysis_result.call_graph.get_graph(function_id).is_leaf():
                 for child in analysis_result.call_graph.get_graph(function_id).children:
-                    child_id = child.function_scope.symbol.id
+                    child_id = child.scope.symbol.id
                     # Check if the node is a combined node (would throw a KeyError otherwise).
-                    if not child.combined_node_names:
+                    if not child.combined_node_ids:
                         _get_purity_of_child(
                             child,
                             reason,
@@ -420,13 +410,13 @@ def _process_node(  # type: ignore[return] # all cases are handled
         else:
             # Check if the node is a combined node since they need to be handled differently.
             combined_nodes = {
-                node.function_scope.symbol.name: node
+                node.scope.symbol.name: node
                 for node in analysis_result.call_graph.graphs.values()
-                if node.combined_node_names
+                if node.combined_node_ids
             }
             for combined_node in combined_nodes.values():
                 # Check if the current node is part of the combined node (therefore part of the cycle).
-                if function_id.__str__() in combined_node.combined_node_names:
+                if function_id.__str__() in combined_node.combined_node_id_to_string():
                     # Check if the purity result was already determined
                     if combined_node.reasons.result and function_id in purity_results:
                         purity_results[function_id] = combined_node.reasons.result
@@ -458,11 +448,11 @@ def _process_node(  # type: ignore[return] # all cases are handled
                         else:
                             purity_results[function_id] = purity_results[function_id].update(purity)
 
-                        if combined_node.function_scope.symbol.name not in purity_results:
-                            purity_results[combined_node.function_scope.symbol.id] = purity
+                        if combined_node.scope.symbol.name not in purity_results:
+                            purity_results[combined_node.scope.symbol.id] = purity
                         else:
-                            purity_results[combined_node.function_scope.symbol.id] = purity_results[
-                                combined_node.function_scope.symbol.id
+                            purity_results[combined_node.scope.symbol.id] = purity_results[
+                                combined_node.scope.symbol.id
                             ].update(purity)
 
                     return purity_results[function_id]
@@ -531,10 +521,10 @@ def _get_purity_of_child(
         The function ids as keys and purity results of the functions as values.
         Since the collection runs recursively, pass them as a parameter to check for already determined results.
     """
-    child_name = child.function_scope.symbol.name
-    child_id = child.function_scope.symbol.id
+    child_name = child.scope.symbol.name
+    child_id = child.scope.symbol.id
 
-    if isinstance(child.function_scope.symbol, BuiltinOpen):
+    if isinstance(child.scope.symbol, BuiltinOpen):
         purity_result_child = _check_open_like_functions(child.function_scope.symbol.call)
     elif child_name in BUILTIN_FUNCTIONS:
         purity_result_child = BUILTIN_FUNCTIONS[child_name]
