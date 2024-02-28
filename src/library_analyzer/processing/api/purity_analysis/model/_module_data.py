@@ -82,7 +82,7 @@ class MemberAccess(astroid.NodeNG):
     parent: astroid.NodeNG | None = field(default=None)
     name: str = field(init=False)
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
 
     def __post_init__(self) -> None:
@@ -141,11 +141,11 @@ class NodeID:
 
     module: astroid.Module | str | None
     name: str
-    line: int
-    col: int
+    line: int | None = None
+    col: int | None = None
 
-    def __repr__(self) -> str:
-        if self.line == -1 or self.col == -1:
+    def __str__(self) -> str:
+        if self.line is None or self.col is None:
             if self.module is None:
                 return f"{self.name}"
             return f"{self.module}.{self.name}"
@@ -176,7 +176,7 @@ class Symbol(ABC):
     id: NodeID
     name: str
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
     def __hash__(self) -> int:
@@ -192,7 +192,7 @@ class Parameter(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
 
@@ -203,7 +203,7 @@ class LocalVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
 
@@ -214,7 +214,7 @@ class GlobalVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
 
@@ -233,7 +233,7 @@ class ClassVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         if self.klass is None:
             return f"{self.__class__.__name__}.UNKNOWN_CLASS.{self.name}.line{self.id.line}"
         return f"{self.__class__.__name__}.{self.klass.name}.{self.name}.line{self.id.line}"
@@ -254,7 +254,7 @@ class InstanceVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         if self.klass is None:
             return f"{self.__class__.__name__}.UNKNOWN_CLASS.{self.name}.line{self.id.line}"
         return f"{self.__class__.__name__}.{self.klass.name}.{self.name}.line{self.id.line}"
@@ -272,7 +272,7 @@ class Import(Symbol):
 class Builtin(Symbol):
     """Represents a builtin (function)."""
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
 
     def __hash__(self) -> int:
@@ -293,7 +293,7 @@ class BuiltinOpen(Builtin):
 
     call: astroid.Call
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
 
     def __hash__(self) -> int:
@@ -322,7 +322,7 @@ class Reference:
     id: NodeID
     name: str
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
     def __hash__(self) -> int:
@@ -358,7 +358,7 @@ class Scope:
     def __next__(self) -> Scope | ClassScope:
         return self
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.symbol.name}.line{self.symbol.id.line}"
 
     def __hash__(self) -> int:

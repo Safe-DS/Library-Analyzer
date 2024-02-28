@@ -99,13 +99,13 @@ def _find_call_references(
         )
         builtin_call = Builtin(
             node=builtin_function,
-            id=NodeID(None, call_reference.name, -1, -1),
+            id=NodeID(None, call_reference.name),
             name=call_reference.name,
         )
         if call_reference.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
             builtin_call = BuiltinOpen(
                 node=builtin_function,
-                id=NodeID(None, call_reference.name, -1, -1),
+                id=NodeID(None, call_reference.name),
                 name=call_reference.name,
                 call=call_reference.node,
             )
@@ -186,7 +186,7 @@ def _find_value_references(
 
         # Only add symbols that are defined before the value is used.
         for symbol in symbols:
-            if symbol.id.line <= value_reference.id.line:
+            if symbol.id.line is None or value_reference.id.line is None or symbol.id.line <= value_reference.id.line:
                 result_value_reference.referenced_symbols.append(symbol)
 
     # Find parameters that are referenced.

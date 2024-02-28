@@ -75,9 +75,6 @@ def build_call_graph(
                                 init_function.symbol.id,
                                 CallGraphNode(scope=init_function, reasons=Reasons()),
                             )
-                        init_cgn = call_graph_forest.get_graph(init_function.symbol.id)
-                        if init_cgn is None:
-                            raise ValueError(f"No function found with id {init_function.symbol.id}")
                         current_call_graph_node.add_child(call_graph_forest.get_graph(init_function.symbol.id))
                         current_call_graph_node.reasons.calls.add(
                             Symbol(
@@ -110,14 +107,12 @@ def build_call_graph(
                             if called_fun.symbol.name == call.name
                         ]
                         current_tree_node = call_graph_forest.get_graph(function_id)
-                        if current_tree_node is None:
-                            raise ValueError(f"No function found with id {function_id}")
                         break_condition = False  # This is used to indicate that one or more functions defs was
                         # found inside the forest that matches the called function name.
 
                         # Check if the called function is already in the tree.
                         for f in matching_function_defs:
-                            if call_graph_forest.get_graph(f.symbol.id):
+                            if call_graph_forest.has_graph(f.symbol.id):
                                 current_tree_node.add_child(call_graph_forest.get_graph(f.symbol.id))
                                 break_condition = True  # A function def inside the forest was found
                                 # so the following else statement must not be executed.
@@ -173,7 +168,7 @@ def build_call_graph(
                         )
                         builtin_symbol = Builtin(
                             node=builtin_function,
-                            id=NodeID(None, call.name, -1, -1),
+                            id=NodeID(None, call.name),
                             name=call.name,
                         )
                         if call.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
@@ -325,7 +320,7 @@ def contract_cycle(
     combined_node_data = FunctionScope(
         Symbol(
             None,
-            NodeID(None, combined_node_name, -1, -1),
+            NodeID(None, combined_node_name),
             combined_node_name,
         ),
     )
@@ -457,14 +452,15 @@ def update_pointers(node: CallGraphNode, cycle_ids: list[NodeID], cycle_id_strs:
                 #  since they no longer share the same name (since this would be the ID of the call).
                 if child.scope.symbol.id in cycle_ids:
                     references_to_remove = child.scope.symbol.id
-                    call_refs = node.scope.call_references[child.scope.symbol.name]
-                    for ref in call_refs:
+                    call_ref_list = node.scope.call_references[child.scope.symbol.name]
+                    for ref in call_ref_list:
                         if ref.id == references_to_remove:
-                            call_refs.remove(ref)
+                            call_ref_list.remove(ref)
+                    node.scope.call_references[child.scope.symbol.name] = call_ref_list
 
                 call_refs: list[Reference] = []
-                for ref in child.scope.call_references.values():
-                    call_refs.extend(ref)
+                for c_ref in child.scope.call_references.values():
+                    call_refs.extend(c_ref)
                 calls: dict[str, list[Reference]] = {combined_node.scope.symbol.name: call_refs}
                 node.scope.call_references.update(calls)
             # Remove the call from the reasons (reasons need to be updated later)

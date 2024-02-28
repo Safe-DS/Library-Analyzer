@@ -3,14 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from library_analyzer.processing.api.purity_analysis.model._module_data import (
-    ClassScope,
-    FunctionScope,
-    NodeID,
-    Reference,
-)
-
 if TYPE_CHECKING:
+    from library_analyzer.processing.api.purity_analysis.model._module_data import (
+        ClassScope,
+        FunctionScope,
+        NodeID,
+    )
     from library_analyzer.processing.api.purity_analysis.model._reference import Reasons
 
 
@@ -39,8 +37,8 @@ class CallGraphNode:
         True if the function is a builtin function, False otherwise.
     """
 
-    scope: FunctionScope | ClassScope
-    reasons: Reasons
+    scope: FunctionScope | ClassScope  # TODO: change to symbol
+    reasons: Reasons  # TODO: remove calls from reasons after they were added to the call graph (except for unknown calls)
     children: set[CallGraphNode] = field(default_factory=set)
     combined_node_ids: list[NodeID] = field(default_factory=list)
     is_builtin: bool = False
@@ -109,9 +107,7 @@ class CallGraphForest:
         """
         self.graphs[graph_id] = graph
 
-    # TODO: is it necessary to check for None after every call?
-    #  why cant we raise the error in the function?
-    def get_graph(self, graph_id: NodeID) -> CallGraphNode | None:
+    def get_graph(self, graph_id: NodeID) -> CallGraphNode:
         """Get a call graph tree from the forest.
 
         Parameters
@@ -123,8 +119,31 @@ class CallGraphForest:
         -------
         CallGraphNode
             The CallGraphNode that is the root of the tree.
+
+        Raises
+        ------
+        KeyError
+            If the graph_id is not in the forest.
         """
-        return self.graphs.get(graph_id)
+        result = self.graphs.get(graph_id)
+        if result is None:
+            raise KeyError(f"Graph with id {graph_id} not found inside the call graph.")
+        return result
+
+    def has_graph(self, graph_id: NodeID) -> bool:
+        """Check if the forest contains a call graph tree with the given NodeID.
+
+        Parameters
+        ----------
+        graph_id : NodeID
+            The NodeID of the tree to check for.
+
+        Returns
+        -------
+        bool
+            True if the forest contains a tree with the given NodeID, False otherwise.
+        """
+        return graph_id in self.graphs
 
     def delete_graph(self, graph_id: NodeID) -> None:
         """Delete a call graph tree from the forest.

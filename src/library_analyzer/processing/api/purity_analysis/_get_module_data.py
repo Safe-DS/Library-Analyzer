@@ -325,12 +325,8 @@ class ModuleDataBuilder:
             self.calls = []
 
             # Add all globals that are used inside the Lambda to the parent function globals list.
-            if self.current_node_stack[-1].globals_used:  # type: ignore[union-attr]
-                # Ignore the linter error because the current scope node is always of
-                # type FunctionScope and therefor has a parameter attribute.
-                for glob_name, glob_def_list in self.current_node_stack[
-                    -1
-                ].globals_used.items():  # type: ignore[union-attr] # see above
+            if isinstance(self.current_node_stack[-1], FunctionScope) and self.current_node_stack[-1].globals_used:
+                for glob_name, glob_def_list in self.current_node_stack[-1].globals_used.items():
                     if glob_name not in self.current_function_def[-2].globals_used:
                         self.current_function_def[-2].globals_used[glob_name] = glob_def_list
                     else:
