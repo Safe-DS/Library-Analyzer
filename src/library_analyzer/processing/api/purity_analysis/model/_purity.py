@@ -76,8 +76,8 @@ class Pure(PurityResult):
                 return self
             elif isinstance(other, Impure):
                 return Impure(reasons=self.reasons | other.reasons)
-        else:
-            raise TypeError(f"Cannot update {self} with {other}")
+
+        raise TypeError(f"Cannot update {self} with {other}")
 
     def to_dict(self) -> dict[str, Any]:
         return {"purity": self.__class__.__name__}
@@ -133,8 +133,7 @@ class Impure(PurityResult):
                 return self
             elif isinstance(other, Impure):
                 return Impure(reasons=self.reasons | other.reasons)
-        else:
-            raise TypeError(f"Cannot update {self} with {other}")
+        raise TypeError(f"Cannot update {self} with {other}")
 
     def to_dict(self) -> dict[str, Any]:
         return {
