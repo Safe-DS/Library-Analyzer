@@ -51,10 +51,23 @@ class Pure(PurityResult):
     def update(self, other: PurityResult | None) -> PurityResult:
         """Update the current result with another result.
 
-        See PurityResult._update
+        Parameters
+        ----------
+        other : PurityResult | None
+            The result to update with.
+
+        Returns
+        -------
+        PurityResult
+            The updated result.
+
+        Raises
+        ------
+        TypeError
+            If the result cannot be updated with the given result.
         """
         if other is None:
-            pass
+            return self
         elif isinstance(self, Pure):
             if isinstance(other, Pure):
                 return self
@@ -65,8 +78,8 @@ class Pure(PurityResult):
                 return self
             elif isinstance(other, Impure):
                 return Impure(reasons=self.reasons | other.reasons)
-        else:
-            raise TypeError(f"Cannot update {self} with {other}")
+
+        raise TypeError(f"Cannot update {self} with {other}")
 
     def to_dict(self) -> dict[str, Any]:
         return {"purity": self.__class__.__name__}
@@ -95,10 +108,23 @@ class Impure(PurityResult):
     def update(self, other: PurityResult | None) -> PurityResult:
         """Update the current result with another result.
 
-        See PurityResult._update
+        Parameters
+        ----------
+        other : PurityResult | None
+            The result to update with.
+
+        Returns
+        -------
+        PurityResult
+            The updated result.
+
+        Raises
+        ------
+        TypeError
+            If the result cannot be updated with the given result.
         """
         if other is None:
-            pass
+            return self
         elif isinstance(self, Pure):
             if isinstance(other, Pure):
                 return self
@@ -109,8 +135,7 @@ class Impure(PurityResult):
                 return self
             elif isinstance(other, Impure):
                 return Impure(reasons=self.reasons | other.reasons)
-        else:
-            raise TypeError(f"Cannot update {self} with {other}")
+        raise TypeError(f"Cannot update {self} with {other}")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -361,13 +386,8 @@ class CallOfFunction(Expression):
         else:
             self.name = self.call.func.name
 
-    def to_result_str(self) -> str:
-        if isinstance(self.call.func, astroid.Attribute):
-            return f"CallOfFunction.{self.call.func.attrname}"
     def __str__(self) -> str:
         return f"CallOfFunction.{self.name}"
-        else:
-            return f"CallOfFunction.{self.call.func.name}"
 
 
 class APIPurity:

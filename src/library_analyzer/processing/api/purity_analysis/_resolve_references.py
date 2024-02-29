@@ -14,6 +14,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ClassVariable,
     FunctionScope,
     GlobalVariable,
+    Import,
     InstanceVariable,
     MemberAccessTarget,
     MemberAccessValue,
@@ -24,7 +25,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ReferenceNode,
     Symbol,
     TargetReference,
-    ValueReference, Import,
+    ValueReference,
 )
 
 _BUILTINS = dir(builtins)
@@ -195,7 +196,7 @@ def _find_value_references(
 
         # Only add symbols that are defined before the value is used.
         for symbol in symbols:
-            if symbol.id.line <= value_reference.id.line:
+            if symbol.id.line is None or value_reference.id.line is None or symbol.id.line <= value_reference.id.line:
                 result_value_reference.referenced_symbols.append(symbol)
 
     # Find parameters that are referenced.

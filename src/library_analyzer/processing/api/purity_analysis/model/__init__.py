@@ -26,7 +26,9 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
 )
 from library_analyzer.processing.api.purity_analysis.model._purity import (
     APIPurity,
+    CallOfFunction,
     CallOfParameter,
+    ClassInit,
     Expression,
     FileRead,
     FileWrite,
@@ -41,8 +43,6 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
     PurityResult,
     StringLiteral,
     UnknownCall,
-    CallOfFunction,
-    ClassInit,
 )
 from library_analyzer.processing.api.purity_analysis.model._reference import (
     ModuleAnalysisResult,

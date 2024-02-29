@@ -37,6 +37,8 @@ class ModuleData:
         These are used to determine the scope of the parameters for each function.
     function_calls : dict[astroid.Call, Scope]
         All function calls and their Scope.
+    imports : dict[str, Import]
+        All imported symbols.
     """
 
     scope: Scope
@@ -142,11 +144,11 @@ class NodeID:
 
     module: astroid.Module | str | None
     name: str
-    line: int
-    col: int
+    line: int | None = None
+    col: int | None = None
 
     def __str__(self) -> str:
-        if self.line == -1 or self.col == -1:
+        if self.line is None or self.col is None:
             if self.module is None:
                 return f"{self.name}"
             return f"{self.module}.{self.name}"

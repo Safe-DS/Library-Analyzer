@@ -5,6 +5,7 @@ from library_analyzer.processing.api.purity_analysis import (
     _infer_purity,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
+    CallOfFunction,
     CallOfParameter,
     ClassVariable,
     FileRead,
@@ -12,6 +13,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Impure,
     ImpurityReason,
     InstanceVariable,
+    NodeID,
     NonLocalVariableRead,
     NonLocalVariableWrite,
     ParameterAccess,
@@ -19,7 +21,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     PurityResult,
     StringLiteral,
     UnknownCall,
-    NodeID, CallOfFunction,
 )
 
 
@@ -1398,6 +1399,88 @@ def fun1(a):
 )
 def test_infer_purity_import(code: str, expected: dict[str, SimpleImpure]) -> None:
     purity_results = _infer_purity(code)
+
+    transformed_purity_results = {
+        to_string_function_def(function_def): to_simple_result(purity_result)
+        for function_def, purity_result in purity_results.items()
+    }
+
+    assert transformed_purity_results == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "Unknown Call",
+            """
+def fun1():
+    call()
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({"UnknownCall.StringLiteral.call"}),
+            },
+        ),
+        (  # language=Python "Three Unknown Call",
+            """
+def fun1():
+    call1()
+    call2()
+    call3()
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({
+                    "UnknownCall.StringLiteral.call1",
+                    "UnknownCall.StringLiteral.call2",
+                    "UnknownCall.StringLiteral.call3",
+                }),
+            },
+        ),
+        (  # language=Python "Unknown Call of Parameter",
+            """
+def fun1(a):
+    a()
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({"CallOfParameter.ParameterAccess.a"}),
+            },
+        ),
+        (  # language=Python "Unknown Call of Parameter with many Parameters",
+            """
+def fun1(function, a, b , c, **kwargs):
+    res = function(a, b, c, **kwargs)
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({"CallOfParameter.ParameterAccess.function"}),
+            },
+        ),
+        (  # language=Python "Unknown Call of Parameter with many Parameters",
+            """
+from typing import Callable
+
+def fun1():
+    fun = import_fun("functions.py", "fun1")
+    fun()
+
+def import_fun(file: str, f_name: str) -> Callable:
+    print("test")
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout", "UnknownCall.StringLiteral.fun"}),
+                "import_fun.line8": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+            },
+        ),
+    ],
+    ids=[
+        "Unknown Call",
+        "Three Unknown Call",
+        "Unknown Call of Parameter",
+        "Unknown Call of Parameter with many Parameters",
+        "Unknown Import function",
+    ],
+)
+@pytest.mark.xfail(reason="Some cases disabled for merging")
+def test_infer_purity_unknown(code: str, expected: dict[str, SimpleImpure]) -> None:
+    purity_results = infer_purity(code)
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)

@@ -49,6 +49,8 @@ def build_call_graph(
     for scopes in classes_and_functions.values():
         # Inner for loop is needed to handle multiple function defs with the same name.
         for scope in scopes:
+            if not isinstance(scope, FunctionScope | ClassScope):
+                raise TypeError(f"Scope {scope} is not of type FunctionScope or ClassScope") from None
             # Add reasons for impurity to the corresponding function.
             function_id = scope.symbol.id
             if isinstance(scope, ClassScope):
@@ -75,9 +77,6 @@ def build_call_graph(
                                 init_function.symbol.id,
                                 CallGraphNode(scope=init_function, reasons=Reasons()),
                             )
-                        init_cgn = call_graph_forest.get_graph(init_function.symbol.id)
-                        if init_cgn is None:
-                            raise ValueError(f"No function found with id {init_function.symbol.id}")
                         current_call_graph_node.add_child(call_graph_forest.get_graph(init_function.symbol.id))
                         current_call_graph_node.reasons.calls.add(
                             Symbol(
@@ -110,14 +109,12 @@ def build_call_graph(
                             if called_fun.symbol.name == call.name
                         ]
                         current_tree_node = call_graph_forest.get_graph(function_id)
-                        if current_tree_node is None:
-                            raise ValueError(f"No function found with id {function_id}")
                         break_condition = False  # This is used to indicate that one or more functions defs was
                         # found inside the forest that matches the called function name.
 
                         # Check if the called function is already in the tree.
                         for f in matching_function_defs:
-                            if call_graph_forest.get_graph(f.symbol.id):
+                            if call_graph_forest.has_graph(f.symbol.id):
                                 current_tree_node.add_child(call_graph_forest.get_graph(f.symbol.id))
                                 break_condition = True  # A function def inside the forest was found
                                 # so the following else statement must not be executed.
@@ -173,7 +170,7 @@ def build_call_graph(
                         )
                         builtin_symbol = Builtin(
                             node=builtin_function,
-                            id=NodeID(None, call.name, -1, -1),
+                            id=NodeID(None, call.name),
                             name=call.name,
                         )
                         if call.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
@@ -326,7 +323,7 @@ def contract_cycle(
     combined_node_data = FunctionScope(
         Symbol(
             None,
-            NodeID(None, combined_node_name, -1, -1),
+            NodeID(None, combined_node_name),
             combined_node_name,
         ),
     )
@@ -362,7 +359,7 @@ def contract_cycle(
         builtin_calls: dict[str, list[Reference]] = {
             call[0].name: [call[0]]
             for node in cycle
-            for call in node.scope.call_references.values()
+            for call in node.scope.call_references.values()  # type: ignore[union-attr]
             if isinstance(node.scope, FunctionScope)
             and call[0].name in BUILTINS
             or call[0].name in ("read", "readline", "readlines", "write", "writelines")
@@ -426,7 +423,12 @@ def contract_cycle(
         update_pointers(graph, cycle_ids, cycle_id_strs, combined_node)
 
 
-def update_pointers(node: CallGraphNode, cycle_ids: list[NodeID], cycle_id_strs: list[str], combined_node: CallGraphNode) -> None:
+def update_pointers(
+    node: CallGraphNode,
+    cycle_ids: list[NodeID],
+    cycle_id_strs: list[str],
+    combined_node: CallGraphNode,
+) -> None:
     """Replace all pointers to nodes in the cycle with the combined node.
 
     Recursively traverses the tree and replaces all pointers to nodes in the cycle with the combined node.
@@ -458,16 +460,18 @@ def update_pointers(node: CallGraphNode, cycle_ids: list[NodeID], cycle_id_strs:
                 #  since they no longer share the same name (since this would be the ID of the call).
                 if child.scope.symbol.id in cycle_ids:
                     references_to_remove = child.scope.symbol.id
-                    call_refs = node.scope.call_references[child.scope.symbol.name]
-                    for ref in call_refs:
+                    call_ref_list = node.scope.call_references[child.scope.symbol.name]
+                    for ref in call_ref_list:
                         if ref.id == references_to_remove:
-                            call_refs.remove(ref)
+                            call_ref_list.remove(ref)
+                    node.scope.call_references[child.scope.symbol.name] = call_ref_list  # type: ignore[union-attr]
 
                 call_refs: list[Reference] = []
-                for ref in child.scope.call_references.values():
-                    call_refs.extend(ref)
-                calls: dict[str, list[Reference]] = {combined_node.scope.symbol.name: call_refs}
-                node.scope.call_references.update(calls)
+                if isinstance(child.scope, FunctionScope):
+                    for c_ref in child.scope.call_references.values():
+                        call_refs.extend(c_ref)
+                    calls: dict[str, list[Reference]] = {combined_node.scope.symbol.name: call_refs}
+                    node.scope.call_references.update(calls)
             # Remove the call from the reasons (reasons need to be updated later)
             if isinstance(node.reasons, Reasons):
                 for call in node.reasons.calls.copy():

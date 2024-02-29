@@ -351,7 +351,9 @@ class ModuleDataBuilder:
                 self.current_function_def[-1].parent,
                 ClassScope,
             ):
-                self.current_function_def[-1].parent.instance_variables.setdefault(child.symbol.name, []).append(child.symbol)
+                self.current_function_def[-1].parent.instance_variables.setdefault(child.symbol.name, []).append(
+                    child.symbol,
+                )
 
         # Add __init__ function to ClassScope.
         if isinstance(self.current_function_def[-1].parent, ClassScope):

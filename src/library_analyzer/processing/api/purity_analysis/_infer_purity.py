@@ -11,6 +11,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     APIPurity,
     BuiltinOpen,
     CallGraphNode,
+    CallOfParameter,
     FileRead,
     FileWrite,
     FunctionScope,
@@ -25,7 +26,8 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Pure,
     PurityResult,
     Reasons,
-    StringLiteral, CallOfParameter, UnknownCall,
+    StringLiteral,
+    UnknownCall,
 )
 from library_analyzer.processing.api.purity_analysis.model._purity import CallOfFunction
 
@@ -370,10 +372,12 @@ def _process_node(  # type: ignore[return] # all cases are handled
     function_id = reason.function_scope.symbol.id
 
     # Check the forest if the purity of the function is already determined
-    if function_id in analysis_result.call_graph.graphs:
+    if analysis_result.call_graph.has_graph(function_id):
         if analysis_result.call_graph.get_graph(function_id).reasons.result:
-            purity_results[function_id] = analysis_result.call_graph.get_graph(function_id).reasons.result  # type: ignore[assignment] # None is not possible here
-            return purity_results[function_id]
+            result = analysis_result.call_graph.get_graph(function_id).reasons.result
+            if result is not None:
+                purity_results[function_id] = result
+                return purity_results[function_id]
 
     # The purity of the function is not determined yet.
     try:
@@ -613,14 +617,12 @@ def _transform_reasons_to_impurity_result(
                 if function_id in analysis_result.call_graph.graphs:
                     graph = analysis_result.call_graph.get_graph(function_id)
                     # Check if the unknown call is a call of a parameter of that function.
-                    if unknown_call_func_name in graph.function_scope.parameters:
+                    if unknown_call_func_name in graph.scope.parameters:
                         impurity_reasons.add(CallOfParameter(ParameterAccess(unknown_call_func_name)))
 
                     # The unknown call is a call of a function that is not defined in the module.
                     # In this case, the function can either be a builtin function (which is not in the builtin dir)
                     # or an imported function from another module.
-                    elif inferred_function_def and isinstance(inferred_function_def, astroid.FunctionDef):
-                        impurity_reasons.add(UnknownCall(CallOfFunction(call=unknown_call, inferred_function=inferred_function_def)))
                     elif inferred_result and isinstance(inferred_result, astroid.FunctionDef):
                         impurity_reasons.add(UnknownCall(CallOfFunction(call=unknown_call, inferred_def=inferred_result)))
                     else:
