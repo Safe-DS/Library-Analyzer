@@ -65,7 +65,7 @@ class Pure(PurityResult):
             If the result cannot be updated with the given result.
         """
         if other is None:
-            pass
+            return self
         elif isinstance(self, Pure):
             if isinstance(other, Pure):
                 return self
@@ -122,7 +122,7 @@ class Impure(PurityResult):
             If the result cannot be updated with the given result.
         """
         if other is None:
-            pass
+            return self
         elif isinstance(self, Pure):
             if isinstance(other, Pure):
                 return self

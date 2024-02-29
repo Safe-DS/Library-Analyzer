@@ -358,7 +358,7 @@ def contract_cycle(
         builtin_calls: dict[str, list[Reference]] = {
             call[0].name: [call[0]]
             for node in cycle
-            for call in node.scope.call_references.values()
+            for call in node.scope.call_references.values()  # type: ignore[union-attr]
             if isinstance(node.scope, FunctionScope)
             and call[0].name in BUILTINS
             or call[0].name in ("read", "readline", "readlines", "write", "writelines")
