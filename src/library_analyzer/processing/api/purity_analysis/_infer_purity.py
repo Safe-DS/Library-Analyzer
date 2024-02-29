@@ -370,8 +370,10 @@ def process_node(  # type: ignore[return] # all cases are handled
     # Check the forest if the purity of the function is already determined
     if analysis_result.call_graph.has_graph(function_id):
         if analysis_result.call_graph.get_graph(function_id).reasons.result:
-            purity_results[function_id] = analysis_result.call_graph.get_graph(function_id).reasons.result
-            return purity_results[function_id]
+            result = analysis_result.call_graph.get_graph(function_id).reasons.result
+            if result is not None:
+                purity_results[function_id] = result
+                return purity_results[function_id]
 
     # The purity of the function is not determined yet.
     try:

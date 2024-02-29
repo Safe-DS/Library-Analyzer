@@ -49,6 +49,8 @@ def build_call_graph(
     for function_scopes in classes_and_functions.values():
         # Inner for loop is needed to handle multiple function defs with the same name.
         for scope in function_scopes:
+            if not isinstance(scope, FunctionScope | ClassScope):
+                raise TypeError(f"Scope {scope} is not of type FunctionScope or ClassScope") from None
             # Add reasons for impurity to the corresponding function.
             function_id = scope.symbol.id
             if isinstance(scope, ClassScope):
@@ -456,13 +458,14 @@ def update_pointers(node: CallGraphNode, cycle_ids: list[NodeID], cycle_id_strs:
                     for ref in call_ref_list:
                         if ref.id == references_to_remove:
                             call_ref_list.remove(ref)
-                    node.scope.call_references[child.scope.symbol.name] = call_ref_list
+                    node.scope.call_references[child.scope.symbol.name] = call_ref_list  # type: ignore[union-attr]
 
                 call_refs: list[Reference] = []
-                for c_ref in child.scope.call_references.values():
-                    call_refs.extend(c_ref)
-                calls: dict[str, list[Reference]] = {combined_node.scope.symbol.name: call_refs}
-                node.scope.call_references.update(calls)
+                if isinstance(child.scope, FunctionScope):
+                    for c_ref in child.scope.call_references.values():
+                        call_refs.extend(c_ref)
+                    calls: dict[str, list[Reference]] = {combined_node.scope.symbol.name: call_refs}
+                    node.scope.call_references.update(calls)
             # Remove the call from the reasons (reasons need to be updated later)
             if isinstance(node.reasons, Reasons):
                 for call in node.reasons.calls.copy():

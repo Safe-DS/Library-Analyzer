@@ -49,7 +49,20 @@ class Pure(PurityResult):
     def update(self, other: PurityResult | None) -> PurityResult:
         """Update the current result with another result.
 
-        See PurityResult._update
+        Parameters
+        ----------
+        other : PurityResult | None
+            The result to update with.
+
+        Returns
+        -------
+        PurityResult
+            The updated result.
+
+        Raises
+        ------
+        TypeError
+            If the result cannot be updated with the given result.
         """
         if other is None:
             pass
@@ -93,7 +106,20 @@ class Impure(PurityResult):
     def update(self, other: PurityResult | None) -> PurityResult:
         """Update the current result with another result.
 
-        See PurityResult._update
+        Parameters
+        ----------
+        other : PurityResult | None
+            The result to update with.
+
+        Returns
+        -------
+        PurityResult
+            The updated result.
+
+        Raises
+        ------
+        TypeError
+            If the result cannot be updated with the given result.
         """
         if other is None:
             pass
