@@ -7,9 +7,7 @@ from typing import TYPE_CHECKING
 import astroid
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Iterator
-
-    from library_analyzer.processing.api.purity_analysis.model import PurityResult
+    from collections.abc import Generator
 
 
 @dataclass
@@ -26,36 +24,29 @@ class ModuleData:
     functions : dict[str, list[FunctionScope]]
         All functions and a list of their FunctionScopes.
         The value is a list since there can be multiple functions with the same name.
-    global_variables : dict[str, Scope | ClassScope]
-        All global variables and their Scope or ClassScope.
-    value_nodes : dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
-        All value nodes and their Scope or ClassScope.
+    global_variables : dict[str, Scope]
+        All global variables and their Scope.
+    value_nodes : dict[astroid.Name | MemberAccessValue, Scope]
+        All value nodes and their Scope.
         Value nodes are nodes that are read from.
-    target_nodes : dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]
-        All target nodes and their Scope or ClassScope.
+    target_nodes : dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope]
+        All target nodes and their Scope.
         Target nodes are nodes that are written to.
-    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
-        All parameters of functions and a tuple of their Scope or ClassScope and a set of their target nodes.
+    parameters : dict[astroid.FunctionDef, tuple[Scope, list[astroid.AssignName]]]
+        All parameters of functions and a tuple of their Scope and a set of their target nodes.
         These are used to determine the scope of the parameters for each function.
-    function_calls : dict[astroid.Call, Scope | ClassScope]
-        All function calls and their Scope or ClassScope.
-    function_references : dict[str, Reasons]
-        All nodes relevant for reference resolving inside functions.
-        function_references All for reference resolving relevant nodes inside functions
+    function_calls : dict[astroid.Call, Scope]
+        All function calls and their Scope.
     """
 
-    scope: Scope | ClassScope
+    scope: Scope
     classes: dict[str, ClassScope]
     functions: dict[str, list[FunctionScope]]
-    global_variables: dict[str, Scope | ClassScope]
-    value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
-    target_nodes: dict[
-        astroid.AssignName | astroid.Name | MemberAccessTarget,
-        Scope | ClassScope,
-    ]
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
-    function_calls: dict[astroid.Call, Scope | ClassScope]
-    function_references: dict[str, Reasons]
+    global_variables: dict[str, Scope]
+    value_nodes: dict[astroid.Name | MemberAccessValue, Scope]
+    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope]
+    parameters: dict[astroid.FunctionDef, tuple[Scope, list[astroid.AssignName]]]
+    function_calls: dict[astroid.Call, Scope]
 
 
 @dataclass
@@ -67,32 +58,40 @@ class MemberAccess(astroid.NodeNG):
 
     Attributes
     ----------
-    receiver : MemberAccess | astroid.NodeNG
+    node : astroid.Attribute | astroid.AssignAttr
+        The original node that represents the member access.
+        Needed as fallback when determining the parent node if the receiver is None.
+    receiver : MemberAccess | astroid.NodeNG | None
         The receiver is the node that is accessed, it can be nested, e.g. `a` in `a.b` or `a.b` in `a.b.c`.
-    member : astroid.NodeNG
-        The member is the node that accesses the receiver, e.g. `b` in `a.b`.
+        The receiver can be nested.
+        Is None if the receiver is not of type Name, Call or Attribute
+    member : str
+        The member is the name of the node that accesses the receiver, e.g. `b` in `a.b`.
     parent : astroid.NodeNG | None
         The parent node of the member access.
     name : str
         The name of the member access, e.g. `a.b`.
         Is set in __post_init__, after the member access has been created.
+        If the MemberAccess is nested, the name of the receiver will be set to "UNKNOWN" since it is hard to determine
+        correctly for all possible cases, and we do not need it for the analysis.
     """
 
-    receiver: MemberAccess | astroid.NodeNG
-    member: astroid.NodeNG
+    node: astroid.Attribute | astroid.AssignAttr
+    receiver: MemberAccess | astroid.NodeNG | None
+    member: str
     parent: astroid.NodeNG | None = field(default=None)
     name: str = field(init=False)
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
 
     def __post_init__(self) -> None:
-        if isinstance(self.receiver, astroid.Call):
-            self.expression = self.receiver.func
-        if isinstance(self.member, astroid.AssignAttr | astroid.Attribute):
-            self.name = f"{self.receiver.name}.{self.member.attrname}"
+        if isinstance(self.receiver, astroid.AssignAttr | astroid.Attribute):
+            self.name = f"{self.receiver.attrname}.{self.member}"
+        elif isinstance(self.receiver, astroid.Name):
+            self.name = f"{self.receiver.name}.{self.member}"
         else:
-            self.name = f"{self.receiver.name}.{self.member.name}"
+            self.name = f"UNKNOWN.{self.member}"
 
 
 @dataclass
@@ -101,6 +100,8 @@ class MemberAccessTarget(MemberAccess):
 
     Member access target is a member access written to, e.g. `a.b` in `a.b = 1`.
     """
+
+    node: astroid.AssignAttr
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -113,6 +114,8 @@ class MemberAccessValue(MemberAccess):
     Member access value is a member access read from, e.g. `a.b` in `print(a.b)`.
     """
 
+    node: astroid.Attribute
+
     def __hash__(self) -> int:
         return hash(str(self))
 
@@ -123,28 +126,41 @@ class NodeID:
 
     Attributes
     ----------
-    module : astroid.Module | str
+    module : astroid.Module | str | None
         The module of the node.
+        Is None for combined nodes.
     name : str
         The name of the node.
-    line : int | None
+    line : int
         The line of the node in the source code.
+        Is -1 for combined nodes, builtins or any other node that do not have a line.
     col : int | None
         The column of the node in the source code.
+        Is -1 for combined nodes, builtins or any other node that do not have a line.
     """
 
-    module: astroid.Module | str
+    module: astroid.Module | str | None
     name: str
-    line: int | None
-    col: int | None
+    line: int | None = None
+    col: int | None = None
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
+        if self.line is None or self.col is None:
+            if self.module is None:
+                return f"{self.name}"
+            return f"{self.module}.{self.name}"
         return f"{self.module}.{self.name}.{self.line}.{self.col}"
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 @dataclass
 class Symbol(ABC):
-    """Represents a node in the scope tree.
+    """Represents a node that defines a Name.
+
+    A Symbol is a node that defines a Name, e.g. a function, a class, a variable, etc.
+    It can be referenced by another node.
 
     Attributes
     ----------
@@ -156,22 +172,27 @@ class Symbol(ABC):
         The name of the symbol (for easier access).
     """
 
-    node: astroid.NodeNG | MemberAccess
+    node: astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | MemberAccessTarget
     id: NodeID
     name: str
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 @dataclass
 class Parameter(Symbol):
     """Represents a parameter of a function."""
 
+    node: astroid.AssignName
+
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
 
@@ -182,7 +203,7 @@ class LocalVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
 
@@ -193,7 +214,7 @@ class GlobalVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
 
@@ -212,7 +233,7 @@ class ClassVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         if self.klass is None:
             return f"{self.__class__.__name__}.UNKNOWN_CLASS.{self.name}.line{self.id.line}"
         return f"{self.__class__.__name__}.{self.klass.name}.{self.name}.line{self.id.line}"
@@ -233,7 +254,7 @@ class InstanceVariable(Symbol):
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         if self.klass is None:
             return f"{self.__class__.__name__}.UNKNOWN_CLASS.{self.name}.line{self.id.line}"
         return f"{self.__class__.__name__}.{self.klass.name}.{self.name}.line{self.id.line}"
@@ -251,8 +272,61 @@ class Import(Symbol):
 class Builtin(Symbol):
     """Represents a builtin (function)."""
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+
+@dataclass
+class BuiltinOpen(Builtin):
+    """Represents the builtin open like function.
+
+    When dealing with open-like functions the call node is needed to determine the file path.
+
+    Attributes
+    ----------
+    call : astroid.Call
+        The call node of the open-like function.
+    """
+
+    call: astroid.Call
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}"
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+
+@dataclass
+class Reference:
+    """Represents a node that references a Name.
+
+    A Reference is a node that references a Name,
+    e.g., a function call, a variable read, etc.
+
+
+    Attributes
+    ----------
+    node : astroid.Call | astroid.Name | MemberAccessValue
+        The node that defines the symbol.
+    id : NodeID
+        The id of that node.
+    name : str
+        The name of the symbol (for easier access).
+    """
+
+    node: astroid.Call | astroid.Name | MemberAccessValue
+    id: NodeID
+    name: str
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 @dataclass
@@ -272,11 +346,11 @@ class Scope:
         Is None if the node is a leaf node.
     _parent : Scope | ClassScope | None
         The parent node in the scope tree, there is None if the node is the root node.
-    """  # TODO: Lars do we want Attributes here or in the properties?
+    """
 
     _symbol: Symbol
-    _children: list[Scope | ClassScope] = field(default_factory=list)
-    _parent: Scope | ClassScope | None = None
+    _children: list[Scope] = field(default_factory=list)
+    _parent: Scope | None = None
 
     def __iter__(self) -> Generator[Scope | ClassScope, None, None]:
         yield self
@@ -284,7 +358,7 @@ class Scope:
     def __next__(self) -> Scope | ClassScope:
         return self
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self.symbol.name}.line{self.symbol.id.line}"
 
     def __hash__(self) -> int:
@@ -317,7 +391,7 @@ class Scope:
         self._children = new_children
 
     @property
-    def parent(self) -> Scope | ClassScope | None:
+    def parent(self) -> Scope | None:
         """Scope | ClassScope | None : Parent of the scope.
 
         The parent node in the scope tree.
@@ -326,8 +400,8 @@ class Scope:
         return self._parent
 
     @parent.setter
-    def parent(self, new_parent: Scope | ClassScope | None) -> None:
-        if not isinstance(new_parent, Scope | ClassScope | None):
+    def parent(self, new_parent: Scope | None) -> None:
+        if not isinstance(new_parent, Scope | None):
             raise TypeError("Invalid parent type.")
         self._parent = new_parent
 
@@ -360,12 +434,15 @@ class ClassScope(Scope):
         Also, it is impossible to distinguish between a declaration and a reassignment.
     instance_variables : dict[str, list[Symbol]]
         The name of the instance variable and a list of its Symbols (which represent a declaration).
+    init_function : FunctionScope | None
+        The init function of the class if it exists else None.
     super_classes : list[ClassScope]
-        The list of super classes of the class.
+        The list of super classes of the class if any.
     """
 
     class_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     instance_variables: dict[str, list[Symbol]] = field(default_factory=dict)
+    init_function: FunctionScope | None = None
     super_classes: list[ClassScope] = field(default_factory=list)
 
 
@@ -375,174 +452,37 @@ class FunctionScope(Scope):
 
     Attributes
     ----------
-    values : list[Scope | ClassScope]
-        The list of all value nodes used inside the corresponding function.
-    calls : list[Scope | ClassScope]
-        The list of all function calls inside the corresponding function.
+    target_symbols : dict[str, list[Symbol]]
+        The dict of all target nodes used inside the corresponding function.
+        Target nodes are specified as all nodes that can be written to and which can be represented as a Symbol.
+        This includes assignments, parameters,
+    value_references : dict[str, list[Reference]]
+        The dict of all value nodes used inside the corresponding function.
+    call_references : dict[str, list[Reference]]
+        The dict of all function calls inside the corresponding function.
+        The key is the name of the call node, the value is a list of all References of call nodes with that name.
+    parameters : dict[str, Parameter]
+        The parameters of the function.
+    globals_used : dict[str, list[GlobalVariable]]
+        The global variables used inside the function.
+        It stores the globally assigned nodes (Assignment of the used variable).
     """
 
-    # parameters: dict[str, list[Symbol]] = field(default_factory=dict)
-    values: list[Scope | ClassScope] = field(default_factory=list)
-    calls: list[Scope | ClassScope] = field(default_factory=list)
+    target_symbols: dict[str, list[Symbol]] = field(default_factory=dict)
+    value_references: dict[str, list[Reference]] = field(default_factory=dict)
+    call_references: dict[str, list[Reference]] = field(default_factory=dict)
+    parameters: dict[str, Parameter] = field(default_factory=dict)
+    globals_used: dict[str, list[GlobalVariable]] = field(default_factory=dict)
 
-    def remove_call_node_by_name(self, name: str) -> None:
+    def remove_call_reference_by_id(self, call_id: str) -> None:
         """Remove a call node by name.
 
-        Removes a call node from the list of call nodes by name.
-        This is used to remove cyclic calls from the list of call nodes after the call graph has been built.
+        Removes a call node from the dict of call nodes by name.
+        This is used to remove cyclic calls from the dict of call nodes after the call graph has been built.
 
         Parameters
         ----------
-        name : str
+        call_id  : str
             The name of the call node to remove.
         """
-        for call in self.calls:
-            if call.symbol.name == name:
-                self.calls.remove(call)
-                break
-
-
-@dataclass
-class Reasons:
-    """
-    Represents a function and the raw reasons for impurity.
-
-    Raw reasons means that the reasons are just collected and not yet processed.
-
-    Attributes
-    ----------
-    function : astroid.FunctionDef | MemberAccess | None
-        The function that is analyzed.
-    writes : set[FunctionReference]
-        A set of all nodes that are written to.
-    reads : set[FunctionReference]
-        A set of all nodes that are read from.
-    calls : set[FunctionReference]
-        A set of all nodes that are called.
-    result : PurityResult | None
-        The result of the purity analysis
-        This also works as a flag to determine if the purity analysis has already been performed:
-        If it is None, the purity analysis has not been performed
-    unknown_calls : list[astroid.Call | astroid.NodeNG] | None
-        A list of all unknown calls.
-        Unknown calls are calls to functions that are not defined in the module or are simply not existing.
-    """
-
-    function: astroid.FunctionDef | MemberAccess | None = field(default=None)
-    writes: set[FunctionReference] = field(default_factory=set)
-    reads: set[FunctionReference] = field(default_factory=set)
-    calls: set[FunctionReference] = field(default_factory=set)
-    result: PurityResult | None = field(default=None)
-    unknown_calls: list[astroid.Call | astroid.NodeNG] | None = field(default=None)
-
-    def __iter__(self) -> Iterator[FunctionReference]:
-        return iter(self.writes.union(self.reads).union(self.calls))
-
-    def get_call_by_name(self, name: str) -> FunctionReference:
-        """Get a call by name.
-
-        Parameters
-        ----------
-        name : str
-            The name of the call to get.
-
-        Returns
-        -------
-        FunctionReference
-            The FunctionReference of the call.
-
-        Raises
-        ------
-        ValueError
-            If no call to the function with the given name is found.
-        """
-        for call in self.calls:
-            if isinstance(call.node, astroid.Call) and call.node.func.name == name:  # noqa: SIM114
-                return call
-            elif call.node.name == name:
-                return call
-
-        raise ValueError("No call to the function found.")
-
-    def join_reasons(self, other: Reasons) -> Reasons:
-        """Join two Reasons objects.
-
-        When a function has multiple reasons for impurity, the Reasons objects are joined.
-        This means that the writes, reads, calls and unknown_calls are merged.
-
-        Parameters
-        ----------
-        other : Reasons
-            The other Reasons object.
-
-        Returns
-        -------
-        Reasons
-            The updated Reasons object.
-        """
-        self.writes.update(other.writes)
-        self.reads.update(other.reads)
-        self.calls.update(other.calls)
-        # join unknown calls - since they can be None we need to deal with that
-        if self.unknown_calls is not None and other.unknown_calls is not None:
-            self.unknown_calls.extend(other.unknown_calls)
-        elif self.unknown_calls is None and other.unknown_calls is not None:
-            self.unknown_calls = other.unknown_calls
-        elif other.unknown_calls is None:
-            pass
-
-        return self
-
-    @staticmethod
-    def join_reasons_list(reasons_list: list[Reasons]) -> Reasons:
-        """Join a list of Reasons objects.
-
-        Combines a list of Reasons objects into one Reasons object.
-
-        Parameters
-        ----------
-        reasons_list : list[Reasons]
-            The list of Reasons objects.
-
-        Returns
-        -------
-        Reasons
-            The combined Reasons object.
-
-        Raises
-        ------
-        ValueError
-            If the list of Reasons objects is empty.
-        """
-        if not reasons_list:
-            raise ValueError("List of Reasons is empty.")
-
-        for reason in reasons_list:
-            reasons_list[0].join_reasons(reason)
-        return reasons_list[0]
-
-
-@dataclass
-class FunctionReference:  # TODO: find a better name for this class  # FunctionPointer?
-    """Represents a function reference.
-
-    Attributes
-    ----------
-    node : astroid.NodeNG | MemberAccess
-        The node that is referenced inside the function.
-    kind : str
-        The kind of the node, e.g. "LocalWrite", "NonLocalRead" or "Call".
-    """
-
-    node: astroid.NodeNG | MemberAccess
-    kind: str
-
-    def __hash__(self) -> int:
-        return hash(str(self))
-
-    def __repr__(self) -> str:
-        if isinstance(self.node, astroid.Call):
-            return f"{self.node.func.name}.line{self.node.lineno}"
-        if isinstance(self.node, MemberAccessTarget | MemberAccessValue):
-            return f"{self.node.name}.line{self.node.member.lineno}"
-        return f"{self.node.name}.line{self.node.lineno}"
+        self.call_references.pop(call_id, None)

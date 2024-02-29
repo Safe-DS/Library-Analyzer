@@ -8,418 +8,453 @@ from library_analyzer.processing.api.purity_analysis import get_module_data
 from library_analyzer.processing.api.purity_analysis._build_call_graph import build_call_graph
 from library_analyzer.processing.api.purity_analysis.model import (
     Builtin,
-    CallGraphForest,
+    BuiltinOpen,
     ClassScope,
     ClassVariable,
     FunctionScope,
+    GlobalVariable,
+    InstanceVariable,
     MemberAccessTarget,
     MemberAccessValue,
+    ModuleAnalysisResult,
     NodeID,
-    Parameter,
     Reasons,
+    Reference,
     ReferenceNode,
-    Scope,
     Symbol,
+    TargetReference,
+    ValueReference,
 )
 
-
-def _find_name_references(
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope],
-    value_nodes: dict[astroid.Name | MemberAccessValue, Scope | ClassScope],
-    classes: dict[str, ClassScope],
-    functions: dict[str, list[FunctionScope]],
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
-) -> dict[str, list[ReferenceNode]]:
-    """Create a list of references from a list of name nodes.
-
-    Parameters
-    ----------
-    target_nodes : dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope | ClassScope]
-        All target nodes and their Scope or ClassScope.
-    value_nodes : dict[astroid.Name | MemberAccessValue, Scope | ClassScope]
-        All value nodes and their Scope or ClassScope.
-    classes : dict[str, ClassScope]
-        All classes and their ClassScope.
-    functions : dict[str, list[FunctionScope]]
-        All functions and a list of their FunctionScopes.
-        The value is a list since there can be multiple functions with the same name.
-    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
-        All parameters of functions and a tuple of their Scope or ClassScope and a set of their target nodes.
-
-    Returns
-    -------
-    final_references : dict[str, list[ReferenceNode]]
-        All target and value references and a list of their ReferenceNodes.
-    """
-    final_references: dict[str, list[ReferenceNode]] = {}
-
-    # TODO: is it possible to do this in a more efficient way?
-    # maybe we can speed up the detection of references by using a dictionary instead of a list
-    # -> target_references = {node.name: ReferenceNode(node, scope, []) for node, scope in target_nodes.items()}
-    target_references = [ReferenceNode(node, scope, []) for node, scope in target_nodes.items()]
-    value_references = [ReferenceNode(node, scope, []) for node, scope in value_nodes.items()]
-
-    # Detect all value references: references that are used as values (e.g., sth = value, return value)
-    for value_ref in value_references:
-        if isinstance(value_ref.node, astroid.Name | MemberAccessValue):
-            value_ref_complete = _find_value_references(value_ref, target_references, classes, functions, parameters)
-            if value_ref_complete.node.name in final_references:
-                final_references[value_ref_complete.node.name].append(value_ref_complete)
-            else:
-                final_references[value_ref_complete.node.name] = [value_ref_complete]
-
-    # Detect all target references: references that are used as targets (e.g., target = sth)
-    for target_ref in target_references:
-        if isinstance(target_ref.node, astroid.AssignName | astroid.Name | MemberAccessTarget):
-            target_ref_complete = _find_target_references(target_ref, target_references, classes)
-            # Remove all references that are never referenced
-            if target_ref_complete.referenced_symbols:
-                if target_ref_complete.node.name in final_references:
-                    final_references[target_ref_complete.node.name].append(target_ref_complete)
-                else:
-                    final_references[target_ref_complete.node.name] = [target_ref_complete]
-
-    return final_references
-
-
-def _find_target_references(
-    current_target_reference: ReferenceNode,
-    all_target_list: list[ReferenceNode],
-    classes: dict[str, ClassScope],
-) -> ReferenceNode:
-    """Find all references for a target node.
-
-    Finds all references for a target node in a list of references and adds them to the list of referenced_symbols of the node.
-    We only want to find references that are used as targets before the current target reference,
-    because all later references are not relevant for the current target reference.
-
-    Parameters
-    ----------
-    current_target_reference : ReferenceNode
-        The current target reference, for which we want to find all references.
-    all_target_list : list[ReferenceNode]
-        All target references in the module.
-    classes : dict[str, ClassScope]
-        All classes and their ClassScope.
-
-    Returns
-    -------
-    current_target_reference : ReferenceNode
-        The reference for the given node with all its target references added to its referenced_symbols.
-    """
-    if current_target_reference in all_target_list:
-        all_targets_before_current_target_reference = all_target_list[: all_target_list.index(current_target_reference)]
-        result: list[Symbol] = []
-        for ref in all_targets_before_current_target_reference:
-            if isinstance(current_target_reference.node, MemberAccessTarget):
-                # Add ClassVariables if the name matches.
-                if isinstance(ref.scope, ClassScope) and ref.node.name == current_target_reference.node.member.attrname:
-                    result.extend(_get_symbols(ref))
-                    # This deals with the special case where the self-keyword is used.
-                    # Self indicates that we are inside a class and therefore only want to check the class itself for references.
-                    if result and current_target_reference.node.receiver.name == "self":
-                        result = [symbol for symbol in result if isinstance(symbol, ClassVariable) and symbol.klass == current_target_reference.scope.parent.symbol.node]  # type: ignore[union-attr] # "None" has no attribute "symbol" but since we check for the type before, this is fine
-
-                # Add InstanceVariables if the name of the MemberAccessTarget is the same as the name of the InstanceVariable.
-                if (
-                    isinstance(ref.node, MemberAccessTarget)
-                    and ref.node.member.attrname == current_target_reference.node.member.attrname
-                ):
-                    result.extend(_get_symbols(ref))
-
-            # This deals with the receivers of the MemberAccess, e.g.: self.sth -> self
-            # When dealing with this case of receivers we only want to check the current scope because they are bound to the current scope, which is their class.
-            elif (
-                isinstance(current_target_reference.node, astroid.Name)
-                and ref.node.name == current_target_reference.node.name
-                and ref.scope == current_target_reference.scope
-            ):
-                result.extend(_get_symbols(ref))
-
-            # This deals with the case where a variable is reassigned.
-            elif (
-                isinstance(current_target_reference.node, astroid.AssignName)
-                and ref.node.name == current_target_reference.node.name
-                and not isinstance(current_target_reference.scope.symbol.node, astroid.Lambda)
-                and not isinstance(current_target_reference.scope, ClassScope)
-            ):
-                symbol_list = _get_symbols(ref)
-                all_targets_before_current_target_reference_nodes = [
-                    node.node for node in all_targets_before_current_target_reference
-                ]
-
-                if symbol_list:
-                    for symbol in symbol_list:
-                        if symbol.node in all_targets_before_current_target_reference_nodes:
-                            result.append(symbol)
-
-            if classes:
-                for klass in classes.values():
-                    if klass.symbol.node.name == current_target_reference.node.name:
-                        result.append(klass.symbol)
-                        break
-
-        current_target_reference.referenced_symbols = list(
-            set(current_target_reference.referenced_symbols) | set(result),
-        )
-
-    return current_target_reference
-
-
-def _find_value_references(
-    current_value_reference: ReferenceNode,
-    all_target_list: list[ReferenceNode],
-    classes: dict[str, ClassScope],
-    functions: dict[str, list[FunctionScope]],
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
-) -> ReferenceNode:
-    """Find all references for a value node.
-
-    Finds all references for a node in a list of references and adds them to the list of referenced_symbols of the node.
-
-    Parameters
-    ----------
-    current_value_reference : ReferenceNode
-        The current value reference, for which we want to find all references.
-    all_target_list : list[ReferenceNode]
-        All target references in the module.
-    classes : dict[str, ClassScope]
-        All classes and their ClassScope.
-    functions : dict[str, list[FunctionScope]]
-        All functions and a list of their FunctionScopes.
-        The value is a list since there can be multiple functions with the same name.
-    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
-        All parameters of functions and a tuple of their Scope or ClassScope and a set of their target nodes.
-
-    Returns
-    -------
-    complete_reference : ReferenceNode
-        The reference for the given node with all its value references added to its referenced_symbols.
-    """
-    complete_reference = current_value_reference
-    outer_continue: bool = False
-
-    for ref in all_target_list:
-        # Add all references (name)-nodes, that have the same name as the value_reference
-        # and are not the receiver of a MemberAccess (because they are already added)
-        if ref.node.name == current_value_reference.node.name and not isinstance(ref.node.parent, astroid.AssignAttr):
-            # Add parameters only if the name parameter is declared in the same scope as the value_reference
-            if ref.scope.symbol.node in parameters and ref.scope != current_value_reference.scope:
-                continue
-
-            # This covers the case where a parameter has the same name as a class variable:
-            # class A:
-            #     a = 0
-            #     def f(self, a):
-            #         self.a = a
-            elif isinstance(ref.scope, ClassScope) and parameters:
-                parameters_for_value_reference = parameters.get(current_value_reference.scope.symbol.node)[1]  # type: ignore[index] # "None" is not index-able, but we check for it
-                for param in parameters_for_value_reference:
-                    if ref.node.name == param.name and not isinstance(_get_symbols(ref), Parameter):
-                        outer_continue = True  # the reference isn't a parameter, so don't add it
-                        break
-
-                if outer_continue:
-                    outer_continue = False
-                    continue
-
-            complete_reference.referenced_symbols = list(
-                set(complete_reference.referenced_symbols) | set(_get_symbols(ref)),
-            )
-
-        if isinstance(current_value_reference.node, MemberAccessValue):
-            # Add ClassVariables if the name matches
-            if isinstance(ref.scope, ClassScope) and ref.node.name == current_value_reference.node.member.attrname:
-                complete_reference.referenced_symbols = list(
-                    set(complete_reference.referenced_symbols) | set(_get_symbols(ref)),
-                )
-
-            # Add InstanceVariables if the name of the MemberAccessValue is the same as the name of the InstanceVariable
-            if (
-                isinstance(ref.node, MemberAccessTarget)
-                and ref.node.member.attrname == current_value_reference.node.member.attrname
-            ):
-                complete_reference.referenced_symbols = list(
-                    set(complete_reference.referenced_symbols) | set(_get_symbols(ref)),
-                )
-
-    # Find classes that are referenced
-    if classes:
-        for klass in classes.values():
-            if klass.symbol.node.name == current_value_reference.node.name:
-                complete_reference.referenced_symbols.append(klass.symbol)
-                break
-
-    # Find functions that are passed as arguments to other functions (and therefor are not called directly - hence we handle them here)
-    # def f():
-    #     pass
-    # def g(a):
-    #     a()
-    # g(f)
-    if functions:
-        if current_value_reference.node.name in functions:
-            function_def = functions.get(current_value_reference.node.name)
-            symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but we check for it
-            complete_reference.referenced_symbols.extend(symbols)
-        elif isinstance(current_value_reference.node, MemberAccessValue):
-            if current_value_reference.node.member.attrname in functions:
-                function_def = functions.get(current_value_reference.node.member.attrname)
-                symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but we check for it
-                complete_reference.referenced_symbols.extend(symbols)
-
-    return complete_reference
-
-
-# TODO: move this to Symbol as a getter method
-def _get_symbols(node: ReferenceNode) -> list[Symbol]:
-    """Get all symbols for a node.
-
-    Parameters
-    ----------
-    node : ReferenceNode
-        The node for which we want to get all symbols.
-
-    Returns
-    -------
-    refined_symbol : list[Symbol]
-        All symbols for the given node.
-    """
-    refined_symbol: list[Symbol] = []
-    current_scope = node.scope
-
-    for child in current_scope.children:
-        # This excludes ListComps, because they are not referenced
-        if isinstance(child.symbol.node, astroid.ListComp):
-            continue
-        elif child.symbol.node.name == node.node.name:
-            refined_symbol.append(child.symbol)
-
-    return refined_symbol
+_BUILTINS = dir(builtins)
 
 
 def _find_call_references(
-    function_calls: dict[astroid.Call, Scope | ClassScope],
-    classes: dict[str, ClassScope],
+    call_reference: Reference,
+    function: FunctionScope,
     functions: dict[str, list[FunctionScope]],
-    parameters: dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]],
-) -> dict[str, list[ReferenceNode]]:
+    classes: dict[str, ClassScope],
+) -> ValueReference:
     """Find all references for a function call.
+
+    This function finds all referenced Symbols for a call reference.
+    A reference for a call node can be either a FunctionDef or a ClassDef node.
+    Also analyze builtins calls and calls of function parameters.
 
     Parameters
     ----------
-    function_calls : dict[astroid.Call, Scope | ClassScope]
-        All function calls and their Scope or ClassScope.
-    classes : dict[str, ClassScope]
-        All classes and their ClassScope.
+    call_reference : Reference
+        The call reference which should be analyzed.
+    function : FunctionScope
+        The function in which the call is made.
     functions : dict[str, list[FunctionScope]]
-        All functions and a list of their FunctionScopes.
-        The value is a list since there can be multiple functions with the same name.
-    parameters : dict[astroid.FunctionDef, tuple[Scope | ClassScope, set[astroid.AssignName]]]
-        All parameters of functions and a tuple of their Scope or ClassScope and a set of their target nodes.
+        A dictionary of all functions and a list of their FunctionScopes.
+        Since there can be multiple functions with the same name, the value is a list.
+    classes : dict[str, ClassScope]
+        A dictionary of all classes and their ClassScopes.
 
     Returns
     -------
-    final_call_references : dict[str, list[ReferenceNode]]
-        All references for a function call.
+    ValueReference
+        A ValueReference for the given call reference.
+        This contains all referenced symbols for the call reference.
     """
+    if not isinstance(call_reference, Reference):
+        raise TypeError(f"call is not of type Reference, but of type {type(call_reference)}")
 
-    def add_reference() -> None:
-        """Add a reference to the final_call_references dict."""
-        if call_references[i].node.func.name in final_call_references:
-            final_call_references[call_references[i].node.func.name].append(call_references[i])
-        else:
-            final_call_references[call_references[i].node.func.name] = [call_references[i]]
+    value_reference = ValueReference(call_reference, function, [])
 
-    final_call_references: dict[str, list[ReferenceNode]] = {}
-    python_builtins = dir(builtins)
+    # Find functions that are called.
+    if call_reference.name in functions:
+        function_def = functions.get(call_reference.name)
+        function_symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but it is checked before
+        value_reference.referenced_symbols.extend(function_symbols)
 
-    call_references = [ReferenceNode(call, scope, []) for call, scope in function_calls.items()]
+    # Find classes that are called (initialized).
+    elif call_reference.name in classes:
+        class_def = classes.get(call_reference.name)
+        if class_def:
+            value_reference.referenced_symbols.append(class_def.symbol)
 
-    for i, reference in enumerate(call_references):
-        # Find functions that are called
-        if isinstance(reference.node.func, astroid.Name) and reference.node.func.name in functions:
-            function_def = functions.get(reference.node.func.name)
-            symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr] # "None" is not iterable, but we check for it
-            call_references[i].referenced_symbols.extend(symbols)
-            add_reference()
-
-        # Find classes that are called (initialized)
-        elif reference.node.func.name in classes:
-            symbol = classes.get(reference.node.func.name)
-            if symbol:
-                call_references[i].referenced_symbols.append(symbol.symbol)
-            add_reference()
-
-        # Find builtins that are called
-        if reference.node.func.name in python_builtins:
-            builtin_call = Builtin(
-                reference.node,
-                NodeID("builtins", reference.node.func.name, 0, 0),
-                reference.node.func.name,
+    # Find builtins that are called, this includes open-like functions.
+    # Because the parameters of the call node are relevant for the analysis, they are added to the (Builtin) Symbol.
+    if call_reference.name in _BUILTINS or call_reference.name in (
+        "open",
+        "read",
+        "readline",
+        "readlines",
+        "write",
+        "writelines",
+        "close",
+    ):
+        # Construct an artificial FunctionDef node for the builtin function.
+        builtin_function = astroid.FunctionDef(
+            name=(
+                call_reference.node.func.attrname
+                if isinstance(call_reference.node.func, astroid.Attribute)
+                else call_reference.node.func.name
+            ),
+            lineno=call_reference.node.lineno,
+            col_offset=call_reference.node.col_offset,
+        )
+        builtin_call = Builtin(
+            node=builtin_function,
+            id=NodeID(None, call_reference.name),
+            name=call_reference.name,
+        )
+        if call_reference.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
+            builtin_call = BuiltinOpen(
+                node=builtin_function,
+                id=NodeID(None, call_reference.name),
+                name=call_reference.name,
+                call=call_reference.node,
             )
-            call_references[i].referenced_symbols.append(builtin_call)
-            add_reference()
+        value_reference.referenced_symbols.append(builtin_call)
 
-        # Find function parameters that are called (passed as arguments), like:
-        # def f(a):
-        #     a()
-        # For now: it is not possible to analyze this any further before runtime
-        if parameters:
-            for func_def, (_scope, parameter_set) in parameters.items():
-                for param in parameter_set:
-                    if reference.node.func.name == param.name and reference.scope.symbol.node == func_def:
-                        for child in parameters.get(func_def)[0].children:  # type: ignore[index] # "None" is not index-able, but we check for it
-                            if child.symbol.node.name == param.name:
-                                call_references[i].referenced_symbols.append(child.symbol)
-                                add_reference()
-                                break
+    # Find function parameters that are called (passed as arguments), like:
+    # def f(a):
+    #     a()
+    # It is not possible to analyze this any further before runtime, so they will later be marked as unknown.
+    if call_reference.name in function.parameters:
+        param = function.parameters[call_reference.name]
+        value_reference.referenced_symbols.append(param)
 
-    return final_call_references
+    return value_reference
+
+
+def _find_value_references(
+    value_reference: Reference,
+    function: FunctionScope,
+    functions: dict[str, list[FunctionScope]],
+    classes: dict[str, ClassScope],
+) -> ValueReference:
+    """Find all references for a value node.
+
+    This functions finds all referenced Symbols for a value reference.
+    A reference for a value node can be a GlobalVariable, a LocalVariable,
+    a Parameter, a ClassVariable or an InstanceVariable.
+    It Also deals with the case where a class or a function is used as a value.
+
+    Parameters
+    ----------
+    value_reference : Reference
+        The value reference which should be analyzed.
+    function : FunctionScope
+        The function in which the value is used.
+    functions : dict[str, list[FunctionScope]]
+        A dictionary of all functions and a list of their FunctionScopes.
+        Since there can be multiple functions with the same name, the value is a list.
+    classes : dict[str, ClassScope]
+        A dictionary of all classes and their ClassScopes.
+
+    Returns
+    -------
+    ValueReference
+        A ValueReference for the given value reference.
+        This contains all referenced symbols for the value reference.
+    """
+    if not isinstance(value_reference, Reference):
+        raise TypeError(f"call is not of type Reference, but of type {type(value_reference)}")
+
+    result_value_reference = ValueReference(value_reference, function, [])
+
+    # Find local variables that are referenced.
+    if value_reference.name in function.target_symbols and value_reference.name not in function.parameters:
+        symbols = function.target_symbols[value_reference.name]
+        # Check if all symbols are refined (refined means that they are of any subtyp of Symbol)
+        if any(isinstance(symbol, Symbol) for symbol in symbols):
+            # This currently is mostly the case for ClassVariables and InstanceVariables that are used as targets
+
+            missing_refined = [symbol for symbol in symbols if type(symbol) is Symbol]
+            # Because the missing refined symbols are added separately above,
+            # remove the unrefined symbols from the list to avoid duplicates.
+            symbols = list(set(symbols) - set(missing_refined))
+
+            for symbol in missing_refined:
+                if isinstance(symbol.node, MemberAccessTarget):
+                    for klass in classes.values():
+                        if klass.class_variables:
+                            if value_reference.node.member in klass.class_variables:
+                                symbols.append(
+                                    ClassVariable(symbol.node, symbol.id, symbol.node.member, klass.symbol.node),
+                                )
+                        if klass.instance_variables:
+                            if value_reference.node.member in klass.instance_variables:
+                                symbols.append(
+                                    InstanceVariable(symbol.node, symbol.id, symbol.node.member, klass.symbol.node),
+                                )
+
+        # Only add symbols that are defined before the value is used.
+        for symbol in symbols:
+            if symbol.id.line is None or value_reference.id.line is None or symbol.id.line <= value_reference.id.line:
+                result_value_reference.referenced_symbols.append(symbol)
+
+    # Find parameters that are referenced.
+    if value_reference.name in function.parameters:
+        local_symbols = [function.parameters[value_reference.name]]
+        result_value_reference.referenced_symbols.extend(local_symbols)
+
+    # Find global variables that are referenced.
+    if value_reference.name in function.globals_used:
+        global_symbols = function.globals_used[value_reference.name]  # type: ignore[assignment] # globals_used contains GlobalVariable which are a subtype of Symbol.
+        result_value_reference.referenced_symbols.extend(global_symbols)
+
+    # Find functions that are referenced (as value).
+    if value_reference.name in functions:
+        function_def = functions.get(value_reference.name)
+        if function_def:
+            function_symbols = [func.symbol for func in function_def if function_def]
+            result_value_reference.referenced_symbols.extend(function_symbols)
+
+    # Find classes that are referenced (as value).
+    if value_reference.name in classes:
+        class_def = classes.get(value_reference.name)
+        if class_def:
+            result_value_reference.referenced_symbols.append(class_def.symbol)
+
+    # Find class and instance variables that are referenced.
+    if isinstance(value_reference.node, MemberAccessValue):
+        for klass in classes.values():
+            if klass.class_variables:
+                if (
+                    value_reference.node.member in klass.class_variables
+                    and value_reference.node.member not in function.call_references
+                ):
+                    result_value_reference.referenced_symbols.extend(klass.class_variables[value_reference.node.member])
+            if klass.instance_variables:
+                if (
+                    value_reference.node.member in klass.instance_variables
+                    and value_reference.node.member not in function.call_references
+                ):
+                    result_value_reference.referenced_symbols.extend(
+                        klass.instance_variables[value_reference.node.member],
+                    )
+
+    return result_value_reference
+
+
+def _find_target_references(
+    target_reference: Symbol,
+    function: FunctionScope,
+    classes: dict[str, ClassScope],
+) -> TargetReference:
+    """Find all references for a target node.
+
+    This functions finds all referenced Symbols for a target reference.
+    TargetReferences occur whenever a Symbol is reassigned.
+    A reference for a target node can be a GlobalVariable, a LocalVariable, a ClassVariable or an InstanceVariable.
+    It Also deals with the case where a class is used as a target.
+
+    Parameters
+    ----------
+    target_reference : Symbol
+        The target reference which should be analyzed.
+    function : FunctionScope
+        The function in which the value is used.
+    classes : dict[str, ClassScope]
+        A dictionary of all classes and their ClassScopes.
+
+    Returns
+    -------
+    TargetReference
+        A TargetReference for the given target reference.
+        This contains all referenced symbols for the value reference.
+    """
+    if not isinstance(target_reference, Symbol):
+        raise TypeError(f"call is not of type Reference, but of type {type(target_reference)}")
+
+    result_target_reference = TargetReference(target_reference, function, [])
+
+    # Find local variables that are referenced.
+    if target_reference.name in function.target_symbols:
+        # Only check for symbols that are defined before the current target_reference.
+        local_symbols = function.target_symbols[target_reference.name][
+            : function.target_symbols[target_reference.name].index(target_reference)
+        ]
+        result_target_reference.referenced_symbols.extend(local_symbols)
+
+    # Find global variables that are referenced.
+    if target_reference.name in function.globals_used:
+        global_symbols = function.globals_used[target_reference.name]
+        result_target_reference.referenced_symbols.extend(global_symbols)
+
+    # Find classes that are referenced (as value).
+    if target_reference.name in classes:
+        class_def = classes.get(target_reference.name)
+        if class_def:
+            result_target_reference.referenced_symbols.append(class_def.symbol)
+
+    # Find class and instance variables that are referenced.
+    if isinstance(target_reference.node, MemberAccessTarget):
+        for klass in classes.values():
+            if klass.class_variables:
+                if target_reference.node.member in klass.class_variables:
+                    # Do not add class variables from other classes
+                    if target_reference.node.receiver is not None:
+                        if (
+                            function.symbol.name == "__init__"
+                            and function.parent != klass
+                            or target_reference.node.receiver.name == "self"
+                            and function.parent != klass
+                        ):
+                            continue
+                    result_target_reference.referenced_symbols.extend(
+                        klass.class_variables[target_reference.node.member],
+                    )
+            if klass.instance_variables:
+                if (
+                    target_reference.node.member in klass.instance_variables
+                    and target_reference.node != klass.instance_variables[target_reference.node.member][0].node
+                ):  # This excludes the case where the instance variable is assigned
+                    result_target_reference.referenced_symbols.extend(
+                        klass.instance_variables[target_reference.node.member],
+                    )
+
+    return result_target_reference
 
 
 def resolve_references(
     code: str,
-) -> tuple[dict[str, list[ReferenceNode]], dict[str, Reasons], dict[str, ClassScope], CallGraphForest]:
-    # TODO: add a class for this return type then fix the docstring
+) -> ModuleAnalysisResult:
     """
     Resolve all references in a module.
 
     This function is the entry point for the reference resolving.
     It calls all other functions that are needed to resolve the references.
-    First, we get the module data for the given (module) code.
-    Then we call the functions to find all references in the module.
+    First, get the module data for the given (module) code.
+    Then call the functions to find all references in the module.
+
+    Parameters
+    ----------
+    code : str
+        The source code of the module.
 
     Returns
     -------
-        * resolved_references: a dict of all resolved references in the module
-        * function_references: a dict of all function references in the module and their Reasons object
-        * classes: a dict of all classes in the module and their scope
-        * call_graph: a CallGraphForest object that represents the call graph of the module
+    ModuleAnalysisResult
+        The result of the reference resolving as well as all other information
+        that is needed for the purity analysis.
     """
     module_data = get_module_data(code)
-    name_references = _find_name_references(
-        module_data.target_nodes,
-        module_data.value_nodes,
-        module_data.classes,
-        module_data.functions,
-        module_data.parameters,
-    )
 
-    if module_data.function_calls:
-        call_references = _find_call_references(
-            module_data.function_calls,
-            module_data.classes,
-            module_data.functions,
-            module_data.parameters,
-        )
-    else:
-        call_references = {}
+    raw_reasons: dict[NodeID, Reasons] = {}
+    call_references: dict[str, list[ReferenceNode]] = {}
+    value_references: dict[str, list[ReferenceNode]] = {}
+    target_references: dict[str, list[ReferenceNode]] = {}
+    # The call_references value is a list because the analysis analyzes the functions by name,
+    # therefor a call can reference more than one function.
+    # In the future, it is possible to differentiate between calls with the same name.
+    # This could be done by further specifying the call_references for a function (by analyzing the signature, etc.)
+    # If it is analyzed with 100% certainty, it is possible to remove the list and use a single ValueReference.
 
-    resolved_references = merge_dicts(call_references, name_references)
+    for function_list in module_data.functions.values():
+        # iterate over all functions with the same name
+        for function in function_list:
+            # Collect the reasons while iterating over the functions, so there is no need to iterate over them again.
+            raw_reasons[function.symbol.id] = Reasons(function)
 
-    call_graph = build_call_graph(module_data.functions, module_data.function_references)
+            # TODO: these steps can be done parallel - is it necessary
+            # Check if the function has call_references (References from a call to the function definition itself).
+            if function.call_references:
+                # TODO: move this to a function called: _find_references
+                # TODO: give the result into the function to use it as a cache to look up already determined references
+                for call_list in function.call_references.values():
+                    for call_reference in call_list:
+                        call_references_result: ReferenceNode
+                        call_references_result = _find_call_references(
+                            call_reference,
+                            function,
+                            module_data.functions,
+                            module_data.classes,
+                        )
 
-    return resolved_references, module_data.function_references, module_data.classes, call_graph
+                        # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
+                        # If the name does not yet exist, create a new list with the reference.
+                        if call_references_result.referenced_symbols:
+                            if call_references_result.node.name not in call_references:
+                                call_references[call_references_result.node.name] = [call_references_result]
+                            else:
+                                call_references[call_references_result.node.name].append(call_references_result)
+
+                            # Add the referenced symbols to the calls of the raw_reasons dict for this function
+                            for referenced_symbol in call_references_result.referenced_symbols:
+                                if isinstance(
+                                    referenced_symbol,
+                                    GlobalVariable | ClassVariable | Builtin | BuiltinOpen,
+                                ):
+                                    if referenced_symbol not in raw_reasons[function.symbol.id].calls:
+                                        raw_reasons[function.symbol.id].calls.add(referenced_symbol)
+
+            # Check if the function has value_references (References from a value node to a target node).
+            if function.value_references:
+                for value_list in function.value_references.values():
+                    for value_reference in value_list:
+                        value_reference_result: ReferenceNode
+                        value_reference_result = _find_value_references(
+                            value_reference,
+                            function,
+                            module_data.functions,
+                            module_data.classes,
+                        )
+
+                        # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
+                        # If the name does not yet exist, create a new list with the reference.
+                        if value_reference_result.referenced_symbols:
+                            if value_reference_result.node.name not in value_references:
+                                value_references[value_reference_result.node.name] = [value_reference_result]
+                            else:
+                                value_references[value_reference_result.node.name].append(value_reference_result)
+
+                            # Add the referenced symbols to the reads_from of the raw_reasons dict for this function
+                            for referenced_symbol in value_reference_result.referenced_symbols:
+                                if isinstance(referenced_symbol, GlobalVariable | ClassVariable | InstanceVariable):
+                                    # Since classes and functions are defined as immutable
+                                    # reading from them is not a reason for impurity.
+                                    if isinstance(referenced_symbol.node, astroid.ClassDef | astroid.FunctionDef):
+                                        continue
+                                    # Add the referenced symbol to the list of symbols whom are read from.
+                                    if referenced_symbol not in raw_reasons[function.symbol.id].reads_from:
+                                        raw_reasons[function.symbol.id].reads_from.add(referenced_symbol)
+
+            # Check if the function has target_references (References from a target node to another target node).
+            if function.target_symbols:
+                for target_list in function.target_symbols.values():
+                    for target_reference in target_list:
+                        target_reference_result: ReferenceNode
+                        target_reference_result = _find_target_references(
+                            target_reference,
+                            function,
+                            module_data.classes,
+                        )
+
+                        # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
+                        # If the name does not yet exist, create a new list with the reference.
+                        if target_reference_result.referenced_symbols:
+                            if target_reference_result.node.name not in target_references:
+                                target_references[target_reference_result.node.name] = [target_reference_result]
+                            else:
+                                target_references[target_reference_result.node.name].append(target_reference_result)
+
+                            # Add the referenced symbols to the writes_to of the raw_reasons dict for this function
+                            for referenced_symbol in target_reference_result.referenced_symbols:
+                                if isinstance(referenced_symbol, GlobalVariable | ClassVariable | InstanceVariable):
+                                    # Since classes and functions are defined as immutable,
+                                    # writing to them is not a reason for impurity.
+                                    # Also, it is not common to do so anyway.
+                                    if isinstance(referenced_symbol.node, astroid.ClassDef | astroid.FunctionDef):
+                                        continue
+                                    # Add the referenced symbol to the list of symbols whom are written to.
+                                    if referenced_symbol not in raw_reasons[function.symbol.id].writes_to:
+                                        raw_reasons[function.symbol.id].writes_to.add(referenced_symbol)
+
+    name_references: dict[str, list[ReferenceNode]] = merge_dicts(value_references, target_references)
+    resolved_references: dict[str, list[ReferenceNode]] = merge_dicts(call_references, name_references)
+
+    call_graph = build_call_graph(module_data.functions, module_data.classes, raw_reasons)
+
+    # The resolved_references are not needed in the next step anymore since raw_reasons contains all the information.
+    # They are needed for testing though, so they are returned.
+    return ModuleAnalysisResult(resolved_references, raw_reasons, module_data.classes, call_graph)
 
 
 def merge_dicts(

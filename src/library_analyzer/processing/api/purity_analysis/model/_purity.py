@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import json
+import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
+from library_analyzer.utils import ensure_file_exists
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from library_analyzer.processing.api.purity_analysis.model import (
         ClassVariable,
         GlobalVariable,
@@ -20,46 +26,16 @@ class PurityResult(ABC):
     Purity results are either pure, impure or unknown.
     """
 
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    @abstractmethod
+    def to_dict(self) -> dict[str, Any]:
+        pass
+
     @abstractmethod
     def update(self, other: PurityResult | None) -> PurityResult:
-        """Update the current result with another result.
-
-        See PurityResult._update
-        """
-        return self._update(other)
-
-    def _update(self, other: PurityResult | None) -> PurityResult:  # type: ignore[return] # all cases are handled
-        """Update the current result with another result.
-
-        Parameters
-        ----------
-        other : PurityResult
-            The other result.
-
-        Returns
-        -------
-        PurityResult
-            The updated result.
-
-        Raises
-        ------
-        TypeError
-            If the result cannot be updated with the other result.
-        """
-        if other is None:
-            pass
-        elif isinstance(self, Pure):
-            if isinstance(other, Pure):
-                return self
-            elif isinstance(other, Impure):
-                return other
-        elif isinstance(self, Impure):
-            if isinstance(other, Pure):
-                return self
-            elif isinstance(other, Impure):
-                return Impure(reasons=self.reasons | other.reasons)
-        else:
-            raise TypeError(f"Cannot update {self} with {other}")
+        """Update the current result with another result."""
 
 
 @dataclass
@@ -73,9 +49,38 @@ class Pure(PurityResult):
     def update(self, other: PurityResult | None) -> PurityResult:
         """Update the current result with another result.
 
-        See PurityResult._update
+        Parameters
+        ----------
+        other : PurityResult | None
+            The result to update with.
+
+        Returns
+        -------
+        PurityResult
+            The updated result.
+
+        Raises
+        ------
+        TypeError
+            If the result cannot be updated with the given result.
         """
-        return super()._update(other)
+        if other is None:
+            return self
+        elif isinstance(self, Pure):
+            if isinstance(other, Pure):
+                return self
+            elif isinstance(other, Impure):
+                return other
+        elif isinstance(self, Impure):
+            if isinstance(other, Pure):
+                return self
+            elif isinstance(other, Impure):
+                return Impure(reasons=self.reasons | other.reasons)
+
+        raise TypeError(f"Cannot update {self} with {other}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"purity": self.__class__.__name__}
 
 
 @dataclass
@@ -101,19 +106,51 @@ class Impure(PurityResult):
     def update(self, other: PurityResult | None) -> PurityResult:
         """Update the current result with another result.
 
-        See PurityResult._update
+        Parameters
+        ----------
+        other : PurityResult | None
+            The result to update with.
+
+        Returns
+        -------
+        PurityResult
+            The updated result.
+
+        Raises
+        ------
+        TypeError
+            If the result cannot be updated with the given result.
         """
-        return super()._update(other)
+        if other is None:
+            return self
+        elif isinstance(self, Pure):
+            if isinstance(other, Pure):
+                return self
+            elif isinstance(other, Impure):
+                return other
+        elif isinstance(self, Impure):
+            if isinstance(other, Pure):
+                return self
+            elif isinstance(other, Impure):
+                return Impure(reasons=self.reasons | other.reasons)
+        raise TypeError(f"Cannot update {self} with {other}")
 
-    def __hash__(self) -> int:
-        return hash(str(self))
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "purity": self.__class__.__name__,
+            "reasons": [reason.__str__() for reason in self.reasons],
+        }
 
 
-class ImpurityReason(ABC):  # noqa: B024 # this is just a base class, and it is important that it cannot be instantiated
+class ImpurityReason(ABC):  # this is just a base class, and it is important that it cannot be instantiated
     """Superclass for impurity reasons.
 
-    If a funtion is impure it is because of one or more impurity reasons.
+    If a function is impure it is because of one or more impurity reasons.
     """
+
+    @abstractmethod
+    def __str__(self) -> str:
+        pass
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -138,6 +175,9 @@ class NonLocalVariableRead(Read):
     def __hash__(self) -> int:
         return hash(str(self))
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
+
 
 @dataclass
 class FileRead(Read):
@@ -154,6 +194,11 @@ class FileRead(Read):
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    def __str__(self) -> str:
+        if isinstance(self.source, Expression):
+            return f"{self.__class__.__name__}: {self.source.__str__()}"
+        return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
 
 class Write(ImpurityReason, ABC):
@@ -175,6 +220,9 @@ class NonLocalVariableWrite(Write):
     def __hash__(self) -> int:
         return hash(str(self))
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
+
 
 @dataclass
 class FileWrite(Write):
@@ -191,6 +239,11 @@ class FileWrite(Write):
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    def __str__(self) -> str:
+        if isinstance(self.source, Expression):
+            return f"{self.__class__.__name__}: {self.source.__str__()}"
+        return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
 
 class Unknown(ImpurityReason, ABC):
@@ -214,6 +267,9 @@ class UnknownCall(Unknown):
     def __hash__(self) -> int:
         return hash(str(self))
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.expression.__str__()}"
+
 
 @dataclass
 class NativeCall(Unknown):  # ExternalCall
@@ -231,6 +287,9 @@ class NativeCall(Unknown):  # ExternalCall
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
 
 @dataclass
@@ -254,12 +313,19 @@ class CallOfParameter(Unknown):  # ParameterCall
     def __hash__(self) -> int:
         return hash(str(self))
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
-class Expression(ABC):  # noqa: B024 # this is just a base class, and it is important that it cannot be instantiated
+
+class Expression(ABC):  # this is just a base class, and it is important that it cannot be instantiated
     """Superclass for expressions.
 
     Expressions are used to represent code.
     """
+
+    @abstractmethod
+    def __str__(self) -> str:
+        pass
 
 
 @dataclass
@@ -274,6 +340,11 @@ class ParameterAccess(Expression):
 
     parameter: Parameter
 
+    def __str__(self) -> str:
+        if isinstance(self.parameter, str):
+            return self.parameter
+        return f"ParameterAccess.{self.parameter.name}"
+
 
 @dataclass
 class StringLiteral(Expression):
@@ -286,6 +357,35 @@ class StringLiteral(Expression):
     """
 
     value: str
+
+    def __str__(self) -> str:
+        return f"StringLiteral.{self.value}"
+
+
+class APIPurity:
+    """Class for API purity.
+
+    The API purity is used to represent the purity result of an API.
+
+    Attributes
+    ----------
+    purity_results : dict[str, dict[str, PurityResult]]
+        The purity results of the API.
+        The first key is the name of the module, and the second key is the function id.
+    """
+
+    purity_results: typing.ClassVar[dict[str, dict[str, PurityResult]]] = {}
+
+    def to_json_file(self, path: Path) -> None:
+        ensure_file_exists(path)
+        with path.open("w") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            module_name: {function_def: purity.to_dict() for function_def, purity in purity_result.items()}
+            for module_name, purity_result in self.purity_results.items()
+        }
 
 
 class OpenMode(Enum):
