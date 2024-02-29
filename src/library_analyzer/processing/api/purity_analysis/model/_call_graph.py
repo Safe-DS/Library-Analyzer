@@ -38,7 +38,9 @@ class CallGraphNode:
     """
 
     scope: FunctionScope | ClassScope  # TODO: change to symbol
-    reasons: Reasons  # TODO: remove calls from reasons after they were added to the call graph (except for unknown calls)
+    reasons: (
+        Reasons  # TODO: remove calls from reasons after they were added to the call graph (except for unknown calls)
+    )
     children: set[CallGraphNode] = field(default_factory=set)
     combined_node_ids: list[NodeID] = field(default_factory=list)
     is_builtin: bool = False

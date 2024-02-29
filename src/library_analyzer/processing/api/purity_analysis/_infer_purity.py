@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import astroid
 
 from library_analyzer.processing.api.purity_analysis import calc_node_id
 from library_analyzer.processing.api.purity_analysis._resolve_references import resolve_references
 from library_analyzer.processing.api.purity_analysis.model import (
-    APIPurity,
     BuiltinOpen,
     CallGraphNode,
     FileRead,
@@ -26,9 +23,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Reasons,
     StringLiteral,
 )
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 # TODO: check these for correctness and add reasons for impurity
 BUILTIN_FUNCTIONS = {  # all errors and warnings are pure
@@ -595,4 +589,3 @@ def transform_reasons_to_impurity_result(
         if impurity_reasons:
             return Impure(impurity_reasons)
         return Pure()
-

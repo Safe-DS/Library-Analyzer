@@ -334,10 +334,7 @@ def contract_cycle(
     )
 
     # Add children to the combined node if they are not in the cycle (other calls).
-    if any(
-        isinstance(node.scope, FunctionScope) and hasattr(node.scope, "call_references")
-        for node in cycle
-    ):
+    if any(isinstance(node.scope, FunctionScope) and hasattr(node.scope, "call_references") for node in cycle):
         other_calls: dict[str, list[Reference]] = {
             call[0].name: [call[0]]
             for node in cycle
@@ -422,7 +419,9 @@ def contract_cycle(
         update_pointers(graph, cycle_ids, cycle_id_strs, combined_node)
 
 
-def update_pointers(node: CallGraphNode, cycle_ids: list[NodeID], cycle_id_strs: list[str], combined_node: CallGraphNode) -> None:
+def update_pointers(
+    node: CallGraphNode, cycle_ids: list[NodeID], cycle_id_strs: list[str], combined_node: CallGraphNode,
+) -> None:
     """Replace all pointers to nodes in the cycle with the combined node.
 
     Recursively traverses the tree and replaces all pointers to nodes in the cycle with the combined node.

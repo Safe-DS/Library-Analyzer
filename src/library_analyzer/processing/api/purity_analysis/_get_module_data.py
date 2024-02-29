@@ -346,7 +346,9 @@ class ModuleDataBuilder:
                 self.current_function_def[-1].parent,
                 ClassScope,
             ):
-                self.current_function_def[-1].parent.instance_variables.setdefault(child.symbol.name, []).append(child.symbol)
+                self.current_function_def[-1].parent.instance_variables.setdefault(child.symbol.name, []).append(
+                    child.symbol,
+                )
 
         # Add __init__ function to ClassScope.
         if isinstance(self.current_function_def[-1].parent, ClassScope):
@@ -1110,6 +1112,7 @@ class ModuleDataBuilder:
             self.parameters[self.current_node_stack[-1].symbol.node][1].append(constructed_node)
         else:
             self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], [constructed_node])
+
 
 def calc_node_id(
     node: (
