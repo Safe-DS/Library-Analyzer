@@ -420,7 +420,10 @@ def contract_cycle(
 
 
 def update_pointers(
-    node: CallGraphNode, cycle_ids: list[NodeID], cycle_id_strs: list[str], combined_node: CallGraphNode,
+    node: CallGraphNode,
+    cycle_ids: list[NodeID],
+    cycle_id_strs: list[str],
+    combined_node: CallGraphNode,
 ) -> None:
     """Replace all pointers to nodes in the cycle with the combined node.
 
