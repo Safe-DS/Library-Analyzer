@@ -28,8 +28,9 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Reasons,
     StringLiteral,
     UnknownCall,
+    CallOfFunction,
+    ClassInit
 )
-from library_analyzer.processing.api.purity_analysis.model._purity import CallOfFunction
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -333,7 +334,7 @@ def _infer_purity(code: str) -> dict[NodeID, PurityResult]:
     return {key: value for key, value in purity_results.items() if key.name not in combined_node_names}
 
 
-def _process_node(  # type: ignore[return] # all cases are handled
+def _process_node(
     reason: Reasons,
     analysis_result: ModuleAnalysisResult,
     purity_results: dict[NodeID, PurityResult],
@@ -593,15 +594,29 @@ def _transform_reasons_to_impurity_result(
     else:
         if reasons.writes_to:
             for write in reasons.writes_to:
-                # Write is of the correct type since only the correct type is added to the set.
                 impurity_reasons.add(NonLocalVariableWrite(write))
 
+        # TODO: remove safe infer (after new call graph is implemented)
         if reasons.reads_from:
             for read in reasons.reads_from:
-                # Read is of the correct type since only the correct type is added to the set.
-                impurity_reasons.add(NonLocalVariableRead(read))
+                # Check if the read reads from an imported module.
+                if isinstance(read.node, astroid.Import):
+                    if read.inferred_node:
+                        print(read, read.name)
+                        inferred_res = safe_infer(read.inferred_node)
+                        if isinstance(inferred_res, astroid.FunctionDef):
+                            # If the inferred node is a function, it must be analyzed to determine its purity.
+                            pass
+                        elif isinstance(inferred_res, astroid.ClassDef):
+                            pass
+                        else:  # TODO: what type of nodes are allowed here?
+                            impurity_reasons.add(NonLocalVariableRead(read))
+                            print(f"SUCCESS:{read.name}")
 
-        # TODO: safe infer before adding the impurity reason
+                else:
+                    impurity_reasons.add(NonLocalVariableRead(read))
+
+        # TODO: remove safe infer (after new call graph is implemented)
         if reasons.unknown_calls:
             for unknown_call in reasons.unknown_calls:
                 # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
@@ -609,6 +624,9 @@ def _transform_reasons_to_impurity_result(
                     unknown_call_func_name = unknown_call.func.attrname
                 else:
                     unknown_call_func_name = unknown_call.func.name
+
+                if reasons.function_scope is None:
+                    print(reasons)
 
                 function_id = reasons.function_scope.symbol.id
                 inferred_result = safe_infer(unknown_call.func)
@@ -625,6 +643,8 @@ def _transform_reasons_to_impurity_result(
                     # or an imported function from another module.
                     elif inferred_result and isinstance(inferred_result, astroid.FunctionDef):
                         impurity_reasons.add(UnknownCall(CallOfFunction(call=unknown_call, inferred_def=inferred_result)))
+                    elif inferred_result and isinstance(inferred_result, astroid.ClassDef):
+                        impurity_reasons.add(UnknownCall(ClassInit(call=unknown_call, inferred_def=inferred_result)))
                     else:
                         impurity_reasons.add(UnknownCall(CallOfFunction(unknown_call)))
         if impurity_reasons:

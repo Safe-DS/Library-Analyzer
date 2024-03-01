@@ -75,7 +75,7 @@ def build_call_graph(
                         if init_function.symbol.id not in call_graph_forest.graphs:
                             call_graph_forest.add_graph(
                                 init_function.symbol.id,
-                                CallGraphNode(scope=init_function, reasons=Reasons()),
+                                CallGraphNode(scope=init_function, reasons=Reasons(function_scope=init_function)),
                             )
                         current_call_graph_node.add_child(call_graph_forest.get_graph(init_function.symbol.id))
                         current_call_graph_node.reasons.calls.add(
@@ -141,7 +141,7 @@ def build_call_graph(
                                     else:
                                         call_graph_forest.add_graph(
                                             f.symbol.id,
-                                            CallGraphNode(scope=called_function_scope, reasons=Reasons()),  # type: ignore[arg-type]
+                                            CallGraphNode(scope=called_function_scope, reasons=Reasons(function_scope=called_function_scope)),  # type: ignore[arg-type]
                                             # Mypy does not recognize that function_scope is of type FunctionScope or
                                             # ClassScope here even it is.
                                         )
@@ -183,7 +183,7 @@ def build_call_graph(
                         builtin_scope = FunctionScope(builtin_symbol)
 
                         current_tree_node.add_child(
-                            CallGraphNode(scope=builtin_scope, reasons=Reasons(), is_builtin=True),
+                            CallGraphNode(scope=builtin_scope, reasons=Reasons(function_scope=builtin_scope), is_builtin=True),
                         )
 
                     # Deal with unknown calls:
@@ -320,6 +320,7 @@ def contract_cycle(
     cycle_id_strs = [node.scope.symbol.id.__str__() for node in cycle]
     cycle_names = [node.scope.symbol.name for node in cycle]
     combined_node_name = "+".join(sorted(cycle_id_strs))
+    # TODO: we probably need to differentiate between real cyclic calls and recursive calls
     combined_node_data = FunctionScope(
         Symbol(
             None,
@@ -327,7 +328,7 @@ def contract_cycle(
             combined_node_name,
         ),
     )
-    combined_reasons = Reasons.join_reasons_list([node.reasons for node in cycle])
+    combined_reasons = Reasons(function_scope=combined_node_data).join_reasons_list([node.reasons for node in cycle])
     combined_node = CallGraphNode(
         scope=combined_node_data,
         reasons=combined_reasons,
@@ -351,9 +352,12 @@ def contract_cycle(
         # Find all function definitions that match the other call names for each call.
         matching_function_defs = {}
         for call_name in other_calls:
-            matching_function_defs[call_name] = [
-                called_function for called_function in functions[call_name] if called_function.symbol.name == call_name
-            ]
+            if call_name not in functions:
+                matching_function_defs[call_name] = []
+            else:
+                matching_function_defs[call_name] = [
+                    called_function for called_function in functions[call_name] if called_function.symbol.name == call_name
+                ]
 
         # Find all builtin calls.
         builtin_calls: dict[str, list[Reference]] = {
@@ -403,7 +407,7 @@ def contract_cycle(
         }  # Add the function def (list of function defs) as children to the combined node
         # if the function def name matches the call name.
         combined_node.children.update({
-            CallGraphNode(scope=builtin_call_function, reasons=Reasons(), is_builtin=True)
+            CallGraphNode(scope=builtin_call_function, reasons=Reasons(function_scope=builtin_call_function), is_builtin=True)
             for builtin_call_function in builtin_call_functions
         })
 

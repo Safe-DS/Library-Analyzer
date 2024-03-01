@@ -2432,6 +2432,15 @@ def test_resolve_references_calls(code: str, expected: list[ReferenceTestNode]) 
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
+        (  # language=Python "Import module - module"
+            """
+import math
+
+def f():
+    a = math
+            """,  # language=none
+            [ReferenceTestNode("math.line5", "FunctionDef.f", ["Import.math.line2"])],
+        ),
         (  # language=Python "Import module - constant"
             """
 import math
@@ -2461,7 +2470,7 @@ def f(a):
             """,  # language=none
             [ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
              ReferenceTestNode("math.line5", "FunctionDef.f", ["Import.math.line2"]),
-             ReferenceTestNode("sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"])],
+             ReferenceTestNode("math.sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"])],
         ),
         (  # language=Python "Import module with alias - function"
             """
@@ -2472,7 +2481,7 @@ def f(a):
             """,  # language=none
             [ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
              ReferenceTestNode("m.line5", "FunctionDef.f", ["Import.math.line2"]),
-             ReferenceTestNode("sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"])],
+             ReferenceTestNode("m.sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"])],
         ),
         (  # language=Python "Import module with alias - function and constant"
             """
@@ -2493,7 +2502,7 @@ def f(a):
                 ReferenceTestNode("m.pi.line7", "FunctionDef.f", ["Import.math.pi.line2"]),
              ],
         ),
-        (  # language=Python "Import two modules with alias - function and constant"
+        (  # language=Python "Import two modules with alias - function and module"
             """
 import math as m, sys as s
 
@@ -2504,7 +2513,7 @@ def f(a):
             [
                 ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
                 ReferenceTestNode("m.line5", "FunctionDef.f", ["Import.math.line2"]),
-                ReferenceTestNode("sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"]),
+                ReferenceTestNode("m.sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"]),
                 ReferenceTestNode("s.line6", "FunctionDef.f", ["Import.sys.line2"]),
             ],
         ),
@@ -2565,7 +2574,7 @@ def f(a):
                 ReferenceTestNode("s.line6", "FunctionDef.f", ["Import.math.sqrt.line2"])
             ],
         ),
-        (  # language=Python "Local FromImport - function"
+        (  # language=Python "Local FromImport - constant"
             """
 def f(a):
     from math import pi
@@ -2585,12 +2594,13 @@ def f(a):
         ),
     ],
     ids=[
+        "Import module - module",
         "Import module - constant",
         "Import module with alias - constant",
         "Import module - function",
         "Import module with alias - function",
         "Import module with alias - function and constant",
-        "Import two modules with alias - function and constant",
+        "Import two modules with alias - function and module",
         "FromImport - constant",
         "FromImport with alias - constant",
         "FromImport - function",

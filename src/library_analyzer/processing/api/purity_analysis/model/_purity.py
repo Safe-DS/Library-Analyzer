@@ -18,8 +18,8 @@ if TYPE_CHECKING:
         ClassVariable,
         GlobalVariable,
         InstanceVariable,
-        Parameter,
-    )
+        Parameter, Import,
+)
 
 
 class PurityResult(ABC):
@@ -149,6 +149,10 @@ class ImpurityReason(ABC):  # this is just a base class, and it is important tha
 
     If a function is impure it is because of one or more impurity reasons.
     """
+    #TODO:
+    # origin
+    # neighbor
+
 
     @abstractmethod
     def __str__(self) -> str:
@@ -168,11 +172,11 @@ class NonLocalVariableRead(Read):
 
     Attributes
     ----------
-    symbol : GlobalVariable | ClassVariable | InstanceVariable
+    symbol : GlobalVariable | ClassVariable | InstanceVariable | Import
         The symbol that is read.
     """
 
-    symbol: GlobalVariable | ClassVariable | InstanceVariable
+    symbol: GlobalVariable | ClassVariable | InstanceVariable | Import
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -366,12 +370,16 @@ class StringLiteral(Expression):
 
 @dataclass
 class CallOfFunction(Expression):
-    """Class for function calls.
+    """Class for unknown function calls.
 
     Attributes
     ----------
     call : astroid.Call
         The call node.
+    inferred_def : astroid.FunctionDef | None
+        The inferred function definition for the call if it is known.
+    name : str
+        The name of the call.
     """
 
     call: astroid.Call
@@ -388,6 +396,36 @@ class CallOfFunction(Expression):
 
     def __str__(self) -> str:
         return f"CallOfFunction.{self.name}"
+
+
+@dataclass
+class ClassInit(Expression):
+    """Class for unknown class initializations.
+
+    Attributes
+    ----------
+    call : astroid.Call
+        The call node.
+    inferred_def : astroid.ClassDef | None
+        The inferred class definition for the call if it is known.
+    name : str
+        The name of the call.
+    """
+
+    call: astroid.Call
+    inferred_def: astroid.ClassDef | None = None
+    name: str = field(init=False)
+
+    def __post_init__(self):
+        if self.inferred_def is not None:
+            self.name = f"{self.inferred_def.root().name}.{self.inferred_def.name}"
+        elif isinstance(self.call.func, astroid.Attribute):
+            self.name = self.call.func.attrname
+        else:
+            self.name = self.call.func.name
+
+    def __str__(self) -> str:
+        return f"ClassInit.{self.name}"
 
 
 class APIPurity:

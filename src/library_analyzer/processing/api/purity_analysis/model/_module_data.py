@@ -271,16 +271,25 @@ class Import(Symbol):
     ----------
     node : astroid.ImportFrom | astroid.Import
         The node that defines the import.
+    name : str
+        The name of the symbol that is imported if any is given.
+        Else it is equal to the module name.
     module : str
-        The module that is imported.
+        The name of the module that is imported.
     alias : str | None
-        If the node is of type Import alias is the name for the module name if any is given.
-        If the node is of type ImportFrom alias is the name for the name of the symbol if any is given.
+        If the node is of type Import alias is the alias name for the module name if any is given.
+        If the node is of type ImportFrom alias is the alias name for the name of the symbol if any is given.
+    inferred_node : astroid.NodeNG | None
+        When the import is used as a reference (or a symbol)
+        the inferred_node is the node of the used reference (or symbol) in the original module.
+        It was inferred by the reference analysis by using astroids safe_infer method.
+        If the method could not infer the node, the inferred_node is None.
     """
 
     node: astroid.ImportFrom | astroid.Import
     module: str
     alias: str | None = None
+    inferred_node: astroid.NodeNG | None = None
 
     def __str__(self) -> str:
         if isinstance(self.node, astroid.ImportFrom):
@@ -288,8 +297,8 @@ class Import(Symbol):
                 return f"{self.__class__.__name__}.{self.module}.{self.name}.line{self.id.line}"
             return f"{self.__class__.__name__}.{self.module}.line{self.id.line}"
         else:
-            # if self.name != self.module:
-            #     return f"{self.__class__.__name__}.{self.module}.{self.name}.line{self.id.line}"
+            if self.name != self.module:
+                return f"{self.__class__.__name__}.{self.module}.{self.name}.line{self.id.line}"
             return f"{self.__class__.__name__}.{self.module}.line{self.id.line}"
 
     def __hash__(self) -> int:

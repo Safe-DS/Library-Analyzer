@@ -1022,10 +1022,20 @@ class ModuleDataBuilder:
             module = name_tuple[0]
             alias = name_tuple[1]
             if alias:
-                import_symbol = Import(node=node, id=calc_node_id(node), name=alias, module=module, alias=alias)
+                import_symbol = Import(node=node,
+                                       id=NodeID(node.root(), module, node.lineno, node.col_offset),
+                                       # Do not use calc_node_id here because it would use the wrong name as node name.
+                                       name=module,
+                                       module=module,
+                                       alias=alias)
+                symbols[import_symbol.alias] = import_symbol
             else:
-                import_symbol = Import(node=node, id=calc_node_id(node), name=module, module=module)
-            symbols[import_symbol.name] = import_symbol
+                import_symbol = Import(node=node,
+                                       id=NodeID(node.root(), module, node.lineno, node.col_offset),
+                                       # Do not use calc_node_id here because it would use the wrong name as node name.
+                                       name=module,
+                                       module=module)
+                symbols[import_symbol.name] = import_symbol
             scope_node = Scope(
                 _symbol=import_symbol,
                 _children=[],
@@ -1044,10 +1054,19 @@ class ModuleDataBuilder:
             name = name_tuple[0]
             alias = name_tuple[1]
             if alias:
-                import_symbol = Import(node=node, id=calc_node_id(node), name=name, module=module, alias=alias)
+                import_symbol = Import(node=node,
+                                       id=NodeID(node.root(), name, node.lineno, node.col_offset),
+                                       # Do not use calc_node_id here because it would use the wrong name as node name.
+                                       name=name,
+                                       module=module,
+                                       alias=alias)
                 symbols[import_symbol.alias] = import_symbol
             else:
-                import_symbol = Import(node=node, id=calc_node_id(node), name=name, module=module)
+                import_symbol = Import(node=node,
+                                       id=NodeID(node.root(), name, node.lineno, node.col_offset),
+                                       # Do not use calc_node_id here because it would use the wrong name as node name.
+                                       name=name,
+                                       module=module)
                 symbols[import_symbol.name] = import_symbol
             scope_node = Scope(
                 _symbol=import_symbol,
@@ -1342,7 +1361,7 @@ def get_module_data(code: str) -> ModuleData:
     module_data_handler = ModuleDataBuilder()
     walker = ASTWalker(module_data_handler)
     module = astroid.parse(code)
-    print(module.repr_tree())
+    # print(module.repr_tree())
     walker.walk(module)
 
     scope = module_data_handler.children[0]  # Get the children of the root node, which are the scopes of the module

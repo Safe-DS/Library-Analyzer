@@ -17,7 +17,7 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
     NodeID,
     Reference,
     Scope,
-    Symbol,
+    Symbol, Import,
 )
 
 if TYPE_CHECKING:
@@ -141,13 +141,12 @@ class Reasons:
 
     function_scope: FunctionScope | None = field(default=None)
     writes_to: set[GlobalVariable | ClassVariable | InstanceVariable] = field(default_factory=set)
-    reads_from: set[GlobalVariable | ClassVariable | InstanceVariable] = field(default_factory=set)
+    reads_from: set[GlobalVariable | ClassVariable | InstanceVariable | Import] = field(default_factory=set)
     calls: set[Symbol] = field(default_factory=set)
     result: PurityResult | None = field(default=None)
     unknown_calls: set[astroid.Call] = field(default_factory=set)
 
-    @staticmethod
-    def join_reasons_list(reasons_list: list[Reasons]) -> Reasons:
+    def join_reasons_list(self, reasons_list: list[Reasons]) -> Reasons:
         """Join a list of Reasons objects.
 
         Combines a list of Reasons objects into one Reasons object.
@@ -171,7 +170,7 @@ class Reasons:
         if not reasons_list:
             raise ValueError("List of Reasons is empty.")
 
-        result = Reasons()
+        result = self
         for reason in reasons_list:
             result.join_reasons(reason)
         return result
