@@ -311,7 +311,7 @@ def infer_purity(code: str) -> dict[NodeID, PurityResult]:
     for reasons in analysis_result.raw_reasons.values():
         process_node(reasons, analysis_result, purity_results)
 
-    for graph in analysis_result.call_graph.graphs.values():
+    for graph in analysis_result.call_graph_forest.forest.values():
         if graph.combined_node_ids:
             combined_node_name = "+".join(
                 sorted(combined_node_id_str for combined_node_id_str in graph.combined_node_id_to_string()),
@@ -362,9 +362,9 @@ def process_node(  # type: ignore[return] # all cases are handled
     function_id = reason.function_scope.symbol.id
 
     # Check the forest if the purity of the function is already determined
-    if analysis_result.call_graph.has_graph(function_id):
-        if analysis_result.call_graph.get_graph(function_id).reasons.result:
-            result = analysis_result.call_graph.get_graph(function_id).reasons.result
+    if analysis_result.call_graph_forest.has_graph(function_id):
+        if analysis_result.call_graph_forest.get_graph(function_id).reasons.result:
+            result = analysis_result.call_graph_forest.get_graph(function_id).reasons.result
             if result is not None:
                 purity_results[function_id] = result
                 return purity_results[function_id]
@@ -373,10 +373,10 @@ def process_node(  # type: ignore[return] # all cases are handled
     try:
         # Check if the function has any child nodes and if so, check their purity first and propagate the results afterward.
         # First check if the reference actually is inside the call graph because it might be a builtin function or a combined node.
-        if function_id in analysis_result.call_graph.graphs:
+        if function_id in analysis_result.call_graph_forest.forest:
             # If the node is part of the call graph, check if it has any children (called functions) = not a leaf.
-            if not analysis_result.call_graph.get_graph(function_id).is_leaf():
-                for child in analysis_result.call_graph.get_graph(function_id).children:
+            if not analysis_result.call_graph_forest.get_graph(function_id).is_leaf():
+                for child in analysis_result.call_graph_forest.get_graph(function_id).children:
                     child_id = child.scope.symbol.id
                     # Check if the node is a combined node (would throw a KeyError otherwise).
                     if not child.combined_node_ids:
@@ -389,23 +389,23 @@ def process_node(  # type: ignore[return] # all cases are handled
                     # The child is a combined node and therefore not part of the reference dict.
                     else:  # noqa: PLR5501 # better for readability
                         if function_id not in purity_results:  # better for readability
-                            res = analysis_result.call_graph.get_graph(child_id).reasons.result
+                            res = analysis_result.call_graph_forest.get_graph(child_id).reasons.result
                             if res:
                                 purity_results[function_id] = res
                         else:
                             purity_results[function_id] = purity_results[function_id].update(
-                                analysis_result.call_graph.get_graph(child_id).reasons.result,
+                                analysis_result.call_graph_forest.get_graph(child_id).reasons.result,
                             )
 
                 # After all children are handled, propagate the purity of the called functions to the calling function.
-                analysis_result.call_graph.get_graph(function_id).reasons.result = purity_results[function_id]
+                analysis_result.call_graph_forest.get_graph(function_id).reasons.result = purity_results[function_id]
 
         # If the node is not part of the call graph, check if it is a combined node.
         else:
             # Check if the node is a combined node since they need to be handled differently.
             combined_nodes = {
                 node.scope.symbol.name: node
-                for node in analysis_result.call_graph.graphs.values()
+                for node in analysis_result.call_graph_forest.forest.values()
                 if node.combined_node_ids
             }
             for combined_node in combined_nodes.values():
@@ -428,7 +428,7 @@ def process_node(  # type: ignore[return] # all cases are handled
 
                         # TODO: refactor this so it is cleaner
                         purity = transform_reasons_to_impurity_result(
-                            analysis_result.call_graph.graphs[combined_node.scope.symbol.id].reasons,
+                            analysis_result.call_graph_forest.forest[combined_node.scope.symbol.id].reasons,
                         )
 
                         if not combined_node.reasons.result:
@@ -454,31 +454,31 @@ def process_node(  # type: ignore[return] # all cases are handled
         if (
             isinstance(reason.function_scope, FunctionScope)
             and isinstance(reason.function_scope.symbol.node, astroid.FunctionDef | astroid.Lambda)
-            and function_id in analysis_result.call_graph.graphs
+            and function_id in analysis_result.call_graph_forest.forest
         ):
             # Check if the function does not call other functions (it is a leaf),
             # therefore is is possible to check its (reasons for) impurity directly.
             # Also check that all children are already handled (have a result).
-            if analysis_result.call_graph.graphs[function_id].is_leaf() or all(
-                c.reasons.result for c in analysis_result.call_graph.graphs[function_id].children if not c.is_builtin
+            if analysis_result.call_graph_forest.forest[function_id].is_leaf() or all(
+                c.reasons.result for c in analysis_result.call_graph_forest.forest[function_id].children if not c.is_builtin
             ):
                 purity_self_defined: PurityResult = Pure()
-                if analysis_result.call_graph.graphs[function_id].reasons:
+                if analysis_result.call_graph_forest.forest[function_id].reasons:
                     purity_self_defined = transform_reasons_to_impurity_result(
-                        analysis_result.call_graph.graphs[function_id].reasons,
+                        analysis_result.call_graph_forest.forest[function_id].reasons,
                     )
 
                 # If a result was propagated from the children,
                 # it needs to be kept and updated with more reasons if the function itself has more reasons.
                 if (
-                    analysis_result.call_graph.get_graph(function_id).reasons.result is None
+                    analysis_result.call_graph_forest.get_graph(function_id).reasons.result is None
                 ):  # TODO: this should never happen - check that and remove if statement -> this does happen... but it works
                     purity_results[function_id] = purity_self_defined
                 else:
                     purity_results[function_id] = purity_results[function_id].update(purity_self_defined)
 
                 # Store the results in the forest, this also deals as a flag to indicate that the result is already computed completely.
-                analysis_result.call_graph.get_graph(function_id).reasons.result = purity_results[function_id]
+                analysis_result.call_graph_forest.get_graph(function_id).reasons.result = purity_results[function_id]
 
                 return purity_results[function_id]
             else:
@@ -541,7 +541,7 @@ def get_purity_of_child(
 
     # Add the result to the child node in the call graph
     if not child.is_builtin:
-        analysis_result.call_graph.get_graph(child_id).reasons.result = purity_result_child
+        analysis_result.call_graph_forest.get_graph(child_id).reasons.result = purity_result_child
     # If a result for the child was found, propagate it to the parent.
     if purity_result_child and reason.function_scope is not None:
         function_node = reason.function_scope.symbol.id

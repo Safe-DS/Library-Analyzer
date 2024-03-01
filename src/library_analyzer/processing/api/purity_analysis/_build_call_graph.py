@@ -14,6 +14,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Reference,
     Symbol,
 )
+from library_analyzer.processing.api.purity_analysis.model._call_graph import NewCallGraphNode
 
 BUILTINS = dir(builtins)
 
@@ -54,14 +55,14 @@ def build_call_graph(
             # Add reasons for impurity to the corresponding function.
             function_id = scope.symbol.id
             if isinstance(scope, ClassScope):
-                current_call_graph_node = CallGraphNode(scope=scope, reasons=Reasons())
+                current_call_graph_node = CallGraphNode(scope=scope, reasons=Reasons(scope.symbol.id))
             elif raw_reasons[function_id]:
                 current_call_graph_node = CallGraphNode(scope=scope, reasons=raw_reasons[function_id])
             else:
                 raise ValueError(f"No reasons found for function {scope.symbol.name}")
 
             # Case where the function is not called before by any other function.
-            if function_id not in call_graph_forest.graphs:
+            if function_id not in call_graph_forest.forest:
                 call_graph_forest.add_graph(
                     function_id,
                     current_call_graph_node,
@@ -72,15 +73,16 @@ def build_call_graph(
                 for fun in functions.get("__init__", []):
                     if fun.parent == scope:
                         init_function = fun
-                        if init_function.symbol.id not in call_graph_forest.graphs:
+                        if init_function.symbol.id not in call_graph_forest.forest:
                             call_graph_forest.add_graph(
                                 init_function.symbol.id,
-                                CallGraphNode(scope=init_function, reasons=Reasons()),
+                                CallGraphNode(scope=init_function, reasons=Reasons(init_function.symbol.id)),
                             )
                         current_call_graph_node.add_child(call_graph_forest.get_graph(init_function.symbol.id))
                         current_call_graph_node.reasons.calls.add(
                             Symbol(
-                                node=raw_reasons[init_function.symbol.id].function_scope.symbol.node,  # type: ignore[union-attr]
+                                node=raw_reasons[init_function.symbol.id].function_scope.symbol.node,
+                                # type: ignore[union-attr]
                                 # function_scope is always of type FunctionScope here since it is the init function.
                                 id=init_function.symbol.id,
                                 name=init_function.symbol.name,
@@ -141,7 +143,8 @@ def build_call_graph(
                                     else:
                                         call_graph_forest.add_graph(
                                             f.symbol.id,
-                                            CallGraphNode(scope=called_function_scope, reasons=Reasons()),  # type: ignore[arg-type]
+                                            CallGraphNode(scope=called_function_scope, reasons=Reasons()),
+                                            # type: ignore[arg-type]
                                             # Mypy does not recognize that function_scope is of type FunctionScope or
                                             # ClassScope here even it is.
                                         )
@@ -183,7 +186,8 @@ def build_call_graph(
                         builtin_scope = FunctionScope(builtin_symbol)
 
                         current_tree_node.add_child(
-                            CallGraphNode(scope=builtin_scope, reasons=Reasons(), is_builtin=True),
+                            CallGraphNode(scope=builtin_scope, reasons=Reasons(builtin_scope.symbol.id),
+                                          is_builtin=True),
                         )
 
                     # Deal with unknown calls:
@@ -226,7 +230,7 @@ def handle_cycles(
     call_graph_forest : CallGraphForest
         The call graph forest with contracted cycles.
     """
-    for graph in call_graph_forest.graphs.copy().values():
+    for graph in call_graph_forest.forest.copy().values():
         visited_nodes: set[CallGraphNode] = set()
         path: list[CallGraphNode] = []
         cycle = test_for_cycles(graph, visited_nodes, path)
@@ -272,7 +276,7 @@ def test_for_cycles(
         return []
 
     if graph in path:
-        return path[path.index(graph) :]  # A cycle is found, return the path containing the cycle.
+        return path[path.index(graph):]  # A cycle is found, return the path containing the cycle.
 
     # Mark the current node as visited.
     visited_nodes.add(graph)
@@ -326,7 +330,8 @@ def contract_cycle(
             combined_node_name,
         ),
     )
-    combined_reasons = Reasons.join_reasons_list([node.reasons for node in cycle])
+    combined_reasons = Reasons(id=NodeID(None, combined_node_name),
+                               function_scope=combined_node_data).join_reasons_list([node.reasons for node in cycle])
     combined_node = CallGraphNode(
         scope=combined_node_data,
         reasons=combined_reasons,
@@ -338,11 +343,12 @@ def contract_cycle(
         other_calls: dict[str, list[Reference]] = {
             call[0].name: [call[0]]
             for node in cycle
-            for call_name, call in node.scope.call_references.items()  # type: ignore[union-attr] # Mypy does not recognize that function_scope is of type FunctionScope here even it is.
+            for call_name, call in node.scope.call_references.items()
+            # type: ignore[union-attr] # Mypy does not recognize that function_scope is of type FunctionScope here even it is.
             if isinstance(node.scope, FunctionScope)
-            and call_name not in cycle_names
-            and call_name not in BUILTINS
-            or call[0].name in ("read", "readline", "readlines", "write", "writelines")
+               and call_name not in cycle_names
+               and call_name not in BUILTINS
+               or call[0].name in ("read", "readline", "readlines", "write", "writelines")
         }
         # Find all function definitions that match the other call names for each call.
         matching_function_defs = {}
@@ -357,8 +363,8 @@ def contract_cycle(
             for node in cycle
             for call in node.scope.call_references.values()  # type: ignore[union-attr]
             if isinstance(node.scope, FunctionScope)
-            and call[0].name in BUILTINS
-            or call[0].name in ("read", "readline", "readlines", "write", "writelines")
+               and call[0].name in BUILTINS
+               or call[0].name in ("read", "readline", "readlines", "write", "writelines")
         }
 
         builtin_call_functions: list[FunctionScope] = []
@@ -399,7 +405,8 @@ def contract_cycle(
         }  # Add the function def (list of function defs) as children to the combined node
         # if the function def name matches the call name.
         combined_node.children.update({
-            CallGraphNode(scope=builtin_call_function, reasons=Reasons(), is_builtin=True)
+            CallGraphNode(scope=builtin_call_function, reasons=Reasons(builtin_call_function.symbol.id),
+                          is_builtin=True)
             for builtin_call_function in builtin_call_functions
         })
 
@@ -407,15 +414,15 @@ def contract_cycle(
     for node in cycle:
         if node.scope.symbol.name in BUILTINS:
             continue  # This should not happen since builtins never call self-defined functions.
-        if node.scope.symbol.id in forest.graphs:
+        if node.scope.symbol.id in forest.forest:
             forest.delete_graph(node.scope.symbol.id)
 
     # Only add the combined node once - (it is possible that the same cycle is found multiple times).
-    if combined_node_name not in forest.graphs:
+    if combined_node_name not in forest.forest:
         forest.add_graph(combined_node.scope.symbol.id, combined_node)
 
     # Set all pointers pointing to the nodes in the cycle to the combined node.
-    for graph in forest.graphs.values():
+    for graph in forest.forest.values():
         update_pointers(graph, cycle_ids, cycle_id_strs, combined_node)
 
 
@@ -480,3 +487,117 @@ def update_pointers(
 
         else:
             update_pointers(child, cycle_ids, cycle_id_strs, combined_node)
+
+
+class CallGraphBuilder:
+    """Class for building a call graph.
+
+    This class is used to build a call graph from a list of functions.
+    """
+
+    def __init__(
+        self,
+        functions: dict[str, list[FunctionScope]],
+        classes: dict[str, ClassScope],
+        raw_reasons: dict[NodeID, Reasons],
+    ) -> None:
+        """Initialize the CallGraphBuilder.
+
+        Parameters
+        ----------
+        functions : dict[str, list[FunctionScope]]
+            All functions and a list of their FunctionScopes.
+            The value is a list since there can be multiple functions with the same name.
+        classes : dict[str, ClassScope]
+            Classnames in the module as key and their corresponding ClassScope instance as value.
+        raw_reasons : dict[str, Reasons]
+            The reasons for impurity of the functions.
+        """
+        self.functions = functions
+        self.classes = classes
+        self.raw_reasons = raw_reasons
+        self.call_graph_forest = CallGraphForest()
+        self._build_call_graph_forest()
+
+    def _build_call_graph_forest(self) -> CallGraphForest:
+        """Build the call graph.
+
+        Returns
+        -------
+        call_graph_forest : CallGraphForest
+            The call graph forest for the given functions.
+        """
+        self._prepare_classes()
+
+        # Create a new CallGraphNode for each function and add it to the forest.
+        for reason in self.raw_reasons.values():
+            # Check if the CallGraphNode is already in the forest and has no calls left to deal with.
+            if (self.call_graph_forest.has_graph(reason.id)
+                and not self.call_graph_forest.get_graph(reason.id).reasons.calls
+            ):
+                continue
+
+            self._built_call_graph(reason)
+
+        # self.call_graph_forest = build_call_graph(self.functions, self.classes, self.raw_reasons)
+        return self.call_graph_forest
+
+    def _prepare_classes(self) -> None:
+        for klass in self.classes.values():
+            # Create a new CallGraphNode for each class and add it to the forest.
+            class_cgn = NewCallGraphNode(
+                symbol=klass.symbol,
+                reasons=Reasons(klass.symbol.id)
+            )
+            # If the class has an init function, add it to the class node as a child.
+            # Also add the init function to the forest if it is not already there.
+            # TODO: do we want to allow overwriting of nodes already inside the forest? no we raise an error
+            if klass.init_function:
+                init_cgn = NewCallGraphNode(
+                    symbol=klass.init_function.symbol,
+                    reasons=self.raw_reasons[klass.init_function.symbol.id]
+                )
+                self.call_graph_forest.add_graph(klass.init_function.symbol.id, init_cgn)
+                class_cgn.add_child(init_cgn)
+            self.call_graph_forest.add_graph(klass.symbol.id, class_cgn)
+
+    def _built_call_graph(self, reason: Reasons) -> None:
+        cgn = NewCallGraphNode(
+            symbol=reason.function_scope.symbol,
+            reasons=reason
+        )
+        # Try to add the node to the forest.
+        # try:
+        #     self.call_graph_forest.add_graph(reason.id, cgn)
+        #
+        # # The call graph forest already contains a node with the same id.
+        # except ValueError:
+        # If the node does not have any calls left, it is considered to be finished.
+        if not cgn.reasons.calls:
+            self.call_graph_forest.add_graph(reason.id, cgn)
+
+        # The node has calls left, which need to be added to the forest and to the children of the current node.
+        else:
+            for call in cgn.reasons.calls.copy():
+                cgn.reasons.calls.remove(call)
+                # Check if the call is a builtin.
+                if isinstance(call, Builtin):
+                    builtin_cgn = NewCallGraphNode(
+                        symbol=call,
+                        reasons=Reasons(call.id)
+                    )
+                    cgn.add_child(builtin_cgn)
+
+                # Check if the called child function is already in the forest and has no calls left to deal with.
+                elif (self.call_graph_forest.has_graph(call.id)
+                      and not self.call_graph_forest.get_graph(call.id).reasons.calls
+                ):
+                    # Add the child to the children of the current node since it doesn't need further handling.
+                    cgn.add_child(self.call_graph_forest.get_graph(call.id))
+                else:
+                    # TODO: handle unknown calls [after merge with import analysis]
+                    # Build the call graph for the child function and add it to the children of the current node.
+                    self._built_call_graph(self.raw_reasons[call.id])
+                    cgn.add_child(self.call_graph_forest.get_graph(call.id))
+
+            self.call_graph_forest.add_graph(reason.id, cgn)

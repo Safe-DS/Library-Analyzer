@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from library_analyzer.processing.api.purity_analysis import build_call_graph, get_module_data, resolve_references
+from library_analyzer.processing.api.purity_analysis import resolve_references
 
 
 @pytest.mark.parametrize(
@@ -294,15 +294,13 @@ double = lambda x: 2 * x
     ],
 )
 def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
-    module_data = get_module_data(code)
-    references = resolve_references(code)
-    call_graph_forest = build_call_graph(module_data.functions, module_data.classes, references.raw_reasons)
+    call_graph_forest = resolve_references(code).call_graph_forest
 
     transformed_call_graph_forest: dict = {}
-    for tree_id, tree in call_graph_forest.graphs.items():
+    for tree_id, tree in call_graph_forest.forest.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
-            transformed_call_graph_forest[f"{tree_id}"].add(child.scope.symbol.id.__str__())
+            transformed_call_graph_forest[f"{tree_id}"].add(child.symbol.id.__str__())
 
     assert transformed_call_graph_forest == expected
 
@@ -310,7 +308,7 @@ def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        (  # language=Python "class call - init",
+        (  # language=Python "Class call - pass",
             """
 class A:
     pass
@@ -322,6 +320,51 @@ def fun():
             {
                 ".A.2.0": set(),
                 ".fun.5.0": {".A.2.0"},
+            },
+        ),
+        (  # language=Python "Class call - init",
+            """
+class A:
+    def __init__(self):
+        pass
+
+def fun():
+    a = A()
+
+            """,  # language=none
+            {
+                ".A.2.0": {".__init__.3.4"},
+                ".__init__.3.4": set(),
+                ".fun.6.0": {".A.2.0"},
+            },
+        ),
+        (  # language=Python "Class call - init propagation",
+            """
+class A:
+    def __init__(self):
+        self.a1_fun()
+        self.b = B()
+
+    def a1_fun(self):
+        self.a2_fun()
+
+    def a2_fun(self):
+        pass
+
+class B:
+    pass
+
+def fun():
+    a = A()
+
+            """,  # language=none
+            {
+                ".A.2.0": {".__init__.3.4"},
+                ".__init__.3.4": {".a1_fun.7.4", ".B.13.0"},
+                ".a1_fun.7.4": {".a2_fun.10.4"},
+                ".a2_fun.10.4": set(),
+                ".B.13.0": set(),
+                ".fun.16.0": {".A.2.0"},
             },
         ),
         (  # language=Python "member access - class",
@@ -628,7 +671,9 @@ lambda_add = lambda x, y: A().value.add(x, y)
         ),
     ],
     ids=[
-        "class call - init",
+        "Class call - pass",
+        "Class call - init",
+        "Class call - init propagation",
         "member access - class",
         "member access - class without init",
         "member access - methode",
@@ -644,14 +689,12 @@ lambda_add = lambda x, y: A().value.add(x, y)
     ],  # TODO: add cyclic cases and MA in lambda functions
 )
 def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> None:
-    module_data = get_module_data(code)
-    references = resolve_references(code)
-    call_graph_forest = build_call_graph(module_data.functions, module_data.classes, references.raw_reasons)
+    call_graph_forest = resolve_references(code).call_graph_forest
 
     transformed_call_graph_forest: dict = {}
-    for tree_id, tree in call_graph_forest.graphs.items():
+    for tree_id, tree in call_graph_forest.forest.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
-            transformed_call_graph_forest[f"{tree_id}"].add(child.scope.symbol.id.__str__())
+            transformed_call_graph_forest[f"{tree_id}"].add(child.symbol.id.__str__())
 
     assert transformed_call_graph_forest == expected

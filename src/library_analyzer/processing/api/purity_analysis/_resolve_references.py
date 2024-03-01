@@ -5,7 +5,7 @@ import builtins
 import astroid
 
 from library_analyzer.processing.api.purity_analysis import get_module_data
-from library_analyzer.processing.api.purity_analysis._build_call_graph import build_call_graph
+from library_analyzer.processing.api.purity_analysis._build_call_graph import build_call_graph, CallGraphBuilder
 from library_analyzer.processing.api.purity_analysis.model import (
     Builtin,
     BuiltinOpen,
@@ -77,7 +77,8 @@ def _find_call_references(
             value_reference.referenced_symbols.append(class_def.symbol)
 
     # Find builtins that are called, this includes open-like functions.
-    # Because the parameters of the call node are relevant for the analysis, they are added to the (Builtin) Symbol.
+    # Because the parameters of the call node of open-like functions are relevant for the analysis,
+    # they are added to the (BuiltinOpen) symbol.
     if call_reference.name in _BUILTINS or call_reference.name in (
         "open",
         "read",
@@ -351,7 +352,7 @@ def resolve_references(
         # iterate over all functions with the same name
         for function in function_list:
             # Collect the reasons while iterating over the functions, so there is no need to iterate over them again.
-            raw_reasons[function.symbol.id] = Reasons(function)
+            raw_reasons[function.symbol.id] = Reasons(function.symbol.id, function_scope=function)
 
             # TODO: these steps can be done parallel - is it necessary
             # Check if the function has call_references (References from a call to the function definition itself).
@@ -378,12 +379,12 @@ def resolve_references(
 
                             # Add the referenced symbols to the calls of the raw_reasons dict for this function
                             for referenced_symbol in call_references_result.referenced_symbols:
-                                if isinstance(
-                                    referenced_symbol,
-                                    GlobalVariable | ClassVariable | Builtin | BuiltinOpen,
-                                ):
-                                    if referenced_symbol not in raw_reasons[function.symbol.id].calls:
-                                        raw_reasons[function.symbol.id].calls.add(referenced_symbol)
+                                # if isinstance(
+                                #     referenced_symbol,
+                                #     GlobalVariable | ClassVariable | Builtin | BuiltinOpen,
+                                # ):
+                                if referenced_symbol not in raw_reasons[function.symbol.id].calls:
+                                    raw_reasons[function.symbol.id].calls.add(referenced_symbol)
 
             # Check if the function has value_references (References from a value node to a target node).
             if function.value_references:
@@ -450,7 +451,8 @@ def resolve_references(
     name_references: dict[str, list[ReferenceNode]] = merge_dicts(value_references, target_references)
     resolved_references: dict[str, list[ReferenceNode]] = merge_dicts(call_references, name_references)
 
-    call_graph = build_call_graph(module_data.functions, module_data.classes, raw_reasons)
+    # call_graph = build_call_graph(module_data.functions, module_data.classes, raw_reasons)
+    call_graph = CallGraphBuilder(module_data.functions, module_data.classes, raw_reasons).call_graph_forest
 
     # The resolved_references are not needed in the next step anymore since raw_reasons contains all the information.
     # They are needed for testing though, so they are returned.

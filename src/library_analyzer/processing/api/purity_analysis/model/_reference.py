@@ -101,14 +101,14 @@ class ModuleAnalysisResult:
         The key is the NodeID of the function, the value is the Reasons for the function.
     classes : dict[str, ClassScope]
         All classes and their ClassScope.
-    call_graph : CallGraphForest
+    call_graph_forest : CallGraphForest
         The call graph forest of the module.
     """
 
     resolved_references: dict[str, list[ReferenceNode]]
     raw_reasons: dict[NodeID, Reasons]
     classes: dict[str, ClassScope]
-    call_graph: CallGraphForest
+    call_graph_forest: CallGraphForest
 
 
 @dataclass
@@ -123,7 +123,8 @@ class Reasons:
     function_scope : FunctionScope | None
         The scope of the function which the reasons belong to.
         Is None if the reasons are not for a FunctionDef node.
-        This is the case when a combined node is created, or a ClassScope is used to propagate reasons.
+        This is the case when either a builtin or a combined node is created,
+        or a ClassScope is used to propagate reasons.
     writes_to : set[Symbol]
         A set of all nodes that are written to.
     reads_from : set[Symbol]
@@ -139,6 +140,7 @@ class Reasons:
         Unknown calls are calls to functions that are not defined in the module or are simply not existing.
     """
 
+    id: NodeID
     function_scope: FunctionScope | None = field(default=None)
     writes_to: set[GlobalVariable | ClassVariable | InstanceVariable] = field(default_factory=set)
     reads_from: set[GlobalVariable | ClassVariable | InstanceVariable] = field(default_factory=set)
@@ -146,8 +148,7 @@ class Reasons:
     result: PurityResult | None = field(default=None)
     unknown_calls: set[astroid.Call] = field(default_factory=set)
 
-    @staticmethod
-    def join_reasons_list(reasons_list: list[Reasons]) -> Reasons:
+    def join_reasons_list(self, reasons_list: list[Reasons]) -> Reasons:
         """Join a list of Reasons objects.
 
         Combines a list of Reasons objects into one Reasons object.
@@ -171,7 +172,7 @@ class Reasons:
         if not reasons_list:
             raise ValueError("List of Reasons is empty.")
 
-        result = Reasons()
+        result = self
         for reason in reasons_list:
             result.join_reasons(reason)
         return result

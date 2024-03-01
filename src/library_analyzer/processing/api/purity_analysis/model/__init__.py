@@ -3,6 +3,7 @@
 from library_analyzer.processing.api.purity_analysis.model._call_graph import (
     CallGraphForest,
     CallGraphNode,
+    NewCallGraphNode,
 )
 from library_analyzer.processing.api.purity_analysis.model._module_data import (
     Builtin,
@@ -92,4 +93,5 @@ __all__ = [
     "ValueReference",
     "APIPurity",
     "BuiltinOpen",
+    "NewCallGraphNode",
 ]
