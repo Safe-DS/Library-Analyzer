@@ -23,7 +23,7 @@ def _run_api_command(
     out_dir_path : Path
         The path to the output directory.
     docstring_style : DocstringStyle
-        The style of docstrings that used in the library.
+        The style of docstrings that is used in the library.
     """
     api = get_api(package, src_dir_path, docstring_style)
     out_file_api = out_dir_path.joinpath(f"{package}__api.json")
@@ -32,5 +32,3 @@ def _run_api_command(
     api_dependencies = get_dependencies(api)
     out_file_api_dependencies = out_dir_path.joinpath(f"{package}__api_dependencies.json")
     api_dependencies.to_json_file(out_file_api_dependencies)
-
-    # TODO: call resolve_references here

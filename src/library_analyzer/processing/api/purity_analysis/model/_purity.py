@@ -1,185 +1,406 @@
 from __future__ import annotations
 
+import json
+import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
+from typing import TYPE_CHECKING, Any
 
-import astroid
+from library_analyzer.utils import ensure_file_exists
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
-# Type of access
-class Expression(astroid.NodeNG, ABC):
-    # @abstractmethod
-    # def __hash__(self) -> int:
-    #    pass
-    ...
-
-
-@dataclass
-class AttributeAccess(Expression):
-    """Class for class attribute access."""
-
-    name: str
-
-    # def __hash__(self) -> int:
+    from library_analyzer.processing.api.purity_analysis.model import (
+        ClassVariable,
+        GlobalVariable,
+        InstanceVariable,
+        Parameter,
+    )
 
 
-@dataclass
-class GlobalAccess(Expression):
-    """Class for global variable access."""
+class PurityResult(ABC):
+    """Superclass for purity results.
 
-    name: str
-    module: str = "None"
+    Purity results are either pure, impure or unknown.
+    """
 
-    # def __hash__(self) -> int:
-
-
-@dataclass
-class ParameterAccess(Expression):
-    """Class for function parameter access."""
-
-    name: str
-    function: str
-
-    # def __hash__(self) -> int:
-
-
-@dataclass
-class InstanceAccess(Expression):
-    """Class for field access of an instance attribute (receiver.target)."""
-
-    receiver: Expression
-    target: Expression
-
-    # def __hash__(self) -> int:
-
-
-@dataclass
-class StringLiteral(Expression):
-    value: str
-
-    # def __hash__(self) -> int:
-
-
-@dataclass
-class Reference(Expression):
-    name: str
-
-    # def __hash__(self) -> int:
-
-
-class ImpurityCertainty(Enum):
-    DEFINITELY_PURE = auto()
-    MAYBE_IMPURE = auto()
-    DEFINITELY_IMPURE = auto()
-
-
-# Reasons for impurity
-class ImpurityIndicator(ABC):
-    certainty: ImpurityCertainty
-
-    # @abstractmethod
-    # def __hash__(self) -> int:
-    #     pass
+    def __hash__(self) -> int:
+        return hash(str(self))
 
     @abstractmethod
-    def is_side_effect(self) -> bool:
+    def to_dict(self) -> dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def update(self, other: PurityResult | None) -> PurityResult:
+        """Update the current result with another result."""
+
+
+@dataclass
+class Pure(PurityResult):
+    """Class for pure results.
+
+    A function is pure if it has no (External-, Internal-)Read nor (External-, Internal-)Write side effects.
+    A pure function must also have no unknown reasons.
+    """
+
+    def update(self, other: PurityResult | None) -> PurityResult:
+        """Update the current result with another result.
+
+        Parameters
+        ----------
+        other : PurityResult | None
+            The result to update with.
+
+        Returns
+        -------
+        PurityResult
+            The updated result.
+
+        Raises
+        ------
+        TypeError
+            If the result cannot be updated with the given result.
+        """
+        if other is None:
+            return self
+        elif isinstance(self, Pure):
+            if isinstance(other, Pure):
+                return self
+            elif isinstance(other, Impure):
+                return other
+        elif isinstance(self, Impure):
+            if isinstance(other, Pure):
+                return self
+            elif isinstance(other, Impure):
+                return Impure(reasons=self.reasons | other.reasons)
+
+        raise TypeError(f"Cannot update {self} with {other}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"purity": self.__class__.__name__}
+
+
+@dataclass
+class Impure(PurityResult):
+    """Class for impure results.
+
+    A function is impure if it has at least one
+    (File-, NonLocalVariable-)Read OR (File-, NonLocalVariable-)Write side effect.
+    An impure function must also have no unknown reasons.
+
+    Be aware that a function can be impure because of multiple reasons.
+    Also, Impure != Pure since: not Pure would mean a function is either unknown or has at least one
+    (File-, NonLocalVariable-)Read OR (File-, NonLocalVariable-)Write side effect.
+
+    Attributes
+    ----------
+    reasons : set[ImpurityReason]
+        The reasons why the function is impure.
+    """
+
+    reasons: set[ImpurityReason]
+
+    def update(self, other: PurityResult | None) -> PurityResult:
+        """Update the current result with another result.
+
+        Parameters
+        ----------
+        other : PurityResult | None
+            The result to update with.
+
+        Returns
+        -------
+        PurityResult
+            The updated result.
+
+        Raises
+        ------
+        TypeError
+            If the result cannot be updated with the given result.
+        """
+        if other is None:
+            return self
+        elif isinstance(self, Pure):
+            if isinstance(other, Pure):
+                return self
+            elif isinstance(other, Impure):
+                return other
+        elif isinstance(self, Impure):
+            if isinstance(other, Pure):
+                return self
+            elif isinstance(other, Impure):
+                return Impure(reasons=self.reasons | other.reasons)
+        raise TypeError(f"Cannot update {self} with {other}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "purity": self.__class__.__name__,
+            "reasons": [reason.__str__() for reason in self.reasons],
+        }
+
+
+class ImpurityReason(ABC):  # this is just a base class, and it is important that it cannot be instantiated
+    """Superclass for impurity reasons.
+
+    If a function is impure it is because of one or more impurity reasons.
+    """
+
+    @abstractmethod
+    def __str__(self) -> str:
+        pass
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+
+class Read(ImpurityReason, ABC):
+    """Superclass for read type impurity reasons."""
+
+
+@dataclass
+class NonLocalVariableRead(Read):
+    """Class for internal variable reads (GlobalVariable / global Fields).
+
+    Attributes
+    ----------
+    symbol : GlobalVariable | ClassVariable | InstanceVariable
+        The symbol that is read.
+    """
+
+    symbol: GlobalVariable | ClassVariable | InstanceVariable
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
+
+
+@dataclass
+class FileRead(Read):
+    """Class for external variable reads (File / Database).
+
+    Attributes
+    ----------
+    source : Expression | None
+        The source of the read.
+        This is None if the source is unknown.  # TODO: or should that be a of Type Unknown? LARS
+    """
+
+    source: Expression | None = None  # TODO: this should never be None? or should it? LARS
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        if isinstance(self.source, Expression):
+            return f"{self.__class__.__name__}: {self.source.__str__()}"
+        return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
+
+
+class Write(ImpurityReason, ABC):
+    """Superclass for write type impurity reasons."""
+
+
+@dataclass
+class NonLocalVariableWrite(Write):
+    """Class for internal variable writes (GlobalVariable / global Fields).
+
+    Attributes
+    ----------
+    symbol : GlobalVariable | ClassVariable | InstanceVariable
+        The symbol that is written to.
+    """
+
+    symbol: GlobalVariable | ClassVariable | InstanceVariable
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
+
+
+@dataclass
+class FileWrite(Write):
+    """Class for external variable writes (File / Database).
+
+    Attributes
+    ----------
+    source : Expression | None
+        The source of the write.
+        This is None if the source is unknown.  # TODO: see above LARS
+    """
+
+    source: Expression | None = None
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        if isinstance(self.source, Expression):
+            return f"{self.__class__.__name__}: {self.source.__str__()}"
+        return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
+
+
+class Unknown(ImpurityReason, ABC):
+    """Superclass for unknown type impurity reasons."""
+
+
+@dataclass
+class UnknownCall(Unknown):
+    """Class for calling unknown code.
+
+    Since we cannot analyze unknown code, we mark it as unknown.
+
+    Attributes
+    ----------
+    expression : Expression
+        The expression that is called.
+    """
+
+    expression: Expression
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.expression.__str__()}"
+
+
+@dataclass
+class NativeCall(Unknown):  # ExternalCall
+    """Class for calling native code.
+
+    Since we cannot analyze native code, we mark it as unknown.
+
+    Attributes
+    ----------
+    expression : Expression
+        The expression that is called.
+    """
+
+    expression: Expression
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.expression.__str__()}"
+
+
+@dataclass
+class CallOfParameter(Unknown):  # ParameterCall
+    """Class for parameter calls.
+
+    Since we cannot analyze parameter calls, we mark it as unknown.
+    A parameter call is a call of a function that is passed as a parameter to another function.
+    E.g., def f(x):
+                x()
+    The call of x() is a parameter call only known at runtime.
+
+    Attributes
+    ----------
+    expression : Expression
+        The expression that is called.
+    """
+
+    expression: Expression
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.expression.__str__()}"
+
+
+class Expression(ABC):  # this is just a base class, and it is important that it cannot be instantiated
+    """Superclass for expressions.
+
+    Expressions are used to represent code.
+    """
+
+    @abstractmethod
+    def __str__(self) -> str:
         pass
 
 
 @dataclass
-class ConcreteImpurityIndicator(ImpurityIndicator):
-    # def __hash__(self) -> int:
+class ParameterAccess(Expression):
+    """Class for function parameter access.
 
-    def is_side_effect(self) -> bool:
-        return False
+    Attributes
+    ----------
+    parameter : Parameter
+        The parameter that is accessed.
+    """
 
+    parameter: Parameter
 
-@dataclass
-class VariableRead(ImpurityIndicator):
-    expression: Expression
-    certainty = ImpurityCertainty.MAYBE_IMPURE
-
-    # def __hash__(self) -> int:
-
-    def is_side_effect(self) -> bool:
-        return False
-
-
-@dataclass
-class VariableWrite(ImpurityIndicator):
-    expression: Expression
-    certainty = ImpurityCertainty.MAYBE_IMPURE
-
-    # def __hash__(self) -> int:
-
-    def is_side_effect(self) -> bool:
-        return True
+    def __str__(self) -> str:
+        if isinstance(self.parameter, str):
+            return self.parameter
+        return f"ParameterAccess.{self.parameter.name}"
 
 
 @dataclass
-class FileRead(ImpurityIndicator):
-    source: Expression
-    certainty = ImpurityCertainty.DEFINITELY_IMPURE
+class StringLiteral(Expression):
+    """Class for string literals.
 
-    # def __hash__(self) -> int:
+    Attributes
+    ----------
+    value : str
+        The name of the string literal.
+    """
 
-    def is_side_effect(self) -> bool:
-        return False
+    value: str
 
-
-@dataclass
-class FileWrite(ImpurityIndicator):
-    source: Expression
-    certainty = ImpurityCertainty.DEFINITELY_IMPURE
-
-    # def __hash__(self) -> int:
-
-    def is_side_effect(self) -> bool:
-        return True
+    def __str__(self) -> str:
+        return f"StringLiteral.{self.value}"
 
 
-@dataclass
-class UnknownCallTarget(ImpurityIndicator):
-    expression: Expression
-    certainty = ImpurityCertainty.DEFINITELY_IMPURE
+class APIPurity:
+    """Class for API purity.
 
-    # def __hash__(self) -> int:
+    The API purity is used to represent the purity result of an API.
 
-    def is_side_effect(self) -> bool:
-        return True  # TODO: improve this to make analysis more precise
+    Attributes
+    ----------
+    purity_results : dict[str, dict[str, PurityResult]]
+        The purity results of the API.
+        The first key is the name of the module, and the second key is the function id.
+    """
 
+    purity_results: typing.ClassVar[dict[str, dict[str, PurityResult]]] = {}
 
-@dataclass
-class Call(ImpurityIndicator):
-    expression: Expression
-    certainty = ImpurityCertainty.DEFINITELY_IMPURE
+    def to_json_file(self, path: Path) -> None:
+        ensure_file_exists(path)
+        with path.open("w") as f:
+            json.dump(self.to_dict(), f, indent=2)
 
-    # def __hash__(self) -> int:
-
-    def is_side_effect(self) -> bool:
-        return True  # TODO: improve this to make analysis more precise
-
-
-@dataclass
-class SystemInteraction(ImpurityIndicator):
-    certainty = ImpurityCertainty.DEFINITELY_IMPURE
-
-    # def __hash__(self) -> int:
-
-    def is_side_effect(self) -> bool:
-        return True
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            module_name: {function_def: purity.to_dict() for function_def, purity in purity_result.items()}
+            for module_name, purity_result in self.purity_results.items()
+        }
 
 
-@dataclass
-class BuiltInFunction(ImpurityIndicator):
-    """Class for built-in functions."""
+class OpenMode(Enum):
+    """Enum for open modes.
 
-    expression: Expression
-    indicator: ImpurityIndicator  # this should be a list to handle multiple reasons
-    certainty: ImpurityCertainty
+    Attributes
+    ----------
+    READ : OpenMode
+        Read mode.
+    WRITE : OpenMode
+        Write mode.
+    READ_WRITE : OpenMode
+        Read and write mode.
+    """
 
-    # def __hash__(self) -> int:
-
-    def is_side_effect(self) -> bool:
-        return False
+    READ = auto()
+    WRITE = auto()
+    READ_WRITE = auto()
