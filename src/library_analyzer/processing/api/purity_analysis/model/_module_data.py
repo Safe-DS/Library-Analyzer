@@ -148,8 +148,12 @@ class NodeID:
         if self.line is None or self.col is None:
             if self.module is None:
                 return f"{self.name}"
-            return f"{self.module}.{self.name}"
-        return f"{self.module}.{self.name}.{self.line}.{self.col}"
+            if isinstance(self.module, str):
+                return f"{self.module}.{self.name}"
+            return f"{self.module.name}.{self.name}"
+        if isinstance(self.module, str):
+            return f"{self.module}.{self.name}.{self.line}.{self.col}"
+        return f"{self.module.name}.{self.name}.{self.line}.{self.col}"
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -298,6 +302,29 @@ class BuiltinOpen(Builtin):
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+
+@dataclass
+class CombinedSymbol(Symbol):
+    """Represents a combined symbol.
+
+    A combined symbol is used to represent a combined node in the call graph.
+    Since the node for a combined node does not exist, it is set to None.
+
+
+    Attributes
+    ----------
+    node : None
+
+    """
+
+    node: None
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}"
 
 
 @dataclass

@@ -5,7 +5,7 @@ import builtins
 import astroid
 
 from library_analyzer.processing.api.purity_analysis import get_module_data
-from library_analyzer.processing.api.purity_analysis._build_call_graph import build_call_graph, CallGraphBuilder
+from library_analyzer.processing.api.purity_analysis._build_call_graph import CallGraphBuilder
 from library_analyzer.processing.api.purity_analysis.model import (
     Builtin,
     BuiltinOpen,
@@ -452,7 +452,7 @@ def resolve_references(
     resolved_references: dict[str, list[ReferenceNode]] = merge_dicts(call_references, name_references)
 
     # call_graph = build_call_graph(module_data.functions, module_data.classes, raw_reasons)
-    call_graph = CallGraphBuilder(module_data.functions, module_data.classes, raw_reasons).call_graph_forest
+    call_graph = CallGraphBuilder(module_data.classes, raw_reasons).call_graph_forest
 
     # The resolved_references are not needed in the next step anymore since raw_reasons contains all the information.
     # They are needed for testing though, so they are returned.

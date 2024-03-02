@@ -2,7 +2,7 @@
 
 from library_analyzer.processing.api.purity_analysis.model._call_graph import (
     CallGraphForest,
-    CallGraphNode,
+    CombinedCallGraphNode,
     NewCallGraphNode,
 )
 from library_analyzer.processing.api.purity_analysis.model._module_data import (
@@ -10,6 +10,7 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
     BuiltinOpen,
     ClassScope,
     ClassVariable,
+    CombinedSymbol,
     FunctionScope,
     GlobalVariable,
     Import,
@@ -82,7 +83,6 @@ __all__ = [
     "Pure",
     "Impure",
     "Reasons",
-    "CallGraphNode",
     "CallGraphForest",
     "OpenMode",
     "NativeCall",
@@ -94,4 +94,6 @@ __all__ = [
     "APIPurity",
     "BuiltinOpen",
     "NewCallGraphNode",
+    "CombinedCallGraphNode",
+    "CombinedSymbol",
 ]

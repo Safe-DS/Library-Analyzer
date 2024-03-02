@@ -6,7 +6,6 @@ from library_analyzer.processing.api.purity_analysis import calc_node_id
 from library_analyzer.processing.api.purity_analysis._resolve_references import resolve_references
 from library_analyzer.processing.api.purity_analysis.model import (
     BuiltinOpen,
-    CallGraphNode,
     FileRead,
     FileWrite,
     FunctionScope,
@@ -21,7 +20,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Pure,
     PurityResult,
     Reasons,
-    StringLiteral,
+    StringLiteral, NewCallGraphNode,
 )
 
 # TODO: check these for correctness and add reasons for impurity
@@ -491,7 +490,7 @@ def process_node(  # type: ignore[return] # all cases are handled
 # TODO: [Refactor] make this return a PurityResult??
 # TODO: add statement, that adds the result to the purity_results dict before returning
 def get_purity_of_child(
-    child: CallGraphNode,
+    child: NewCallGraphNode,
     reason: Reasons,
     analysis_result: ModuleAnalysisResult,
     purity_results: dict[NodeID, PurityResult],
