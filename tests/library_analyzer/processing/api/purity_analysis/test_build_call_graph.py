@@ -70,6 +70,78 @@ def call_function(a):
                 ".call_function.8.0": {".fun1.2.0", ".fun2.5.0"},
             },
         ),
+        (  # language=Python "builtin function call",
+            """
+def fun1():
+    fun2()
+
+def fun2():
+    print("Function 2")
+            """,  # language=none
+            {
+                ".fun1.2.0": {".fun2.5.0"},
+                ".fun2.5.0": {
+                    "print",
+                },  # print is a builtin function and therefore has no function def to reference -> therefor it has no line
+            },
+        ),
+        (  # language=Python "external function call",
+            """
+def fun1():
+    call()
+            """,  # language=none
+            {
+                ".fun1.2.0": {".call"},
+            },
+        ),
+        (  # language=Python "lambda",
+            """
+def fun1(x):
+    return x + 1
+
+def fun2():
+    return lambda x: fun1(x) * 2
+            """,  # language=none
+            {
+                ".fun1.2.0": set(),
+                ".fun2.5.0": {".fun1.2.0"},
+            },
+        ),
+        (  # language=Python "lambda with name",
+            """
+double = lambda x: 2 * x
+            """,  # language=none
+            {
+                ".double.2.9": set(),
+            },
+        ),
+    ],
+    ids=[
+        "function call - in declaration order",
+        "function call - against declaration flow",
+        "function call - against declaration flow with multiple calls",
+        "function conditional with branching",
+        "builtin function call",
+        "external function call",
+        "lambda",
+        "lambda with name",
+    ],
+)
+def test_build_call_graph_basics(code: str, expected: dict[str, set]) -> None:
+    call_graph_forest = resolve_references(code).call_graph_forest
+
+    transformed_call_graph_forest: dict = {}
+    for tree_id, tree in call_graph_forest.forest.items():
+        transformed_call_graph_forest[f"{tree_id}"] = set()
+        for child in tree.children:
+            transformed_call_graph_forest[f"{tree_id}"].add(child.__str__())
+
+    assert transformed_call_graph_forest == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
         (  # language=Python "function call with cycle - direct entry"
             """
 def fun1(count):
@@ -94,6 +166,7 @@ def cycle2():
 
 def cycle3():
     cycle1()
+    print()
 
 def entry():
     cycle1()
@@ -188,37 +261,53 @@ def other3():
                 ".other3.23.0": set(),
             },
         ),
-        # TODO: add a case with a cycle and a node inside the cycle has multiple more than one funcdef with the same name
-        # TODO: this case is disabled for merging to main [ENABLE AFTER MERGE]
-        #         (  # language=Python "function call with cycle - cycle within a cycle"
-        #             """
-        # def cycle1():
-        #     cycle2()
-        #
-        # def cycle2():
-        #     cycle3()
-        #
-        # def cycle3():
-        #     inner_cycle1()
-        #     cycle1()
-        #
-        # def inner_cycle1():
-        #     inner_cycle2()
-        #
-        # def inner_cycle2():
-        #     inner_cycle1()
-        #
-        # def entry():
-        #     cycle1()
-        #
-        # entry()
-        #             """,  # language=none
-        #             {
-        #                 "cycle1+cycle2+cycle3": {"inner_cycle1+inner_cycle2"},
-        #                 "inner_cycle1+inner_cycle2": set(),
-        #                 "entry": {"cycle1+cycle2+cycle3"},
-        #             },
-        #         ),
+        (  # language=Python "function call with cycle - cycle within a cycle"
+            """
+def cycle1():
+    cycle2()
+
+def cycle2():
+    cycle3()
+
+def cycle3():
+    cycle1()
+    cycle2()
+
+def entry():
+    cycle1()
+            """,  # language=none
+            {
+                "cycle1+cycle2+cycle3": set(),
+                "entry": {"cycle1+cycle2+cycle3"},
+            },
+        ),
+        (  # language=Python "function call with cycle - external cycle within a cycle"
+            """
+def cycle1():
+    cycle2()
+
+def cycle2():
+    cycle3()
+
+def cycle3():
+    external_inner_cycle1()
+    cycle1()
+
+def external_inner_cycle1():
+    external_inner_cycle2()
+
+def external_inner_cycle2():
+    external_inner_cycle2()
+
+def entry():
+    cycle1()
+            """,  # language=none
+            {
+                "cycle1+cycle2+cycle3": {"inner_cycle1+inner_cycle2"},
+                "inner_cycle1+inner_cycle2": set(),
+                "entry": {"cycle1+cycle2+cycle3"},
+            },
+        ),
         (  # language=Python "recursive function call",
             """
 def f(a):
@@ -229,78 +318,26 @@ def f(a):
                 ".f.2.0": set(),
             },
         ),
-        (  # language=Python "builtin function call",
-            """
-def fun1():
-    fun2()
-
-def fun2():
-    print("Function 2")
-            """,  # language=none
-            {
-                ".fun1.2.0": {".fun2.5.0"},
-                ".fun2.5.0": {
-                    "print",
-                },  # print is a builtin function and therefore has no function def to reference -> therefor it has no line
-            },
-        ),
-        (  # language=Python "external function call",
-            """
-def fun1():
-    call()
-            """,  # language=none
-            {
-                ".fun1.2.0": set(),
-            },
-        ),
-        (  # language=Python "lambda",
-            """
-def fun1(x):
-    return x + 1
-
-def fun2():
-    return lambda x: fun1(x) * 2
-            """,  # language=none
-            {
-                ".fun1.2.0": set(),
-                ".fun2.5.0": {".fun1.2.0"},
-            },
-        ),
-        (  # language=Python "lambda with name",
-            """
-double = lambda x: 2 * x
-            """,  # language=none
-            {
-                ".double.2.9": set(),
-            },
-        ),
     ],
     ids=[
-        "function call - in declaration order",
-        "function call - against declaration flow",
-        "function call - against declaration flow with multiple calls",
-        "function conditional with branching",
         "function call with cycle - direct entry",
         "function call with cycle - one entry point",
         "function call with cycle - many entry points",
         "function call with cycle - other call in cycle",
         "function call with cycle - multiple other calls in cycle",
-        # "function call with cycle - cycle within a cycle",
+        "function call with cycle - cycle within a cycle",
+        "function call with cycle - external cycle within a cycle",
         "recursive function call",
-        "builtin function call",
-        "external function call",
-        "lambda",
-        "lambda with name",
-    ],
+    ],  # TODO: add cyclic cases for member access
 )
-def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
+def test_build_call_graph_cycles(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = resolve_references(code).call_graph_forest
 
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.forest.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
-            transformed_call_graph_forest[f"{tree_id}"].add(child.symbol.id.__str__())
+            transformed_call_graph_forest[f"{tree_id}"].add(child.__str__())
 
     assert transformed_call_graph_forest == expected
 
@@ -686,7 +723,7 @@ lambda_add = lambda x, y: A().value.add(x, y)
         "member access - function call of functions with same name (but different instance variables)",
         "member access - lambda function call",
         "member access - class init and methode call in lambda function",
-    ],  # TODO: add cyclic cases and MA in lambda functions
+    ],
 )
 def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = resolve_references(code).call_graph_forest
@@ -695,6 +732,6 @@ def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> 
     for tree_id, tree in call_graph_forest.forest.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
-            transformed_call_graph_forest[f"{tree_id}"].add(child.symbol.id.__str__())
+            transformed_call_graph_forest[f"{tree_id}"].add(child.__str__())
 
     assert transformed_call_graph_forest == expected

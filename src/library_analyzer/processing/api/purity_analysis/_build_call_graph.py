@@ -539,6 +539,8 @@ class CallGraphBuilder:
 
             self._built_call_graph(reason)
 
+        self._handle_cycles()
+
         # self.call_graph_forest = build_call_graph(self.functions, self.classes, self.raw_reasons)
         return self.call_graph_forest
 
@@ -562,42 +564,109 @@ class CallGraphBuilder:
             self.call_graph_forest.add_graph(klass.symbol.id, class_cgn)
 
     def _built_call_graph(self, reason: Reasons) -> None:
+        # If the node is already inside the forest and does not have any calls left, it is considered to be finished.
+        if self.call_graph_forest.has_graph(reason.id) and not reason.calls:
+            return
+
+        # Create a new node and add it to the forest.
         cgn = NewCallGraphNode(
             symbol=reason.function_scope.symbol,
             reasons=reason
         )
-        # Try to add the node to the forest.
-        # try:
-        #     self.call_graph_forest.add_graph(reason.id, cgn)
-        #
-        # # The call graph forest already contains a node with the same id.
-        # except ValueError:
-        # If the node does not have any calls left, it is considered to be finished.
-        if not cgn.reasons.calls:
-            self.call_graph_forest.add_graph(reason.id, cgn)
+        self.call_graph_forest.add_graph(reason.id, cgn)
 
-        # The node has calls left, which need to be added to the forest and to the children of the current node.
-        else:
-            for call in cgn.reasons.calls.copy():
-                cgn.reasons.calls.remove(call)
-                # Check if the call is a builtin.
-                if isinstance(call, Builtin):
-                    builtin_cgn = NewCallGraphNode(
-                        symbol=call,
-                        reasons=Reasons(call.id)
-                    )
-                    cgn.add_child(builtin_cgn)
+        # The node has calls, which need to be added to the forest and to the children of the current node.
+        for call in cgn.reasons.calls.copy():
+            self.call_graph_forest.get_graph(reason.id).reasons.calls.remove(call)
+            # Check if the call is a builtin.
+            if isinstance(call, Builtin):
+                builtin_cgn = NewCallGraphNode(
+                    symbol=call,
+                    reasons=Reasons(call.id)
+                )
+                self.call_graph_forest.get_graph(reason.id).add_child(builtin_cgn)
 
-                # Check if the called child function is already in the forest and has no calls left to deal with.
-                elif (self.call_graph_forest.has_graph(call.id)
-                      and not self.call_graph_forest.get_graph(call.id).reasons.calls
-                ):
-                    # Add the child to the children of the current node since it doesn't need further handling.
-                    cgn.add_child(self.call_graph_forest.get_graph(call.id))
-                else:
-                    # TODO: handle unknown calls [after merge with import analysis]
-                    # Build the call graph for the child function and add it to the children of the current node.
-                    self._built_call_graph(self.raw_reasons[call.id])
-                    cgn.add_child(self.call_graph_forest.get_graph(call.id))
+            # Check if the called child function is already in the forest and has no calls left to deal with.
+            elif (self.call_graph_forest.has_graph(call.id)
+                  and not self.call_graph_forest.get_graph(call.id).reasons.calls
+            ):
+                # Add the child to the children of the current node since it doesn't need further handling.
+                self.call_graph_forest.get_graph(reason.id).add_child(self.call_graph_forest.get_graph(call.id))
+            else:
+                # TODO: handle unknown calls [after merge with import analysis]
+                # Build the call graph for the child function and add it to the children of the current node.
+                self._built_call_graph(self.raw_reasons[call.id])
+                self.call_graph_forest.get_graph(reason.id).add_child(self.call_graph_forest.get_graph(call.id))
 
-            self.call_graph_forest.add_graph(reason.id, cgn)
+    def _handle_cycles(self) -> None:
+        for graph in self.call_graph_forest.forest.copy().values():
+            cycle = self._test_cgn_for_cycles(graph)
+            print(graph.symbol.id, cycle)
+            if cycle:
+                self._contract_cycle(cycle)
+            else:
+                pass
+
+    def _test_cgn_for_cycles(
+        self,
+        cgn: NewCallGraphNode,
+        visited_nodes: set[NewCallGraphNode] | None = None,  # safes all nodes that have been visited
+        path: list[NodeID] | None = None,  # safes the current path from a source node
+    ) -> list[NodeID]:
+        """Test for cycles in the call graph.
+
+        This function recursively traverses the call graph and checks for cycles.
+        It uses a DFS approach to traverse the graph.
+        If a cycle is found, a list with all nodes in the cycle is returned.
+
+        Parameters
+        ----------
+        cgn : NewCallGraphNode
+            The current node in the graph that is visited.
+        visited_nodes : set[NewCallGraphNode]
+            A set of all visited nodes.
+        path : list[NodeID]
+            A list of all nodes in the current path.
+
+        Returns
+        -------
+        cycle : list[NodeID]
+            A list of all nodes in the cycle.
+            If no cycle is found, an empty list is returned.
+        """
+        # If the visited_nodes set is not given, create a new one.
+        if visited_nodes is None:
+            visited_nodes = set()
+        # If the path list is not given, create a new one.
+        if path is None:
+            path = []
+
+        # If the current node is already in the path, a cycle is found.
+        if cgn.symbol.id in path:
+            return path[path.index(cgn.symbol.id):]
+
+        # If a node has no children, it is a leaf node, and an empty list is returned.
+        if not cgn.children:
+            return []
+
+        # Mark the current node as visited.
+        visited_nodes.add(cgn)
+        path.append(cgn.symbol.id)
+
+        cycle: list[NodeID] = []
+
+        # Check for cycles in children.
+        for child in cgn.children.values():
+            cycle = self._test_cgn_for_cycles(child, visited_nodes, path)
+            if cycle:
+                return cycle
+        path.pop()  # Remove the current node from the path when backtracking.
+
+        return cycle
+
+    def _contract_cycle(self, cycle):
+        pass
+        # Create the new combined node
+
+        # Find all other calls (calls that are not part of the cycle)
+        # Find all builtin calls.

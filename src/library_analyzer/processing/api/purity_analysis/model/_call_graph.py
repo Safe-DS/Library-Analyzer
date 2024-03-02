@@ -120,11 +120,6 @@ class CallGraphForest:
         graph_id : NodeID
             The NodeID of the tree node to get.
 
-        Returns
-        -------
-        CallGraphNode
-            The CallGraphNode that is the root of the tree.
-
         Raises
         ------
         KeyError
@@ -174,19 +169,22 @@ class NewCallGraphNode:
     reasons : Reasons
         The raw Reasons for the node.
         After the call graph is built, this only contains reads_from and writes_to as well as unknown_calls.
-    children : set[CallGraphNode]
+    children : dict[NodeID, NewCallGraphNode]
         The set of children of the node, (i.e., the set of nodes that this node calls)
     """
 
     symbol: Symbol
     reasons: Reasons
-    children: set[NewCallGraphNode] = field(default_factory=set)
+    children: dict[NodeID, NewCallGraphNode] = field(default_factory=dict)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
         return f"{self.symbol.id}"
+
+    def __repr__(self) -> str:
+        return f"{self.symbol.name}: {id(self)}"
 
     def add_child(self, child: NewCallGraphNode) -> None:
         """Add a child to the node.
@@ -196,7 +194,7 @@ class NewCallGraphNode:
         child : CallGraphNode
             The child to add.
         """
-        self.children.add(child)
+        self.children[child.symbol.id] = child
 
     def is_leaf(self) -> bool:
         """Check if the node is a leaf node.
