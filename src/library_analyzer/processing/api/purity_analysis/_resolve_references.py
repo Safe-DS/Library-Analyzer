@@ -454,7 +454,9 @@ def resolve_references(
     # call_graph = build_call_graph(module_data.functions, module_data.classes, raw_reasons)
     call_graph = CallGraphBuilder(module_data.classes, raw_reasons).call_graph_forest
 
-    # The resolved_references are not needed in the next step anymore since raw_reasons contains all the information.
+    # TODO: how do we change that? LARS
+    # The resolved_references, raw_reasons and modul_data are not needed
+    # in the next step anymore since the call_graph contains all the information.
     # They are needed for testing though, so they are returned.
     return ModuleAnalysisResult(resolved_references, raw_reasons, module_data.classes, call_graph)
 

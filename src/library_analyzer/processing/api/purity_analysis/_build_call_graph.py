@@ -486,8 +486,18 @@ class CallGraphBuilder:
     """Class for building a call graph.
 
     This class is used to build a call graph forest for a module from a dict of Reasons.
+
+    Attributes
+    ----------
+    classes : dict[str, ClassScope]
+        Classnames in the module as key and their corresponding ClassScope instance as value.
+    raw_reasons : dict[NodeID, Reasons]
+        The raw reasons for impurity for all functions.
+    call_graph_forest : CallGraphForest
+        The call graph forest of the module.
     """
 
+    # TODO: is this the right way to document instance attributes? LARS
     def __init__(
         self,
         classes: dict[str, ClassScope],
@@ -500,11 +510,13 @@ class CallGraphBuilder:
         classes : dict[str, ClassScope]
             Classnames in the module as key and their corresponding ClassScope instance as value.
         raw_reasons : dict[str, Reasons]
-            The reasons for impurity of the functions.
+            The raw reasons for impurity for all functions.
+            Keys are the ids of the functions.
         """
         self.classes = classes
         self.raw_reasons = raw_reasons
         self.call_graph_forest = CallGraphForest()
+        # TODO: does this belong into postinit? LARS
         self._build_call_graph_forest()
 
     def _build_call_graph_forest(self) -> CallGraphForest:

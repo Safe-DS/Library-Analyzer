@@ -245,7 +245,11 @@ class NewCallGraphNode:
         bool
             True if the node is a leaf node, False otherwise.
         """
-        return len(self.reasons.calls) == 0
+        return len(self.children) == 0
+
+    def is_inferred(self) -> bool:
+        """Check if the result is already inferred."""
+        return self.reasons.result is not None
 
 
 @dataclass
@@ -281,3 +285,20 @@ class CombinedCallGraphNode(NewCallGraphNode):
             The combined node IDs as a string.
         """
         return [str(node_id) for node_id in self.combines]
+
+    def decombine(self) -> dict[NodeID, NewCallGraphNode]:
+        """Decombine the node.
+
+        After the purity of a combined node is inferred,
+        the reasons of the combined node are transferred to the original nodes.
+
+        Returns
+        -------
+        dict[NodeID, NewCallGraphNode]
+            The original nodes with the transferred reasons.
+        """
+        original_nodes: dict[NodeID, NewCallGraphNode] = {}
+        for node_id, node in self.combines.items():
+            original_nodes[node_id] = node
+            original_nodes[node_id].reasons = self.reasons
+        return original_nodes

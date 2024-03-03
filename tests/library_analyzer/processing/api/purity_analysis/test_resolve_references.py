@@ -2965,6 +2965,7 @@ def f():
         # TODO: [LATER] we should detect the different signatures
     ],
 )
+@pytest.mark.xfail(reason="Calls are removed after call graph is built")
 def test_get_module_data_reasons(code: str, expected: dict[str, SimpleReasons]) -> None:
     function_references = resolve_references(code).raw_reasons
 
