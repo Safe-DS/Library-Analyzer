@@ -93,6 +93,7 @@ class ModuleDataBuilder:
         default_factory=dict,
     )  # TODO: [LATER] in a refactor:  remove parameters since they are stored inside the FunctionScope in functions now and use these instead
     function_calls: dict[astroid.Call, Scope] = field(default_factory=dict)
+    imports: dict[str, Import] = field(default_factory=dict)
 
     def _detect_scope(self, current_node: astroid.NodeNG) -> None:
         """
@@ -325,8 +326,12 @@ class ModuleDataBuilder:
             self.calls = []
 
             # Add all globals that are used inside the Lambda to the parent function globals list.
-            if isinstance(self.current_node_stack[-1], FunctionScope) and self.current_node_stack[-1].globals_used:
-                for glob_name, glob_def_list in self.current_node_stack[-1].globals_used.items():
+            if self.current_node_stack[-1].globals_used:  # type: ignore[union-attr]
+                # Ignore the linter error because the current scope node is always of
+                # type FunctionScope and therefor has a parameter attribute.
+                for glob_name, glob_def_list in self.current_node_stack[
+                    -1
+                ].globals_used.items():  # type: ignore[union-attr] # see above
                     if glob_name not in self.current_function_def[-2].globals_used:
                         self.current_function_def[-2].globals_used[glob_name] = glob_def_list
                     else:
@@ -420,6 +425,21 @@ class ModuleDataBuilder:
         # The current_node_stack[-1] is always of type FunctionScope here.
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
+        self._detect_scope(node)
+        self.current_function_def.pop()
+
+    def enter_asyncfunctiondef(self, node: astroid.AsyncFunctionDef) -> None:
+        self.current_node_stack.append(
+            FunctionScope(
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                _children=[],
+                _parent=self.current_node_stack[-1],
+            ),
+        )
+        self.current_function_def.append(self.current_node_stack[-1])  # type: ignore[arg-type]
+        # The current_node_stack[-1] is always of type FunctionScope here.
+
+    def leave_asyncfunctiondef(self, node: astroid.AsyncFunctionDef) -> None:
         self._detect_scope(node)
         self.current_function_def.pop()
 
@@ -994,23 +1014,68 @@ class ModuleDataBuilder:
                 ):
                     self.current_function_def[-1].call_references.setdefault(call_name, []).append(call_reference)
 
-    def enter_import(self, node: astroid.Import) -> None:  # TODO: handle multiple imports and aliases
+    def enter_import(self, node: astroid.Import) -> None:
+        # TODO: do we want import nodes to be added to the scope tree?
         parent = self.current_node_stack[-1]
-        scope_node = Scope(
-            _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-            _children=[],
-            _parent=parent,
-        )
-        self.children.append(scope_node)
+        symbols: dict[str, Import] = {}
+        for name_tuple in node.names:
+            module = name_tuple[0]
+            alias = name_tuple[1]
+            if alias:
+                import_symbol = Import(node=node,
+                                       id=NodeID(node.root(), module, node.lineno, node.col_offset),
+                                       # Do not use calc_node_id here because it would use the wrong name as node name.
+                                       name=module,
+                                       module=module,
+                                       alias=alias)
+                symbols[import_symbol.alias] = import_symbol
+            else:
+                import_symbol = Import(node=node,
+                                       id=NodeID(node.root(), module, node.lineno, node.col_offset),
+                                       # Do not use calc_node_id here because it would use the wrong name as node name.
+                                       name=module,
+                                       module=module)
+                symbols[import_symbol.name] = import_symbol
+            scope_node = Scope(
+                _symbol=import_symbol,
+                _children=[],
+                _parent=parent,
+            )
+            self.children.append(scope_node)
 
-    def enter_importfrom(self, node: astroid.ImportFrom) -> None:  # TODO: handle multiple imports and aliases
+        self.imports.update(symbols)
+
+    def enter_importfrom(self, node: astroid.ImportFrom) -> None:
+        # TODO: do we want import nodes to be added to the scope tree?
         parent = self.current_node_stack[-1]
-        scope_node = Scope(
-            _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-            _children=[],
-            _parent=parent,
-        )
-        self.children.append(scope_node)
+        symbols: dict[str, Import] = {}
+        for name_tuple in node.names:
+            module = node.modname
+            name = name_tuple[0]
+            alias = name_tuple[1]
+            if alias:
+                import_symbol = Import(node=node,
+                                       id=NodeID(node.root(), name, node.lineno, node.col_offset),
+                                       # Do not use calc_node_id here because it would use the wrong name as node name.
+                                       name=name,
+                                       module=module,
+                                       alias=alias)
+                symbols[import_symbol.alias] = import_symbol
+            else:
+                import_symbol = Import(node=node,
+                                       id=NodeID(node.root(), name, node.lineno, node.col_offset),
+                                       # Do not use calc_node_id here because it would use the wrong name as node name.
+                                       name=name,
+                                       module=module)
+                symbols[import_symbol.name] = import_symbol
+            scope_node = Scope(
+                _symbol=import_symbol,
+                _children=[],
+                _parent=parent,
+            )
+            self.children.append(scope_node)
+
+        self.imports.update(symbols)
 
     # TODO: this lookup could be more efficient if we would add all global nodes to the dict when 'enter_module' is called
     #  we than can be sure that all globals are detected already and we do not need to traverse the tree
@@ -1112,7 +1177,6 @@ class ModuleDataBuilder:
             self.parameters[self.current_node_stack[-1].symbol.node][1].append(constructed_node)
         else:
             self.parameters[self.current_node_stack[-1].symbol.node] = (self.current_node_stack[-1], [constructed_node])
-
 
 def calc_node_id(
     node: (
@@ -1311,4 +1375,5 @@ def get_module_data(code: str) -> ModuleData:
         target_nodes=module_data_handler.target_nodes,
         parameters=module_data_handler.parameters,
         function_calls=module_data_handler.function_calls,
+        imports=module_data_handler.imports,
     )

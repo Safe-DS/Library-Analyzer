@@ -5,10 +5,13 @@ from library_analyzer.processing.api.purity_analysis import (
     infer_purity,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
+    CallOfFunction,
     CallOfParameter,
+    ClassInit,
     ClassVariable,
     FileRead,
     FileWrite,
+    Import,
     Impure,
     ImpurityReason,
     InstanceVariable,
@@ -93,6 +96,10 @@ def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # a
     if isinstance(reason, NonLocalVariableRead):
         if isinstance(reason.symbol, ClassVariable | InstanceVariable) and reason.symbol.klass is not None:
             return f"NonLocalVariableRead.{reason.symbol.__class__.__name__}.{reason.symbol.klass.name}.{reason.symbol.name}"
+        if isinstance(reason.symbol, Import):
+            if reason.symbol.name:
+                return f"NonLocalVariableRead.{reason.symbol.__class__.__name__}.{reason.symbol.module}.{reason.symbol.name}"
+            return f"NonLocalVariableRead.{reason.symbol.__class__.__name__}.{reason.symbol.module}"
         return f"NonLocalVariableRead.{reason.symbol.__class__.__name__}.{reason.symbol.name}"
     elif isinstance(reason, NonLocalVariableWrite):
         if isinstance(reason.symbol, ClassVariable | InstanceVariable) and reason.symbol.klass is not None:
@@ -111,6 +118,10 @@ def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # a
     elif isinstance(reason, UnknownCall):
         if isinstance(reason.expression, StringLiteral):
             return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.value}"
+        elif isinstance(reason.expression, ParameterAccess):
+            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.parameter}"
+        elif isinstance(reason.expression, CallOfFunction | ClassInit):
+            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.name}"
     elif isinstance(reason, CallOfParameter):
         if isinstance(reason.expression, StringLiteral):
             return f"CallOfParameter.{reason.expression.__class__.__name__}.{reason.expression.value}"
@@ -161,6 +172,58 @@ def fun():
             """,  # language= None
             {"fun.line2": Pure()},
         ),
+        (  # language=Python "VariableWrite to InstanceVariable - but actually a LocalVariable"
+            """
+class A:
+    def __init__(self):
+        self.instance_attr1 = 10
+
+def fun():
+    a = A()
+    a.instance_attr1 = 20  # Pure: VariableWrite to InstanceVariable - but actually a LocalVariable
+            """,  # language= None
+            {
+             "__init__.line3": Pure(),
+             "fun.line6": Pure()},
+        ),
+        (  # language=Python "VariableRead from InstanceVariable - but actually a LocalVariable"
+            """
+class A:
+    def __init__(self):
+        self.instance_attr1 = 10
+
+def fun():
+    a = A()
+    res = a.instance_attr1  # Pure: VariableRead from InstanceVariable - but actually a LocalVariable
+    return res
+            """,  # language= None
+            {
+             "__init__.line3": Pure(),
+             "fun.line6": Pure()},
+        ),
+        (  # language=Python "VariableRead and VariableWrite in chained class attribute and instance attribute"
+            """
+class A:
+    def __init__(self):
+        self.name = 10
+
+class B:
+    upper_class: A = A()
+
+def f():
+    b = B()
+    x = b.upper_class.name
+
+def g():
+    b = B()
+    b.upper_class.name = 20
+            """,  # language=none
+            {
+                "__init__.line3": Pure(),
+                "f.line9": Pure(),
+                "g.line13": Pure(),
+            },
+        ),
         (  # language=Python "Pure Class initialization"
             """
 class A:
@@ -170,38 +233,48 @@ class B:
     def __init__(self):
         pass
 
+class C:
+    def __init__(self):
+        self.name = "test"
+
 def fun1():
     a = A()
 
 def fun2():
     b = B()
+
             """,  # language= None
-            {"__init__.line6": Pure(), "fun1.line9": Pure(), "fun2.line12": Pure()},
-        ),
-        (  # language=Python "VariableWrite to InstanceVariable - but actually a LocalVariable"
+            {
+             "__init__.line6": Pure(),
+             "__init__.line10": Pure(),
+             "fun1.line13": Pure(),
+             "fun2.line16": Pure()
+             },
+        ),        (  # language=Python "Pure Class initialization with propagated purity in init"
             """
 class A:
-    def __init__(self):  # TODO: for init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
-        self.instance_attr1 = 10
+    def __init__(self):
+        self.name = self.fun1()
+        self.value = self.fun2()
+        self.test = None
+        self.fun3()
 
-def fun():
-    a = A()
-    a.instance_attr1 = 20  # Pure: VariableWrite to InstanceVariable - but actually a LocalVariable
-            """,  # language= None
-            {"__init__.line3": Pure(), "fun.line6": Pure()},
-        ),
-        (  # language=Python "VariableRead from InstanceVariable - but actually a LocalVariable"
-            """
-class A:
-    def __init__(self):  # TODO: for init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
-        self.instance_attr1 = 10
+    @staticmethod
+    def fun1():
+        return "test"
 
-def fun():
-    a = A()
-    res = a.instance_attr1  # Pure: VariableRead from InstanceVariable - but actually a LocalVariable
-    return res
+    def fun2(self):
+        return self.name  # Impure: VariableRead from InstanceVariable
+
+    def fun3(self):
+        self.test = 10  # Impure: VariableWrite to InstanceVariable
             """,  # language= None
-            {"__init__.line3": Pure(), "fun.line6": Pure()},
+            {
+             "__init__.line3": Pure(),  # For init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
+             "fun1.line10": Pure(),
+             "fun2.line13": SimpleImpure({"NonLocalVariableRead.InstanceVariable.A.name"}),
+             "fun3.line16": SimpleImpure({"NonLocalVariableWrite.InstanceVariable.A.test"})
+             },
         ),
         (  # language=Python "Call of Pure Function"
             """
@@ -293,6 +366,17 @@ def fun():
             """,  # language= None
             {"fun.line2": Pure()},
         ),
+        (  # language=Python "Async Function"
+            """
+async def fun1():
+    res = await fun2()  # Pure: Call of Pure Function
+
+async def fun2():
+    pass
+            """,  # language= None
+            {"fun1.line2": Pure(),
+             "fun2.line5": Pure()},
+        ),
         (  # language=Python "Multiple Calls of the same Pure function (Caching)"
             """
 def fun1():
@@ -311,9 +395,11 @@ c = fun1()
         "VariableWrite to LocalVariable",
         "VariableWrite to LocalVariable with parameter",
         "VariableRead from LocalVariable",
-        "Pure Class initialization",
         "VariableWrite to InstanceVariable - but actually a LocalVariable",
         "VariableRead from InstanceVariable - but actually a LocalVariable",
+        "VariableRead and VariableWrite in chained class attribute and instance attribute",
+        "Pure Class initialization",
+        "Pure Class initialization with propagated purity in init",
         "Call of Pure Function",
         "Call of Pure Chain of Functions",
         "Call of Pure Chain of Functions with cycle - one entry point",
@@ -322,10 +408,11 @@ c = fun1()
         "Lambda function",
         "Assigned Lambda function",
         "Lambda as key",
+        "Async Function",
         "Multiple Calls of same Pure function (Caching)",
-    ],  # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods, class inits in cycles
+    ],  # TODO: class inits in cycles
 )
-@pytest.mark.xfail(reason="Some cases disabled for merging")
+# @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     purity_results = infer_purity(code)
     transformed_purity_results = {
@@ -405,20 +492,84 @@ def fun():
         (  # language=Python "Class methode call"
             """
 class A:
-    def g(self):
+    state: str = "A"
+
+class C:
+    state: int = 0
+
+    @classmethod
+    def set_state(cls, state):
+        cls.state = state
+
+def fun1():
+    c = C()
+    c.set_state(1)
+
+def fun2():
+    C().set_state(1)
+            """,  # language= None
+            {
+             "set_state.line9": SimpleImpure({"NonLocalVariableWrite.ClassVariable.C.state"}),
+             "fun1.line12": SimpleImpure({"NonLocalVariableWrite.ClassVariable.C.state"}),
+             "fun2.line16": SimpleImpure({"NonLocalVariableWrite.ClassVariable.C.state"}),
+             },
+        ),
+        (  # language=Python "Class methode call of superclass"  # TODO: propagate methods from super class to sub class
+            """
+class A:
+    state: str = "A"
+
+    @classmethod
+    def set_state(cls, state):
+        cls.state = state
+
+class C(A):
+    state: int = 0
+
+def fun1():
+    c = C()
+    c.set_state(1)
+
+def fun2():
+    C().set_state(1)
+            """,  # language= None
+            {
+             "set_state.line6": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.state"}),
+             "fun1.line12": SimpleImpure({"NonLocalVariableWrite.ClassVariable.C.state"}),
+             "fun2.line16": SimpleImpure({"NonLocalVariableWrite.ClassVariable.C.state"}),
+             },
+        ),
+        (  # language=Python "Class methode call of superclass (overwritten method)"
+            """
+class A:
+    state: str = "A"
+
+    @classmethod
+    def set_state(cls, state):
+        cls.state = state
+
+class C(A):
+    state: int = 0
+
+    @classmethod
+    def set_state(cls, state):
+        cls.state = state
         print("test")  # Impure: FileWrite
 
 def fun1():
     a = A()
-    a.g()
+    a.set_state(1)
 
 def fun2():
-    a = A().g()
+    C().set_state(1)
             """,  # language= None
             {
-                "g.line3": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-                "fun1.line6": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-                "fun2.line10": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "set_state.line6": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.state"}),
+                "set_state.line13": SimpleImpure({"NonLocalVariableWrite.ClassVariable.C.state",
+                                                  "FileWrite.StringLiteral.stdout"}),
+                "fun1.line17": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.state"}),
+                "fun2.line21": SimpleImpure({"NonLocalVariableWrite.ClassVariable.C.state",
+                                             "FileWrite.StringLiteral.stdout"}),
             },
         ),
         (  # language=Python "Instance methode call"
@@ -491,7 +642,7 @@ def fun2():
         (  # language=Python "VariableWrite to InstanceVariable"
             """
 class B:
-    def __init__(self):  # TODO: for init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
+    def __init__(self):
         self.instance_attr1 = 10
 
 def fun(c):
@@ -508,7 +659,7 @@ fun(b)
         (  # language=Python "VariableRead from InstanceVariable"
             """
 class B:
-    def __init__(self):  # TODO: for init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
+    def __init__(self):
         self.instance_attr1 = 10
 
 def fun(c):
@@ -518,9 +669,39 @@ def fun(c):
 b = B()
 a = fun(b)
             """,  # language= None
+            {"__init__.line3": Pure(),
+             "fun.line6": SimpleImpure({"NonLocalVariableRead.InstanceVariable.B.instance_attr1"})},  # TODO: LARS is this corrct?
+        ),
+        (  # language=Python "VariableRead and VariableWrite in chained class attribute and instance attribute"
+            """
+class A:
+    def __init__(self):
+        self.name = 10
+
+    def a_fun(self):
+        print(self.name)  # Impure: FileWrite
+
+class B:
+    upper_class: A = A()
+
+    def b_fun(self):
+        inp = input()  # Impure: FileRead
+        return self.upper_class
+
+def f():
+    b = B()
+    b.upper_class.a_fun()
+
+def g():
+    b = B()
+    x = b.b_fun().name
+            """,  # language=none
             {
                 "__init__.line3": Pure(),
-                "fun.line6": SimpleImpure({"NonLocalVariableRead.InstanceVariable.B.instance_attr1"}),
+                "a_fun.line6": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "b_fun.line12": SimpleImpure({"FileRead.StringLiteral.stdin"}),
+                "f.line16": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "g.line20": SimpleImpure({"FileRead.StringLiteral.stdin"}),
             },
         ),
         (  # language=Python "Function call of functions with same name and different purity"
@@ -616,110 +797,109 @@ def fun3():
                 "fun3.line10": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1"}),
             },
         ),
-        # TODO: these cases are disabled for merging to main [ENABLE AFTER MERGE]
-        #         (  # language=Python "Call of Impure Chain of Functions with cycle - one entry point"
-        #             """
-        # var1 = 1
-        #
-        # def cycle1():
-        #     cycle2()
-        #
-        # def cycle2():
-        #     global var1
-        #     res = var1  # Impure: VariableRead from GlobalVariable
-        #     cycle3()
-        #
-        # def cycle3():
-        #     print("test")  # Impure: FileWrite
-        #     cycle1()
-        #
-        # def entry():
-        #     cycle1()
-        #             """,  # language= None
-        #             {"cycle1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout",
-        #                                            "NonLocalVariableRead.GlobalVariable.var1"}),
-        #              "cycle2.line7": SimpleImpure({"FileWrite.StringLiteral.stdout",
-        #                                            "NonLocalVariableRead.GlobalVariable.var1"}),
-        #              "cycle3.line12": SimpleImpure({"FileWrite.StringLiteral.stdout",
-        #                                            "NonLocalVariableRead.GlobalVariable.var1"}),
-        #              "entry.line16": SimpleImpure({"FileWrite.StringLiteral.stdout",
-        #                                            "NonLocalVariableRead.GlobalVariable.var1"}),
-        #              },  # for cycles, we want to propagate the impurity of the cycle to all functions in the cycle
-        #             # but only return the results for the real functions
-        #         ),
-        #         (  # language=Python "Call of Impure Chain of Functions with cycle - other calls in cycle"
-        #             """
-        # var1 = 1
-        #
-        # def cycle1():
-        #     other()
-        #     cycle2()
-        #
-        # def cycle2():
-        #     cycle3()
-        #
-        # def cycle3():
-        #     print("test")  # Impure: FileWrite
-        #     cycle1()
-        #
-        # def other():
-        #     global var1
-        #     var1 = 2  # Impure: VariableWrite to GlobalVariable
-        #
-        # def entry():
-        #     cycle1()
-        #             """,  # language= None
-        #             {"cycle1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout",
-        #                                            "NonLocalVariableWrite.GlobalVariable.var1"}),
-        #              "cycle2.line8": SimpleImpure({"FileWrite.StringLiteral.stdout",
-        #                                            "NonLocalVariableWrite.GlobalVariable.var1"}),
-        #              "cycle3.line11": SimpleImpure({"FileWrite.StringLiteral.stdout",
-        #                                             "NonLocalVariableWrite.GlobalVariable.var1"}),
-        #              "other.line15": SimpleImpure({"NonLocalVariableWrite.GlobalVariable.var1"}),
-        #              "entry.line19": SimpleImpure({"FileWrite.StringLiteral.stdout",
-        #                                            "NonLocalVariableWrite.GlobalVariable.var1"})
-        #              },  # for cycles, we want to propagate the impurity of the cycle to all functions in the cycle
-        #             # but only return the results for the real functions
-        #         ),
-        #         (  # language=Python "Call of Impure Chain of Functions with cycle - cycle in cycle"
-        #             """
-        # var1 = 1
-        #
-        # def cycle1():
-        #     cycle2()
-        #
-        # def cycle2():
-        #     cycle3()
-        #
-        # def cycle3():
-        #     inner_cycle1()
-        #     print("enter inner cycle")  # Impure: FileWrite
-        #     cycle1()
-        #
-        # def inner_cycle1():
-        #     inner_cycle2()
-        #
-        # def inner_cycle2():
-        #     inner_cycle1()
-        #     global var1
-        #     var1 = 2  # Impure: VariableWrite to GlobalVariable
-        #
-        # def entry():
-        #     cycle1()
-        #             """,  # language= None
-        #             {"cycle1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout",
-        #                                            "NonLocalVariableWrite.GlobalVariable.var1"}),
-        #              "cycle2.line7": SimpleImpure({"FileWrite.StringLiteral.stdout",
-        #                                            "NonLocalVariableWrite.GlobalVariable.var1"}),
-        #              "cycle3.line10": SimpleImpure({"FileWrite.StringLiteral.stdout",
-        #                                             "NonLocalVariableWrite.GlobalVariable.var1"}),
-        #              "inner_cycle1.line15": SimpleImpure({"NonLocalVariableWrite.GlobalVariable.var1"}),
-        #              "inner_cycle2.line18": SimpleImpure({"NonLocalVariableWrite.GlobalVariable.var1"}),
-        #              "entry.line23": SimpleImpure({"FileWrite.StringLiteral.stdout",
-        #                                            "NonLocalVariableWrite.GlobalVariable.var1"}),
-        #              },  # for cycles, we want to propagate the impurity of the cycle to all functions in the cycle
-        #             # but only return the results for the real functions
-        #         ),
+        (  # language=Python "Call of Impure Chain of Functions with cycle - one entry point"
+            """
+var1 = 1
+
+def cycle1():
+    cycle2()
+
+def cycle2():
+    global var1
+    res = var1  # Impure: VariableRead from GlobalVariable
+    cycle3()
+
+def cycle3():
+    print("test")  # Impure: FileWrite
+    cycle1()
+
+def entry():
+    cycle1()
+            """,  # language= None
+            {"cycle1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableRead.GlobalVariable.var1"}),
+             "cycle2.line7": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableRead.GlobalVariable.var1"}),
+             "cycle3.line12": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableRead.GlobalVariable.var1"}),
+             "entry.line16": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableRead.GlobalVariable.var1"}),
+             },  # for cycles, we want to propagate the impurity of the cycle to all functions in the cycle
+            # but only return the results for the real functions
+        ),
+        (  # language=Python "Call of Impure Chain of Functions with cycle - other calls in cycle"
+            """
+var1 = 1
+
+def cycle1():
+    other()
+    cycle2()
+
+def cycle2():
+    cycle3()
+
+def cycle3():
+    print("test")  # Impure: FileWrite
+    cycle1()
+
+def other():
+    global var1
+    var1 = 2  # Impure: VariableWrite to GlobalVariable
+
+def entry():
+    cycle1()
+            """,  # language= None
+            {"cycle1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableWrite.GlobalVariable.var1"}),
+             "cycle2.line8": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableWrite.GlobalVariable.var1"}),
+             "cycle3.line11": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                            "NonLocalVariableWrite.GlobalVariable.var1"}),
+             "other.line15": SimpleImpure({"NonLocalVariableWrite.GlobalVariable.var1"}),
+             "entry.line19": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableWrite.GlobalVariable.var1"})
+             },  # for cycles, we want to propagate the impurity of the cycle to all functions in the cycle
+            # but only return the results for the real functions
+        ),
+        (  # language=Python "Call of Impure Chain of Functions with cycle - cycle in cycle"
+            """
+var1 = 1
+
+def cycle1():
+    cycle2()
+
+def cycle2():
+    cycle3()
+
+def cycle3():
+    inner_cycle1()
+    print("enter inner cycle")  # Impure: FileWrite
+    cycle1()
+
+def inner_cycle1():
+    inner_cycle2()
+
+def inner_cycle2():
+    inner_cycle1()
+    global var1
+    var1 = 2  # Impure: VariableWrite to GlobalVariable
+
+def entry():
+    cycle1()
+            """,  # language= None
+            {"cycle1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableWrite.GlobalVariable.var1"}),
+             "cycle2.line7": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableWrite.GlobalVariable.var1"}),
+             "cycle3.line10": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                            "NonLocalVariableWrite.GlobalVariable.var1"}),
+             "inner_cycle1.line15": SimpleImpure({"NonLocalVariableWrite.GlobalVariable.var1"}),
+             "inner_cycle2.line18": SimpleImpure({"NonLocalVariableWrite.GlobalVariable.var1"}),
+             "entry.line23": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                           "NonLocalVariableWrite.GlobalVariable.var1"}),
+             },  # for cycles, we want to propagate the impurity of the cycle to all functions in the cycle
+            # but only return the results for the real functions
+        ),
         (  # language=Python "Call of Impure Chain of Functions with cycle - direct entry"
             """
 def fun1(count):
@@ -757,7 +937,7 @@ def fun():
     res = a.__class__.__name__  # TODO: this is class methode call
     return res
             """,  # language= None
-            {"fun.line5": Pure()},
+            {"fun.line5": SimpleImpure({""})},  # TODO: correct result
         ),
         (  # language=Python "Lambda function"
             """
@@ -794,20 +974,19 @@ double = lambda x: var1 * x  # Impure: VariableRead from GlobalVariable
             """,  # language= None
             {"double.line3": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1"})},
         ),
-        # TODO: this case is disabled for merging to main [ENABLE AFTER MERGE]
-        #         (  # language=Python "Lambda as key"
-        #             """
-        # var1 = "x"
-        #
-        # def fun():
-        #     global var1
-        #     names = ["a", "abc", "ab", "abcd"]
-        #     sort = sorted(names, key=lambda x: x + var1)  # Impure: Call of Lambda Function which has VariableRead from GlobalVariable
-        #     return sort
-        #             """,  # language= None
-        #             {"fun.line4": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1",
-        #                                         "CallOfParameter.ParameterAccess.key"})},  # TODO: add this
-        #         ),
+        (  # language=Python "Lambda as key"
+            """
+var1 = "x"
+
+def fun():
+    global var1
+    names = ["a", "abc", "ab", "abcd"]
+    sort = sorted(names, key=lambda x: x + var1)  # Impure: Call of Lambda Function which has VariableRead from GlobalVariable
+    return sort
+            """,  # language= None
+            {"fun.line4": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1",
+                                        "CallOfParameter.ParameterAccess.key"})},
+        ),
         (  # language=Python "Multiple Calls of the same Impure function (Caching)"
             """
 var1 = 1
@@ -878,7 +1057,7 @@ def fun1(a):
     return fun1
 
 def fun2():
-    x = fun1(1)(2)(3)
+    x = fun1(1)
             """,  # language=none
             {
                 "fun1.line2": SimpleImpure({
@@ -911,43 +1090,59 @@ def fun3():
                 }),
             },
         ),
+        (  # language=Python "Async Function"
+            """
+async def fun1():
+    res = await fun2()  # Pure: Call of Pure Function
+
+async def fun2():
+    print("test")  # Impure: FileWrite
+            """,  # language= None
+            {
+                "fun1.line2": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "fun2.line5": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+            },
+        ),
     ],
     ids=[
         "Print with str",
         "Print with parameter",
-        "VariableWrite to GlobalVariable",  # TODO: this just passes due to the conversion to a set
-        "VariableWrite to GlobalVariable with parameter",  # TODO: this just passes due to the conversion a set
+        "VariableWrite to GlobalVariable",
+        "VariableWrite to GlobalVariable with parameter",
         "VariableRead from GlobalVariable",
         "Impure Class initialization",
         "Class methode call",
+        "Class methode call of superclass",
+        "Class methode call of superclass (overwritten method)",
         "Instance methode call",
         "VariableWrite to ClassVariable",
         "VariableRead from ClassVariable",
         "VariableWrite to InstanceVariable",
         "VariableRead from InstanceVariable",
+        "VariableRead and VariableWrite in chained class attribute and instance attribute",
         "Function call of functions with same name and different purity",
         "Function call of functions with same name (different signatures)",
         "Call of Impure Function",
         "Call of Impure Chain of Functions",
-        # "Call of Impure Chain of Functions with cycle - one entry point",
-        # "Call of Impure Chain of Functions with cycle - other calls in cycle",
-        # "Call of Impure Chain of Functions with cycle - cycle in cycle",
+        "Call of Impure Chain of Functions with cycle - one entry point",
+        "Call of Impure Chain of Functions with cycle - other calls in cycle",
+        "Call of Impure Chain of Functions with cycle - cycle in cycle",
         "Call of Impure Chain of Functions with cycle - direct entry",
         "Call of Impure BuiltIn Function",
         "Call of Impure Builtin type class methode",
         "Lambda function",
         "Lambda function with Impure Call",
         "Assigned Lambda function",
-        # "Lambda as key",
+        "Lambda as key",
         "Multiple Calls of same Impure function (Caching)",
         "Different Reasons for Impurity",
         "Impure Write to Local and Global",
         "Call of Function with function as return",
         "Call within a call",
-        # TODO: chained instance variables/ classVariables, class methods, instance methods, static methods, class instantiation?
+        "Async Function"
     ],
 )
-@pytest.mark.xfail(reason="Some cases disabled for merging")
+# @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
     purity_results = infer_purity(code)
 
@@ -968,7 +1163,7 @@ def fun1():
     call()
             """,  # language=none
             {
-                "fun1.line2": SimpleImpure({"UnknownCall.StringLiteral.call"}),
+                "fun1.line2": SimpleImpure({"UnknownCall.CallOfFunction.call"}),
             },
         ),
         (  # language=Python "Three Unknown Call",
@@ -980,9 +1175,9 @@ def fun1():
             """,  # language=none
             {
                 "fun1.line2": SimpleImpure({
-                    "UnknownCall.StringLiteral.call1",
-                    "UnknownCall.StringLiteral.call2",
-                    "UnknownCall.StringLiteral.call3",
+                    "UnknownCall.CallOfFunction.call1",
+                    "UnknownCall.CallOfFunction.call2",
+                    "UnknownCall.CallOfFunction.call3",
                 }),
             },
         ),
@@ -1004,7 +1199,7 @@ def fun1(function, a, b , c, **kwargs):
                 "fun1.line2": SimpleImpure({"CallOfParameter.ParameterAccess.function"}),
             },
         ),
-        (  # language=Python "Unknown Call of Parameter with many Parameters",
+        (  # language=Python "Unknown Callable",
             """
 from typing import Callable
 
@@ -1014,10 +1209,31 @@ def fun1():
 
 def import_fun(file: str, f_name: str) -> Callable:
     print("test")
+    return lambda x: x
             """,  # language=none
             {
-                "fun1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout", "UnknownCall.StringLiteral.fun"}),
+                "fun1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                            "UnknownCall.CallOfFunction.fun"}),
                 "import_fun.line8": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+             }
+        ),
+        (  # language=Python "Unknown Call of Function with function as return",
+            """
+def fun1(a):
+    print(a)  # Impure: FileWrite
+    return fun1
+
+def fun2():
+    x = fun1(1)(2)(3)
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({
+                    "FileWrite.StringLiteral.stdout",
+                }),
+                "fun2.line6": SimpleImpure({
+                    "FileWrite.StringLiteral.stdout",
+                    "UnknownCall.CallOfFunction.fun1",  # this is the worst case where we do not even know the call node
+                }),
             },
         ),
     ],
@@ -1026,11 +1242,201 @@ def import_fun(file: str, f_name: str) -> Callable:
         "Three Unknown Call",
         "Unknown Call of Parameter",
         "Unknown Call of Parameter with many Parameters",
-        "Unknown Import function",
+        "Unknown Callable",
+        "Unknown Call of Function with function as return",
     ],
 )
-@pytest.mark.xfail(reason="Some cases disabled for merging")
+# @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_unknown(code: str, expected: dict[str, SimpleImpure]) -> None:
+    purity_results = infer_purity(code)
+
+    transformed_purity_results = {
+        to_string_function_id(function_id): to_simple_result(purity_result)
+        for function_id, purity_result in purity_results.items()
+    }
+
+    assert transformed_purity_results == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        (  # language=Python "Import module - constant"
+            """
+import math
+
+def fun1():
+    a = math.pi
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "Import module with alias - constant"
+            """
+import math as m
+
+def fun1():
+    a = m.pi
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "Import module - function"
+            """
+import math
+
+def fun1(a):
+    math.sqrt(a)
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})
+            },
+        ),
+        (  # language=Python "Import module with alias - function"
+            """
+import math as m
+
+def fun1(a):
+    m.sqrt(a)
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})
+            },
+        ),
+        (  # language=Python "Import module with alias - function and constant"
+            """
+import math as m
+
+def fun1(a):
+    a = m.pi
+    m.sqrt(a)
+    m.pi = 1  # this is very uncommon but possible - definitely impure
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt",
+                                            "NonLocalVariableRead.ModuleConstant.math.pi",
+                                            "NonLocalVariableWrite.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "FromImport - constant"
+            """
+from math import pi
+
+def fun1():
+    a = pi
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "FromImport with alias - constant"
+            """
+from math import pi as p
+
+def fun1():
+    a = p
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "FromImport - function"
+            """
+from math import sqrt
+
+def fun1(a):
+    sqrt(a)
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})
+            },
+        ),
+        (  # language=Python "FromImport with alias - function"
+            """
+from math import sqrt as s
+
+def fun1(a):
+    s(a)
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})
+            },
+        ),
+        (  # language=Python "FromImport with alias - function and constant"
+            """
+from math import sqrt as s, pi as p
+
+def fun1(a):
+    a = p
+    s(a)
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt",
+                                           "NonLocalVariableRead.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "FromImport MemberAccess with alias - class"
+            """
+from collections.abc import Callable
+
+def fun1(a):
+    a = Callable()
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"UnknownCall.ClassInit._collections_abc.Callable"})
+            },
+        ),
+        (  # language=Python "Local Import - function"
+            """
+def fun1(a):
+    import math
+    a = math.sqrt(a)
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "Local FromImport - constant"
+            """
+def fun1(a):
+    from math import pi
+    a = pi
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+            },
+        ),
+        (  # language=Python "Local FromImport - function"
+            """
+def fun1(a):
+    from math import sqrt
+    sqrt(a)
+            """,  # language=none
+            {
+                "fun1.line2": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})
+            },
+        ),
+    ],
+    ids=[
+        "Import module - constant",
+        "Import module with alias - constant",
+        "Import module - function",
+        "Import module with alias - function",
+        "Import module with alias - function and constant",
+        "FromImport - constant",
+        "FromImport with alias - constant",
+        "FromImport - function",
+        "FromImport with alias - function",
+        "FromImport with alias - function and constant",
+        "FromImport MemberAccess with alias - class",
+        "Local Import - function",
+        "Local FromImport - constant",
+        "Local FromImport - function",
+    ],
+)
+def test_infer_purity_import(code: str, expected: dict[str, SimpleImpure]) -> None:
     purity_results = infer_purity(code)
 
     transformed_purity_results = {

@@ -28,7 +28,9 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
 )
 from library_analyzer.processing.api.purity_analysis.model._purity import (
     APIPurity,
+    CallOfFunction,
     CallOfParameter,
+    ClassInit,
     Expression,
     FileRead,
     FileWrite,
@@ -96,4 +98,6 @@ __all__ = [
     "NewCallGraphNode",
     "CombinedCallGraphNode",
     "CombinedSymbol",
+    "CallOfFunction",
+    "ClassInit",
 ]

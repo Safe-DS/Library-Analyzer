@@ -37,6 +37,8 @@ class ModuleData:
         These are used to determine the scope of the parameters for each function.
     function_calls : dict[astroid.Call, Scope]
         All function calls and their Scope.
+    imports : dict[str, Import]
+        All imported symbols.
     """
 
     scope: Scope
@@ -47,6 +49,7 @@ class ModuleData:
     target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope]
     parameters: dict[astroid.FunctionDef, tuple[Scope, list[astroid.AssignName]]]
     function_calls: dict[astroid.Call, Scope]
+    imports: dict[str, Import]
 
 
 @dataclass
@@ -148,12 +151,8 @@ class NodeID:
         if self.line is None or self.col is None:
             if self.module is None:
                 return f"{self.name}"
-            if isinstance(self.module, str):
-                return f"{self.module}.{self.name}"
-            return f"{self.module.name}.{self.name}"
-        if isinstance(self.module, str):
-            return f"{self.module}.{self.name}.{self.line}.{self.col}"
-        return f"{self.module.name}.{self.name}.{self.line}.{self.col}"
+            return f"{self.module}.{self.name}"
+        return f"{self.module}.{self.name}.{self.line}.{self.col}"
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -266,7 +265,41 @@ class InstanceVariable(Symbol):
 
 @dataclass
 class Import(Symbol):
-    """Represents an import."""
+    """Represents an import.
+
+    Attributes
+    ----------
+    node : astroid.ImportFrom | astroid.Import
+        The node that defines the import.
+    name : str
+        The name of the symbol that is imported if any is given.
+        Else it is equal to the module name.
+    module : str
+        The name of the module that is imported.
+    alias : str | None
+        If the node is of type Import alias is the alias name for the module name if any is given.
+        If the node is of type ImportFrom alias is the alias name for the name of the symbol if any is given.
+    inferred_node : astroid.NodeNG | None
+        When the import is used as a reference (or a symbol)
+        the inferred_node is the node of the used reference (or symbol) in the original module.
+        It was inferred by the reference analysis by using astroids safe_infer method.
+        If the method could not infer the node, the inferred_node is None.
+    """
+
+    node: astroid.ImportFrom | astroid.Import
+    module: str
+    alias: str | None = None
+    inferred_node: astroid.NodeNG | None = None
+
+    def __str__(self) -> str:
+        if isinstance(self.node, astroid.ImportFrom):
+            if self.name:
+                return f"{self.__class__.__name__}.{self.module}.{self.name}.line{self.id.line}"
+            return f"{self.__class__.__name__}.{self.module}.line{self.id.line}"
+        else:
+            if self.name != self.module:
+                return f"{self.__class__.__name__}.{self.module}.{self.name}.line{self.id.line}"
+            return f"{self.__class__.__name__}.{self.module}.line{self.id.line}"
 
     def __hash__(self) -> int:
         return hash(str(self))

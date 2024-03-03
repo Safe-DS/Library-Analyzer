@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import astroid
+from astroid.helpers import safe_infer
 
 from library_analyzer.processing.api.purity_analysis._resolve_references import resolve_references
 from library_analyzer.processing.api.purity_analysis.model import (
@@ -21,7 +22,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Pure,
     PurityResult,
     Reasons,
-    StringLiteral,
+    StringLiteral, UnknownCall, CallOfFunction, ClassInit, CallOfParameter,
 )
 
 # TODO: check these for correctness and add reasons for impurity
@@ -684,9 +685,7 @@ class PurityAnalyzer:
         else:
             return Pure()
 
-    # TODO: move this to Reasons?
-    @staticmethod
-    def _get_impurity_result(reasons: Reasons) -> PurityResult:
+    def _get_impurity_result(self, reasons: Reasons) -> PurityResult:
         """
         Get the reasons for impurity from the reasons.
 
@@ -715,10 +714,58 @@ class PurityAnalyzer:
                 for write in reasons.writes_to:
                     impurity_reasons.add(NonLocalVariableWrite(write))
 
+            # TODO: remove safe infer (after new call graph is implemented)
             if reasons.reads_from:
                 for read in reasons.reads_from:
-                    impurity_reasons.add(NonLocalVariableRead(read))
+                    # Check if the read reads from an imported module.
+                    if isinstance(read.node, astroid.Import):
+                        if read.inferred_node:
+                            print(read, read.name)
+                            inferred_res = safe_infer(read.inferred_node)
+                            if isinstance(inferred_res, astroid.FunctionDef):
+                                # If the inferred node is a function, it must be analyzed to determine its purity.
+                                pass
+                            elif isinstance(inferred_res, astroid.ClassDef):
+                                pass
+                            else:  # TODO: what type of nodes are allowed here?
+                                impurity_reasons.add(NonLocalVariableRead(read))
+                                print(f"SUCCESS:{read.name}")
 
+                    else:
+                        impurity_reasons.add(NonLocalVariableRead(read))
+
+            # TODO: remove safe infer (after new call graph is implemented)
+            if reasons.unknown_calls:
+                for unknown_call in reasons.unknown_calls:
+                    # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
+                    if isinstance(unknown_call.func, astroid.Attribute):
+                        unknown_call_func_name = unknown_call.func.attrname
+                    else:
+                        unknown_call_func_name = unknown_call.func.name
+
+                    if reasons.function_scope is None:
+                        print(reasons)
+
+                    inferred_result = safe_infer(unknown_call.func)
+                    # print(inferred_result)
+
+                    if reasons.id in self.call_graph_forest.forest:
+                        graph = self.call_graph_forest.get_graph(reasons.id)
+                        # Check if the unknown call is a call of a parameter of that function.
+                        if unknown_call_func_name in graph.symbol:  # TODO: get parameters
+                            impurity_reasons.add(CallOfParameter(ParameterAccess(unknown_call_func_name)))
+
+                        # The unknown call is a call of a function that is not defined in the module.
+                        # In this case, the function can either be a builtin function (which is not in the builtin dir)
+                        # or an imported function from another module.
+                        elif inferred_result and isinstance(inferred_result, astroid.FunctionDef):
+                            impurity_reasons.add(
+                                UnknownCall(CallOfFunction(call=unknown_call, inferred_def=inferred_result)))
+                        elif inferred_result and isinstance(inferred_result, astroid.ClassDef):
+                            impurity_reasons.add(
+                                UnknownCall(ClassInit(call=unknown_call, inferred_def=inferred_result)))
+                        else:
+                            impurity_reasons.add(UnknownCall(CallOfFunction(unknown_call)))
             if impurity_reasons:
                 return Impure(impurity_reasons)
             return Pure()
