@@ -284,12 +284,16 @@ class Import(Symbol):
         the inferred_node is the node of the used reference (or symbol) in the original module.
         It was inferred by the reference analysis by using astroids safe_infer method.
         If the method could not infer the node, the inferred_node is None.
+    call: astroid.Call | None
+        The original call node as fallback for the case, that the purity of the inferred_node cannot be inferred.
+        Only is set if the symbol represents a call.
     """
 
     node: astroid.ImportFrom | astroid.Import
     module: str
     alias: str | None = None
     inferred_node: astroid.NodeNG | None = None
+    call: astroid.Call | None = None
 
     def __str__(self) -> str:
         if isinstance(self.node, astroid.ImportFrom):

@@ -1,16 +1,24 @@
 from __future__ import annotations
 
-import astroid
-from astroid.helpers import safe_infer
+from pathlib import Path
 
+import astroid
+
+from library_analyzer.processing.api.purity_analysis import calc_node_id
 from library_analyzer.processing.api.purity_analysis._resolve_references import resolve_references
 from library_analyzer.processing.api.purity_analysis.model import (
+    APIPurity,
     Builtin,
     BuiltinOpen,
     CallGraphForest,
+    CallOfFunction,
+    CallOfParameter,
+    ClassInit,
     CombinedCallGraphNode,
     FileRead,
     FileWrite,
+    Import,
+    ImportedCallGraphNode,
     Impure,
     ImpurityReason,
     NewCallGraphNode,
@@ -22,7 +30,8 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Pure,
     PurityResult,
     Reasons,
-    StringLiteral, UnknownCall, CallOfFunction, ClassInit, CallOfParameter,
+    StringLiteral,
+    UnknownCall,
 )
 
 # TODO: check these for correctness and add reasons for impurity
@@ -623,6 +632,7 @@ class PurityAnalyzer:
         self.call_graph_forest: CallGraphForest = resolve_references(code).call_graph_forest
         self.purity_results: dict[NodeID, PurityResult] = {}
         self.decombinded_nodes: dict[NodeID, NewCallGraphNode] = {}
+        self.purity_cache_imported_modules: dict[NodeID, dict[NodeID, PurityResult]] = {}
 
         if self.call_graph_forest:
             self._analyze_purity()
@@ -690,7 +700,7 @@ class PurityAnalyzer:
         Get the reasons for impurity from the reasons.
 
         Given a Reasons object, this function transforms the collected reasons
-        from a Reasons object to a set of ImpurityReason.
+        from a Reasons object to a set of ImpurityReason and returns a PurityResult.
         If any ImpurityReason is found in the reasons, the function returns an Impure result.
         If no ImpurityReason is found, the function returns a Pure result.
         If any unknown calls are found, the function returns an Unknown result.
@@ -707,70 +717,147 @@ class PurityAnalyzer:
         """
         impurity_reasons: set[ImpurityReason] = set()
 
-        if not reasons:
+        # If no reasons are found, the function is pure.
+        if not reasons.reads_from and not reasons.writes_to and not reasons.unknown_calls:
             return Pure()
+
+        # Check if the function has any non-local variable writes.
+        if reasons.writes_to:
+            for write in reasons.writes_to:
+                impurity_reasons.add(NonLocalVariableWrite(write))
+
+        # Check if the function has any non-local variable reads.
+        if reasons.reads_from:
+            for read in reasons.reads_from:
+                # Check if the read reads from an imported module.
+                if isinstance(read, Import):
+                    if read.inferred_node:
+                        # If the inferred node is a function, it must be analyzed to determine its purity.
+                        if isinstance(read.inferred_node, astroid.FunctionDef):
+                            impurity_reasons.add(UnknownCall(CallOfFunction(call=read.call,
+                                                                            inferred_def=read.inferred_node)))
+                        elif isinstance(read.inferred_node, astroid.ClassDef):
+                            impurity_reasons.add(UnknownCall(ClassInit(call=read.call,
+                                                                       inferred_def=read.inferred_node)))
+                        # If the inferred node is a module, it will not count towards the impurity of the function.
+                        # If this was added, nearly anything would be impure.
+                        # Also, since the imported symbols are analyzed in much more detail, this can be omitted.
+                        elif isinstance(read.inferred_node, astroid.Module):
+                            pass
+                        # Default case for symbols that could not be inferred.
+                        else:  # TODO: what type of nodes are allowed here?
+                            impurity_reasons.add(NonLocalVariableRead(read))
+                    else:
+                        raise ValueError(f"Imported node {read.name} has no inferred node.") from None
+
+                else:
+                    impurity_reasons.add(NonLocalVariableRead(read))
+
+        # TODO: remove safe infer (after new call graph is implemented)
+        if reasons.unknown_calls:
+            # for unknown_call in reasons.unknown_calls:
+            #     # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
+            #     if isinstance(unknown_call.node.func, astroid.Attribute):
+            #         unknown_call_func_name = unknown_call.node.func.attrname
+            #     else:
+            #         unknown_call_func_name = unknown_call.node.func.name
+            #
+            #     if reasons.function_scope is None:
+            #         print(reasons)
+            #
+            #     inferred_result = safe_infer(unknown_call.node.func)
+            #     # print(inferred_result)
+            #
+            #     if reasons.id in self.call_graph_forest.forest:
+            #         graph = self.call_graph_forest.get_graph(reasons.id)
+            #         # Check if the unknown call is a call of a parameter of that function.
+            #         if unknown_call_func_name in graph.symbol:  # TODO: get parameters
+            #             impurity_reasons.add(CallOfParameter(ParameterAccess(unknown_call_func_name)))
+            #
+            #         # The unknown call is a call of a function that is not defined in the module.
+            #         # In this case, the function can either be a builtin function (which is not in the builtin dir)
+            #         # or an imported function from another module.
+            #         elif inferred_result and isinstance(inferred_result, astroid.FunctionDef):
+            #             impurity_reasons.add(
+            #                 UnknownCall(CallOfFunction(call=unknown_call, inferred_def=inferred_result)))
+            #         elif inferred_result and isinstance(inferred_result, astroid.ClassDef):
+            #             impurity_reasons.add(
+            #                 UnknownCall(ClassInit(call=unknown_call, inferred_def=inferred_result)))
+            #         else:
+            #             impurity_reasons.add(UnknownCall(CallOfFunction(unknown_call)))
+            print("ERROR")
+        if impurity_reasons:
+            return Impure(impurity_reasons)
+        return Pure()
+
+    def _process_imported_node(self, imported_node: ImportedCallGraphNode) -> PurityResult:
+        """Process an imported node.
+
+        Since imported nodes are not part of the module, they need to be analyzed separately.
+        Therefore, the inferred node of the imported node is analyzed to determine its purity.
+        If the module can be determined, a purity analysis is run on the imported module.
+        If the module cannot be determined,
+        or the function def is not found inside the module, the function is impure.
+        Since it is possible that a module is used more than once,
+        the results are cached after the first time analyzing the module.
+
+        Parameters
+        ----------
+        imported_node : ImportedCallGraphNode
+            The imported node to process.
+
+        Returns
+        -------
+        PurityResult
+            The purity result of the imported node.
+        """
+        imported_module = imported_node.symbol.inferred_node.root()
+        if not isinstance(imported_module, astroid.Module):
+            return Impure({UnknownCall(CallOfFunction(imported_node.symbol.call))})
+        imported_module_id = calc_node_id(imported_module)
+        inferred_node_id = calc_node_id(imported_node.symbol.inferred_node)
+
+        # Check the cache for the purity results of the imported module and return the result for the imported node.
+        if (imported_module_id in self.purity_cache_imported_modules
+            and inferred_node_id in self.purity_cache_imported_modules[imported_module_id]
+        ):
+            return self.purity_cache_imported_modules[imported_module_id].get(inferred_node_id)
+
+        # Get the source code of the imported module and the purity result for all functions of that module.
+        source_code = imported_module.as_string()
+        all_purity_result = infer_purity(source_code)
+
+        # Save the purity results for the imported module in the cache.
+        self.purity_cache_imported_modules[imported_module_id] = all_purity_result
+
+        # In some cases, the inferred_node does not have any line number since astroid sometimes doesn't return it.
+        # Therefore the correct function def cannot be found in the result.
+        # In this case the fallback is to return an unknown call.
+        # TODO: we could however find it and store it by its name. (This would find multiple tho) LARS
+        if inferred_node_id in all_purity_result:
+            return all_purity_result[inferred_node_id]
         else:
-            if reasons.writes_to:
-                for write in reasons.writes_to:
-                    impurity_reasons.add(NonLocalVariableWrite(write))
-
-            # TODO: remove safe infer (after new call graph is implemented)
-            if reasons.reads_from:
-                for read in reasons.reads_from:
-                    # Check if the read reads from an imported module.
-                    if isinstance(read.node, astroid.Import):
-                        if read.inferred_node:
-                            print(read, read.name)
-                            inferred_res = safe_infer(read.inferred_node)
-                            if isinstance(inferred_res, astroid.FunctionDef):
-                                # If the inferred node is a function, it must be analyzed to determine its purity.
-                                pass
-                            elif isinstance(inferred_res, astroid.ClassDef):
-                                pass
-                            else:  # TODO: what type of nodes are allowed here?
-                                impurity_reasons.add(NonLocalVariableRead(read))
-                                print(f"SUCCESS:{read.name}")
-
-                    else:
-                        impurity_reasons.add(NonLocalVariableRead(read))
-
-            # TODO: remove safe infer (after new call graph is implemented)
-            if reasons.unknown_calls:
-                for unknown_call in reasons.unknown_calls:
-                    # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
-                    if isinstance(unknown_call.func, astroid.Attribute):
-                        unknown_call_func_name = unknown_call.func.attrname
-                    else:
-                        unknown_call_func_name = unknown_call.func.name
-
-                    if reasons.function_scope is None:
-                        print(reasons)
-
-                    inferred_result = safe_infer(unknown_call.func)
-                    # print(inferred_result)
-
-                    if reasons.id in self.call_graph_forest.forest:
-                        graph = self.call_graph_forest.get_graph(reasons.id)
-                        # Check if the unknown call is a call of a parameter of that function.
-                        if unknown_call_func_name in graph.symbol:  # TODO: get parameters
-                            impurity_reasons.add(CallOfParameter(ParameterAccess(unknown_call_func_name)))
-
-                        # The unknown call is a call of a function that is not defined in the module.
-                        # In this case, the function can either be a builtin function (which is not in the builtin dir)
-                        # or an imported function from another module.
-                        elif inferred_result and isinstance(inferred_result, astroid.FunctionDef):
-                            impurity_reasons.add(
-                                UnknownCall(CallOfFunction(call=unknown_call, inferred_def=inferred_result)))
-                        elif inferred_result and isinstance(inferred_result, astroid.ClassDef):
-                            impurity_reasons.add(
-                                UnknownCall(ClassInit(call=unknown_call, inferred_def=inferred_result)))
-                        else:
-                            impurity_reasons.add(UnknownCall(CallOfFunction(unknown_call)))
-            if impurity_reasons:
-                return Impure(impurity_reasons)
-            return Pure()
+            return Impure({UnknownCall(CallOfFunction(call=imported_node.symbol.call,
+                                                      inferred_def=imported_node.symbol.inferred_node))})
 
     def _process_node(self, node: NewCallGraphNode) -> PurityResult:
+        """Process a node in the call graph.
+
+        Process a node in the call graph to determine the purity of the function.
+        Therefore, recursively process the children of the node (if any) and propagate the results afterward.
+        First check if the purity of the function is already determined.
+        Works with builtin functions and combined function nodes.
+
+        Parameters
+        ----------
+        node : NewCallGraphNode
+            The node to process.
+
+        Returns
+        -------
+        PurityResult
+            The purity result of the function node (combined with the results of its children).
+        """
         # Check the forest if the purity of the function is already determined
         if node.is_inferred():
             # The purity of the function is determined already.
@@ -788,16 +875,26 @@ class PurityAnalyzer:
         if not node.is_leaf():
             purity_result_children: PurityResult = Pure()
             for child in node.children.values():
-                purity_result_child = self._process_node(child)
-                if isinstance(child, CombinedCallGraphNode):
+                # Check imported nodes separately.
+                if isinstance(child, ImportedCallGraphNode):
+                    purity_result_child = self._process_imported_node(child)
+                # Check combined nodes separately.
+                elif isinstance(child, CombinedCallGraphNode):
+                    purity_result_child = self._process_node(child)
                     self.decombinded_nodes.update(child.decombine())
+                else:
+                    purity_result_child = self._process_node(child)
+                # Combine the reasons of all children.
                 purity_result_children = purity_result_children.update(purity_result_child)
 
             node.reasons.result = self._get_impurity_result(node.reasons)
+            # if node.reasons.result is None:
+            #     print(node.reasons)
             node.reasons.result = node.reasons.result.update(purity_result_children)
 
         # The purity of the node is not determined yet, and it has no children.
         # Therefore, it is possible to check its (reasons for) impurity directly.
+        # TODO: what about combined nodes here? Add testcase for that!
         else:
             node.reasons.result = self._get_impurity_result(node.reasons)
 
@@ -813,6 +910,8 @@ class PurityAnalyzer:
             if isinstance(graph, CombinedCallGraphNode):
                 self._process_node(graph)
                 self.decombinded_nodes.update(graph.decombine())
+            elif isinstance(graph, ImportedCallGraphNode):
+                pass
             elif isinstance(graph, NewCallGraphNode) and not isinstance(graph.symbol.node, astroid.ClassDef):
                 self.purity_results[graph.symbol.id] = self._process_node(graph)
 
@@ -840,3 +939,43 @@ def infer_purity(code: str) -> dict[NodeID, PurityResult]:
         Keys are the node ids, values are the purity results.
     """
     return PurityAnalyzer(code).purity_results
+
+
+def get_purity_results(
+    # package: str,
+    src_dir_path: Path,
+) -> APIPurity:
+    """Get the purity results of a package.
+
+    This function is the entry to the purity analysis of a package.
+    It iterates over all modules in the package and infers the purity of the functions in the modules.
+
+    Parameters
+    ----------
+    src_dir_path : Path
+       The path of the source directory of the package.
+
+    Returns
+    -------
+    APIPurity
+        The purity results of the package.
+    """
+    modules = list(src_dir_path.glob("**/*.py"))
+    package_purity = APIPurity()
+
+    for module in modules:
+        with module.open("r") as file:
+            code = file.read()
+            # TODO: add logging infos!
+            # TODO: add module_name and path to astroid.parse?
+            # TODO: remove test files? -> yes
+            # TODO: what about modules with the same name in different directories? -> see api
+            module_purity_results = infer_purity(code)
+            # TODO: do we want the function name or the function def node as result? -> NodeID
+            #  if we want the name we need to use ID or else functions with the same name will be lost
+            # TODO: do we want to differentiate between classes -> hierarchical result with classes
+            module_purity_results_str = {func_id.__str__(): value for func_id, value in module_purity_results.items()}
+
+        package_purity.purity_results[module.name] = module_purity_results_str
+
+    return package_purity

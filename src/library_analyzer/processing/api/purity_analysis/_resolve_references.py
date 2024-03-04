@@ -130,7 +130,7 @@ def _find_call_references(
         inferred_node_def = safe_infer(call_reference.node.func)
         if inferred_node_def is None:
             raise ValueError(f"Could not resolve the node {call_reference.node} for the import {import_def}")
-        specified_import_def = dataclasses.replace(import_def, inferred_node=inferred_node_def)
+        specified_import_def = dataclasses.replace(import_def, inferred_node=inferred_node_def, call=call_reference.node)
         if specified_import_def:
             result_value_reference.referenced_symbols.append(specified_import_def)
 
@@ -234,8 +234,10 @@ def _find_value_references(
     if not isinstance(value_reference.node, MemberAccessValue) and value_reference.name in imports:
         import_def = imports.get(value_reference.name)
         inferred_node_def = safe_infer(value_reference.node)
-        # if inferred_node_def is None:
-        #     raise ValueError(f"Could not resolve the node {value_reference.node} for the import {import_def}")
+        if not inferred_node_def:
+            inferred_node_def = next(value_reference.node.infer())
+        if not inferred_node_def:
+            raise ValueError(f"Could not resolve the node {value_reference.node} for the import {import_def}")
         specified_import_def = dataclasses.replace(import_def, inferred_node=inferred_node_def)
         if specified_import_def:
             result_value_reference.referenced_symbols.append(specified_import_def)
@@ -266,7 +268,9 @@ def _find_value_references(
         # is much more effort and would require to change the data structure.
         # Therefore, all calls of imported functions are handled as MemberAccessValue.
         # Because of this, a check at the point where the referenced_symbols are added to the raw_reasons is needed.
-        if isinstance(value_reference.node.receiver, astroid.Attribute):
+        if value_reference.node.receiver is None:
+            receiver_name = "UNKNOWN"
+        elif isinstance(value_reference.node.receiver, astroid.Attribute):
             receiver_name = value_reference.node.receiver.attrname
         else:
             receiver_name = value_reference.node.receiver.name
@@ -277,14 +281,15 @@ def _find_value_references(
             # At this point, only the receiver(=module name) is saved in the imports dict.
             # This means that the symbol for the member needs to be inferred from the module and added to the list
             # of referenced symbols.
-            # TODO: also add it to imports?
             import_def = imports.get(receiver_name)
-            #     # TODO: we need a better way to make sure not all symbols are copied
+            # TODO: we need a better way to make sure not all symbols are copied
             if import_def and value_reference.node.node is not None:
                 # Use astroid to infer the symbol of the member from the module.
                 inferred_node_def = safe_infer(value_reference.node.node)  # TODO: what if node is a MemberAccessValue?
-                # if inferred_node_def is None:
-                #     raise ValueError(f"Could not resolve the node {value_reference.node.node} for the import {import_def}")
+                if not inferred_node_def:
+                    inferred_node_def = next(value_reference.node.node.infer())
+                if not inferred_node_def:
+                    raise ValueError(f"Could not resolve the node {value_reference.node.node} for the import {import_def}")
 
                 # Overcome the problem, that the import symbol object is the same for all possible functions and
                 # classes that are imported from one module.
@@ -293,6 +298,12 @@ def _find_value_references(
                 specified_import_def = dataclasses.replace(import_def,
                                                            name=value_reference.node.member,
                                                            inferred_node=inferred_node_def)
+
+                # If the member is a call, add the call node to the specified_import_def as fallback for the case that
+                # the purity of the called function cannot be inferred.
+                if isinstance(value_reference.node.node.parent, astroid.Call):
+                    specified_import_def.call = value_reference.node.node.parent
+
                 result_value_reference.referenced_symbols.append(specified_import_def)
 
     return result_value_reference
@@ -376,39 +387,20 @@ def _find_target_references(
                         klass.instance_variables[target_reference.node.member],
                     )
 
-        # TODO: we cannot use safe_infer here since it will get the value of the assignment in the MemberAccessTarget
-        #  we can however see that a write is performed to an imported name,
-        #  and this should be enough to ensure impurity.
-        # Find imported symbols that are referenced (as member of a MemberAccessValue).
-        # if isinstance(target_reference.node.receiver, astroid.Attribute):
-        #     receiver_name = target_reference.node.receiver.attrname
-        # else:
-        #     receiver_name = target_reference.node.receiver.name
-        #
-        # if receiver_name in imports:
-        #     # In references imported via "import" statements, the symbols of the imported module are not known yet.
-        #     # The symbol is accessed via its name, which is of type MemberAccessValue.
-        #     # At this point, only the receiver(=module name) is saved in the imports dict.
-        #     # This means that the symbol for the member needs to be inferred from the module and added to the list
-        #     # of referenced symbols.
-        #     # TODO: also add it to imports?
-        #     import_def = imports.get(receiver_name)
-        #     #     # TODO: we need a better way to make sure not all symbols are copied
-        #     if import_def and target_reference.node.node is not None:
-        #         # Use astroid to infer the symbol of the member from the module.
-        #         inferred_node_def = safe_infer(
-        #             target_reference.node.node)  # TODO: what if node is a MemberAccessValue?
-        #         # if inferred_node_def is None:
-        #         #     raise ValueError(f"Could not resolve the node {value_reference.node.node} for the import {import_def}")
-        #
-        #         # Overcome the problem, that the import symbol object is the same for all possible functions and
-        #         # classes that are imported from one module.
-        #         # Therefore, copy the original import node and define a new one for one specific function or class.
-        #         # This means that every function or class imported from a module has its own import node.
-        #         specified_import_def = dataclasses.replace(import_def,
-        #                                                    name=target_reference.node.member,
-        #                                                    inferred_node=inferred_node_def)
-        #         result_target_reference.referenced_symbols.append(specified_import_def)
+        # Find imported symbols that are referenced (as member of a MemberAccessTarget).
+        # Astroids safe_infer methode will get the value of the assignment in the MemberAccessTarget node.
+        # However, it is possible to detect the write to an imported symbol which should be enough to ensure impurity.
+        if isinstance(target_reference.node.receiver, astroid.Attribute):
+            receiver_name = target_reference.node.receiver.attrname
+        else:
+            receiver_name = target_reference.node.receiver.name
+
+        if receiver_name in imports:
+            import_def = imports.get(receiver_name)
+            specified_import_def = dataclasses.replace(import_def, name=target_reference.node.member)
+
+            result_target_reference.referenced_symbols.append(specified_import_def)
+
     return result_target_reference
 
 
@@ -482,6 +474,9 @@ def resolve_references(
                                 # ):
                                 if referenced_symbol not in raw_reasons[function.symbol.id].calls:
                                     raw_reasons[function.symbol.id].calls.add(referenced_symbol)
+                        # # If no referenced symbols are found, add the call to the list of unknown_calls of the raw_reasons dict for this function
+                        # elif call_references_result.node not in raw_reasons[function.symbol.id].unknown_calls:
+                        #     raw_reasons[function.symbol.id].unknown_calls.add(call_references_result.node.node)
 
             # Check if the function has value_references (References from a value node to a target node).
             if function.value_references:
@@ -543,7 +538,7 @@ def resolve_references(
 
                             # Add the referenced symbols to the writes_to of the raw_reasons dict for this function
                             for referenced_symbol in target_reference_result.referenced_symbols:
-                                if isinstance(referenced_symbol, GlobalVariable | ClassVariable | InstanceVariable):
+                                if isinstance(referenced_symbol, GlobalVariable | ClassVariable | InstanceVariable | Import):
                                     # Since classes and functions are defined as immutable,
                                     # writing to them is not a reason for impurity.
                                     # Also, it is not common to do so anyway.

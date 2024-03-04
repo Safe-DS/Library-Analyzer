@@ -4,9 +4,12 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ClassScope,
     CombinedCallGraphNode,
     CombinedSymbol,
+    Import,
+    ImportedCallGraphNode,
     NewCallGraphNode,
     NodeID,
     Reasons,
+    Symbol,
 )
 
 # BUILTINS = dir(builtins)
@@ -617,11 +620,44 @@ class CallGraphBuilder:
             ):
                 # Add the child to the children of the current node since it doesn't need further handling.
                 self.call_graph_forest.get_graph(reason.id).add_child(self.call_graph_forest.get_graph(call.id))
+
+            # Check if the node was declared inside the current module.
+            elif call.id not in self.raw_reasons:
+                self._handle_unknown_call(call, reason.id)
+
+            # Build the call graph for the child function and add it to the children of the current node.
             else:
-                # TODO: handle unknown calls [after merge with import analysis]
-                # Build the call graph for the child function and add it to the children of the current node.
                 self._built_call_graph(self.raw_reasons[call.id])
                 self.call_graph_forest.get_graph(reason.id).add_child(self.call_graph_forest.get_graph(call.id))
+
+    def _handle_unknown_call(self, call: Symbol, reason_id: NodeID) -> None:
+        """Handle unknown calls.
+
+        Deal with unknown calls and add them to the forest.
+        Unknown calls are calls of unknown code, calls of imported code, or calls of parameters.
+        If the call references an imported function it is represented as ImportedCallGraphNode in the forest.
+
+        Parameters
+        ----------
+        call : Symbol
+            The call that is unknown.
+        reason_id : NodeID
+            The id of the function that the call is in.
+        """
+        # Deal with the case that the call is an import.
+        if isinstance(call, Import):
+            imported_cgn = ImportedCallGraphNode(
+                symbol=call,
+                reasons=Reasons(id=call.id),
+                # is_imported=bool(isinstance(call.node, astroid.Import | astroid.ImportFrom))
+            )
+            self.call_graph_forest.add_graph(call.id, imported_cgn)
+            self.call_graph_forest.get_graph(reason_id).add_child(self.call_graph_forest.get_graph(call.id))
+
+        # TODO: call of unknown code => call node not in functions dict
+        # TODO: call of parameters
+        else:
+            self.call_graph_forest.get_graph(reason_id).reasons.unknown_calls.add(call)
 
     def _handle_cycles(self, removed_nodes: set[NodeID] | None = None) -> None:
         """Handle cycles in the call graph.

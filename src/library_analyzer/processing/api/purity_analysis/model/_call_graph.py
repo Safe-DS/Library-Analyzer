@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from library_analyzer.processing.api.purity_analysis.model._module_data import (
+        Import,
         NodeID,
         Symbol,
 )
@@ -254,9 +255,9 @@ class NewCallGraphNode:
 
 @dataclass
 class CombinedCallGraphNode(NewCallGraphNode):
-    """Class for call graph nodes.
+    """Class for combined call graph nodes.
 
-    A call graph node represents a function in the call graph.
+    A CombinedCallGraphNode represents a combined cycle of functions in the call graph.
 
     Attributes
     ----------
@@ -302,3 +303,22 @@ class CombinedCallGraphNode(NewCallGraphNode):
             original_nodes[node_id] = node
             original_nodes[node_id].reasons = self.reasons
         return original_nodes
+
+
+@dataclass
+class ImportedCallGraphNode(NewCallGraphNode):
+    """Class for imported call graph nodes.
+
+    This class represents functions that are imported from other modules in the call graph.
+    """
+
+    symbol: Import
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.symbol.id}"
+
+    def __repr__(self) -> str:
+        return f"{self.symbol.name}: {id(self)}"

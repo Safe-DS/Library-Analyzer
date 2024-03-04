@@ -125,9 +125,9 @@ class Reasons:
         Is None if the reasons are not for a FunctionDef node.
         This is the case when either a builtin or a combined node is created,
         or a ClassScope is used to propagate reasons.
-    writes_to : set[Symbol]
+    writes_to : set[GlobalVariable | ClassVariable | InstanceVariable | Import]
         A set of all nodes that are written to.
-    reads_from : set[Symbol]
+    reads_from : set[GlobalVariable | ClassVariable | InstanceVariable | Import]
         A set of all nodes that are read from.
     calls : set[Symbol]
         A set of all nodes that are called.
@@ -135,18 +135,18 @@ class Reasons:
         The result of the purity analysis
         This also works as a flag to determine if the purity analysis has already been performed:
         If it is None, the purity analysis has not been performed
-    unknown_calls : list[astroid.Call | astroid.NodeNG] | None
+    unknown_calls : set[Symbol]
         A list of all unknown calls.
         Unknown calls are calls to functions that are not defined in the module or are simply not existing.
     """
 
     id: NodeID
     function_scope: FunctionScope | None = field(default=None)
-    writes_to: set[GlobalVariable | ClassVariable | InstanceVariable] = field(default_factory=set)
+    writes_to: set[GlobalVariable | ClassVariable | InstanceVariable | Import] = field(default_factory=set)
     reads_from: set[GlobalVariable | ClassVariable | InstanceVariable | Import] = field(default_factory=set)
     calls: set[Symbol] = field(default_factory=set)
     result: PurityResult | None = field(default=None)
-    unknown_calls: set[astroid.Call] = field(default_factory=set)
+    unknown_calls: set[Symbol] = field(default_factory=set)
 
     def join_reasons_list(self, reasons_list: list[Reasons]) -> Reasons:
         """Join a list of Reasons objects.

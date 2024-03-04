@@ -217,11 +217,11 @@ class NonLocalVariableWrite(Write):
 
     Attributes
     ----------
-    symbol : GlobalVariable | ClassVariable | InstanceVariable
+    symbol : GlobalVariable | ClassVariable | InstanceVariable | Import
         The symbol that is written to.
     """
 
-    symbol: GlobalVariable | ClassVariable | InstanceVariable
+    symbol: GlobalVariable | ClassVariable | InstanceVariable | Import
 
     def __hash__(self) -> int:
         return hash(str(self))

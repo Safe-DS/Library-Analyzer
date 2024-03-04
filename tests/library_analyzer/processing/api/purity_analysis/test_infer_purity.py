@@ -104,6 +104,10 @@ def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # a
     elif isinstance(reason, NonLocalVariableWrite):
         if isinstance(reason.symbol, ClassVariable | InstanceVariable) and reason.symbol.klass is not None:
             return f"NonLocalVariableWrite.{reason.symbol.__class__.__name__}.{reason.symbol.klass.name}.{reason.symbol.name}"
+        if isinstance(reason.symbol, Import):
+            if reason.symbol.name:
+                return f"NonLocalVariableWrite.{reason.symbol.__class__.__name__}.{reason.symbol.module}.{reason.symbol.name}"
+            return f"NonLocalVariableWrite.{reason.symbol.__class__.__name__}.{reason.symbol.module}"
         return f"NonLocalVariableWrite.{reason.symbol.__class__.__name__}.{reason.symbol.name}"
     elif isinstance(reason, FileRead):
         if isinstance(reason.source, ParameterAccess):
@@ -1269,7 +1273,7 @@ def fun1():
     a = math.pi
             """,  # language=none
             {
-                "fun1.line4": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+                "fun1.line4": SimpleImpure({"NonLocalVariableRead.Import.math.pi"})
             },
         ),
         (  # language=Python "Import module with alias - constant"
@@ -1280,7 +1284,7 @@ def fun1():
     a = m.pi
             """,  # language=none
             {
-                "fun1.line4": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+                "fun1.line4": SimpleImpure({"NonLocalVariableRead.Import.math.pi"})
             },
         ),
         (  # language=Python "Import module - function"
@@ -1312,12 +1316,10 @@ import math as m
 def fun1(a):
     a = m.pi
     m.sqrt(a)
-    m.pi = 1  # this is very uncommon but possible - definitely impure
             """,  # language=none
             {
                 "fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt",
-                                            "NonLocalVariableRead.ModuleConstant.math.pi",
-                                            "NonLocalVariableWrite.ModuleConstant.math.pi"})
+                                            "NonLocalVariableRead.Import.math.pi"})
             },
         ),
         (  # language=Python "FromImport - constant"
@@ -1328,7 +1330,7 @@ def fun1():
     a = pi
             """,  # language=none
             {
-                "fun1.line4": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+                "fun1.line4": SimpleImpure({"NonLocalVariableRead.Import.math.pi"})
             },
         ),
         (  # language=Python "FromImport with alias - constant"
@@ -1339,7 +1341,7 @@ def fun1():
     a = p
             """,  # language=none
             {
-                "fun1.line4": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+                "fun1.line4": SimpleImpure({"NonLocalVariableRead.Import.math.pi"})
             },
         ),
         (  # language=Python "FromImport - function"
@@ -1374,7 +1376,7 @@ def fun1(a):
             """,  # language=none
             {
                 "fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt",
-                                           "NonLocalVariableRead.ModuleConstant.math.pi"})
+                                           "NonLocalVariableRead.Import.math.pi"})
             },
         ),
         (  # language=Python "FromImport MemberAccess with alias - class"
@@ -1395,7 +1397,7 @@ def fun1(a):
     a = math.sqrt(a)
             """,  # language=none
             {
-                "fun1.line2": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+                "fun1.line2": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})
             },
         ),
         (  # language=Python "Local FromImport - constant"
@@ -1405,7 +1407,7 @@ def fun1(a):
     a = pi
             """,  # language=none
             {
-                "fun1.line2": SimpleImpure({"NonLocalVariableRead.ModuleConstant.math.pi"})
+                "fun1.line2": SimpleImpure({"NonLocalVariableRead.Import.math.pi"})
             },
         ),
         (  # language=Python "Local FromImport - function"
@@ -1416,6 +1418,19 @@ def fun1(a):
             """,  # language=none
             {
                 "fun1.line2": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})
+            },
+        ),
+        (  # language=Python "Write to Import"
+            """
+import math as m
+
+def fun1():
+    m.pi = 1
+    # TODO: this is very uncommon but possible - technically it is a write,
+    #  but on the other hand, it is not possible to alter a module variable in this way
+            """,  # language=none
+            {
+                "fun1.line4": SimpleImpure({"NonLocalVariableWrite.Import.math.pi"})
             },
         ),
     ],
@@ -1434,8 +1449,9 @@ def fun1(a):
         "Local Import - function",
         "Local FromImport - constant",
         "Local FromImport - function",
+        "Write to Import",
     ],
-)
+)  # TODO: to test this correctly we need real imports from modules that are no dubs
 def test_infer_purity_import(code: str, expected: dict[str, SimpleImpure]) -> None:
     purity_results = infer_purity(code)
 
