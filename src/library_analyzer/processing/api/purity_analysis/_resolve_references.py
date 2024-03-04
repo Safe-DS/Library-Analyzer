@@ -474,9 +474,10 @@ def resolve_references(
                                 # ):
                                 if referenced_symbol not in raw_reasons[function.symbol.id].calls:
                                     raw_reasons[function.symbol.id].calls.add(referenced_symbol)
-                        # # If no referenced symbols are found, add the call to the list of unknown_calls of the raw_reasons dict for this function
-                        # elif call_references_result.node not in raw_reasons[function.symbol.id].unknown_calls:
-                        #     raw_reasons[function.symbol.id].unknown_calls.add(call_references_result.node.node)
+                        # If no referenced symbols are found, add the call to the list of unknown_calls
+                        # of the raw_reasons dict for this function
+                        elif call_references_result.node not in raw_reasons[function.symbol.id].unknown_calls:
+                            raw_reasons[function.symbol.id].unknown_calls.add(call_references_result.node)
 
             # Check if the function has value_references (References from a value node to a target node).
             if function.value_references:

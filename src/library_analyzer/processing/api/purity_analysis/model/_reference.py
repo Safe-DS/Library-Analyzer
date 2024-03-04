@@ -135,9 +135,9 @@ class Reasons:
         The result of the purity analysis
         This also works as a flag to determine if the purity analysis has already been performed:
         If it is None, the purity analysis has not been performed
-    unknown_calls : set[Symbol]
+    unknown_calls : set[Symbol | Reference]
         A list of all unknown calls.
-        Unknown calls are calls to functions that are not defined in the module or are simply not existing.
+        Unknown calls are calls to functions that are not defined in the module or are parameters.
     """
 
     id: NodeID
@@ -146,7 +146,7 @@ class Reasons:
     reads_from: set[GlobalVariable | ClassVariable | InstanceVariable | Import] = field(default_factory=set)
     calls: set[Symbol] = field(default_factory=set)
     result: PurityResult | None = field(default=None)
-    unknown_calls: set[Symbol] = field(default_factory=set)
+    unknown_calls: set[Symbol | Reference] = field(default_factory=set)
 
     def join_reasons_list(self, reasons_list: list[Reasons]) -> Reasons:
         """Join a list of Reasons objects.
@@ -202,3 +202,13 @@ class Reasons:
         self.unknown_calls.update(other.unknown_calls)
 
         return self
+
+    def remove_unknown_call(self, node_id: NodeID) -> None:
+        """Remove an unknown call from the reasons.
+
+        Parameters
+        ----------
+        node_id : NodeID
+            The NodeID of the unknown call to remove.
+        """
+        self.unknown_calls = {call for call in self.unknown_calls if call.id != node_id}

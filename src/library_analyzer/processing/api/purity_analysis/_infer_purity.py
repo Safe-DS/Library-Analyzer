@@ -32,6 +32,8 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Reasons,
     StringLiteral,
     UnknownCall,
+    Parameter,
+    Reference,
 )
 
 # TODO: check these for correctness and add reasons for impurity
@@ -753,39 +755,18 @@ class PurityAnalyzer:
                 else:
                     impurity_reasons.add(NonLocalVariableRead(read))
 
-        # TODO: remove safe infer (after new call graph is implemented)
+        # Check if the function has any unknown calls.
         if reasons.unknown_calls:
-            # for unknown_call in reasons.unknown_calls:
-            #     # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
-            #     if isinstance(unknown_call.node.func, astroid.Attribute):
-            #         unknown_call_func_name = unknown_call.node.func.attrname
-            #     else:
-            #         unknown_call_func_name = unknown_call.node.func.name
-            #
-            #     if reasons.function_scope is None:
-            #         print(reasons)
-            #
-            #     inferred_result = safe_infer(unknown_call.node.func)
-            #     # print(inferred_result)
-            #
-            #     if reasons.id in self.call_graph_forest.forest:
-            #         graph = self.call_graph_forest.get_graph(reasons.id)
-            #         # Check if the unknown call is a call of a parameter of that function.
-            #         if unknown_call_func_name in graph.symbol:  # TODO: get parameters
-            #             impurity_reasons.add(CallOfParameter(ParameterAccess(unknown_call_func_name)))
-            #
-            #         # The unknown call is a call of a function that is not defined in the module.
-            #         # In this case, the function can either be a builtin function (which is not in the builtin dir)
-            #         # or an imported function from another module.
-            #         elif inferred_result and isinstance(inferred_result, astroid.FunctionDef):
-            #             impurity_reasons.add(
-            #                 UnknownCall(CallOfFunction(call=unknown_call, inferred_def=inferred_result)))
-            #         elif inferred_result and isinstance(inferred_result, astroid.ClassDef):
-            #             impurity_reasons.add(
-            #                 UnknownCall(ClassInit(call=unknown_call, inferred_def=inferred_result)))
-            #         else:
-            #             impurity_reasons.add(UnknownCall(CallOfFunction(unknown_call)))
-            print("ERROR")
+            for unknown_call in reasons.unknown_calls:
+                if isinstance(unknown_call, Reference):
+                    impurity_reasons.add(UnknownCall(CallOfFunction(call=unknown_call.node)))
+
+                elif isinstance(unknown_call, Parameter):
+                    impurity_reasons.add(CallOfParameter(ParameterAccess(unknown_call)))
+
+                elif isinstance(unknown_call, Import):
+                    pass
+
         if impurity_reasons:
             return Impure(impurity_reasons)
         return Pure()

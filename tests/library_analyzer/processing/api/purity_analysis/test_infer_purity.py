@@ -123,14 +123,14 @@ def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # a
         if isinstance(reason.expression, StringLiteral):
             return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.value}"
         elif isinstance(reason.expression, ParameterAccess):
-            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.parameter}"
+            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.parameter.name}"
         elif isinstance(reason.expression, CallOfFunction | ClassInit):
             return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.name}"
     elif isinstance(reason, CallOfParameter):
         if isinstance(reason.expression, StringLiteral):
             return f"CallOfParameter.{reason.expression.__class__.__name__}.{reason.expression.value}"
         elif isinstance(reason.expression, ParameterAccess):
-            return f"CallOfParameter.{reason.expression.__class__.__name__}.{reason.expression.parameter}"
+            return f"CallOfParameter.{reason.expression.__class__.__name__}.{reason.expression.parameter.name}"
     else:
         raise NotImplementedError(f"Unknown reason: {reason}")
 
