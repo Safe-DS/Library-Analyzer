@@ -386,7 +386,7 @@ class CallOfFunction(Expression):
     inferred_def: astroid.FunctionDef | None = None
     name: str = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.inferred_def is not None:
             self.name = f"{self.inferred_def.root().name}.{self.inferred_def.name}"
         elif isinstance(self.call.func, astroid.Attribute):
@@ -416,7 +416,7 @@ class ClassInit(Expression):
     inferred_def: astroid.ClassDef | None = None
     name: str = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.inferred_def is not None:
             self.name = f"{self.inferred_def.root().name}.{self.inferred_def.name}"
         elif isinstance(self.call.func, astroid.Attribute):

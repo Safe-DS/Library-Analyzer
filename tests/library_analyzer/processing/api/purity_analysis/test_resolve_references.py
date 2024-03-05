@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 import astroid
 import pytest
 from library_analyzer.processing.api.purity_analysis import (
-    get_base_expression,
     resolve_references,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
@@ -73,6 +72,27 @@ class SimpleReasons:
 
     def __hash__(self) -> int:
         return hash(self.function_name)
+
+
+def get_base_expression(node: MemberAccess) -> astroid.NodeNG:
+    """Get the base expression of a MemberAccess node.
+
+    Get the base expression of a MemberAccess node by recursively calling this function on the receiver of the MemberAccess node.
+
+    Parameters
+    ----------
+    node : MemberAccess
+        The MemberAccess node whose base expression is to be found.
+
+    Returns
+    -------
+    astroid.NodeNG
+        The base expression of the given MemberAccess node.
+    """
+    if isinstance(node.receiver, MemberAccess):
+        return get_base_expression(node.receiver)
+    else:
+        return node.receiver
 
 
 def transform_reference_nodes(nodes: list[ReferenceNode]) -> list[ReferenceTestNode]:
@@ -1889,7 +1909,7 @@ def f(a):
                 ReferenceTestNode("a.line10", "FunctionDef.f", ["Parameter.a.line6"]),
                 ReferenceTestNode("inp.line10", "FunctionDef.f", ["LocalVariable.inp.line8"]),
                 ReferenceTestNode("var1.line10", "FunctionDef.f", ["GlobalVariable.var1.line2"]),
-                ReferenceTestNode("a.line11", "FunctionDef.f", ["LocalVariable.a.line10", "Parameter.a.line6"]),
+                ReferenceTestNode("a.line11", "FunctionDef.f", ["Parameter.a.line10", "Parameter.a.line6"]),
                 ReferenceTestNode("var2.line11", "FunctionDef.f", ["GlobalVariable.var2.line3"]),
                 ReferenceTestNode("inp.line11", "FunctionDef.f", ["LocalVariable.inp.line8"]),
                 ReferenceTestNode(
@@ -1900,7 +1920,7 @@ def f(a):
                 ReferenceTestNode(
                     "a.line12",
                     "FunctionDef.f",
-                    ["LocalVariable.a.line10", "LocalVariable.a.line11", "Parameter.a.line6"],
+                    ["Parameter.a.line10", "Parameter.a.line11", "Parameter.a.line6"],
                 ),
                 ReferenceTestNode("var3.line12", "FunctionDef.f", ["GlobalVariable.var3.line4"]),
             ],

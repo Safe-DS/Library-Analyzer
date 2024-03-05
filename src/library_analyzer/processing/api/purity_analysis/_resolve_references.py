@@ -6,8 +6,7 @@ import dataclasses
 import astroid
 from astroid.helpers import safe_infer
 
-from library_analyzer.processing.api.purity_analysis import get_module_data
-from library_analyzer.processing.api.purity_analysis._build_call_graph import CallGraphBuilder
+from library_analyzer.processing.api.purity_analysis import build_call_graph, get_module_data
 from library_analyzer.processing.api.purity_analysis.model import (
     Builtin,
     BuiltinOpen,
@@ -71,8 +70,8 @@ def _find_call_references(
     # Find functions that are called.
     if call_reference.name in functions:
         function_def = functions.get(call_reference.name)
-        function_symbols = [func.symbol for func in function_def if
-                            function_def]  # type: ignore[union-attr] # "None" is not iterable, but it is checked before
+        function_symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr]
+        # "None" is not iterable, but it is checked before
         result_value_reference.referenced_symbols.extend(function_symbols)
 
     # Find classes that are called (initialized).
@@ -98,7 +97,7 @@ def _find_call_references(
                 call_reference.node.func.attrname
                 if isinstance(call_reference.node.func, astroid.Attribute)
                 else call_reference.node.func.name
-            ),
+            ) if isinstance(call_reference.node.func, astroid.Attribute | astroid.Name) else None,
             lineno=call_reference.node.lineno,
             col_offset=call_reference.node.col_offset,
         )
@@ -130,7 +129,9 @@ def _find_call_references(
         inferred_node_def = safe_infer(call_reference.node.func)
         if inferred_node_def is None:
             raise ValueError(f"Could not resolve the node {call_reference.node} for the import {import_def}")
-        specified_import_def = dataclasses.replace(import_def, inferred_node=inferred_node_def, call=call_reference.node)
+        specified_import_def = dataclasses.replace(import_def,  # type: ignore[type-var] # import def is not None.
+                                                   inferred_node=inferred_node_def,
+                                                   call=call_reference.node)
         if specified_import_def:
             result_value_reference.referenced_symbols.append(specified_import_def)
 
@@ -213,7 +214,8 @@ def _find_value_references(
     # Find global variables that are referenced.
     if value_reference.name in function.globals_used:
         global_symbols = function.globals_used[
-            value_reference.name]  # type: ignore[assignment] # globals_used contains GlobalVariable which are a subtype of Symbol.
+            value_reference.name]  # type: ignore[assignment]
+        # globals_used contains GlobalVariable which are a subtype of Symbol.
         result_value_reference.referenced_symbols.extend(global_symbols)
 
     # Find functions that are referenced (as value).
@@ -238,7 +240,8 @@ def _find_value_references(
             inferred_node_def = next(value_reference.node.infer())
         if not inferred_node_def:
             raise ValueError(f"Could not resolve the node {value_reference.node} for the import {import_def}")
-        specified_import_def = dataclasses.replace(import_def, inferred_node=inferred_node_def)
+        specified_import_def = dataclasses.replace(import_def,  # type: ignore[type-var] # import def is not None.
+                                                   inferred_node=inferred_node_def)
         if specified_import_def:
             result_value_reference.referenced_symbols.append(specified_import_def)
 
@@ -278,7 +281,7 @@ def _find_value_references(
         if receiver_name in imports:
             # In references imported via "import" statements, the symbols of the imported module are not known yet.
             # The symbol is accessed via its name, which is of type MemberAccessValue.
-            # At this point, only the receiver(=module name) is saved in the imports dict.
+            # At this point, only the receiver(=module name) is saved in the imports' dict.
             # This means that the symbol for the member needs to be inferred from the module and added to the list
             # of referenced symbols.
             import_def = imports.get(receiver_name)
@@ -289,7 +292,8 @@ def _find_value_references(
                 if not inferred_node_def:
                     inferred_node_def = next(value_reference.node.node.infer())
                 if not inferred_node_def:
-                    raise ValueError(f"Could not resolve the node {value_reference.node.node} for the import {import_def}")
+                    raise ValueError(
+                        f"Could not resolve the node {value_reference.node.node} for the import {import_def}")
 
                 # Overcome the problem, that the import symbol object is the same for all possible functions and
                 # classes that are imported from one module.
@@ -389,13 +393,14 @@ def _find_target_references(
 
         # Find imported symbols that are referenced (as member of a MemberAccessTarget).
         # Astroids safe_infer methode will get the value of the assignment in the MemberAccessTarget node.
-        # However, it is possible to detect the write to an imported symbol which should be enough to ensure impurity.
+        # However, it is possible to detect write to an imported symbol which should be enough to ensure impurity.
+        receiver_name: str | None = None
         if isinstance(target_reference.node.receiver, astroid.Attribute):
             receiver_name = target_reference.node.receiver.attrname
-        else:
+        elif isinstance(target_reference.node.receiver, astroid.Name):
             receiver_name = target_reference.node.receiver.name
 
-        if receiver_name in imports:
+        if receiver_name is not None and receiver_name in imports:
             import_def = imports.get(receiver_name)
             specified_import_def = dataclasses.replace(import_def, name=target_reference.node.member)
 
@@ -460,7 +465,8 @@ def resolve_references(
                             module_data.imports
                         )
 
-                        # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
+                        # If referenced symbols are found,
+                        # add them to the list of symbols in the dict by the name of the node.
                         # If the name does not yet exist, create a new list with the reference.
                         if call_references_result.referenced_symbols:
                             call_references.setdefault(call_references_result.node.name, []).append(
@@ -492,7 +498,8 @@ def resolve_references(
                             module_data.imports,
                         )
 
-                        # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
+                        # If referenced symbols are found,
+                        # add them to the list of symbols in the dict by the name of the node.
                         # If the name does not yet exist, create a new list with the reference.
                         if value_reference_result.referenced_symbols:
                             value_references.setdefault(value_reference_result.node.name, []).append(
@@ -512,7 +519,8 @@ def resolve_references(
                                     # Since calls of imported functions are treated within _find_value_references
                                     # as MemberAccessValue, they need to be added to the calls of the raw_reasons dict
                                     # instead of the reads_from.
-                                    if isinstance(referenced_symbol.inferred_node, astroid.FunctionDef | astroid.ClassDef):
+                                    if isinstance(referenced_symbol.inferred_node,
+                                                  astroid.FunctionDef | astroid.ClassDef):
                                         if referenced_symbol not in raw_reasons[function.symbol.id].calls:
                                             raw_reasons[function.symbol.id].calls.add(referenced_symbol)
                                     else:  # noqa: PLR5501
@@ -531,7 +539,8 @@ def resolve_references(
                             module_data.imports
                         )
 
-                        # If referenced symbols are found, add them to the list of symbols in the dict by the name of the node.
+                        # If referenced symbols are found,
+                        # add them to the list of symbols in the dict by the name of the node.
                         # If the name does not yet exist, create a new list with the reference.
                         if target_reference_result.referenced_symbols:
                             target_references.setdefault(target_reference_result.node.name, []).append(
@@ -539,7 +548,8 @@ def resolve_references(
 
                             # Add the referenced symbols to the writes_to of the raw_reasons dict for this function
                             for referenced_symbol in target_reference_result.referenced_symbols:
-                                if isinstance(referenced_symbol, GlobalVariable | ClassVariable | InstanceVariable | Import):
+                                if isinstance(referenced_symbol,
+                                              GlobalVariable | ClassVariable | InstanceVariable | Import):
                                     # Since classes and functions are defined as immutable,
                                     # writing to them is not a reason for impurity.
                                     # Also, it is not common to do so anyway.
@@ -552,8 +562,7 @@ def resolve_references(
     name_references: dict[str, list[ReferenceNode]] = merge_dicts(value_references, target_references)
     resolved_references: dict[str, list[ReferenceNode]] = merge_dicts(call_references, name_references)
 
-    # call_graph = build_call_graph(module_data.functions, module_data.classes, raw_reasons)
-    call_graph = CallGraphBuilder(module_data.classes, raw_reasons).call_graph_forest
+    call_graph = build_call_graph(module_data.classes, raw_reasons)
 
     # TODO: how do we change that? LARS
     # The resolved_references, raw_reasons and modul_data are not needed

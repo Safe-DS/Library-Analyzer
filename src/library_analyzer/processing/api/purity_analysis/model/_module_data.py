@@ -24,19 +24,6 @@ class ModuleData:
     functions : dict[str, list[FunctionScope]]
         All functions and a list of their FunctionScopes.
         The value is a list since there can be multiple functions with the same name.
-    global_variables : dict[str, Scope]
-        All global variables and their Scope.
-    value_nodes : dict[astroid.Name | MemberAccessValue, Scope]
-        All value nodes and their Scope.
-        Value nodes are nodes that are read from.
-    target_nodes : dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope]
-        All target nodes and their Scope.
-        Target nodes are nodes that are written to.
-    parameters : dict[astroid.FunctionDef, tuple[Scope, list[astroid.AssignName]]]
-        All parameters of functions and a tuple of their Scope and a set of their target nodes.
-        These are used to determine the scope of the parameters for each function.
-    function_calls : dict[astroid.Call, Scope]
-        All function calls and their Scope.
     imports : dict[str, Import]
         All imported symbols.
     """
@@ -44,11 +31,6 @@ class ModuleData:
     scope: Scope
     classes: dict[str, ClassScope]
     functions: dict[str, list[FunctionScope]]
-    global_variables: dict[str, Scope]
-    value_nodes: dict[astroid.Name | MemberAccessValue, Scope]
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope]
-    parameters: dict[astroid.FunctionDef, tuple[Scope, list[astroid.AssignName]]]
-    function_calls: dict[astroid.Call, Scope]
     imports: dict[str, Import]
 
 
@@ -109,6 +91,40 @@ class MemberAccessTarget(MemberAccess):
     def __hash__(self) -> int:
         return hash(str(self))
 
+    @classmethod
+    def construct_member_access_target(cls, node: astroid.Attribute | astroid.AssignAttr) -> MemberAccessTarget:
+        """Construct a MemberAccessTarget node.
+
+        Construct a MemberAccessTarget node from an Attribute or AssignAttr node.
+        The receiver is the node that is accessed, and the member is the node that accesses the receiver.
+        The receiver can be nested.
+
+        Parameters
+        ----------
+        node : astroid.Attribute | astroid.AssignAttr
+            The node to construct the MemberAccessTarget node from.
+
+        Returns
+        -------
+        MemberAccessTarget
+            The constructed MemberAccessTarget node.
+        """
+        receiver = node.expr
+        member = node.attrname
+
+        try:
+            if isinstance(receiver, astroid.Name):
+                return MemberAccessTarget(node=node, receiver=receiver, member=member)
+            elif isinstance(receiver, astroid.Call):
+                return MemberAccessTarget(node=node, receiver=receiver.func, member=member)
+            elif isinstance(receiver, astroid.Attribute):
+                return MemberAccessTarget(node=node, receiver=cls.construct_member_access_target(receiver), member=member)
+            else:
+                return MemberAccessTarget(node=node, receiver=None, member=member)
+        # Since it is tedious to add testcases for this function, ignore the coverage for now
+        except TypeError as err:  # pragma: no cover
+            raise TypeError(f"Unexpected node type {type(node)}") from err  # pragma: no cover
+
 
 @dataclass
 class MemberAccessValue(MemberAccess):
@@ -121,6 +137,40 @@ class MemberAccessValue(MemberAccess):
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    @classmethod
+    def construct_member_access_value(cls, node: astroid.Attribute) -> MemberAccessValue:
+        """Construct a MemberAccessValue node.
+
+        Construct a MemberAccessValue node from an Attribute node.
+        The receiver is the node that is accessed, and the member is the node that accesses the receiver.
+        The receiver can be nested.
+
+        Parameters
+        ----------
+        node : astrid.Attribute
+            The node to construct the MemberAccessValue node from.
+
+        Returns
+        -------
+        MemberAccessValue
+            The constructed MemberAccessValue node.
+        """
+        receiver = node.expr
+        member = node.attrname
+
+        try:
+            if isinstance(receiver, astroid.Name):
+                return MemberAccessValue(node=node, receiver=receiver, member=member)
+            elif isinstance(receiver, astroid.Call):
+                return MemberAccessValue(node=node, receiver=receiver.func, member=member)
+            elif isinstance(receiver, astroid.Attribute):
+                return MemberAccessValue(node=node, receiver=cls.construct_member_access_value(receiver), member=member)
+            else:
+                return MemberAccessValue(node=node, receiver=None, member=member)
+        # Since it is tedious to add testcases for this function, ignore the coverage for now
+        except TypeError as err:  # pragma: no cover
+            raise TypeError(f"Unexpected node type {type(node)}") from err  # pragma: no cover
 
 
 @dataclass
@@ -156,6 +206,80 @@ class NodeID:
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    @classmethod
+    def calc_node_id(cls,
+        node: (
+            astroid.NodeNG
+            | astroid.Module
+            | astroid.ClassDef
+            | astroid.FunctionDef
+            | astroid.AssignName
+            | astroid.Name
+            | astroid.AssignAttr
+            | astroid.Import
+            | astroid.ImportFrom
+            | astroid.Call
+            | astroid.Lambda
+            | astroid.ListComp
+            | MemberAccess
+        ),
+    ) -> NodeID:
+        """Calculate the NodeID of the given node.
+
+        The NodeID is calculated by using the name of the module, the name of the node, the line number and the column offset.
+        The NodeID is used to identify nodes in the module.
+
+        Parameters
+        ----------
+        node : astroid.NodeNG | astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name | astroid.AssignAttr | astroid.Import | astroid.ImportFrom | astroid.Call | astroid.Lambda | astroid.ListComp | MemberAccess
+
+        Returns
+        -------
+        NodeID
+            The NodeID of the given node.
+        """
+        if isinstance(node, MemberAccess):
+            module = node.node.root().name
+        else:
+            module = node.root().name
+            # TODO: check if this is correct when working with a real module
+
+        match node:
+            case astroid.Module():
+                return NodeID(module, node.name, 0, 0)
+            case astroid.ClassDef():
+                return NodeID(module, node.name, node.lineno, node.col_offset)
+            case astroid.FunctionDef():
+                return NodeID(module, node.name, node.fromlineno, node.col_offset)
+            case astroid.AssignName():
+                return NodeID(module, node.name, node.lineno, node.col_offset)
+            case astroid.Name():
+                return NodeID(module, node.name, node.lineno, node.col_offset)
+            case MemberAccess():
+                return NodeID(module, node.name, node.node.lineno, node.node.col_offset)
+            case astroid.Import():  # TODO: we need a special treatment for imports and import from
+                return NodeID(module, node.names[0][0], node.lineno, node.col_offset)
+            case astroid.ImportFrom():
+                return NodeID(module, node.names[0][1], node.lineno, node.col_offset)
+            case astroid.AssignAttr():
+                return NodeID(module, node.attrname, node.lineno, node.col_offset)
+            case astroid.Call():
+                # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
+                if isinstance(node.func, astroid.Attribute):
+                    return NodeID(module, node.func.attrname, node.lineno, node.col_offset)
+                if isinstance(node.func, astroid.Name):
+                    return NodeID(module, node.func.name, node.lineno, node.col_offset)
+            case astroid.Lambda():
+                if isinstance(node.parent, astroid.Assign) and node.name != "LAMBDA":
+                    return NodeID(module, node.name, node.lineno, node.col_offset)
+                return NodeID(module, "LAMBDA", node.lineno, node.col_offset)
+            case astroid.ListComp():
+                return NodeID(module, "LIST_COMP", node.lineno, node.col_offset)
+            case astroid.NodeNG():
+                return NodeID(module, node.as_string(), node.lineno, node.col_offset)
+            case _:
+                raise ValueError(f"Node type {node.__class__.__name__} is not supported yet.")
 
 
 @dataclass

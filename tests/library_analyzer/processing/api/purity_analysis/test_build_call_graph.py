@@ -418,7 +418,7 @@ def fun():
                 ".fun.5.0": {".A.2.0"},
             },
         ),
-        (  # language=Python "member access - class without init",
+        (  # language=Python "member access - class without call",
             """
 class A:
     class_attr1 = 20
@@ -453,22 +453,6 @@ def fun2():
                 ".g.5.4": set(),
                 ".fun1.8.0": {".A.2.0", ".g.5.4"},
                 ".fun2.12.0": {".A.2.0", ".g.5.4"},
-            },
-        ),
-        (  # language=Python "member access - init",
-            """
-class A:
-    def __init__(self):
-        pass
-
-def fun():
-    a = A()
-
-            """,  # language=none
-            {
-                ".A.2.0": {".__init__.3.4"},
-                ".__init__.3.4": set(),
-                ".fun.6.0": {".A.2.0"},
             },
         ),
         (  # language=Python "member access - instance function",
@@ -712,9 +696,8 @@ lambda_add = lambda x, y: A().value.add(x, y)
         "Class call - init",
         "Class call - init propagation",
         "member access - class",
-        "member access - class without init",
+        "member access - class without call",
         "member access - methode",
-        "member access - init",
         "member access - instance function",
         "member access - function call of functions with same name",
         "member access - function call of functions with same name and nested calls",

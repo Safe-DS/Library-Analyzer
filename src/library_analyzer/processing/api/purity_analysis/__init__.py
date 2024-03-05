@@ -1,8 +1,9 @@
 """Analyze the purity of a library's API."""
 
+from ._build_call_graph import (
+    build_call_graph,
+)
 from ._get_module_data import (
-    calc_node_id,
-    get_base_expression,
     get_module_data,
 )
 from ._infer_purity import (
@@ -15,9 +16,8 @@ from ._resolve_references import (
 
 __all__ = [
     "get_module_data",
-    "calc_node_id",
-    "get_base_expression",
     "resolve_references",
     "infer_purity",
     "get_purity_results",
+    "build_call_graph",
 ]
