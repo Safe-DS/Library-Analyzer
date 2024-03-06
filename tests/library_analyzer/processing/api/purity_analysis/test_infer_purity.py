@@ -444,7 +444,7 @@ def fun(pos_arg):
             """,  # language= None
             {"fun.line2": SimpleImpure({"FileWrite.StringLiteral.stdout"})},
         ),
-        (  # language=Python "VariableWrite to GlobalVariable"
+        (  # language=Python "VariableWrite to shadowed GlobalVariable"
             """
 var1 = 1
 def fun():
@@ -455,7 +455,7 @@ def fun():
                 "fun.line3": Pure(),
             },
         ),
-        (  # language=Python "VariableWrite to GlobalVariable with parameter"
+        (  # language=Python "VariableWrite to GlobalVariable
             """
 var1 = 1
 def fun(x):
@@ -1111,8 +1111,8 @@ async def fun2():
     ids=[
         "Print with str",
         "Print with parameter",
+        "VariableWrite to shadowed GlobalVariable",
         "VariableWrite to GlobalVariable",
-        "VariableWrite to GlobalVariable with parameter",
         "VariableRead from GlobalVariable",
         "Impure Class initialization",
         "Class methode call",

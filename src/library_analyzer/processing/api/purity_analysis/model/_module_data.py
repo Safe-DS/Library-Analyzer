@@ -268,7 +268,7 @@ class NodeID:
                 # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
                 if isinstance(node.func, astroid.Attribute):
                     return NodeID(module, node.func.attrname, node.lineno, node.col_offset)
-                if isinstance(node.func, astroid.Name):
+                elif isinstance(node.func, astroid.Name):
                     return NodeID(module, node.func.name, node.lineno, node.col_offset)
             case astroid.Lambda():
                 if isinstance(node.parent, astroid.Assign) and node.name != "LAMBDA":

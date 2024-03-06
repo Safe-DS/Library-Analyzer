@@ -456,51 +456,6 @@ def parameter(a):
                 ],
             },
         ),
-        (  # language=Python "Global unused"
-            """
-glob1 = 10
-
-def glob():
-    global glob1
-            """,  # language=none
-            {
-                "glob": [
-                    SimpleFunctionScope(
-                        "GlobalVariable.FunctionDef.glob",
-                        [],
-                        [],
-                        [],
-                        [],
-                        [],
-                        ["AssignName.glob1"]
-                    ),
-                ],
-            },
-        ),
-        (  # language=Python "Global and Assign"
-            """
-global glob1 # TODO: detect this as global too
-
-def glob():
-    global glob1
-    var1 = glob1
-            """,  # language=none
-            {
-                "glob": [
-                    SimpleFunctionScope(
-                        "GlobalVariable.FunctionDef.glob",
-                        [
-                            SimpleScope("LocalVariable.AssignName.var1", [])
-                        ],
-                        ["AssignName.var1"],
-                        ["Name.glob1"],
-                        [],
-                        [],
-                        ["AssignName.glob1"]
-                    ),
-                ],
-            },
-        ),
         (  # language=Python "Assign Class Attribute"
             """
 class A:
@@ -781,8 +736,6 @@ def f():
         "Assign",
         "Multiple Assign",
         "Assign Parameter",
-        "Global unused",
-        "Global and Assign",
         "Assign Class Attribute",
         "Assign Instance Attribute",
         "AssignAttr",
@@ -1052,7 +1005,52 @@ def test_get_module_data_parameters(code: str, expected: str) -> None:
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        (  # language=Python "Function with reassignment of global variable"
+        (  # language=Python "Global unused"
+            """
+glob1 = 10
+
+def glob():
+    global glob1
+            """,  # language=none
+            {
+                "glob": [
+                    SimpleFunctionScope(
+                        "GlobalVariable.FunctionDef.glob",
+                        [],
+                        [],
+                        [],
+                        [],
+                        [],
+                        ["AssignName.glob1"],
+                    ),
+                ],
+            },
+        ),
+        (  # language=Python "Global with global keyword"
+            """
+global glob1  # This is not detected since there is no global assignment to be found.
+
+def glob():
+    global glob1
+    var1 = glob1
+            """,  # language=none
+            {
+                "glob": [
+                    SimpleFunctionScope(
+                        "GlobalVariable.FunctionDef.glob",
+                        [
+                            SimpleScope("LocalVariable.AssignName.var1", [])
+                        ],
+                        ["AssignName.var1"],
+                        ["Name.glob1"],
+                        [],
+                        [],
+                        []
+                    ),
+                ],
+            },
+        ),
+        (  # language=Python "Reassignment of global variable"
             """
 a = True
 if a:
@@ -1078,7 +1076,7 @@ def f():
                 ],
             },
         ),
-        (  # language=Python "Functions with different uses of globals"
+        (  # language=Python "Different uses of globals"
             """
 var1, var2 = 10, 20
 
@@ -1120,7 +1118,7 @@ def h():
                 ],
             },
         ),
-        (  # language=Python "Function with shadowing of global variable"
+        (  # language=Python "Shadowing of global variable"
             """
 var1 = 10
 
@@ -1147,7 +1145,7 @@ def f():
                 ],
             },
         ),
-        (  # language=Python "Function with List Comprehension with global"
+        (  # language=Python "List Comprehension with global"
             """
 nums = ["aaa", "bb", "ase"]
 
@@ -1172,7 +1170,7 @@ def f():
                 ],
             },
         ),
-        (  # language=Python "Function with List Comprehension with global and condition"
+        (  # language=Python "List Comprehension with global and condition"
             """
 nums = ["aaa", "bb", "ase"]
 var1 = 10
@@ -1198,7 +1196,7 @@ def f():
                 ],
             },
         ),
-        (  # language=Python "Function with List Comprehension without global"
+        (  # language=Python "List Comprehension with global without global keyword"
             """
 nums = ["aaa", "bb", "ase"]
 
@@ -1222,7 +1220,7 @@ def f():
                 ],
             },
         ),
-        (  # language=Python "Function with Lambda with global"
+        (  # language=Python "Lambda with global"
             """
 var1 = 1
 
@@ -1254,7 +1252,7 @@ def f():
                 ],
             },
         ),
-        (  # language=Python "Function with Lambda without global"
+        (  # language=Python "Lambda with global without global keyword"
             """
 var1 = 1
 
@@ -1287,14 +1285,16 @@ def f():
         ),
     ],
     ids=[
-        "Function with reassignment of global variable",
-        "Functions with different uses of globals",
-        "Function with shadowing of global variable",
-        "Function with List Comprehension with global",
-        "Function with List Comprehension with global and condition",
-        "Function with List Comprehension without global",
-        "Function with Lambda with global",
-        "Function with Lambda without global",
+        "Global unused",
+        "Global with global keyword",
+        "Reassignment of global variable",
+        "Different uses of globals",
+        "Shadowing of global variable",
+        "List Comprehension with global",
+        "List Comprehension with global and condition",
+        "List Comprehension with global without global keyword",
+        "Lambda with global",
+        "Lambda with global without global keyword",
     ],
 )
 def test_get_module_data_globals(code: str, expected: str) -> None:

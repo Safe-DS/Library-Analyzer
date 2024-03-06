@@ -402,9 +402,9 @@ def _find_target_references(
 
         if receiver_name is not None and receiver_name in imports:
             import_def = imports.get(receiver_name)
-            specified_import_def = dataclasses.replace(import_def, name=target_reference.node.member)
-
-            result_target_reference.referenced_symbols.append(specified_import_def)
+            if import_def:
+                specified_import_def = dataclasses.replace(import_def, name=target_reference.node.member)
+                result_target_reference.referenced_symbols.append(specified_import_def)
 
     return result_target_reference
 

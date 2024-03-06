@@ -189,7 +189,8 @@ class CallGraphBuilder:
             # when inferring the purity later.
             for unknown_call in self.call_graph_forest.get_graph(reason_id).reasons.unknown_calls:
                 if unknown_call.node == call.call:
-                    self.call_graph_forest.get_graph(reason_id).reasons.remove_unknown_call(NodeID.calc_node_id(call.call))
+                    (self.call_graph_forest.get_graph(reason_id).reasons.
+                     remove_unknown_call(NodeID.calc_node_id(call.call)))
 
         # Deal with the case that the call calls a function parameter.
         if isinstance(call, Parameter):

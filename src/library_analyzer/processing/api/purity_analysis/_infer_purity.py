@@ -572,7 +572,7 @@ def get_purity_results(
     Parameters
     ----------
     src_dir_path : Path
-       The path of the source directory of the package.
+        The path of the source directory of the package.
 
     Returns
     -------
