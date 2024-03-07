@@ -11,9 +11,9 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ClassScope,
     FunctionScope,
     MemberAccess,
+    NodeID,
     Scope,
     Symbol,
-    NodeID
 )
 
 
@@ -444,10 +444,7 @@ def parameter(a):
                 "parameter": [
                     SimpleFunctionScope(
                         "GlobalVariable.FunctionDef.parameter",
-                        [
-                            SimpleScope("Parameter.AssignName.a", []),
-                            SimpleScope("LocalVariable.AssignName.var1", [])
-                        ],
+                        [SimpleScope("Parameter.AssignName.a", []), SimpleScope("LocalVariable.AssignName.var1", [])],
                         ["AssignName.a", "AssignName.var1"],
                         ["Name.a"],
                         [],
@@ -515,7 +512,7 @@ def instance_attr():
                         ["Call.B"],
                         [],
                     ),
-                ]
+                ],
             },
         ),
         (  # language=Python "AssignAttr"
@@ -530,15 +527,13 @@ def assign_attr():
                 "assign_attr": [
                     SimpleFunctionScope(
                         "GlobalVariable.FunctionDef.assign_attr",
-                        [
-                            SimpleScope("LocalVariable.MemberAccess.A.class_attr", [])
-                        ],
+                        [SimpleScope("LocalVariable.MemberAccess.A.class_attr", [])],
                         ["MemberAccessTarget.A.class_attr", "Name.A"],
                         [],
                         [],
                         [],
                     ),
-                ]
+                ],
             },
         ),
         (  # language=Python "AugAssign"
@@ -550,10 +545,7 @@ def aug_assign(var1):
                 "aug_assign": [
                     SimpleFunctionScope(
                         "GlobalVariable.FunctionDef.aug_assign",
-                        [
-                            SimpleScope("Parameter.AssignName.var1", []),
-                            SimpleScope("Parameter.AssignName.var1", [])
-                        ],
+                        [SimpleScope("Parameter.AssignName.var1", []), SimpleScope("Parameter.AssignName.var1", [])],
                         ["AssignName.var1"],
                         [],
                         [],
@@ -571,9 +563,7 @@ def ann_assign():
                 "ann_assign": [
                     SimpleFunctionScope(
                         "GlobalVariable.FunctionDef.ann_assign",
-                        [
-                            SimpleScope("LocalVariable.AssignName.var1", [])
-                        ],
+                        [SimpleScope("LocalVariable.AssignName.var1", [])],
                         ["AssignName.var1"],
                         [],
                         [],
@@ -592,7 +582,7 @@ def bin_op(var2):
                         "GlobalVariable.FunctionDef.bin_op",
                         [
                             SimpleScope("Parameter.AssignName.var2", []),
-                            SimpleScope("LocalVariable.AssignName.var1", [])
+                            SimpleScope("LocalVariable.AssignName.var1", []),
                         ],
                         ["AssignName.var2", "AssignName.var1"],
                         ["Name.var2"],
@@ -613,7 +603,7 @@ def bool_op(var2):
                         "GlobalVariable.FunctionDef.bool_op",
                         [
                             SimpleScope("Parameter.AssignName.var2", []),
-                            SimpleScope("LocalVariable.AssignName.var1", [])
+                            SimpleScope("LocalVariable.AssignName.var1", []),
                         ],
                         ["AssignName.var2", "AssignName.var1"],
                         ["Name.var2"],
@@ -634,15 +624,17 @@ def func_call():
             {
                 "func": [
                     SimpleFunctionScope(
-                        "GlobalVariable.FunctionDef.func", [], [], [], [],
+                        "GlobalVariable.FunctionDef.func",
+                        [],
+                        [],
+                        [],
+                        [],
                     ),
                 ],
                 "func_call": [
                     SimpleFunctionScope(
                         "GlobalVariable.FunctionDef.func_call",
-                        [
-                            SimpleScope("LocalVariable.AssignName.var1", [])
-                        ],
+                        [SimpleScope("LocalVariable.AssignName.var1", [])],
                         ["AssignName.var1"],
                         [],
                         ["Call.func"],
@@ -662,9 +654,7 @@ def func_call_par(param):
                 "func": [
                     SimpleFunctionScope(
                         "GlobalVariable.FunctionDef.func",
-                        [
-                          SimpleScope("Parameter.AssignName.a", [])
-                        ],
+                        [SimpleScope("Parameter.AssignName.a", [])],
                         ["AssignName.a"],
                         [],
                         [],
@@ -676,7 +666,7 @@ def func_call_par(param):
                         "GlobalVariable.FunctionDef.func_call_par",
                         [
                             SimpleScope("Parameter.AssignName.param", []),
-                            SimpleScope("LocalVariable.AssignName.var1", [])
+                            SimpleScope("LocalVariable.AssignName.var1", []),
                         ],
                         ["AssignName.param", "AssignName.var1"],
                         ["Name.param"],
@@ -957,10 +947,22 @@ def all_parameters(pos_arg, def_arg="default_value", *args, key_arg="default_kwa
                             SimpleScope("Parameter.AssignName.def_arg", []),
                             SimpleScope("Parameter.AssignName.key_arg", []),
                         ],
-                        ["AssignName.args", "AssignName.kwargs", "AssignName.pos_arg", "AssignName.def_arg", "AssignName.key_arg"],
+                        [
+                            "AssignName.args",
+                            "AssignName.kwargs",
+                            "AssignName.pos_arg",
+                            "AssignName.def_arg",
+                            "AssignName.key_arg",
+                        ],
                         ["Name.pos_arg", "Name.def_arg", "Name.args", "Name.key_arg", "Name.kwargs"],
                         [],
-                        ["AssignName.pos_arg", "AssignName.def_arg", "AssignName.key_arg", "AssignName.args", "AssignName.kwargs"],
+                        [
+                            "AssignName.pos_arg",
+                            "AssignName.def_arg",
+                            "AssignName.key_arg",
+                            "AssignName.args",
+                            "AssignName.kwargs",
+                        ],
                     ),
                 ],
             },
@@ -1058,14 +1060,12 @@ def glob():
                 "glob": [
                     SimpleFunctionScope(
                         "GlobalVariable.FunctionDef.glob",
-                        [
-                            SimpleScope("LocalVariable.AssignName.var1", [])
-                        ],
+                        [SimpleScope("LocalVariable.AssignName.var1", [])],
                         ["AssignName.var1"],
                         ["Name.glob1"],
                         [],
                         [],
-                        []
+                        [],
                     ),
                 ],
             },
@@ -1524,7 +1524,6 @@ def f():
                 ],
             },
         ),
-
     ],
     ids=[
         "Trivial function",
@@ -2720,13 +2719,21 @@ def try_except(num1, num2, num3):
                                 SimpleScope("Parameter.AssignName.num1", []),
                                 SimpleScope("Parameter.AssignName.num2", []),
                                 SimpleScope("Parameter.AssignName.num3", []),
-                                SimpleScope("TryExcept", [
-                                    SimpleScope("LocalVariable.AssignName.result", []),
-                                    SimpleScope("LocalVariable.AssignName.error", []),
-                                ])
+                                SimpleScope(
+                                    "TryExcept",
+                                    [
+                                        SimpleScope("LocalVariable.AssignName.result", []),
+                                        SimpleScope("LocalVariable.AssignName.error", []),
+                                    ],
+                                ),
                             ],
-                            ["AssignName.num1", "AssignName.num2", "AssignName.num3", "AssignName.error",
-                             "AssignName.result"],
+                            [
+                                "AssignName.num1",
+                                "AssignName.num2",
+                                "AssignName.num3",
+                                "AssignName.error",
+                                "AssignName.result",
+                            ],
                             ["Name.num1", "Name.num2", "Name.ZeroDivisionError", "Name.error"],
                             [],
                             ["AssignName.num1", "AssignName.num2", "AssignName.num3"],
@@ -2755,14 +2762,23 @@ def try_except_finally(num1, num2, num3):
                                 SimpleScope("Parameter.AssignName.num1", []),
                                 SimpleScope("Parameter.AssignName.num2", []),
                                 SimpleScope("Parameter.AssignName.num3", []),
-                                SimpleScope("TryExceptFinally", [
-                                    SimpleScope("LocalVariable.AssignName.result", []),
-                                    SimpleScope("LocalVariable.AssignName.error", []),
-                                    SimpleScope("LocalVariable.AssignName.final", []),
-                                ])
+                                SimpleScope(
+                                    "TryExceptFinally",
+                                    [
+                                        SimpleScope("LocalVariable.AssignName.result", []),
+                                        SimpleScope("LocalVariable.AssignName.error", []),
+                                        SimpleScope("LocalVariable.AssignName.final", []),
+                                    ],
+                                ),
                             ],
-                            ["AssignName.num1", "AssignName.num2", "AssignName.num3", "AssignName.error",
-                             "AssignName.result", "AssignName.final"],
+                            [
+                                "AssignName.num1",
+                                "AssignName.num2",
+                                "AssignName.num3",
+                                "AssignName.error",
+                                "AssignName.result",
+                                "AssignName.final",
+                            ],
                             ["Name.num1", "Name.num2", "Name.ZeroDivisionError", "Name.error", "Name.num3"],
                             [],
                             ["AssignName.num1", "AssignName.num2", "AssignName.num3"],

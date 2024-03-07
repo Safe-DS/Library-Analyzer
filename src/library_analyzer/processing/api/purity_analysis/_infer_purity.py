@@ -310,16 +310,28 @@ class PurityAnalyzer:
             # The file name is a variable
             if file_var:
                 open_mode = open_mode or OPEN_MODES[open_mode_str]
-                return Impure({FileRead(ParameterAccess(file_var))} if open_mode is OpenMode.READ
-                              else {FileWrite(ParameterAccess(file_var))} if open_mode is OpenMode.WRITE
-                else {FileRead(ParameterAccess(file_var)), FileWrite(ParameterAccess(file_var))})
+                return Impure(
+                    {FileRead(ParameterAccess(file_var))}
+                    if open_mode is OpenMode.READ
+                    else (
+                        {FileWrite(ParameterAccess(file_var))}
+                        if open_mode is OpenMode.WRITE
+                        else {FileRead(ParameterAccess(file_var)), FileWrite(ParameterAccess(file_var))}
+                    ),
+                )
 
             # The file name is a string literal
             elif file_str:
                 open_mode = OPEN_MODES[open_mode_str]
-                return Impure({FileRead(StringLiteral(file_str))} if open_mode is OpenMode.READ
-                              else {FileWrite(StringLiteral(file_str))} if open_mode is OpenMode.WRITE
-                else {FileRead(StringLiteral(file_str)), FileWrite(StringLiteral(file_str))})
+                return Impure(
+                    {FileRead(StringLiteral(file_str))}
+                    if open_mode is OpenMode.READ
+                    else (
+                        {FileWrite(StringLiteral(file_str))}
+                        if open_mode is OpenMode.WRITE
+                        else {FileRead(StringLiteral(file_str)), FileWrite(StringLiteral(file_str))}
+                    ),
+                )
             else:
                 return Impure({FileRead(StringLiteral("")), FileWrite(StringLiteral(""))})
         else:
@@ -365,11 +377,13 @@ class PurityAnalyzer:
                     if read.inferred_node:
                         # If the inferred node is a function, it must be analyzed to determine its purity.
                         if isinstance(read.inferred_node, astroid.FunctionDef):
-                            impurity_reasons.add(UnknownCall(CallOfFunction(call=read.call,
-                                                                            inferred_def=read.inferred_node)))
+                            impurity_reasons.add(
+                                UnknownCall(CallOfFunction(call=read.call, inferred_def=read.inferred_node)),
+                            )
                         elif isinstance(read.inferred_node, astroid.ClassDef):
-                            impurity_reasons.add(UnknownCall(ClassInit(call=read.call,
-                                                                       inferred_def=read.inferred_node)))
+                            impurity_reasons.add(
+                                UnknownCall(ClassInit(call=read.call, inferred_def=read.inferred_node)),
+                            )
                         # If the inferred node is a module, it will not count towards the impurity of the function.
                         # If this was added, nearly anything would be impure.
                         # Also, since the imported symbols are analyzed in much more detail, this can be omitted.
@@ -433,11 +447,13 @@ class PurityAnalyzer:
         inferred_node_id = NodeID.calc_node_id(imported_node.symbol.inferred_node)
 
         # Check the cache for the purity results of the imported module and return the result for the imported node.
-        if (imported_module_id in self.purity_cache_imported_modules
+        if (
+            imported_module_id in self.purity_cache_imported_modules
             and inferred_node_id in self.purity_cache_imported_modules[imported_module_id]
         ):
-            return (self.purity_cache_imported_modules[imported_module_id]
-                    .get(inferred_node_id))  # type: ignore[return-value] # It is checked before that the key exists.
+            return self.purity_cache_imported_modules[imported_module_id].get(
+                inferred_node_id,
+            )  # type: ignore[return-value] # It is checked before that the key exists.
 
         # Get the source code of the imported module and the purity result for all functions of that module.
         source_code = imported_module.as_string()
@@ -454,11 +470,19 @@ class PurityAnalyzer:
             return all_purity_result[inferred_node_id]
         else:
             if isinstance(imported_node.symbol.inferred_node, astroid.ClassDef):
-                return Impure({UnknownCall(ClassInit(call=imported_node.symbol.call,
-                                                     inferred_def=imported_node.symbol.inferred_node))})
-            return Impure({UnknownCall(CallOfFunction(call=imported_node.symbol.call,
-                                                      inferred_def=imported_node.symbol.inferred_node
-                                                      if imported_node.symbol.inferred_node else None))})
+                return Impure({
+                    UnknownCall(
+                        ClassInit(call=imported_node.symbol.call, inferred_def=imported_node.symbol.inferred_node),
+                    ),
+                })
+            return Impure({
+                UnknownCall(
+                    CallOfFunction(
+                        call=imported_node.symbol.call,
+                        inferred_def=imported_node.symbol.inferred_node if imported_node.symbol.inferred_node else None,
+                    ),
+                ),
+            })
 
     def _process_node(self, node: NewCallGraphNode) -> PurityResult:
         """Process a node in the call graph.

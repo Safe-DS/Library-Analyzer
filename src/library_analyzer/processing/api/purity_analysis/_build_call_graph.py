@@ -67,7 +67,8 @@ class CallGraphBuilder:
         # Create a new CallGraphNode for each function and add it to the forest.
         for reason in self.raw_reasons.values():
             # Check if the CallGraphNode is already in the forest and has no calls left to deal with.
-            if (self.call_graph_forest.has_graph(reason.id)
+            if (
+                self.call_graph_forest.has_graph(reason.id)
                 and not self.call_graph_forest.get_graph(reason.id).reasons.calls
             ):
                 continue
@@ -92,16 +93,12 @@ class CallGraphBuilder:
         """
         for klass in self.classes.values():
             # Create a new CallGraphNode for each class and add it to the forest.
-            class_cgn = NewCallGraphNode(
-                symbol=klass.symbol,
-                reasons=Reasons(klass.symbol.id)
-            )
+            class_cgn = NewCallGraphNode(symbol=klass.symbol, reasons=Reasons(klass.symbol.id))
             # If the class has an init function, add it to the class node as a child.
             # Also add the init function to the forest if it is not already there.
             if klass.init_function:
                 init_cgn = NewCallGraphNode(
-                    symbol=klass.init_function.symbol,
-                    reasons=self.raw_reasons[klass.init_function.symbol.id]
+                    symbol=klass.init_function.symbol, reasons=self.raw_reasons[klass.init_function.symbol.id],
                 )
                 self.call_graph_forest.add_graph(klass.init_function.symbol.id, init_cgn)
                 class_cgn.add_child(init_cgn)
@@ -128,7 +125,7 @@ class CallGraphBuilder:
         # Create a new node and add it to the forest.
         cgn = NewCallGraphNode(
             symbol=reason.function_scope.symbol,  # type: ignore[union-attr] # function_scope is never None here
-            reasons=reason
+            reasons=reason,
         )
         self.call_graph_forest.add_graph(reason.id, cgn)
 
@@ -137,15 +134,13 @@ class CallGraphBuilder:
             if call in self.call_graph_forest.get_graph(reason.id).reasons.calls:
                 self.call_graph_forest.get_graph(reason.id).reasons.calls.remove(call)
             if isinstance(call, Builtin):
-                builtin_cgn = NewCallGraphNode(
-                    symbol=call,
-                    reasons=Reasons(call.id)
-                )
+                builtin_cgn = NewCallGraphNode(symbol=call, reasons=Reasons(call.id))
                 self.call_graph_forest.get_graph(reason.id).add_child(builtin_cgn)
 
             # Check if the called child function is already in the forest and has no calls left to deal with.
-            elif (self.call_graph_forest.has_graph(call.id)
-                  and not self.call_graph_forest.get_graph(call.id).reasons.calls
+            elif (
+                self.call_graph_forest.has_graph(call.id)
+                and not self.call_graph_forest.get_graph(call.id).reasons.calls
             ):
                 # Add the child to the children of the current node since it doesn't need further handling.
                 self.call_graph_forest.get_graph(reason.id).add_child(self.call_graph_forest.get_graph(call.id))
@@ -189,8 +184,11 @@ class CallGraphBuilder:
             # when inferring the purity later.
             for unknown_call in self.call_graph_forest.get_graph(reason_id).reasons.unknown_calls:
                 if unknown_call.node == call.call:
-                    (self.call_graph_forest.get_graph(reason_id).reasons.
-                     remove_unknown_call(NodeID.calc_node_id(call.call)))
+                    (
+                        self.call_graph_forest.get_graph(reason_id).reasons.remove_unknown_call(
+                            NodeID.calc_node_id(call.call),
+                        )
+                    )
 
         # Deal with the case that the call calls a function parameter.
         if isinstance(call, Parameter):
@@ -216,8 +214,8 @@ class CallGraphBuilder:
         if removed_nodes is None:
             removed_nodes = set()
         for graph in self.call_graph_forest.forest.copy().values():
-            if (graph.symbol.id in removed_nodes
-                or all(child.symbol.id in removed_nodes for child in graph.children.values())
+            if graph.symbol.id in removed_nodes or all(
+                child.symbol.id in removed_nodes for child in graph.children.values()
             ):
                 continue
 
@@ -264,7 +262,7 @@ class CallGraphBuilder:
         # If the current node is already in the path, a cycle is found.
         if cgn.symbol.id in path:
             # TODO: how to handle nested cycles? LARS
-            cut_path = path[path.index(cgn.symbol.id):]
+            cut_path = path[path.index(cgn.symbol.id) :]
             return {node_id: self.call_graph_forest.get_graph(node_id) for node_id in cut_path}
 
         # If a node has no children, it is a leaf node, and an empty list is returned.
@@ -300,7 +298,7 @@ class CallGraphBuilder:
                 name=combined_name,
             ),
             reasons=combined_reasons,
-            combines=cycle
+            combines=cycle,
         )
         # Check if the combined node is already in the forest.
         if self.call_graph_forest.has_graph(combined_cgn.symbol.id):

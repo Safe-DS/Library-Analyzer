@@ -101,5 +101,5 @@ __all__ = [
     "CombinedSymbol",
     "CallOfFunction",
     "ClassInit",
-    "ImportedCallGraphNode"
+    "ImportedCallGraphNode",
 ]

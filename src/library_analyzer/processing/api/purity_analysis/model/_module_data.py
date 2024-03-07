@@ -118,7 +118,9 @@ class MemberAccessTarget(MemberAccess):
             elif isinstance(receiver, astroid.Call):
                 return MemberAccessTarget(node=node, receiver=receiver.func, member=member)
             elif isinstance(receiver, astroid.Attribute):
-                return MemberAccessTarget(node=node, receiver=cls.construct_member_access_target(receiver), member=member)
+                return MemberAccessTarget(
+                    node=node, receiver=cls.construct_member_access_target(receiver), member=member,
+                )
             else:
                 return MemberAccessTarget(node=node, receiver=None, member=member)
         # Since it is tedious to add testcases for this function, ignore the coverage for now
@@ -208,7 +210,8 @@ class NodeID:
         return hash(str(self))
 
     @classmethod
-    def calc_node_id(cls,
+    def calc_node_id(
+        cls,
         node: (
             astroid.NodeNG
             | astroid.Module
