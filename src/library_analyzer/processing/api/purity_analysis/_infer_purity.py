@@ -471,7 +471,8 @@ class PurityAnalyzer:
                 return Impure({
                     UnknownCall(
                         UnknownClassInit(
-                            call=imported_node.symbol.call, inferred_def=imported_node.symbol.inferred_node,
+                            call=imported_node.symbol.call,
+                            inferred_def=imported_node.symbol.inferred_node,
                         ),
                     ),
                 })
