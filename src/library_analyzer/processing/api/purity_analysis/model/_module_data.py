@@ -511,6 +511,8 @@ class Reference:
     name: str
 
     def __str__(self) -> str:
+        if self.id is None:
+            return f"{self.__class__.__name__}.{self.name}"
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
     def __hash__(self) -> int:

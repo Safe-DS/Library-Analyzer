@@ -391,8 +391,10 @@ class CallOfFunction(Expression):
             self.name = f"{self.inferred_def.root().name}.{self.inferred_def.name}"
         elif isinstance(self.call.func, astroid.Attribute):
             self.name = self.call.func.attrname
-        else:
+        elif isinstance(self.call.func, astroid.Name):
             self.name = self.call.func.name
+        else:
+            self.name = "UNKNOWN"
 
     def __str__(self) -> str:
         return f"CallOfFunction.{self.name}"

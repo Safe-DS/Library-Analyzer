@@ -87,11 +87,14 @@ def fun2():
         ),
         (  # language=Python "external function call",
             """
+from external import call
+
 def fun1():
     call()
             """,  # language=none
             {
-                ".fun1.2.0": {".call"},
+                ".fun1.4.0": set(),  # Since this function could not be resolved, there is no node for it to add to the call graph.
+                # It will be handled as an unknown call when analyzing the purity.
             },
         ),
         (  # language=Python "lambda",

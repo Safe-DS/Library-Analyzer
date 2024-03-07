@@ -127,12 +127,13 @@ def _find_call_references(
     if call_reference.name in imports:
         import_def = imports.get(call_reference.name)
         inferred_node_def = safe_infer(call_reference.node.func)
-        if inferred_node_def is None:
-            raise ValueError(f"Could not resolve the node {call_reference.node} for the import {import_def}")
-        specified_import_def = dataclasses.replace(import_def,  # type: ignore[type-var] # import def is not None.
-                                                   inferred_node=inferred_node_def,
-                                                   call=call_reference.node)
-        if specified_import_def:
+        if not isinstance(inferred_node_def, astroid.FunctionDef | astroid.ClassDef):
+            # These cases will be added to the unknown calls since they do not have any referenced_symbols.
+            pass
+        else:
+            specified_import_def = dataclasses.replace(import_def,  # type: ignore[type-var] # import def is not None.
+                                                       inferred_node=inferred_node_def,
+                                                       call=call_reference.node)
             result_value_reference.referenced_symbols.append(specified_import_def)
 
     return result_value_reference

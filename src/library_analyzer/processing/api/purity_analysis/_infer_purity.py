@@ -453,6 +453,9 @@ class PurityAnalyzer:
         if inferred_node_id in all_purity_result:
             return all_purity_result[inferred_node_id]
         else:
+            if isinstance(imported_node.symbol.inferred_node, astroid.ClassDef):
+                return Impure({UnknownCall(ClassInit(call=imported_node.symbol.call,
+                                                     inferred_def=imported_node.symbol.inferred_node))})
             return Impure({UnknownCall(CallOfFunction(call=imported_node.symbol.call,
                                                       inferred_def=imported_node.symbol.inferred_node
                                                       if imported_node.symbol.inferred_node else None))})

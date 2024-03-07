@@ -706,30 +706,48 @@ def assign_return(var1):
                 ],
             },
         ),
-
         (  # language=Python "Assign to dict"
             """
 def f():
     d = {}
     d["a"] = 1
             """,  # language=none
-            [
-                SimpleScope(
-                    "Module",
-                    [
-                        SimpleFunctionScope(
-                            "GlobalVariable.FunctionDef.f",
-                            [
-                                SimpleScope("LocalVariable.AssignName.d", []),
-                            ],
-                            ["AssignName.d"],
-                            [],
-                            [],
-                        ),
+            {
+                "f": [
+                    SimpleFunctionScope(
+                        "GlobalVariable.FunctionDef.f",
+                        [
+                            SimpleScope("LocalVariable.AssignName.d", []),
+                        ],
+                        ["AssignName.d"],
+                        ["Name.d"],
+                        [],
+                    ),
+                ],
+            },
+        ),
+        (  # language=Python "Assign to class dict"
+            """
+class A:
+    d = {}
 
-                    ],
-                ),
-            ],
+    def f(self):
+        self.d["a"] = 1
+            """,  # language=none
+            {
+                "f": [
+                    SimpleFunctionScope(
+                        "ClassVariable.FunctionDef.f",
+                        [
+                            SimpleScope("Parameter.AssignName.self", []),
+                        ],
+                        ["AssignName.self", "MemberAccessTarget.self.d", "Name.self"],
+                        [],
+                        [],
+                        ["AssignName.self"],
+                    ),
+                ],
+            },
         ),
     ],
     ids=[
@@ -747,6 +765,7 @@ def f():
         "FuncCall Parameter",
         "Return",
         "Assign to dict",
+        "Assign to class dict",
     ],
 )
 def test_get_module_data_value_and_target_nodes(code: str, expected: str) -> None:

@@ -967,7 +967,11 @@ class ModuleDataBuilder:
 
         # Astroid generates an Attribute node for every attribute access.
         # Check if the attribute access is a target or a value.
-        if isinstance(node.parent, astroid.AssignAttr) or self.has_assignattr_parent(node):
+        # Subscript deals with assignments to a dictionary.
+        if (isinstance(node.parent, astroid.AssignAttr)
+            or isinstance(node.parent, astroid.Subscript) and not isinstance(node.parent.parent, astroid.Arguments)
+            or self.has_assignattr_parent(node)
+        ):
             member_access = MemberAccessTarget.construct_member_access_target(node)
             if isinstance(node.expr, astroid.Name) and isinstance(self.current_node_stack[-1], FunctionScope):
                 self.targets.append(Symbol(member_access, NodeID.calc_node_id(member_access), member_access.name))
@@ -1025,6 +1029,22 @@ class ModuleDataBuilder:
                     and self.current_function_def
                 ):
                     self.current_function_def[-1].call_references.setdefault(call_name, []).append(call_reference)
+
+        # This deals with cases where a nested call calls the result of another call.
+        # Like: fun(1)(2)(3), where fun1 returns a function.
+        elif isinstance(node.func, astroid.Call):
+            call_reference = Reference(node, NodeID.calc_node_id(node), "UNKNOWN")
+            # Add the call node to the calls of the parent scope if it is of type FunctionScope.
+            if isinstance(self.current_node_stack[-1], FunctionScope):
+                self.calls.append(call_reference)
+            else:  # noqa: PLR5501
+                # Add the call node to the calls of the last function definition to ensure it is considered
+                # in the call graph since it would otherwise be lost in the (local) Scope of the Comprehension.
+                if (
+                    isinstance(self.current_node_stack[-1].symbol.node, _ComprehensionType)
+                    and self.current_function_def
+                ):
+                    self.current_function_def[-1].call_references.setdefault("UNKNOWN", []).append(call_reference)
 
     def enter_import(self, node: astroid.Import) -> None:
         # TODO: do we want import nodes to be added to the scope tree?
@@ -1111,7 +1131,7 @@ def get_module_data(code: str) -> ModuleData:
     module_data_handler = ModuleDataBuilder()
     walker = ASTWalker(module_data_handler)
     module = astroid.parse(code)
-    # print(module.repr_tree())
+    print(module.repr_tree())
     walker.walk(module)
 
     scope = module_data_handler.children[0]  # Get the children of the root node, which are the scopes of the module

@@ -1224,19 +1224,28 @@ def import_fun(file: str, f_name: str) -> Callable:
         (  # language=Python "Unknown Call of Function with function as return",
             """
 def fun1(a):
-    print(a)  # Impure: FileWrite
-    return fun1
+    print("Fun1")  # Impure: FileWrite
+    if a < 2:
+        return fun1
+    else:
+        return fun2
 
-def fun2():
-    x = fun1(1)(2)(3)
+def fun2(a):
+    print("Fun2")  # Impure: FileWrite
+
+def fun3():
+    x = fun1(1)(2)(3)  # Here the call is unknown - since fun1 returns a function
             """,  # language=none
             {
                 "fun1.line2": SimpleImpure({
                     "FileWrite.StringLiteral.stdout",
                 }),
-                "fun2.line6": SimpleImpure({
+                "fun2.line9": SimpleImpure({
                     "FileWrite.StringLiteral.stdout",
-                    "UnknownCall.CallOfFunction.fun1",  # this is the worst case where we do not even know the call node
+                }),
+                "fun3.line12": SimpleImpure({
+                    "FileWrite.StringLiteral.stdout",
+                    "UnknownCall.CallOfFunction.UNKNOWN",  # This is the worst case where the call node is unknown.
                 }),
             },
         ),
