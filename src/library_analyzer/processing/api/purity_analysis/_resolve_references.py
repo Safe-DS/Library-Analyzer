@@ -134,7 +134,8 @@ def _find_call_references(
             specified_import_def = dataclasses.replace(import_def,  # type: ignore[type-var] # import def is not None.
                                                        inferred_node=inferred_node_def,
                                                        call=call_reference.node)
-            result_value_reference.referenced_symbols.append(specified_import_def)
+            if specified_import_def:
+                result_value_reference.referenced_symbols.append(specified_import_def)
 
     return result_value_reference
 

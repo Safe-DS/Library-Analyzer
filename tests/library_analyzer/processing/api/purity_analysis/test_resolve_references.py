@@ -61,14 +61,11 @@ class SimpleReasons:
         The set of the functions writes.
     reads : set[str]
         The set of the function reads.
-    calls : set[str]
-        The set of the function calls.
     """
 
     function_name: str
     writes: set[str] = field(default_factory=set)
     reads: set[str] = field(default_factory=set)
-    calls: set[str] = field(default_factory=set)
 
     def __hash__(self) -> int:
         return hash(self.function_name)
@@ -270,31 +267,6 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                         )
                     )
                     for value_reference in function_references.reads_from
-                },
-                {
-                    (
-                        f"{function_reference.__class__.__name__}.{function_reference.node.attrname}.line{function_reference.node.fromlineno}"
-                        if isinstance(function_reference.node, astroid.Attribute)
-                        else (
-                            f"{function_reference.__class__.__name__}.{function_reference.node.name}"
-                            if isinstance(
-                                function_reference,
-                                Builtin,
-                            )  # Special case for builtin functions since we do not get their line.
-                            else (
-                                f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
-                                if isinstance(function_reference, ClassVariable)
-                                and function_reference.klass is not None
-                                else (
-                                    f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.member}.line{function_reference.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-                                    if isinstance(function_reference, InstanceVariable)
-                                    and function_reference.klass is not None
-                                    else f"{function_reference.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
-                                )
-                            )
-                        )
-                    )
-                    for function_reference in function_references.calls
                 },
             ),
         })
@@ -2773,12 +2745,8 @@ def f():
                         "GlobalVariable.c.line3",
                         "GlobalVariable.d.line4",
                     },
-                    {
-                        "GlobalVariable.g.line5",
-                        "BuiltinOpen.open",
-                    },
                 ),
-                ".g.5.0": SimpleReasons("g", set(), set(), set()),
+                ".g.5.0": SimpleReasons("g", set(), set())
             },
         ),
         (  # language=Python "Control flow statements"
@@ -2829,9 +2797,8 @@ def g():
                         "ClassVariable.A.class_attr1.line3",
                     },
                     set(),
-                    {"GlobalVariable.A.line2"},
                 ),
-                ".g.9.0": SimpleReasons("g", set(), {"ClassVariable.A.class_attr1.line3"}, {"GlobalVariable.A.line2"}),
+                ".g.9.0": SimpleReasons("g", set(), {"ClassVariable.A.class_attr1.line3"}),
             },
         ),
         (  # language=Python "Instance attribute"
@@ -2871,7 +2838,6 @@ def g3():
                         "InstanceVariable.A.instance_attr1.line4",
                     },
                     set(),
-                    {"GlobalVariable.A.line2"},
                 ),
                 ".f2.11.0": SimpleReasons(
                     "f2",
@@ -2889,7 +2855,6 @@ def g3():
                     {
                         "InstanceVariable.A.instance_attr1.line4",
                     },
-                    {"GlobalVariable.A.line2"},
                 ),
                 ".g2.22.0": SimpleReasons(
                     "g2",
@@ -2935,10 +2900,6 @@ def f():
                         "InstanceVariable.A.name.line4",
                         "ClassVariable.B.upper_class.line10",
                     },
-                    {
-                        "GlobalVariable.B.line9",
-                        "ClassVariable.A.set_name.line6",
-                    },
                 ),
             },
         ),
@@ -2959,14 +2920,13 @@ def g():
             """,  # language=none
             {
                 ".__init__.3.4": SimpleReasons("__init__"),
-                ".f.6.4": SimpleReasons("f", set(), set(), set()),
+                ".f.6.4": SimpleReasons("f", set(), set()),
                 ".g.12.0": SimpleReasons(
                     "g",
                     set(),
                     {
                         "ClassVariable.A.class_attr1.line10",
                     },
-                    {"GlobalVariable.A.line9", "ClassVariable.B.f.line6"},
                 ),
             },
         ),
@@ -3002,7 +2962,6 @@ def f():
                         "InstanceVariable.A.name.line6",
                         "InstanceVariable.B.name.line12",
                     },
-                    {"GlobalVariable.A.line2", "GlobalVariable.B.line8"},
                 ),
             },
         ),
@@ -3028,7 +2987,7 @@ def f():
         pass
             """,  # language=none
             {
-                ".add.6.4": SimpleReasons("add", set(), {"GlobalVariable.z.line2"}, set()),
+                ".add.6.4": SimpleReasons("add", set(), {"GlobalVariable.z.line2"}),
                 ".add.12.4": SimpleReasons(
                     "add",
                 ),
@@ -3036,10 +2995,6 @@ def f():
                     "f",
                     set(),
                     set(),
-                    {
-                        "ClassVariable.A.add.line6",
-                        "ClassVariable.B.add.line12",
-                    },
                 ),
             },
         ),  # since we only return a list of all possible references, we can't distinguish between the two functions
@@ -3070,10 +3025,7 @@ def f():
                     "f",
                     set(),
                     set(),
-                    {
-                        "ClassVariable.A.add.line4",
-                        "ClassVariable.B.add.line9",
-                    },
+
                 ),
             },
         ),  # TODO: [LATER] we should detect the different signatures
@@ -3091,7 +3043,6 @@ def f():
         # TODO: [LATER] we should detect the different signatures
     ],
 )
-@pytest.mark.xfail(reason="Calls are removed after call graph is built")
 def test_get_module_data_reasons(code: str, expected: dict[str, SimpleReasons]) -> None:
     function_references = resolve_references(code).raw_reasons
 
@@ -3100,5 +3051,3 @@ def test_get_module_data_reasons(code: str, expected: dict[str, SimpleReasons]) 
 
     assert transformed_function_references == expected
 
-
-# TODO: testcases for cyclic calls and recursive calls

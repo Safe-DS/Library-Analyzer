@@ -309,7 +309,7 @@ def entry():
                 ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": {".inner_cycle1.12.0+.inner_cycle2.15.0"},
                 ".inner_cycle1.12.0+.inner_cycle2.15.0": set(),
                 ".entry.18.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
-            },
+            },  # TODO: case for super super knote, case for external cycle with call to original cycle
         ),
         (  # language=Python "recursive function call",
             """

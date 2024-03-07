@@ -1435,8 +1435,6 @@ import math as m
 
 def fun1():
     m.pi = 1
-    # TODO: this is very uncommon but possible - technically it is a write,
-    #  but on the other hand, it is not possible to alter a module variable in this way
             """,  # language=none
             {
                 "fun1.line4": SimpleImpure({"NonLocalVariableWrite.Import.math.pi"})

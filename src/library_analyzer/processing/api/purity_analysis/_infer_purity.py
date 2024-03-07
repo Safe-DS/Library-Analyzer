@@ -449,7 +449,7 @@ class PurityAnalyzer:
         # In some cases, the inferred_node does not have any line number since astroid sometimes doesn't return it.
         # Therefore the correct function def cannot be found in the result.
         # In this case the fallback is to return an unknown call.
-        # TODO: we could however find it and store it by its name. (This would find multiple tho) LARS
+        # TODO: make sure that the node ids are calculated correctly for builtin modules
         if inferred_node_id in all_purity_result:
             return all_purity_result[inferred_node_id]
         else:

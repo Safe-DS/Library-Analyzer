@@ -410,12 +410,12 @@ class ModuleDataBuilder:
             self.values = []
 
             # Add all calls that are used inside the lambda body to its parent function calls' dict.
-            if self.calls and isinstance(self.current_node_stack[-2], FunctionScope):
+            if self.calls and isinstance(self.current_function_def[-2], FunctionScope):
                 for call in self.calls:
-                    if call.name not in self.current_node_stack[-2].call_references:
-                        self.current_node_stack[-2].call_references[call.name] = [call]
+                    if call.name not in self.current_function_def[-2].call_references:
+                        self.current_function_def[-2].call_references[call.name] = [call]
                     else:
-                        self.current_node_stack[-2].call_references[call.name].append(call)
+                        self.current_function_def[-2].call_references[call.name].append(call)
 
             # Add the calls to the Lambda FunctionScope.
             if (
@@ -434,7 +434,7 @@ class ModuleDataBuilder:
             if self.current_node_stack[-1].globals_used:  # type: ignore[union-attr]
                 # Ignore the linter error because the current scope node is always of
                 # type FunctionScope and therefor has a parameter attribute.
-                for glob_name, glob_def_list in self.current_node_stack[
+                for glob_name, glob_def_list in self.current_function_def[
                     -1
                 ].globals_used.items():  # type: ignore[union-attr] # see above
                     if glob_name not in self.current_function_def[-2].globals_used:
@@ -1047,7 +1047,6 @@ class ModuleDataBuilder:
                     self.current_function_def[-1].call_references.setdefault("UNKNOWN", []).append(call_reference)
 
     def enter_import(self, node: astroid.Import) -> None:
-        # TODO: do we want import nodes to be added to the scope tree?
         parent = self.current_node_stack[-1]
         symbols: dict[str, Import] = {}
         for name_tuple in node.names:
@@ -1078,7 +1077,6 @@ class ModuleDataBuilder:
         self.imports.update(symbols)
 
     def enter_importfrom(self, node: astroid.ImportFrom) -> None:
-        # TODO: do we want import nodes to be added to the scope tree?
         parent = self.current_node_stack[-1]
         symbols: dict[str, Import] = {}
         for name_tuple in node.names:

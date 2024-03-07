@@ -270,6 +270,8 @@ class NodeID:
                     return NodeID(module, node.func.attrname, node.lineno, node.col_offset)
                 elif isinstance(node.func, astroid.Name):
                     return NodeID(module, node.func.name, node.lineno, node.col_offset)
+                else:
+                    return NodeID(module, "UNKNOWN", node.lineno, node.col_offset)
             case astroid.Lambda():
                 if isinstance(node.parent, astroid.Assign) and node.name != "LAMBDA":
                     return NodeID(module, node.name, node.lineno, node.col_offset)

@@ -307,7 +307,7 @@ class CallGraphBuilder:
             return
 
         # Find all other calls (calls that are not part of the cycle) and remove all nodes in the cycle from the forest.
-        for node in cycle.values():
+        for node in cycle.values():  # TODO: call _test_cgn_for_cycles recursively
             for child in node.children.values():
                 if child.symbol.id not in cycle and not combined_cgn.has_child(child.symbol.id):
                     combined_cgn.add_child(child)
