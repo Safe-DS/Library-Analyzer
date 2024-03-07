@@ -182,7 +182,7 @@ class ModuleDataBuilder:
                 return LocalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name)
 
             case (
-            astroid.Lambda() | astroid.ListComp() | astroid.DictComp() | astroid.SetComp() | astroid.GeneratorExp()
+                astroid.Lambda() | astroid.ListComp() | astroid.DictComp() | astroid.SetComp() | astroid.GeneratorExp()
             ):
                 # This deals with the case where a lambda function has parameters
                 if isinstance(node, astroid.AssignName) and isinstance(node.parent, astroid.Arguments):
@@ -193,7 +193,7 @@ class ModuleDataBuilder:
                 return LocalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name)
 
             case (
-            astroid.TryExcept() | astroid.TryFinally()
+                astroid.TryExcept() | astroid.TryFinally()
             ):  # TODO: can we summarize Lambda and ListComp here? -> only if nodes in try except are not global
                 return LocalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name)
 
@@ -430,9 +430,7 @@ class ModuleDataBuilder:
 
             # Add all globals that are used inside the Lambda to the parent function globals list.
             if self.current_function_def[-1].globals_used:
-                for glob_name, glob_def_list in self.current_function_def[
-                    -1
-                ].globals_used.items():
+                for glob_name, glob_def_list in self.current_function_def[-1].globals_used.items():
                     if glob_name not in self.current_function_def[-2].globals_used:
                         self.current_function_def[-2].globals_used[glob_name] = glob_def_list
                     else:
@@ -964,8 +962,10 @@ class ModuleDataBuilder:
         # Astroid generates an Attribute node for every attribute access.
         # Check if the attribute access is a target or a value.
         # Subscript deals with assignments to a dictionary.
-        if (isinstance(node.parent, astroid.AssignAttr)
-            or isinstance(node.parent, astroid.Subscript) and not isinstance(node.parent.parent, astroid.Arguments)
+        if (
+            isinstance(node.parent, astroid.AssignAttr)
+            or isinstance(node.parent, astroid.Subscript)
+            and not isinstance(node.parent.parent, astroid.Arguments)
             or self.has_assignattr_parent(node)
         ):
             member_access = MemberAccessTarget.construct_member_access_target(node)
@@ -1049,19 +1049,23 @@ class ModuleDataBuilder:
             module = name_tuple[0]
             alias = name_tuple[1]
             if alias and isinstance(alias, str):
-                import_symbol = Import(node=node,
-                                       id=NodeID(node.root(), module, node.lineno, node.col_offset),
-                                       # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
-                                       name=module,
-                                       module=module,
-                                       alias=alias)
+                import_symbol = Import(
+                    node=node,
+                    id=NodeID(node.root(), module, node.lineno, node.col_offset),
+                    # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
+                    name=module,
+                    module=module,
+                    alias=alias,
+                )
                 symbols[import_symbol.alias] = import_symbol  # type: ignore[index] # It is checked, that alias is str.
             else:
-                import_symbol = Import(node=node,
-                                       id=NodeID(node.root(), module, node.lineno, node.col_offset),
-                                       # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
-                                       name=module,
-                                       module=module)
+                import_symbol = Import(
+                    node=node,
+                    id=NodeID(node.root(), module, node.lineno, node.col_offset),
+                    # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
+                    name=module,
+                    module=module,
+                )
                 symbols[import_symbol.name] = import_symbol
             scope_node = Scope(
                 _symbol=import_symbol,
@@ -1080,19 +1084,23 @@ class ModuleDataBuilder:
             name = name_tuple[0]
             alias = name_tuple[1]
             if alias and isinstance(alias, str):
-                import_symbol = Import(node=node,
-                                       id=NodeID(node.root(), name, node.lineno, node.col_offset),
-                                       # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
-                                       name=name,
-                                       module=module,
-                                       alias=alias)
+                import_symbol = Import(
+                    node=node,
+                    id=NodeID(node.root(), name, node.lineno, node.col_offset),
+                    # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
+                    name=name,
+                    module=module,
+                    alias=alias,
+                )
                 symbols[import_symbol.alias] = import_symbol  # type: ignore[index] # It is checked, that alias is str.
             else:
-                import_symbol = Import(node=node,
-                                       id=NodeID(node.root(), name, node.lineno, node.col_offset),
-                                       # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
-                                       name=name,
-                                       module=module)
+                import_symbol = Import(
+                    node=node,
+                    id=NodeID(node.root(), name, node.lineno, node.col_offset),
+                    # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
+                    name=name,
+                    module=module,
+                )
                 symbols[import_symbol.name] = import_symbol
             scope_node = Scope(
                 _symbol=import_symbol,

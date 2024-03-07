@@ -17,9 +17,10 @@ if TYPE_CHECKING:
     from library_analyzer.processing.api.purity_analysis.model import (
         ClassVariable,
         GlobalVariable,
+        Import,
         InstanceVariable,
-        Parameter, Import,
-)
+        Parameter,
+    )
 
 
 class PurityResult(ABC):
@@ -149,10 +150,10 @@ class ImpurityReason(ABC):  # this is just a base class, and it is important tha
 
     If a function is impure it is because of one or more impurity reasons.
     """
-    #TODO:
+
+    # TODO:
     # origin
     # neighbor
-
 
     @abstractmethod
     def __str__(self) -> str:

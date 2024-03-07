@@ -36,7 +36,7 @@ def _find_call_references(
     function: FunctionScope,
     functions: dict[str, list[FunctionScope]],
     classes: dict[str, ClassScope],
-    imports: dict[str, Import]
+    imports: dict[str, Import],
 ) -> ValueReference:
     """Find all references for a function call.
 
@@ -94,10 +94,14 @@ def _find_call_references(
         # Construct an artificial FunctionDef node for the builtin function.
         builtin_function = astroid.FunctionDef(
             name=(
-                call_reference.node.func.attrname
-                if isinstance(call_reference.node.func, astroid.Attribute)
-                else call_reference.node.func.name
-            ) if isinstance(call_reference.node.func, astroid.Attribute | astroid.Name) else None,
+                (
+                    call_reference.node.func.attrname
+                    if isinstance(call_reference.node.func, astroid.Attribute)
+                    else call_reference.node.func.name
+                )
+                if isinstance(call_reference.node.func, astroid.Attribute | astroid.Name)
+                else None
+            ),
             lineno=call_reference.node.lineno,
             col_offset=call_reference.node.col_offset,
         )
@@ -131,9 +135,11 @@ def _find_call_references(
             # These cases will be added to the unknown calls since they do not have any referenced_symbols.
             pass
         else:
-            specified_import_def = dataclasses.replace(import_def,  # type: ignore[type-var] # import def is not None.
-                                                       inferred_node=inferred_node_def,
-                                                       call=call_reference.node)
+            specified_import_def = dataclasses.replace(
+                import_def,  # type: ignore[type-var] # import def is not None.
+                inferred_node=inferred_node_def,
+                call=call_reference.node,
+            )
             if specified_import_def:
                 result_value_reference.referenced_symbols.append(specified_import_def)
 
@@ -145,7 +151,7 @@ def _find_value_references(
     function: FunctionScope,
     functions: dict[str, list[FunctionScope]],
     classes: dict[str, ClassScope],
-    imports: dict[str, Import]
+    imports: dict[str, Import],
 ) -> ValueReference:
     """Find all references for a value node.
 
@@ -215,8 +221,7 @@ def _find_value_references(
 
     # Find global variables that are referenced.
     if value_reference.name in function.globals_used:
-        global_symbols = function.globals_used[
-            value_reference.name]  # type: ignore[assignment]
+        global_symbols = function.globals_used[value_reference.name]  # type: ignore[assignment]
         # globals_used contains GlobalVariable which are a subtype of Symbol.
         result_value_reference.referenced_symbols.extend(global_symbols)
 
@@ -242,8 +247,10 @@ def _find_value_references(
             inferred_node_def = next(value_reference.node.infer())
         if not inferred_node_def:
             raise ValueError(f"Could not resolve the node {value_reference.node} for the import {import_def}")
-        specified_import_def = dataclasses.replace(import_def,  # type: ignore[type-var] # import def is not None.
-                                                   inferred_node=inferred_node_def)
+        specified_import_def = dataclasses.replace(
+            import_def,
+            inferred_node=inferred_node_def,  # type: ignore[type-var] # import def is not None.
+        )
         if specified_import_def:
             result_value_reference.referenced_symbols.append(specified_import_def)
 
@@ -295,15 +302,18 @@ def _find_value_references(
                     inferred_node_def = next(value_reference.node.node.infer())
                 if not inferred_node_def:
                     raise ValueError(
-                        f"Could not resolve the node {value_reference.node.node} for the import {import_def}")
+                        f"Could not resolve the node {value_reference.node.node} for the import {import_def}",
+                    )
 
                 # Overcome the problem, that the import symbol object is the same for all possible functions and
                 # classes that are imported from one module.
                 # Therefore, copy the original import node and define a new one for one specific function or class.
                 # This means that every function or class imported from a module has its own import node.
-                specified_import_def = dataclasses.replace(import_def,
-                                                           name=value_reference.node.member,
-                                                           inferred_node=inferred_node_def)
+                specified_import_def = dataclasses.replace(
+                    import_def,
+                    name=value_reference.node.member,
+                    inferred_node=inferred_node_def,
+                )
 
                 # If the member is a call, add the call node to the specified_import_def as fallback for the case that
                 # the purity of the called function cannot be inferred.
@@ -319,7 +329,7 @@ def _find_target_references(
     target_reference: Symbol,
     function: FunctionScope,
     classes: dict[str, ClassScope],
-    imports: dict[str, Import]
+    imports: dict[str, Import],
 ) -> TargetReference:
     """Find all references for a target node.
 
@@ -352,8 +362,8 @@ def _find_target_references(
     if target_reference.name in function.target_symbols:
         # Only check for symbols that are defined before the current target_reference.
         local_symbols = function.target_symbols[target_reference.name][
-                        : function.target_symbols[target_reference.name].index(target_reference)
-                        ]
+            : function.target_symbols[target_reference.name].index(target_reference)
+        ]
         result_target_reference.referenced_symbols.extend(local_symbols)
 
     # Find global variables that are referenced.
@@ -464,7 +474,7 @@ def resolve_references(
                             function,
                             module_data.functions,
                             module_data.classes,
-                            module_data.imports
+                            module_data.imports,
                         )
 
                         # If referenced symbols are found,
@@ -472,7 +482,8 @@ def resolve_references(
                         # If the name does not yet exist, create a new list with the reference.
                         if call_references_result.referenced_symbols:
                             call_references.setdefault(call_references_result.node.name, []).append(
-                                call_references_result)
+                                call_references_result,
+                            )
 
                             # Add the referenced symbols to the calls of the raw_reasons dict for this function
                             for referenced_symbol in call_references_result.referenced_symbols:
@@ -505,7 +516,8 @@ def resolve_references(
                         # If the name does not yet exist, create a new list with the reference.
                         if value_reference_result.referenced_symbols:
                             value_references.setdefault(value_reference_result.node.name, []).append(
-                                value_reference_result)
+                                value_reference_result,
+                            )
 
                             # Add the referenced symbols to the reads_from of the raw_reasons dict for this function
                             for referenced_symbol in value_reference_result.referenced_symbols:
@@ -521,8 +533,10 @@ def resolve_references(
                                     # Since calls of imported functions are treated within _find_value_references
                                     # as MemberAccessValue, they need to be added to the calls of the raw_reasons dict
                                     # instead of the reads_from.
-                                    if isinstance(referenced_symbol.inferred_node,
-                                                  astroid.FunctionDef | astroid.ClassDef):
+                                    if isinstance(
+                                        referenced_symbol.inferred_node,
+                                        astroid.FunctionDef | astroid.ClassDef,
+                                    ):
                                         if referenced_symbol not in raw_reasons[function.symbol.id].calls:
                                             raw_reasons[function.symbol.id].calls.add(referenced_symbol)
                                     else:  # noqa: PLR5501
@@ -538,7 +552,7 @@ def resolve_references(
                             target_reference,
                             function,
                             module_data.classes,
-                            module_data.imports
+                            module_data.imports,
                         )
 
                         # If referenced symbols are found,
@@ -546,12 +560,15 @@ def resolve_references(
                         # If the name does not yet exist, create a new list with the reference.
                         if target_reference_result.referenced_symbols:
                             target_references.setdefault(target_reference_result.node.name, []).append(
-                                target_reference_result)
+                                target_reference_result,
+                            )
 
                             # Add the referenced symbols to the writes_to of the raw_reasons dict for this function
                             for referenced_symbol in target_reference_result.referenced_symbols:
-                                if isinstance(referenced_symbol,
-                                              GlobalVariable | ClassVariable | InstanceVariable | Import):
+                                if isinstance(
+                                    referenced_symbol,
+                                    GlobalVariable | ClassVariable | InstanceVariable | Import,
+                                ):
                                     # Since classes and functions are defined as immutable,
                                     # writing to them is not a reason for impurity.
                                     # Also, it is not common to do so anyway.

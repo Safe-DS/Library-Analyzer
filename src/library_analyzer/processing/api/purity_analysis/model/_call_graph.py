@@ -8,7 +8,7 @@ if TYPE_CHECKING:
         Import,
         NodeID,
         Symbol,
-)
+    )
     from library_analyzer.processing.api.purity_analysis.model._reference import Reasons
 
 

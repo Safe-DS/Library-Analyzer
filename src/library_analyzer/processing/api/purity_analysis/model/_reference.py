@@ -11,13 +11,14 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
     ClassVariable,
     FunctionScope,
     GlobalVariable,
+    Import,
     InstanceVariable,
     MemberAccessTarget,
     MemberAccessValue,
     NodeID,
     Reference,
     Scope,
-    Symbol, Import,
+    Symbol,
 )
 
 if TYPE_CHECKING:

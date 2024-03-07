@@ -8,7 +8,6 @@ from library_analyzer.processing.api.purity_analysis import (
     resolve_references,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
-    Builtin,
     ClassVariable,
     InstanceVariable,
     MemberAccess,
@@ -2440,8 +2439,10 @@ import math
 def f():
     a = math.pi
             """,  # language=none
-            [ReferenceTestNode("math.line5", "FunctionDef.f", ["Import.math.line2"]),
-             ReferenceTestNode("math.pi.line5", "FunctionDef.f", ["Import.math.pi.line2"])],
+            [
+                ReferenceTestNode("math.line5", "FunctionDef.f", ["Import.math.line2"]),
+                ReferenceTestNode("math.pi.line5", "FunctionDef.f", ["Import.math.pi.line2"]),
+            ],
         ),
         (  # language=Python "Import module with alias - constant"
             """
@@ -2450,8 +2451,10 @@ import math as m
 def f():
     a = m.pi
             """,  # language=none
-            [ReferenceTestNode("m.line5", "FunctionDef.f", ["Import.math.line2"]),
-             ReferenceTestNode("m.pi.line5", "FunctionDef.f", ["Import.math.pi.line2"])],
+            [
+                ReferenceTestNode("m.line5", "FunctionDef.f", ["Import.math.line2"]),
+                ReferenceTestNode("m.pi.line5", "FunctionDef.f", ["Import.math.pi.line2"]),
+            ],
         ),
         (  # language=Python "Import module - function"
             """
@@ -2460,9 +2463,11 @@ import math
 def f(a):
     math.sqrt(a)
             """,  # language=none
-            [ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
-             ReferenceTestNode("math.line5", "FunctionDef.f", ["Import.math.line2"]),
-             ReferenceTestNode("math.sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"])],
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("math.line5", "FunctionDef.f", ["Import.math.line2"]),
+                ReferenceTestNode("math.sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"]),
+            ],
         ),
         (  # language=Python "Import module with alias - function"
             """
@@ -2471,9 +2476,11 @@ import math as m
 def f(a):
     m.sqrt(a)
             """,  # language=none
-            [ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
-             ReferenceTestNode("m.line5", "FunctionDef.f", ["Import.math.line2"]),
-             ReferenceTestNode("m.sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"])],
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("m.line5", "FunctionDef.f", ["Import.math.line2"]),
+                ReferenceTestNode("m.sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"]),
+            ],
         ),
         (  # language=Python "Import module with alias - function and constant"
             """
@@ -2492,7 +2499,7 @@ def f(a):
                 ReferenceTestNode("m.line6", "FunctionDef.f", ["Import.math.line2"]),
                 ReferenceTestNode("m.sqrt.line6", "FunctionDef.f", ["Import.math.sqrt.line2"]),
                 ReferenceTestNode("m.pi.line7", "FunctionDef.f", ["Import.math.pi.line2"]),
-             ],
+            ],
         ),
         (  # language=Python "Import two modules with alias - function and module"
             """
@@ -2536,7 +2543,7 @@ def f(a):
             """,  # language=none
             [
                 ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
-                ReferenceTestNode("sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"])
+                ReferenceTestNode("sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"]),
             ],
         ),
         (  # language=Python "FromImport with alias - function"
@@ -2548,7 +2555,7 @@ def f(a):
             """,  # language=none
             [
                 ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
-                ReferenceTestNode("s.line5", "FunctionDef.f", ["Import.math.sqrt.line2"])
+                ReferenceTestNode("s.line5", "FunctionDef.f", ["Import.math.sqrt.line2"]),
             ],
         ),
         (  # language=Python "FromImport with alias - function and constant"
@@ -2563,7 +2570,7 @@ def f(a):
                 ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
                 ReferenceTestNode("p.line5", "FunctionDef.f", ["Import.math.pi.line2"]),
                 ReferenceTestNode("a.line6", "FunctionDef.f", ["Parameter.a.line4"]),
-                ReferenceTestNode("s.line6", "FunctionDef.f", ["Import.math.sqrt.line2"])
+                ReferenceTestNode("s.line6", "FunctionDef.f", ["Import.math.sqrt.line2"]),
             ],
         ),
         (  # language=Python "Local FromImport - constant"
@@ -2572,8 +2579,10 @@ def f(a):
     from math import pi
     a = pi
             """,  # language=none
-            [ReferenceTestNode("a.line4", "FunctionDef.f", ["Parameter.a.line2"]),
-             ReferenceTestNode("pi.line4", "FunctionDef.f", ["Import.math.pi.line3"])],
+            [
+                ReferenceTestNode("a.line4", "FunctionDef.f", ["Parameter.a.line2"]),
+                ReferenceTestNode("pi.line4", "FunctionDef.f", ["Import.math.pi.line3"]),
+            ],
         ),
         (  # language=Python "Local FromImport - function"
             """
@@ -2581,8 +2590,10 @@ def f(a):
     from math import sqrt as s
     s(a)
             """,  # language=none
-            [ReferenceTestNode("a.line4", "FunctionDef.f", ["Parameter.a.line2"]),
-             ReferenceTestNode("s.line4", "FunctionDef.f", ["Import.math.sqrt.line3"])],
+            [
+                ReferenceTestNode("a.line4", "FunctionDef.f", ["Parameter.a.line2"]),
+                ReferenceTestNode("s.line4", "FunctionDef.f", ["Import.math.sqrt.line3"]),
+            ],
         ),
     ],
     ids=[
@@ -2746,7 +2757,7 @@ def f():
                         "GlobalVariable.d.line4",
                     },
                 ),
-                ".g.5.0": SimpleReasons("g", set(), set())
+                ".g.5.0": SimpleReasons("g", set(), set()),
             },
         ),
         (  # language=Python "Control flow statements"
@@ -3025,7 +3036,6 @@ def f():
                     "f",
                     set(),
                     set(),
-
                 ),
             },
         ),  # TODO: [LATER] we should detect the different signatures
@@ -3050,4 +3060,3 @@ def test_get_module_data_reasons(code: str, expected: dict[str, SimpleReasons]) 
     # assert function_references == expected
 
     assert transformed_function_references == expected
-
