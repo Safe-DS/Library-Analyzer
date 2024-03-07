@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import astroid
 
 from library_analyzer.processing.api.purity_analysis._resolve_references import resolve_references
 from library_analyzer.processing.api.purity_analysis.model import (
-    APIPurity,
     Builtin,
     BuiltinOpen,
     CallGraphForest,
@@ -34,9 +31,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     StringLiteral,
     UnknownCall,
 )
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 # TODO: check these for correctness and add reasons for impurity
 BUILTIN_FUNCTIONS: dict[str, PurityResult] = {  # all errors and warnings are pure
