@@ -2,9 +2,9 @@
 
 from library_analyzer.processing.api.purity_analysis.model._call_graph import (
     CallGraphForest,
+    CallGraphNode,
     CombinedCallGraphNode,
     ImportedCallGraphNode,
-    CallGraphNode,
 )
 from library_analyzer.processing.api.purity_analysis.model._module_data import (
     Builtin,
@@ -29,9 +29,7 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
 )
 from library_analyzer.processing.api.purity_analysis.model._purity import (
     APIPurity,
-    UnknownFunctionCall,
     CallOfParameter,
-    UnknownClassInit,
     Expression,
     FileRead,
     FileWrite,
@@ -46,6 +44,8 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
     PurityResult,
     StringLiteral,
     UnknownCall,
+    UnknownClassInit,
+    UnknownFunctionCall,
 )
 from library_analyzer.processing.api.purity_analysis.model._reference import (
     ModuleAnalysisResult,

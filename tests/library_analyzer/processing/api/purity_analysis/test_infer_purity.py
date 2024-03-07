@@ -5,9 +5,7 @@ from library_analyzer.processing.api.purity_analysis import (
     infer_purity,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
-    UnknownFunctionCall,
     CallOfParameter,
-    UnknownClassInit,
     ClassVariable,
     FileRead,
     FileWrite,
@@ -23,6 +21,8 @@ from library_analyzer.processing.api.purity_analysis.model import (
     PurityResult,
     StringLiteral,
     UnknownCall,
+    UnknownClassInit,
+    UnknownFunctionCall,
 )
 
 

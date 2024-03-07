@@ -7,9 +7,8 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Builtin,
     BuiltinOpen,
     CallGraphForest,
-    UnknownFunctionCall,
+    CallGraphNode,
     CallOfParameter,
-    UnknownClassInit,
     CombinedCallGraphNode,
     FileRead,
     FileWrite,
@@ -17,7 +16,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ImportedCallGraphNode,
     Impure,
     ImpurityReason,
-    CallGraphNode,
     NodeID,
     NonLocalVariableRead,
     NonLocalVariableWrite,
@@ -30,6 +28,8 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Reference,
     StringLiteral,
     UnknownCall,
+    UnknownClassInit,
+    UnknownFunctionCall,
 )
 
 # TODO: check these for correctness and add reasons for impurity
@@ -470,7 +470,10 @@ class PurityAnalyzer:
             if isinstance(imported_node.symbol.inferred_node, astroid.ClassDef):
                 return Impure({
                     UnknownCall(
-                        UnknownClassInit(call=imported_node.symbol.call, inferred_def=imported_node.symbol.inferred_node),
+                        UnknownClassInit(
+                            call=imported_node.symbol.call,
+                            inferred_def=imported_node.symbol.inferred_node,
+                        ),
                     ),
                 })
             return Impure({

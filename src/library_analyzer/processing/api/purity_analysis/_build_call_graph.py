@@ -1,12 +1,12 @@
 from library_analyzer.processing.api.purity_analysis.model import (
     Builtin,
     CallGraphForest,
+    CallGraphNode,
     ClassScope,
     CombinedCallGraphNode,
     CombinedSymbol,
     Import,
     ImportedCallGraphNode,
-    CallGraphNode,
     NodeID,
     Parameter,
     Reasons,
