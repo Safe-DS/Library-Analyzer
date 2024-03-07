@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import astroid
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Iterator
 
 
 @dataclass
@@ -186,10 +186,10 @@ class NodeID:
         The name of the node.
     line : int
         The line of the node in the source code.
-        Is -1 for combined nodes, builtins or any other node that do not have a line.
+        Is -1 for combined nodes. Builtins or any other node that do not have a line.
     col : int | None
         The column of the node in the source code.
-        Is -1 for combined nodes, builtins or any other node that do not have a line.
+        Is -1 for combined nodes. Builtins or any other node that do not have a line.
     """
 
     module: astroid.Module | str | None
@@ -544,7 +544,7 @@ class Scope:
     _children: list[Scope] = field(default_factory=list)
     _parent: Scope | None = None
 
-    def __iter__(self) -> Generator[Scope | ClassScope, None, None]:
+    def __iter__(self) -> Iterator[Scope | ClassScope]:
         yield self
 
     def __next__(self) -> Scope | ClassScope:

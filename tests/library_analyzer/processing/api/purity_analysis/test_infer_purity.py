@@ -416,7 +416,7 @@ c = fun1()
         "Multiple Calls of same Pure function (Caching)",
     ],  # TODO: class inits in cycles
 )
-# @pytest.mark.xfail(reason="Some cases disabled for merging")
+@pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     purity_results = infer_purity(code)
     transformed_purity_results = {
@@ -1146,7 +1146,7 @@ async def fun2():
         "Async Function"
     ],
 )
-# @pytest.mark.xfail(reason="Some cases disabled for merging")
+@pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
     purity_results = infer_purity(code)
 

@@ -394,9 +394,7 @@ class ModuleDataBuilder:
             # Add all values that are used inside the lambda body to its parent function values' dict.
             if self.values and isinstance(self.current_node_stack[-2], FunctionScope):
                 for value in self.values:
-                    if (
-                        value.name not in self.current_function_def[-1].parameters
-                    ):  # type: ignore[union-attr] # ignore the linter error because the current scope node is always of type FunctionScope and therefor has a parameter attribute.
+                    if value.name not in self.current_function_def[-1].parameters:
                         self.current_function_def[-2].value_references.setdefault(value.name, []).append(value)
 
             # Add the values to the Lambda FunctionScope.
@@ -431,12 +429,10 @@ class ModuleDataBuilder:
             self.calls = []
 
             # Add all globals that are used inside the Lambda to the parent function globals list.
-            if self.current_node_stack[-1].globals_used:  # type: ignore[union-attr]
-                # Ignore the linter error because the current scope node is always of
-                # type FunctionScope and therefor has a parameter attribute.
+            if self.current_function_def[-1].globals_used:
                 for glob_name, glob_def_list in self.current_function_def[
                     -1
-                ].globals_used.items():  # type: ignore[union-attr] # see above
+                ].globals_used.items():
                     if glob_name not in self.current_function_def[-2].globals_used:
                         self.current_function_def[-2].globals_used[glob_name] = glob_def_list
                     else:
@@ -1052,7 +1048,7 @@ class ModuleDataBuilder:
         for name_tuple in node.names:
             module = name_tuple[0]
             alias = name_tuple[1]
-            if alias:
+            if alias and isinstance(alias, str):
                 import_symbol = Import(node=node,
                                        id=NodeID(node.root(), module, node.lineno, node.col_offset),
                                        # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
@@ -1083,7 +1079,7 @@ class ModuleDataBuilder:
             module = node.modname
             name = name_tuple[0]
             alias = name_tuple[1]
-            if alias:
+            if alias and isinstance(alias, str):
                 import_symbol = Import(node=node,
                                        id=NodeID(node.root(), name, node.lineno, node.col_offset),
                                        # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
@@ -1129,7 +1125,7 @@ def get_module_data(code: str) -> ModuleData:
     module_data_handler = ModuleDataBuilder()
     walker = ASTWalker(module_data_handler)
     module = astroid.parse(code)
-    print(module.repr_tree())
+    # print(module.repr_tree())
     walker.walk(module)
 
     scope = module_data_handler.children[0]  # Get the children of the root node, which are the scopes of the module
