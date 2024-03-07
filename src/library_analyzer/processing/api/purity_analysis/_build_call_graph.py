@@ -98,7 +98,8 @@ class CallGraphBuilder:
             # Also add the init function to the forest if it is not already there.
             if klass.init_function:
                 init_cgn = NewCallGraphNode(
-                    symbol=klass.init_function.symbol, reasons=self.raw_reasons[klass.init_function.symbol.id],
+                    symbol=klass.init_function.symbol,
+                    reasons=self.raw_reasons[klass.init_function.symbol.id],
                 )
                 self.call_graph_forest.add_graph(klass.init_function.symbol.id, init_cgn)
                 class_cgn.add_child(init_cgn)

@@ -311,12 +311,14 @@ class PurityAnalyzer:
             if file_var:
                 open_mode = open_mode or OPEN_MODES[open_mode_str]
                 return Impure(
-                    {FileRead(ParameterAccess(file_var))}
-                    if open_mode is OpenMode.READ
-                    else (
-                        {FileWrite(ParameterAccess(file_var))}
-                        if open_mode is OpenMode.WRITE
-                        else {FileRead(ParameterAccess(file_var)), FileWrite(ParameterAccess(file_var))}
+                    (
+                        {FileRead(ParameterAccess(file_var))}
+                        if open_mode is OpenMode.READ
+                        else (
+                            {FileWrite(ParameterAccess(file_var))}
+                            if open_mode is OpenMode.WRITE
+                            else {FileRead(ParameterAccess(file_var)), FileWrite(ParameterAccess(file_var))}
+                        )
                     ),
                 )
 
@@ -324,12 +326,14 @@ class PurityAnalyzer:
             elif file_str:
                 open_mode = OPEN_MODES[open_mode_str]
                 return Impure(
-                    {FileRead(StringLiteral(file_str))}
-                    if open_mode is OpenMode.READ
-                    else (
-                        {FileWrite(StringLiteral(file_str))}
-                        if open_mode is OpenMode.WRITE
-                        else {FileRead(StringLiteral(file_str)), FileWrite(StringLiteral(file_str))}
+                    (
+                        {FileRead(StringLiteral(file_str))}
+                        if open_mode is OpenMode.READ
+                        else (
+                            {FileWrite(StringLiteral(file_str))}
+                            if open_mode is OpenMode.WRITE
+                            else {FileRead(StringLiteral(file_str)), FileWrite(StringLiteral(file_str))}
+                        )
                     ),
                 )
             else:

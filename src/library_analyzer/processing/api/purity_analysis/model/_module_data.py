@@ -119,7 +119,9 @@ class MemberAccessTarget(MemberAccess):
                 return MemberAccessTarget(node=node, receiver=receiver.func, member=member)
             elif isinstance(receiver, astroid.Attribute):
                 return MemberAccessTarget(
-                    node=node, receiver=cls.construct_member_access_target(receiver), member=member,
+                    node=node,
+                    receiver=cls.construct_member_access_target(receiver),
+                    member=member,
                 )
             else:
                 return MemberAccessTarget(node=node, receiver=None, member=member)
