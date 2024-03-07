@@ -194,10 +194,10 @@ class FileRead(Read):
     ----------
     source : Expression | None
         The source of the read.
-        This is None if the source is unknown.  # TODO: or should that be a of Type Unknown? LARS
+        This is None if the source is unknown.
     """
 
-    source: Expression | None = None  # TODO: this should never be None? or should it? LARS
+    source: Expression | None = None  # TODO: this should never be None
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -350,7 +350,7 @@ class ParameterAccess(Expression):
     def __str__(self) -> str:
         if isinstance(self.parameter, str):
             return self.parameter
-        return f"ParameterAccess.{self.parameter.name}"
+        return f"{self.__class__.__name__}.{self.parameter.name}"
 
 
 @dataclass
@@ -370,7 +370,7 @@ class StringLiteral(Expression):
 
 
 @dataclass
-class CallOfFunction(Expression):
+class UnknownFunctionCall(Expression):
     """Class for unknown function calls.
 
     Attributes
@@ -398,11 +398,11 @@ class CallOfFunction(Expression):
             self.name = "UNKNOWN"
 
     def __str__(self) -> str:
-        return f"CallOfFunction.{self.name}"
+        return f"{self.__class__.__name__}.{self.name}"
 
 
 @dataclass
-class ClassInit(Expression):
+class UnknownClassInit(Expression):
     """Class for unknown class initializations.
 
     Attributes
@@ -428,7 +428,7 @@ class ClassInit(Expression):
             self.name = self.call.func.name
 
     def __str__(self) -> str:
-        return f"ClassInit.{self.name}"
+        return f"{self.__class__.__name__}.{self.name}"
 
 
 class APIPurity:

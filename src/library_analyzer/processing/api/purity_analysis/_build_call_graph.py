@@ -6,7 +6,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     CombinedSymbol,
     Import,
     ImportedCallGraphNode,
-    NewCallGraphNode,
+    CallGraphNode,
     NodeID,
     Parameter,
     Reasons,
@@ -93,11 +93,11 @@ class CallGraphBuilder:
         """
         for klass in self.classes.values():
             # Create a new CallGraphNode for each class and add it to the forest.
-            class_cgn = NewCallGraphNode(symbol=klass.symbol, reasons=Reasons(klass.symbol.id))
+            class_cgn = CallGraphNode(symbol=klass.symbol, reasons=Reasons(klass.symbol.id))
             # If the class has an init function, add it to the class node as a child.
             # Also add the init function to the forest if it is not already there.
             if klass.init_function:
-                init_cgn = NewCallGraphNode(
+                init_cgn = CallGraphNode(
                     symbol=klass.init_function.symbol,
                     reasons=self.raw_reasons[klass.init_function.symbol.id],
                 )
@@ -124,7 +124,7 @@ class CallGraphBuilder:
             return
 
         # Create a new node and add it to the forest.
-        cgn = NewCallGraphNode(
+        cgn = CallGraphNode(
             symbol=reason.function_scope.symbol,  # type: ignore[union-attr] # function_scope is never None here
             reasons=reason,
         )
@@ -135,7 +135,7 @@ class CallGraphBuilder:
             if call in self.call_graph_forest.get_graph(reason.id).reasons.calls:
                 self.call_graph_forest.get_graph(reason.id).reasons.calls.remove(call)
             if isinstance(call, Builtin):
-                builtin_cgn = NewCallGraphNode(symbol=call, reasons=Reasons(call.id))
+                builtin_cgn = CallGraphNode(symbol=call, reasons=Reasons(call.id))
                 self.call_graph_forest.get_graph(reason.id).add_child(builtin_cgn)
 
             # Check if the called child function is already in the forest and has no calls left to deal with.
@@ -214,7 +214,7 @@ class CallGraphBuilder:
         """
         if removed_nodes is None:
             removed_nodes = set()
-        for graph in self.call_graph_forest.forest.copy().values():
+        for graph in self.call_graph_forest.graphs.copy().values():
             if graph.symbol.id in removed_nodes or all(
                 child.symbol.id in removed_nodes for child in graph.children.values()
             ):
@@ -227,10 +227,10 @@ class CallGraphBuilder:
 
     def _test_cgn_for_cycles(
         self,
-        cgn: NewCallGraphNode,
-        visited_nodes: set[NewCallGraphNode] | None = None,
+        cgn: CallGraphNode,
+        visited_nodes: set[CallGraphNode] | None = None,
         path: list[NodeID] | None = None,
-    ) -> dict[NodeID, NewCallGraphNode]:
+    ) -> dict[NodeID, CallGraphNode]:
         """Test for cycles in the call graph.
 
         Recursively traverses the call graph and checks for cycles.
@@ -239,7 +239,7 @@ class CallGraphBuilder:
 
         Parameters
         ----------
-        cgn : NewCallGraphNode
+        cgn : CallGraphNode
             The current node in the graph that is visited.
         visited_nodes : set[NewCallGraphNode] | None
             A set of all visited nodes.
@@ -274,7 +274,7 @@ class CallGraphBuilder:
         visited_nodes.add(cgn)
         path.append(cgn.symbol.id)
 
-        cycle: dict[NodeID, NewCallGraphNode] = {}
+        cycle: dict[NodeID, CallGraphNode] = {}
 
         # Check for cycles in children.
         for child in cgn.children.values():
@@ -286,7 +286,7 @@ class CallGraphBuilder:
 
         return cycle
 
-    def _contract_cycle(self, cycle: dict[NodeID, NewCallGraphNode]) -> None:
+    def _contract_cycle(self, cycle: dict[NodeID, CallGraphNode]) -> None:
         # Create the new combined node.
         combined_name = "+".join(sorted(c.__str__() for c in cycle))
         # module = cycle[next(iter(cycle))].symbol.node.root()
@@ -318,20 +318,20 @@ class CallGraphBuilder:
         # Set all pointers from nodes calling the nodes in the cycle to the combined node.
         self._update_pointers(cycle, combined_cgn)
 
-    def _update_pointers(self, cycle: dict[NodeID, NewCallGraphNode], combined_node: CombinedCallGraphNode) -> None:
+    def _update_pointers(self, cycle: dict[NodeID, CallGraphNode], combined_node: CombinedCallGraphNode) -> None:
         """Replace all pointers to nodes inside the cycle with pointers to the combined node.
 
         Traverses the tree and replaces all pointers to nodes in the cycle with pointers to the combined node.
 
         Parameters
         ----------
-        cycle : dict[NodeID, NewCallGraphNode]
+        cycle : dict[NodeID, CallGraphNode]
             A dict of all nodes in the cycle.
             Keys are the NodeIDs of the nodes.
         combined_node : CombinedCallGraphNode
             The combined node that replaces all nodes in the cycle.
         """
-        for graph in self.call_graph_forest.forest.values():
+        for graph in self.call_graph_forest.graphs.values():
             for child in graph.children.copy().values():
                 if child.symbol.id in cycle:
                     graph.delete_child(child.symbol.id)

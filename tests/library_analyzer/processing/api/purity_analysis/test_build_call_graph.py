@@ -134,7 +134,7 @@ def test_build_call_graph_basics(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = resolve_references(code).call_graph_forest
 
     transformed_call_graph_forest: dict = {}
-    for tree_id, tree in call_graph_forest.forest.items():
+    for tree_id, tree in call_graph_forest.graphs.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
             transformed_call_graph_forest[f"{tree_id}"].add(child.__str__())
@@ -338,7 +338,7 @@ def test_build_call_graph_cycles(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = resolve_references(code).call_graph_forest
 
     transformed_call_graph_forest: dict = {}
-    for tree_id, tree in call_graph_forest.forest.items():
+    for tree_id, tree in call_graph_forest.graphs.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
             transformed_call_graph_forest[f"{tree_id}"].add(child.__str__())
@@ -716,7 +716,7 @@ def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> 
     call_graph_forest = resolve_references(code).call_graph_forest
 
     transformed_call_graph_forest: dict = {}
-    for tree_id, tree in call_graph_forest.forest.items():
+    for tree_id, tree in call_graph_forest.graphs.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
             transformed_call_graph_forest[f"{tree_id}"].add(child.__str__())

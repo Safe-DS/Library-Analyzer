@@ -7,9 +7,9 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Builtin,
     BuiltinOpen,
     CallGraphForest,
-    CallOfFunction,
+    UnknownFunctionCall,
     CallOfParameter,
-    ClassInit,
+    UnknownClassInit,
     CombinedCallGraphNode,
     FileRead,
     FileWrite,
@@ -17,7 +17,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ImportedCallGraphNode,
     Impure,
     ImpurityReason,
-    NewCallGraphNode,
+    CallGraphNode,
     NodeID,
     NonLocalVariableRead,
     NonLocalVariableWrite,
@@ -235,7 +235,7 @@ class PurityAnalyzer:
         The call graph forest of the module.
     purity_results : dict[NodeID, PurityResult]
         The purity results of the functions in the module.
-    decombinded_nodes : dict[NodeID, NewCallGraphNode]
+    decombinded_nodes : dict[NodeID, CallGraphNode]
         If the module has cycles, they will be found by the CallGraphBuilder and combined to a single node.
         Since these combined nodes are not part of the module but needed for the analysis,
         their purity results will be propagated to the original nodes during the analysis.
@@ -253,7 +253,7 @@ class PurityAnalyzer:
         """
         self.call_graph_forest: CallGraphForest = resolve_references(code).call_graph_forest
         self.purity_results: dict[NodeID, PurityResult] = {}
-        self.decombinded_nodes: dict[NodeID, NewCallGraphNode] = {}
+        self.decombinded_nodes: dict[NodeID, CallGraphNode] = {}
         self.purity_cache_imported_modules: dict[NodeID, dict[NodeID, PurityResult]] = {}
 
         if self.call_graph_forest:
@@ -376,11 +376,11 @@ class PurityAnalyzer:
                         # If the inferred node is a function, it must be analyzed to determine its purity.
                         if isinstance(read.inferred_node, astroid.FunctionDef):
                             impurity_reasons.add(
-                                UnknownCall(CallOfFunction(call=read.call, inferred_def=read.inferred_node)),
+                                UnknownCall(UnknownFunctionCall(call=read.call, inferred_def=read.inferred_node)),
                             )
                         elif isinstance(read.inferred_node, astroid.ClassDef):
                             impurity_reasons.add(
-                                UnknownCall(ClassInit(call=read.call, inferred_def=read.inferred_node)),
+                                UnknownCall(UnknownClassInit(call=read.call, inferred_def=read.inferred_node)),
                             )
                         # If the inferred node is a module, it will not count towards the impurity of the function.
                         # If this was added, nearly anything would be impure.
@@ -401,7 +401,7 @@ class PurityAnalyzer:
             for unknown_call in reasons.unknown_calls:
                 # Handle calls of code where no definition was found.
                 if isinstance(unknown_call, Reference):
-                    impurity_reasons.add(UnknownCall(CallOfFunction(call=unknown_call.node)))
+                    impurity_reasons.add(UnknownCall(UnknownFunctionCall(call=unknown_call.node)))
                 # Handle parameter calls
                 elif isinstance(unknown_call, Parameter):
                     impurity_reasons.add(CallOfParameter(ParameterAccess(unknown_call)))
@@ -436,11 +436,11 @@ class PurityAnalyzer:
         """
         # Check if the reference was resolved and the symbol has an inferred node.
         if imported_node.symbol.inferred_node is None:
-            return Impure({UnknownCall(CallOfFunction(imported_node.symbol.call))})
+            return Impure({UnknownCall(UnknownFunctionCall(imported_node.symbol.call))})
 
         imported_module = imported_node.symbol.inferred_node.root()
         if not isinstance(imported_module, astroid.Module):
-            return Impure({UnknownCall(CallOfFunction(imported_node.symbol.call))})
+            return Impure({UnknownCall(UnknownFunctionCall(imported_node.symbol.call))})
         imported_module_id = NodeID.calc_node_id(imported_module)
         inferred_node_id = NodeID.calc_node_id(imported_node.symbol.inferred_node)
 
@@ -470,19 +470,19 @@ class PurityAnalyzer:
             if isinstance(imported_node.symbol.inferred_node, astroid.ClassDef):
                 return Impure({
                     UnknownCall(
-                        ClassInit(call=imported_node.symbol.call, inferred_def=imported_node.symbol.inferred_node),
+                        UnknownClassInit(call=imported_node.symbol.call, inferred_def=imported_node.symbol.inferred_node),
                     ),
                 })
             return Impure({
                 UnknownCall(
-                    CallOfFunction(
+                    UnknownFunctionCall(
                         call=imported_node.symbol.call,
                         inferred_def=imported_node.symbol.inferred_node if imported_node.symbol.inferred_node else None,
                     ),
                 ),
             })
 
-    def _process_node(self, node: NewCallGraphNode) -> PurityResult:
+    def _process_node(self, node: CallGraphNode) -> PurityResult:
         """Process a node in the call graph.
 
         Process a node in the call graph to determine the purity of the function.
@@ -492,7 +492,7 @@ class PurityAnalyzer:
 
         Parameters
         ----------
-        node : NewCallGraphNode
+        node : CallGraphNode
             The node to process.
 
         Returns
@@ -548,13 +548,13 @@ class PurityAnalyzer:
 
         While traversing the forest, it saves the purity results in the purity_results attribute.
         """
-        for graph in self.call_graph_forest.forest.values():
+        for graph in self.call_graph_forest.graphs.values():
             if isinstance(graph, CombinedCallGraphNode):
                 self._process_node(graph)
                 self.decombinded_nodes.update(graph.decombine())
             elif isinstance(graph, ImportedCallGraphNode):
                 pass
-            elif isinstance(graph, NewCallGraphNode) and not isinstance(graph.symbol.node, astroid.ClassDef):
+            elif isinstance(graph, CallGraphNode) and not isinstance(graph.symbol.node, astroid.ClassDef):
                 self.purity_results[graph.symbol.id] = self._process_node(graph)
 
         if self.decombinded_nodes:

@@ -90,28 +90,28 @@ class CallGraphForest:
 
     Attributes
     ----------
-    forest : dict[str, NewCallGraphNode]
+    graphs : dict[str, CallGraphNode]
         The dictionary of call graph trees.
         The key is the name of the tree, the value is the root CallGraphNode of the tree.
     """
 
-    forest: dict[NodeID, NewCallGraphNode] = field(default_factory=dict)
+    graphs: dict[NodeID, CallGraphNode] = field(default_factory=dict)
 
-    def add_graph(self, graph_id: NodeID, graph: NewCallGraphNode) -> None:
+    def add_graph(self, graph_id: NodeID, graph: CallGraphNode) -> None:
         """Add a call graph tree to the forest.
 
         Parameters
         ----------
         graph_id : NodeID
             The NodeID of the tree node.
-        graph : NewCallGraphNode
+        graph : CallGraphNode
             The root of the tree.
         """
         # if graph_id in self.forest:
         #     raise ValueError(f"Graph with id {graph_id} already exists inside the call graph.")
-        self.forest[graph_id] = graph
+        self.graphs[graph_id] = graph
 
-    def get_graph(self, graph_id: NodeID) -> NewCallGraphNode:
+    def get_graph(self, graph_id: NodeID) -> CallGraphNode:
         """Get a call graph tree from the forest.
 
         Parameters
@@ -124,7 +124,7 @@ class CallGraphForest:
         KeyError
             If the graph_id is not in the forest.
         """
-        result = self.forest.get(graph_id)
+        result = self.graphs.get(graph_id)
         if result is None:
             raise KeyError(f"Graph with id {graph_id} not found inside the call graph.")
         return result
@@ -142,7 +142,7 @@ class CallGraphForest:
         bool
             True if the forest contains a tree with the given NodeID, False otherwise.
         """
-        return graph_id in self.forest
+        return graph_id in self.graphs
 
     def delete_graph(self, graph_id: NodeID) -> None:
         """Delete a call graph tree from the forest.
@@ -152,11 +152,11 @@ class CallGraphForest:
         graph_id : NodeID
             The NodeID of the tree to delete.
         """
-        del self.forest[graph_id]
+        del self.graphs[graph_id]
 
 
 @dataclass
-class NewCallGraphNode:
+class CallGraphNode:
     """Class for call graph nodes.
 
     A call graph node represents a function in the call graph.
@@ -164,17 +164,17 @@ class NewCallGraphNode:
     Attributes
     ----------
     symbol : Symbol
-        The of the function that the node represents.
+        The symbol of the function that the node represents.
     reasons : Reasons
         The raw Reasons for the node.
         After the call graph is built, this only contains reads_from and writes_to as well as unknown_calls.
-    children : dict[NodeID, NewCallGraphNode]
+    children : dict[NodeID, CallGraphNode]
         The set of children of the node, (i.e., the set of nodes that this node calls)
     """
 
     symbol: Symbol
     reasons: Reasons
-    children: dict[NodeID, NewCallGraphNode] = field(default_factory=dict)
+    children: dict[NodeID, CallGraphNode] = field(default_factory=dict)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -185,17 +185,17 @@ class NewCallGraphNode:
     def __repr__(self) -> str:
         return f"{self.symbol.name}: {id(self)}"
 
-    def add_child(self, child: NewCallGraphNode) -> None:
+    def add_child(self, child: CallGraphNode) -> None:
         """Add a child to the node.
 
         Parameters
         ----------
-        child : NewCallGraphNode
+        child : CallGraphNode
             The child to add.
         """
         self.children[child.symbol.id] = child
 
-    def get_child(self, child_id: NodeID) -> NewCallGraphNode:
+    def get_child(self, child_id: NodeID) -> CallGraphNode:
         """Get a child from the node.
 
         Parameters
@@ -254,19 +254,19 @@ class NewCallGraphNode:
 
 
 @dataclass
-class CombinedCallGraphNode(NewCallGraphNode):
+class CombinedCallGraphNode(CallGraphNode):
     """Class for combined call graph nodes.
 
     A CombinedCallGraphNode represents a combined cycle of functions in the call graph.
 
     Attributes
     ----------
-    combines : dict[NodeID, NewCallGraphNode]
+    combines : dict[NodeID, CallGraphNode]
         A dictionary of all nodes that are combined into this node.
         This is later used for transferring the reasons of the combined node to the original nodes.
     """
 
-    combines: dict[NodeID, NewCallGraphNode] = field(default_factory=dict)
+    combines: dict[NodeID, CallGraphNode] = field(default_factory=dict)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -287,7 +287,7 @@ class CombinedCallGraphNode(NewCallGraphNode):
         """
         return [str(node_id) for node_id in self.combines]
 
-    def decombine(self) -> dict[NodeID, NewCallGraphNode]:
+    def decombine(self) -> dict[NodeID, CallGraphNode]:
         """Decombine the node.
 
         After the purity of a combined node is inferred,
@@ -295,10 +295,10 @@ class CombinedCallGraphNode(NewCallGraphNode):
 
         Returns
         -------
-        dict[NodeID, NewCallGraphNode]
+        dict[NodeID, CallGraphNode]
             The original nodes with the transferred reasons.
         """
-        original_nodes: dict[NodeID, NewCallGraphNode] = {}
+        original_nodes: dict[NodeID, CallGraphNode] = {}
         for node_id, node in self.combines.items():
             original_nodes[node_id] = node
             original_nodes[node_id].reasons = self.reasons
@@ -306,7 +306,7 @@ class CombinedCallGraphNode(NewCallGraphNode):
 
 
 @dataclass
-class ImportedCallGraphNode(NewCallGraphNode):
+class ImportedCallGraphNode(CallGraphNode):
     """Class for imported call graph nodes.
 
     This class represents functions that are imported from other modules in the call graph.

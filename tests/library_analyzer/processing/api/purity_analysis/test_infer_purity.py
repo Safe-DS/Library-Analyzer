@@ -5,9 +5,9 @@ from library_analyzer.processing.api.purity_analysis import (
     infer_purity,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
-    CallOfFunction,
+    UnknownFunctionCall,
     CallOfParameter,
-    ClassInit,
+    UnknownClassInit,
     ClassVariable,
     FileRead,
     FileWrite,
@@ -124,7 +124,7 @@ def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # a
             return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.value}"
         elif isinstance(reason.expression, ParameterAccess):
             return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.parameter.name}"
-        elif isinstance(reason.expression, CallOfFunction | ClassInit):
+        elif isinstance(reason.expression, UnknownFunctionCall | UnknownClassInit):
             return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.name}"
     elif isinstance(reason, CallOfParameter):
         if isinstance(reason.expression, StringLiteral):
@@ -1180,7 +1180,7 @@ def fun1():
     call()
             """,  # language=none
             {
-                "fun1.line2": SimpleImpure({"UnknownCall.CallOfFunction.call"}),
+                "fun1.line2": SimpleImpure({"UnknownCall.UnknownFunctionCall.call"}),
             },
         ),
         (  # language=Python "Three Unknown Call",
@@ -1192,9 +1192,9 @@ def fun1():
             """,  # language=none
             {
                 "fun1.line2": SimpleImpure({
-                    "UnknownCall.CallOfFunction.call1",
-                    "UnknownCall.CallOfFunction.call2",
-                    "UnknownCall.CallOfFunction.call3",
+                    "UnknownCall.UnknownFunctionCall.call1",
+                    "UnknownCall.UnknownFunctionCall.call2",
+                    "UnknownCall.UnknownFunctionCall.call3",
                 }),
             },
         ),
@@ -1229,7 +1229,7 @@ def import_fun(file: str, f_name: str) -> Callable:
     return lambda x: x
             """,  # language=none
             {
-                "fun1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout", "UnknownCall.CallOfFunction.fun"}),
+                "fun1.line4": SimpleImpure({"FileWrite.StringLiteral.stdout", "UnknownCall.UnknownFunctionCall.fun"}),
                 "import_fun.line8": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
             },
         ),
@@ -1257,7 +1257,7 @@ def fun3():
                 }),
                 "fun3.line12": SimpleImpure({
                     "FileWrite.StringLiteral.stdout",
-                    "UnknownCall.CallOfFunction.UNKNOWN",  # This is the worst case where the call node is unknown.
+                    "UnknownCall.UnknownFunctionCall.UNKNOWN",  # This is the worst case where the call node is unknown.
                 }),
             },
         ),
@@ -1311,7 +1311,7 @@ import math
 def fun1(a):
     math.sqrt(a)
             """,  # language=none
-            {"fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})},
+            {"fun1.line4": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "Import module with alias - function"
             """
@@ -1320,7 +1320,7 @@ import math as m
 def fun1(a):
     m.sqrt(a)
             """,  # language=none
-            {"fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})},
+            {"fun1.line4": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "Import module with alias - function and constant"
             """
@@ -1332,7 +1332,7 @@ def fun1(a):
             """,  # language=none
             {
                 "fun1.line4": SimpleImpure(
-                    {"UnknownCall.CallOfFunction.math.sqrt", "NonLocalVariableRead.Import.math.pi"},
+                    {"UnknownCall.UnknownFunctionCall.math.sqrt", "NonLocalVariableRead.Import.math.pi"},
                 ),
             },
         ),
@@ -1361,7 +1361,7 @@ from math import sqrt
 def fun1(a):
     sqrt(a)
             """,  # language=none
-            {"fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})},
+            {"fun1.line4": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "FromImport with alias - function"
             """
@@ -1370,7 +1370,7 @@ from math import sqrt as s
 def fun1(a):
     s(a)
             """,  # language=none
-            {"fun1.line4": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})},
+            {"fun1.line4": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "FromImport with alias - function and constant"
             """
@@ -1382,7 +1382,7 @@ def fun1(a):
             """,  # language=none
             {
                 "fun1.line4": SimpleImpure(
-                    {"UnknownCall.CallOfFunction.math.sqrt", "NonLocalVariableRead.Import.math.pi"},
+                    {"UnknownCall.UnknownFunctionCall.math.sqrt", "NonLocalVariableRead.Import.math.pi"},
                 ),
             },
         ),
@@ -1393,7 +1393,7 @@ from collections.abc import Callable
 def fun1(a):
     a = Callable()
             """,  # language=none
-            {"fun1.line4": SimpleImpure({"UnknownCall.ClassInit._collections_abc.Callable"})},
+            {"fun1.line4": SimpleImpure({"UnknownCall.UnknownClassInit._collections_abc.Callable"})},
         ),
         (  # language=Python "Local Import - function"
             """
@@ -1401,7 +1401,7 @@ def fun1(a):
     import math
     a = math.sqrt(a)
             """,  # language=none
-            {"fun1.line2": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})},
+            {"fun1.line2": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "Local FromImport - constant"
             """
@@ -1417,7 +1417,7 @@ def fun1(a):
     from math import sqrt
     sqrt(a)
             """,  # language=none
-            {"fun1.line2": SimpleImpure({"UnknownCall.CallOfFunction.math.sqrt"})},
+            {"fun1.line2": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "Write to Import"
             """
