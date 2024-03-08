@@ -5,11 +5,9 @@ from dataclasses import dataclass, field
 import astroid
 import pytest
 from library_analyzer.processing.api.purity_analysis import (
-    get_base_expression,
     resolve_references,
 )
 from library_analyzer.processing.api.purity_analysis.model import (
-    Builtin,
     ClassVariable,
     InstanceVariable,
     MemberAccess,
@@ -62,17 +60,35 @@ class SimpleReasons:
         The set of the functions writes.
     reads : set[str]
         The set of the function reads.
-    calls : set[str]
-        The set of the function calls.
     """
 
     function_name: str
     writes: set[str] = field(default_factory=set)
     reads: set[str] = field(default_factory=set)
-    calls: set[str] = field(default_factory=set)
 
     def __hash__(self) -> int:
         return hash(self.function_name)
+
+
+def get_base_expression(node: MemberAccess) -> astroid.NodeNG:
+    """Get the base expression of a MemberAccess node.
+
+    Get the base expression of a MemberAccess node by recursively calling this function on the receiver of the MemberAccess node.
+
+    Parameters
+    ----------
+    node : MemberAccess
+        The MemberAccess node whose base expression is to be found.
+
+    Returns
+    -------
+    astroid.NodeNG
+        The base expression of the given MemberAccess node.
+    """
+    if isinstance(node.receiver, MemberAccess):
+        return get_base_expression(node.receiver)
+    else:
+        return node.receiver
 
 
 def transform_reference_nodes(nodes: list[ReferenceNode]) -> list[ReferenceTestNode]:
@@ -193,6 +209,12 @@ def transform_reference_node(ref_node: ReferenceNode) -> ReferenceTestNode:
             # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
             referenced_symbols=sorted([str(ref) for ref in ref_node.referenced_symbols]),
         )
+    if isinstance(ref_node.node.node, astroid.Name):
+        return ReferenceTestNode(
+            name=f"{ref_node.node.name}.line{ref_node.node.node.lineno}",
+            scope=f"{ref_node.scope.symbol.node.__class__.__name__}.{ref_node.scope.symbol.node.name}",
+            referenced_symbols=sorted([str(ref) for ref in ref_node.referenced_symbols]),
+        )
     return ReferenceTestNode(
         name=f"{ref_node.node.node.name}.line{ref_node.node.node.lineno}",
         scope=f"{ref_node.scope.symbol.node.__class__.__name__}.{ref_node.scope.symbol.node.name}",
@@ -244,31 +266,6 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                         )
                     )
                     for value_reference in function_references.reads_from
-                },
-                {
-                    (
-                        f"{function_reference.__class__.__name__}.{function_reference.node.attrname}.line{function_reference.node.fromlineno}"
-                        if isinstance(function_reference.node, astroid.Attribute)
-                        else (
-                            f"{function_reference.__class__.__name__}.{function_reference.node.name}"
-                            if isinstance(
-                                function_reference,
-                                Builtin,
-                            )  # Special case for builtin functions since we do not get their line.
-                            else (
-                                f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
-                                if isinstance(function_reference, ClassVariable)
-                                and function_reference.klass is not None
-                                else (
-                                    f"{function_reference.__class__.__name__}.{function_reference.klass.name}.{function_reference.node.member}.line{function_reference.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-                                    if isinstance(function_reference, InstanceVariable)
-                                    and function_reference.klass is not None
-                                    else f"{function_reference.__class__.__name__}.{function_reference.node.name}.line{function_reference.node.fromlineno}"
-                                )
-                            )
-                        )
-                    )
-                    for function_reference in function_references.calls
                 },
             ),
         })
@@ -650,7 +647,7 @@ def f():
                 ReferenceTestNode(
                     "UNKNOWN.class_attr1.line10",
                     "FunctionDef.f",
-                    # we do not analyze the target of the member access, hence the name does not matter.
+                    # we do not analyze the receiver of the member access, hence the name does not matter.
                     ["ClassVariable.A.class_attr1.line3"],
                 ),
                 ReferenceTestNode("b.upper_class.line10", "FunctionDef.f", ["ClassVariable.B.upper_class.line6"]),
@@ -791,7 +788,7 @@ def f():
             """,  # language=none
             [
                 ReferenceTestNode("UNKNOWN.name.line11", "FunctionDef.f", ["InstanceVariable.A.name.line4"]),
-                # we do not analyze the target of the member access, hence the name does not matter.
+                # we do not analyze the receiver of the member access, hence the name does not matter.
                 ReferenceTestNode("b.upper_class.line11", "FunctionDef.f", ["ClassVariable.B.upper_class.line7"]),
                 ReferenceTestNode("b.line11", "FunctionDef.f", ["LocalVariable.b.line10"]),
                 ReferenceTestNode("self.line4", "FunctionDef.A.__init__", ["Parameter.self.line3"]),
@@ -818,9 +815,9 @@ def f():
             """,  # language=none
             [
                 ReferenceTestNode("UNKNOWN.name.line16", "FunctionDef.f", ["InstanceVariable.C.name.line12"]),
-                # we do not analyze the target of the member access, hence the name does not matter.
+                # we do not analyze the receiver of the member access, hence the name does not matter.
                 ReferenceTestNode("UNKNOWN.c.line16", "FunctionDef.f", ["InstanceVariable.B.c.line8"]),
-                # we do not analyze the target of the member access, hence the name does not matter.
+                # we do not analyze the receiver of the member access, hence the name does not matter.
                 ReferenceTestNode("a.b.line16", "FunctionDef.f", ["InstanceVariable.A.b.line4"]),
                 ReferenceTestNode("a.line16", "FunctionDef.f", ["LocalVariable.a.line15"]),
                 ReferenceTestNode("self.line4", "FunctionDef.A.__init__", ["Parameter.self.line3"]),
@@ -855,6 +852,7 @@ def f():
                 ReferenceTestNode("self.line12", "FunctionDef.C.__init__", ["Parameter.self.line11"]),
                 ReferenceTestNode("UNKNOWN.name.line16", "FunctionDef.f", ["InstanceVariable.C.name.line12"]),
                 ReferenceTestNode("UNKNOWN.c.line16", "FunctionDef.f", ["InstanceVariable.B.c.line8"]),
+                # we do not analyze the receiver of the member access, hence the name does not matter.
                 ReferenceTestNode("a.line16", "FunctionDef.f", ["LocalVariable.a.line15"]),
                 ReferenceTestNode("a.b.line16", "FunctionDef.f", ["InstanceVariable.A.b.line4"]),
                 ReferenceTestNode("B.line4", "FunctionDef.A.__init__", ["GlobalVariable.B.line6"]),
@@ -1882,7 +1880,7 @@ def f(a):
                 ReferenceTestNode("a.line10", "FunctionDef.f", ["Parameter.a.line6"]),
                 ReferenceTestNode("inp.line10", "FunctionDef.f", ["LocalVariable.inp.line8"]),
                 ReferenceTestNode("var1.line10", "FunctionDef.f", ["GlobalVariable.var1.line2"]),
-                ReferenceTestNode("a.line11", "FunctionDef.f", ["LocalVariable.a.line10", "Parameter.a.line6"]),
+                ReferenceTestNode("a.line11", "FunctionDef.f", ["Parameter.a.line10", "Parameter.a.line6"]),
                 ReferenceTestNode("var2.line11", "FunctionDef.f", ["GlobalVariable.var2.line3"]),
                 ReferenceTestNode("inp.line11", "FunctionDef.f", ["LocalVariable.inp.line8"]),
                 ReferenceTestNode(
@@ -1893,7 +1891,7 @@ def f(a):
                 ReferenceTestNode(
                     "a.line12",
                     "FunctionDef.f",
-                    ["LocalVariable.a.line10", "LocalVariable.a.line11", "Parameter.a.line6"],
+                    ["Parameter.a.line10", "Parameter.a.line11", "Parameter.a.line6"],
                 ),
                 ReferenceTestNode("var3.line12", "FunctionDef.f", ["GlobalVariable.var3.line4"]),
             ],
@@ -2425,86 +2423,197 @@ def test_resolve_references_calls(code: str, expected: list[ReferenceTestNode]) 
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        (  # language=Python "Import"
+        (  # language=Python "Import module - module"
             """
 import math
 
-math
+def f():
+    a = math
             """,  # language=none
-            [""],  # TODO
+            [ReferenceTestNode("math.line5", "FunctionDef.f", ["Import.math.line2"])],
         ),
-        (  # language=Python "Import with use"
+        (  # language=Python "Import module - constant"
             """
 import math
 
-math.pi
+def f():
+    a = math.pi
             """,  # language=none
-            [""],  # TODO
+            [
+                ReferenceTestNode("math.line5", "FunctionDef.f", ["Import.math.line2"]),
+                ReferenceTestNode("math.pi.line5", "FunctionDef.f", ["Import.math.pi.line2"]),
+            ],
         ),
-        (  # language=Python "Import multiple"
-            """
-import math, sys
-
-math.pi
-sys.version
-            """,  # language=none
-            [""],  # TODO
-        ),
-        (  # language=Python "Import as"
+        (  # language=Python "Import module with alias - constant"
             """
 import math as m
 
-m.pi
+def f():
+    a = m.pi
             """,  # language=none
-            [""],  # TODO
+            [
+                ReferenceTestNode("m.line5", "FunctionDef.f", ["Import.math.line2"]),
+                ReferenceTestNode("m.pi.line5", "FunctionDef.f", ["Import.math.pi.line2"]),
+            ],
         ),
-        (  # language=Python "Import from"
+        (  # language=Python "Import module - function"
+            """
+import math
+
+def f(a):
+    math.sqrt(a)
+            """,  # language=none
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("math.line5", "FunctionDef.f", ["Import.math.line2"]),
+                ReferenceTestNode("math.sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"]),
+            ],
+        ),
+        (  # language=Python "Import module with alias - function"
+            """
+import math as m
+
+def f(a):
+    m.sqrt(a)
+            """,  # language=none
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("m.line5", "FunctionDef.f", ["Import.math.line2"]),
+                ReferenceTestNode("m.sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"]),
+            ],
+        ),
+        (  # language=Python "Import module with alias - function and constant"
+            """
+import math as m
+
+def f(a):
+    a = m.pi
+    m.sqrt(a)
+    m.pi = 1  # this is very uncommon but possible - make sure we detect targets as well since this is very impure
+            """,  # language=none
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("m.line5", "FunctionDef.f", ["Import.math.line2"]),
+                ReferenceTestNode("m.pi.line5", "FunctionDef.f", ["Import.math.pi.line2"]),
+                ReferenceTestNode("a.line6", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("m.line6", "FunctionDef.f", ["Import.math.line2"]),
+                ReferenceTestNode("m.sqrt.line6", "FunctionDef.f", ["Import.math.sqrt.line2"]),
+                ReferenceTestNode("m.pi.line7", "FunctionDef.f", ["Import.math.pi.line2"]),
+            ],
+        ),
+        (  # language=Python "Import two modules with alias - function and module"
+            """
+import math as m, sys as s
+
+def f(a):
+    m.sqrt(a)
+    x = s
+            """,  # language=none
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("m.line5", "FunctionDef.f", ["Import.math.line2"]),
+                ReferenceTestNode("m.sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"]),
+                ReferenceTestNode("s.line6", "FunctionDef.f", ["Import.sys.line2"]),
+            ],
+        ),
+        (  # language=Python "FromImport - constant"
+            """
+from math import pi
+
+def f():
+    a = pi
+            """,  # language=none
+            [ReferenceTestNode("pi.line5", "FunctionDef.f", ["Import.math.pi.line2"])],
+        ),
+        (  # language=Python "FromImport with alias - constant"
+            """
+from math import pi as p
+
+def f():
+    a = p
+            """,  # language=none
+            [ReferenceTestNode("p.line5", "FunctionDef.f", ["Import.math.pi.line2"])],
+        ),
+        (  # language=Python "FromImport - function"
             """
 from math import sqrt
 
-sqrt(4)
+def f(a):
+    sqrt(a)
             """,  # language=none
-            [""],  # TODO
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("sqrt.line5", "FunctionDef.f", ["Import.math.sqrt.line2"]),
+            ],
         ),
-        (  # language=Python "Import from multiple"
-            """
-from math import pi, sqrt
-
-pi
-sqrt(4)
-            """,  # language=none
-            [""],  # TODO
-        ),
-        (  # language=Python "Import from as"
+        (  # language=Python "FromImport with alias - function"
             """
 from math import sqrt as s
 
-s(4)
+def f(a):
+    s(a)
             """,  # language=none
-            [""],  # TODO
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("s.line5", "FunctionDef.f", ["Import.math.sqrt.line2"]),
+            ],
         ),
-        (  # language=Python "Import from as multiple"
+        (  # language=Python "FromImport with alias - function and constant"
             """
-from math import pi as p, sqrt as s
+from math import sqrt as s, pi as p
 
-p
-s(4)
+def f(a):
+    a = p
+    s(a)
             """,  # language=none
-            [""],  # TODO
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("p.line5", "FunctionDef.f", ["Import.math.pi.line2"]),
+                ReferenceTestNode("a.line6", "FunctionDef.f", ["Parameter.a.line4"]),
+                ReferenceTestNode("s.line6", "FunctionDef.f", ["Import.math.sqrt.line2"]),
+            ],
+        ),
+        (  # language=Python "Local FromImport - constant"
+            """
+def f(a):
+    from math import pi
+    a = pi
+            """,  # language=none
+            [
+                ReferenceTestNode("a.line4", "FunctionDef.f", ["Parameter.a.line2"]),
+                ReferenceTestNode("pi.line4", "FunctionDef.f", ["Import.math.pi.line3"]),
+            ],
+        ),
+        (  # language=Python "Local FromImport - function"
+            """
+def f(a):
+    from math import sqrt as s
+    s(a)
+            """,  # language=none
+            [
+                ReferenceTestNode("a.line4", "FunctionDef.f", ["Parameter.a.line2"]),
+                ReferenceTestNode("s.line4", "FunctionDef.f", ["Import.math.sqrt.line3"]),
+            ],
         ),
     ],
     ids=[
-        "Import",
-        "Import with use",
-        "Import multiple",
-        "Import as",
-        "Import from",
-        "Import from multiple",
-        "Import from as",
-        "Import from as multiple",
+        "Import module - module",
+        "Import module - constant",
+        "Import module with alias - constant",
+        "Import module - function",
+        "Import module with alias - function",
+        "Import module with alias - function and constant",
+        "Import two modules with alias - function and module",
+        "FromImport - constant",
+        "FromImport with alias - constant",
+        "FromImport - function",
+        "FromImport with alias - function",
+        "FromImport with alias - function and constant",
+        "Local FromImport - constant",
+        "Local FromImport - function",
     ],
 )
-@pytest.mark.xfail(reason="Not implemented yet")
+# @pytest.mark.xfail(reason="Not implemented yet")
 def test_resolve_references_imports(code: str, expected: list[ReferenceTestNode]) -> None:
     references = resolve_references(code).resolved_references
     transformed_references: list[ReferenceTestNode] = []
@@ -2647,12 +2756,8 @@ def f():
                         "GlobalVariable.c.line3",
                         "GlobalVariable.d.line4",
                     },
-                    {
-                        "GlobalVariable.g.line5",
-                        "BuiltinOpen.open",
-                    },
                 ),
-                ".g.5.0": SimpleReasons("g", set(), set(), set()),
+                ".g.5.0": SimpleReasons("g", set(), set()),
             },
         ),
         (  # language=Python "Control flow statements"
@@ -2703,9 +2808,8 @@ def g():
                         "ClassVariable.A.class_attr1.line3",
                     },
                     set(),
-                    {"GlobalVariable.A.line2"},
                 ),
-                ".g.9.0": SimpleReasons("g", set(), {"ClassVariable.A.class_attr1.line3"}, {"GlobalVariable.A.line2"}),
+                ".g.9.0": SimpleReasons("g", set(), {"ClassVariable.A.class_attr1.line3"}),
             },
         ),
         (  # language=Python "Instance attribute"
@@ -2745,7 +2849,6 @@ def g3():
                         "InstanceVariable.A.instance_attr1.line4",
                     },
                     set(),
-                    {"GlobalVariable.A.line2"},
                 ),
                 ".f2.11.0": SimpleReasons(
                     "f2",
@@ -2763,7 +2866,6 @@ def g3():
                     {
                         "InstanceVariable.A.instance_attr1.line4",
                     },
-                    {"GlobalVariable.A.line2"},
                 ),
                 ".g2.22.0": SimpleReasons(
                     "g2",
@@ -2809,10 +2911,6 @@ def f():
                         "InstanceVariable.A.name.line4",
                         "ClassVariable.B.upper_class.line10",
                     },
-                    {
-                        "GlobalVariable.B.line9",
-                        "ClassVariable.A.set_name.line6",
-                    },
                 ),
             },
         ),
@@ -2833,14 +2931,13 @@ def g():
             """,  # language=none
             {
                 ".__init__.3.4": SimpleReasons("__init__"),
-                ".f.6.4": SimpleReasons("f", set(), set(), set()),
+                ".f.6.4": SimpleReasons("f", set(), set()),
                 ".g.12.0": SimpleReasons(
                     "g",
                     set(),
                     {
                         "ClassVariable.A.class_attr1.line10",
                     },
-                    {"GlobalVariable.A.line9", "ClassVariable.B.f.line6"},
                 ),
             },
         ),
@@ -2876,7 +2973,6 @@ def f():
                         "InstanceVariable.A.name.line6",
                         "InstanceVariable.B.name.line12",
                     },
-                    {"GlobalVariable.A.line2", "GlobalVariable.B.line8"},
                 ),
             },
         ),
@@ -2902,7 +2998,7 @@ def f():
         pass
             """,  # language=none
             {
-                ".add.6.4": SimpleReasons("add", set(), {"GlobalVariable.z.line2"}, set()),
+                ".add.6.4": SimpleReasons("add", set(), {"GlobalVariable.z.line2"}),
                 ".add.12.4": SimpleReasons(
                     "add",
                 ),
@@ -2910,10 +3006,6 @@ def f():
                     "f",
                     set(),
                     set(),
-                    {
-                        "ClassVariable.A.add.line6",
-                        "ClassVariable.B.add.line12",
-                    },
                 ),
             },
         ),  # since we only return a list of all possible references, we can't distinguish between the two functions
@@ -2944,10 +3036,6 @@ def f():
                     "f",
                     set(),
                     set(),
-                    {
-                        "ClassVariable.A.add.line4",
-                        "ClassVariable.B.add.line9",
-                    },
                 ),
             },
         ),  # TODO: [LATER] we should detect the different signatures
@@ -2972,6 +3060,3 @@ def test_get_module_data_reasons(code: str, expected: dict[str, SimpleReasons]) 
     # assert function_references == expected
 
     assert transformed_function_references == expected
-
-
-# TODO: testcases for cyclic calls and recursive calls

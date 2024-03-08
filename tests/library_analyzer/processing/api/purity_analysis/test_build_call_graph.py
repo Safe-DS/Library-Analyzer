@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from library_analyzer.processing.api.purity_analysis import build_call_graph, get_module_data, resolve_references
+from library_analyzer.processing.api.purity_analysis import resolve_references
 
 
 @pytest.mark.parametrize(
@@ -70,6 +70,81 @@ def call_function(a):
                 ".call_function.8.0": {".fun1.2.0", ".fun2.5.0"},
             },
         ),
+        (  # language=Python "builtin function call",
+            """
+def fun1():
+    fun2()
+
+def fun2():
+    print("Function 2")
+            """,  # language=none
+            {
+                ".fun1.2.0": {".fun2.5.0"},
+                ".fun2.5.0": {
+                    "print",
+                },  # print is a builtin function and therefore has no function def to reference -> therefor it has no line
+            },
+        ),
+        (  # language=Python "external function call",
+            """
+from external import call
+
+def fun1():
+    call()
+            """,  # language=none
+            {
+                ".fun1.4.0": set(),  # Since this function could not be resolved, there is no node for it to add to the call graph.
+                # It will be handled as an unknown call when analyzing the purity.
+            },
+        ),
+        (  # language=Python "lambda",
+            """
+def fun1(x):
+    return x + 1
+
+def fun2():
+    return lambda x: fun1(x) * 2
+            """,  # language=none
+            {
+                ".fun1.2.0": set(),
+                ".fun2.5.0": {".fun1.2.0"},
+            },
+        ),
+        (  # language=Python "lambda with name",
+            """
+double = lambda x: 2 * x
+            """,  # language=none
+            {
+                ".double.2.9": set(),
+            },
+        ),
+    ],
+    ids=[
+        "function call - in declaration order",
+        "function call - against declaration flow",
+        "function call - against declaration flow with multiple calls",
+        "function conditional with branching",
+        "builtin function call",
+        "external function call",
+        "lambda",
+        "lambda with name",
+    ],
+)
+def test_build_call_graph_basics(code: str, expected: dict[str, set]) -> None:
+    call_graph_forest = resolve_references(code).call_graph_forest
+
+    transformed_call_graph_forest: dict = {}
+    for tree_id, tree in call_graph_forest.graphs.items():
+        transformed_call_graph_forest[f"{tree_id}"] = set()
+        for child in tree.children:
+            transformed_call_graph_forest[f"{tree_id}"].add(child.__str__())
+
+    assert transformed_call_graph_forest == expected
+
+
+@pytest.mark.parametrize(
+    ("code", "expected"),
+    [
         (  # language=Python "function call with cycle - direct entry"
             """
 def fun1(count):
@@ -94,13 +169,14 @@ def cycle2():
 
 def cycle3():
     cycle1()
+    print()
 
 def entry():
     cycle1()
             """,  # language=none
             {
-                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": set(),
-                ".entry.11.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
+                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": {"print"},
+                ".entry.12.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
             },
         ),
         (  # language=Python "function call with cycle - many entry points"
@@ -188,37 +264,53 @@ def other3():
                 ".other3.23.0": set(),
             },
         ),
-        # TODO: add a case with a cycle and a node inside the cycle has multiple more than one funcdef with the same name
-        # TODO: this case is disabled for merging to main [ENABLE AFTER MERGE]
-        #         (  # language=Python "function call with cycle - cycle within a cycle"
-        #             """
-        # def cycle1():
-        #     cycle2()
-        #
-        # def cycle2():
-        #     cycle3()
-        #
-        # def cycle3():
-        #     inner_cycle1()
-        #     cycle1()
-        #
-        # def inner_cycle1():
-        #     inner_cycle2()
-        #
-        # def inner_cycle2():
-        #     inner_cycle1()
-        #
-        # def entry():
-        #     cycle1()
-        #
-        # entry()
-        #             """,  # language=none
-        #             {
-        #                 "cycle1+cycle2+cycle3": {"inner_cycle1+inner_cycle2"},
-        #                 "inner_cycle1+inner_cycle2": set(),
-        #                 "entry": {"cycle1+cycle2+cycle3"},
-        #             },
-        #         ),
+        (  # language=Python "function call with cycle - cycle within a cycle"
+            """
+def cycle1():
+    cycle2()
+
+def cycle2():
+    cycle3()
+
+def cycle3():
+    cycle1()
+    cycle2()
+
+def entry():
+    cycle1()
+            """,  # language=none
+            {
+                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": set(),
+                ".entry.12.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
+            },
+        ),
+        (  # language=Python "function call with cycle - external cycle within a cycle"
+            """
+def cycle1():
+    cycle2()
+
+def cycle2():
+    cycle3()
+
+def cycle3():
+    external_inner_cycle1()
+    cycle1()
+
+def external_inner_cycle1():
+    external_inner_cycle2()
+
+def external_inner_cycle2():
+    external_inner_cycle2()
+
+def entry():
+    cycle1()
+            """,  # language=none
+            {
+                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": {".inner_cycle1.12.0+.inner_cycle2.15.0"},
+                ".inner_cycle1.12.0+.inner_cycle2.15.0": set(),
+                ".entry.18.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
+            },  # TODO: case for super super knote, case for external cycle with call to original cycle
+        ),
         (  # language=Python "recursive function call",
             """
 def f(a):
@@ -229,80 +321,27 @@ def f(a):
                 ".f.2.0": set(),
             },
         ),
-        (  # language=Python "builtin function call",
-            """
-def fun1():
-    fun2()
-
-def fun2():
-    print("Function 2")
-            """,  # language=none
-            {
-                ".fun1.2.0": {".fun2.5.0"},
-                ".fun2.5.0": {
-                    "print",
-                },  # print is a builtin function and therefore has no function def to reference -> therefor it has no line
-            },
-        ),
-        (  # language=Python "external function call",
-            """
-def fun1():
-    call()
-            """,  # language=none
-            {
-                ".fun1.2.0": set(),
-            },
-        ),
-        (  # language=Python "lambda",
-            """
-def fun1(x):
-    return x + 1
-
-def fun2():
-    return lambda x: fun1(x) * 2
-            """,  # language=none
-            {
-                ".fun1.2.0": set(),
-                ".fun2.5.0": {".fun1.2.0"},
-            },
-        ),
-        (  # language=Python "lambda with name",
-            """
-double = lambda x: 2 * x
-            """,  # language=none
-            {
-                ".double.2.9": set(),
-            },
-        ),
     ],
     ids=[
-        "function call - in declaration order",
-        "function call - against declaration flow",
-        "function call - against declaration flow with multiple calls",
-        "function conditional with branching",
         "function call with cycle - direct entry",
         "function call with cycle - one entry point",
         "function call with cycle - many entry points",
         "function call with cycle - other call in cycle",
         "function call with cycle - multiple other calls in cycle",
-        # "function call with cycle - cycle within a cycle",
+        "function call with cycle - cycle within a cycle",
+        "function call with cycle - external cycle within a cycle",
         "recursive function call",
-        "builtin function call",
-        "external function call",
-        "lambda",
-        "lambda with name",
-    ],
+    ],  # TODO: add cyclic cases for member access
 )
-def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
-    module_data = get_module_data(code)
-    references = resolve_references(code)
-    call_graph_forest = build_call_graph(module_data.functions, module_data.classes, references.raw_reasons)
+@pytest.mark.xfail(reason="External cycles are not handled yet.")
+def test_build_call_graph_cycles(code: str, expected: dict[str, set]) -> None:
+    call_graph_forest = resolve_references(code).call_graph_forest
 
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.graphs.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
-            transformed_call_graph_forest[f"{tree_id}"].add(child.scope.symbol.id.__str__())
+            transformed_call_graph_forest[f"{tree_id}"].add(child.__str__())
 
     assert transformed_call_graph_forest == expected
 
@@ -310,7 +349,7 @@ def test_build_call_graph(code: str, expected: dict[str, set]) -> None:
 @pytest.mark.parametrize(
     ("code", "expected"),
     [
-        (  # language=Python "class call - init",
+        (  # language=Python "Class call - pass",
             """
 class A:
     pass
@@ -322,6 +361,51 @@ def fun():
             {
                 ".A.2.0": set(),
                 ".fun.5.0": {".A.2.0"},
+            },
+        ),
+        (  # language=Python "Class call - init",
+            """
+class A:
+    def __init__(self):
+        pass
+
+def fun():
+    a = A()
+
+            """,  # language=none
+            {
+                ".A.2.0": {".__init__.3.4"},
+                ".__init__.3.4": set(),
+                ".fun.6.0": {".A.2.0"},
+            },
+        ),
+        (  # language=Python "Class call - init propagation",
+            """
+class A:
+    def __init__(self):
+        self.a1_fun()
+        self.b = B()
+
+    def a1_fun(self):
+        self.a2_fun()
+
+    def a2_fun(self):
+        pass
+
+class B:
+    pass
+
+def fun():
+    a = A()
+
+            """,  # language=none
+            {
+                ".A.2.0": {".__init__.3.4"},
+                ".__init__.3.4": {".a1_fun.7.4", ".B.13.0"},
+                ".a1_fun.7.4": {".a2_fun.10.4"},
+                ".a2_fun.10.4": set(),
+                ".B.13.0": set(),
+                ".fun.16.0": {".A.2.0"},
             },
         ),
         (  # language=Python "member access - class",
@@ -338,7 +422,7 @@ def fun():
                 ".fun.5.0": {".A.2.0"},
             },
         ),
-        (  # language=Python "member access - class without init",
+        (  # language=Python "member access - class without call",
             """
 class A:
     class_attr1 = 20
@@ -373,22 +457,6 @@ def fun2():
                 ".g.5.4": set(),
                 ".fun1.8.0": {".A.2.0", ".g.5.4"},
                 ".fun2.12.0": {".A.2.0", ".g.5.4"},
-            },
-        ),
-        (  # language=Python "member access - init",
-            """
-class A:
-    def __init__(self):
-        pass
-
-def fun():
-    a = A()
-
-            """,  # language=none
-            {
-                ".A.2.0": {".__init__.3.4"},
-                ".__init__.3.4": set(),
-                ".fun.6.0": {".A.2.0"},
             },
         ),
         (  # language=Python "member access - instance function",
@@ -628,11 +696,12 @@ lambda_add = lambda x, y: A().value.add(x, y)
         ),
     ],
     ids=[
-        "class call - init",
+        "Class call - pass",
+        "Class call - init",
+        "Class call - init propagation",
         "member access - class",
-        "member access - class without init",
+        "member access - class without call",
         "member access - methode",
-        "member access - init",
         "member access - instance function",
         "member access - function call of functions with same name",
         "member access - function call of functions with same name and nested calls",
@@ -641,17 +710,15 @@ lambda_add = lambda x, y: A().value.add(x, y)
         "member access - function call of functions with same name (but different instance variables)",
         "member access - lambda function call",
         "member access - class init and methode call in lambda function",
-    ],  # TODO: add cyclic cases and MA in lambda functions
+    ],
 )
 def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> None:
-    module_data = get_module_data(code)
-    references = resolve_references(code)
-    call_graph_forest = build_call_graph(module_data.functions, module_data.classes, references.raw_reasons)
+    call_graph_forest = resolve_references(code).call_graph_forest
 
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.graphs.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
         for child in tree.children:
-            transformed_call_graph_forest[f"{tree_id}"].add(child.scope.symbol.id.__str__())
+            transformed_call_graph_forest[f"{tree_id}"].add(child.__str__())
 
     assert transformed_call_graph_forest == expected
