@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import astroid
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Iterator
 
 
 @dataclass
@@ -24,29 +24,14 @@ class ModuleData:
     functions : dict[str, list[FunctionScope]]
         All functions and a list of their FunctionScopes.
         The value is a list since there can be multiple functions with the same name.
-    global_variables : dict[str, Scope]
-        All global variables and their Scope.
-    value_nodes : dict[astroid.Name | MemberAccessValue, Scope]
-        All value nodes and their Scope.
-        Value nodes are nodes that are read from.
-    target_nodes : dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope]
-        All target nodes and their Scope.
-        Target nodes are nodes that are written to.
-    parameters : dict[astroid.FunctionDef, tuple[Scope, list[astroid.AssignName]]]
-        All parameters of functions and a tuple of their Scope and a set of their target nodes.
-        These are used to determine the scope of the parameters for each function.
-    function_calls : dict[astroid.Call, Scope]
-        All function calls and their Scope.
+    imports : dict[str, Import]
+        All imported symbols.
     """
 
     scope: Scope
     classes: dict[str, ClassScope]
     functions: dict[str, list[FunctionScope]]
-    global_variables: dict[str, Scope]
-    value_nodes: dict[astroid.Name | MemberAccessValue, Scope]
-    target_nodes: dict[astroid.AssignName | astroid.Name | MemberAccessTarget, Scope]
-    parameters: dict[astroid.FunctionDef, tuple[Scope, list[astroid.AssignName]]]
-    function_calls: dict[astroid.Call, Scope]
+    imports: dict[str, Import]
 
 
 @dataclass
@@ -106,6 +91,44 @@ class MemberAccessTarget(MemberAccess):
     def __hash__(self) -> int:
         return hash(str(self))
 
+    @classmethod
+    def construct_member_access_target(cls, node: astroid.Attribute | astroid.AssignAttr) -> MemberAccessTarget:
+        """Construct a MemberAccessTarget node.
+
+        Construct a MemberAccessTarget node from an Attribute or AssignAttr node.
+        The receiver is the node that is accessed, and the member is the node that accesses the receiver.
+        The receiver can be nested.
+
+        Parameters
+        ----------
+        node : astroid.Attribute | astroid.AssignAttr
+            The node to construct the MemberAccessTarget node from.
+
+        Returns
+        -------
+        MemberAccessTarget
+            The constructed MemberAccessTarget node.
+        """
+        receiver = node.expr
+        member = node.attrname
+
+        try:
+            if isinstance(receiver, astroid.Name):
+                return MemberAccessTarget(node=node, receiver=receiver, member=member)
+            elif isinstance(receiver, astroid.Call):
+                return MemberAccessTarget(node=node, receiver=receiver.func, member=member)
+            elif isinstance(receiver, astroid.Attribute):
+                return MemberAccessTarget(
+                    node=node,
+                    receiver=cls.construct_member_access_target(receiver),
+                    member=member,
+                )
+            else:
+                return MemberAccessTarget(node=node, receiver=None, member=member)
+        # Since it is tedious to add testcases for this function, ignore the coverage for now
+        except TypeError as err:  # pragma: no cover
+            raise TypeError(f"Unexpected node type {type(node)}") from err  # pragma: no cover
+
 
 @dataclass
 class MemberAccessValue(MemberAccess):
@@ -118,6 +141,40 @@ class MemberAccessValue(MemberAccess):
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    @classmethod
+    def construct_member_access_value(cls, node: astroid.Attribute) -> MemberAccessValue:
+        """Construct a MemberAccessValue node.
+
+        Construct a MemberAccessValue node from an Attribute node.
+        The receiver is the node that is accessed, and the member is the node that accesses the receiver.
+        The receiver can be nested.
+
+        Parameters
+        ----------
+        node : astrid.Attribute
+            The node to construct the MemberAccessValue node from.
+
+        Returns
+        -------
+        MemberAccessValue
+            The constructed MemberAccessValue node.
+        """
+        receiver = node.expr
+        member = node.attrname
+
+        try:
+            if isinstance(receiver, astroid.Name):
+                return MemberAccessValue(node=node, receiver=receiver, member=member)
+            elif isinstance(receiver, astroid.Call):
+                return MemberAccessValue(node=node, receiver=receiver.func, member=member)
+            elif isinstance(receiver, astroid.Attribute):
+                return MemberAccessValue(node=node, receiver=cls.construct_member_access_value(receiver), member=member)
+            else:
+                return MemberAccessValue(node=node, receiver=None, member=member)
+        # Since it is tedious to add testcases for this function, ignore the coverage for now
+        except TypeError as err:  # pragma: no cover
+            raise TypeError(f"Unexpected node type {type(node)}") from err  # pragma: no cover
 
 
 @dataclass
@@ -133,10 +190,10 @@ class NodeID:
         The name of the node.
     line : int
         The line of the node in the source code.
-        Is -1 for combined nodes, builtins or any other node that do not have a line.
+        Is -1 for combined nodes. Builtins or any other node that do not have a line.
     col : int | None
         The column of the node in the source code.
-        Is -1 for combined nodes, builtins or any other node that do not have a line.
+        Is -1 for combined nodes. Builtins or any other node that do not have a line.
     """
 
     module: astroid.Module | str | None
@@ -153,6 +210,83 @@ class NodeID:
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    @classmethod
+    def calc_node_id(
+        cls,
+        node: (
+            astroid.NodeNG
+            | astroid.Module
+            | astroid.ClassDef
+            | astroid.FunctionDef
+            | astroid.AssignName
+            | astroid.Name
+            | astroid.AssignAttr
+            | astroid.Import
+            | astroid.ImportFrom
+            | astroid.Call
+            | astroid.Lambda
+            | astroid.ListComp
+            | MemberAccess
+        ),
+    ) -> NodeID:
+        """Calculate the NodeID of the given node.
+
+        The NodeID is calculated by using the name of the module, the name of the node, the line number and the column offset.
+        The NodeID is used to identify nodes in the module.
+
+        Parameters
+        ----------
+        node : astroid.NodeNG | astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name | astroid.AssignAttr | astroid.Import | astroid.ImportFrom | astroid.Call | astroid.Lambda | astroid.ListComp | MemberAccess
+
+        Returns
+        -------
+        NodeID
+            The NodeID of the given node.
+        """
+        if isinstance(node, MemberAccess):
+            module = node.node.root().name
+        else:
+            module = node.root().name
+            # TODO: check if this is correct when working with a real module
+
+        match node:
+            case astroid.Module():
+                return NodeID(module, node.name, 0, 0)
+            case astroid.ClassDef():
+                return NodeID(module, node.name, node.lineno, node.col_offset)
+            case astroid.FunctionDef():
+                return NodeID(module, node.name, node.fromlineno, node.col_offset)
+            case astroid.AssignName():
+                return NodeID(module, node.name, node.lineno, node.col_offset)
+            case astroid.Name():
+                return NodeID(module, node.name, node.lineno, node.col_offset)
+            case MemberAccess():
+                return NodeID(module, node.name, node.node.lineno, node.node.col_offset)
+            case astroid.Import():  # TODO: we need a special treatment for imports and import from
+                return NodeID(module, node.names[0][0], node.lineno, node.col_offset)
+            case astroid.ImportFrom():
+                return NodeID(module, node.names[0][1], node.lineno, node.col_offset)
+            case astroid.AssignAttr():
+                return NodeID(module, node.attrname, node.lineno, node.col_offset)
+            case astroid.Call():
+                # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
+                if isinstance(node.func, astroid.Attribute):
+                    return NodeID(module, node.func.attrname, node.lineno, node.col_offset)
+                elif isinstance(node.func, astroid.Name):
+                    return NodeID(module, node.func.name, node.lineno, node.col_offset)
+                else:
+                    return NodeID(module, "UNKNOWN", node.lineno, node.col_offset)
+            case astroid.Lambda():
+                if isinstance(node.parent, astroid.Assign) and node.name != "LAMBDA":
+                    return NodeID(module, node.name, node.lineno, node.col_offset)
+                return NodeID(module, "LAMBDA", node.lineno, node.col_offset)
+            case astroid.ListComp():
+                return NodeID(module, "LIST_COMP", node.lineno, node.col_offset)
+            case astroid.NodeNG():
+                return NodeID(module, node.as_string(), node.lineno, node.col_offset)
+            case _:
+                raise ValueError(f"Node type {node.__class__.__name__} is not supported yet.")
 
 
 @dataclass
@@ -262,7 +396,45 @@ class InstanceVariable(Symbol):
 
 @dataclass
 class Import(Symbol):
-    """Represents an import."""
+    """Represents an import.
+
+    Attributes
+    ----------
+    node : astroid.ImportFrom | astroid.Import
+        The node that defines the import.
+    name : str
+        The name of the symbol that is imported if any is given.
+        Else it is equal to the module name.
+    module : str
+        The name of the module that is imported.
+    alias : str | None
+        If the node is of type Import alias is the alias name for the module name if any is given.
+        If the node is of type ImportFrom alias is the alias name for the name of the symbol if any is given.
+    inferred_node : astroid.NodeNG | None
+        When the import is used as a reference (or a symbol)
+        the inferred_node is the node of the used reference (or symbol) in the original module.
+        It was inferred by the reference analysis by using astroids safe_infer method.
+        If the method could not infer the node, the inferred_node is None.
+    call: astroid.Call | None
+        The original call node as fallback for the case, that the purity of the inferred_node cannot be inferred.
+        Only is set if the symbol represents a call.
+    """
+
+    node: astroid.ImportFrom | astroid.Import
+    module: str
+    alias: str | None = None
+    inferred_node: astroid.NodeNG | None = None
+    call: astroid.Call | None = None
+
+    def __str__(self) -> str:
+        if isinstance(self.node, astroid.ImportFrom):
+            if self.name:
+                return f"{self.__class__.__name__}.{self.module}.{self.name}.line{self.id.line}"
+            return f"{self.__class__.__name__}.{self.module}.line{self.id.line}"
+        else:
+            if self.name != self.module:
+                return f"{self.__class__.__name__}.{self.module}.{self.name}.line{self.id.line}"
+            return f"{self.__class__.__name__}.{self.module}.line{self.id.line}"
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -301,6 +473,29 @@ class BuiltinOpen(Builtin):
 
 
 @dataclass
+class CombinedSymbol(Symbol):
+    """Represents a combined symbol.
+
+    A combined symbol is used to represent a combined node in the call graph.
+    Since the node for a combined node does not exist, it is set to None.
+
+
+    Attributes
+    ----------
+    node : None
+
+    """
+
+    node: None
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}"
+
+
+@dataclass
 class Reference:
     """Represents a node that references a Name.
 
@@ -323,6 +518,8 @@ class Reference:
     name: str
 
     def __str__(self) -> str:
+        if self.id is None:
+            return f"{self.__class__.__name__}.{self.name}"
         return f"{self.__class__.__name__}.{self.name}.line{self.id.line}"
 
     def __hash__(self) -> int:
@@ -352,7 +549,7 @@ class Scope:
     _children: list[Scope] = field(default_factory=list)
     _parent: Scope | None = None
 
-    def __iter__(self) -> Generator[Scope | ClassScope, None, None]:
+    def __iter__(self) -> Iterator[Scope | ClassScope]:
         yield self
 
     def __next__(self) -> Scope | ClassScope:

@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 import typing
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Any
+
+import astroid
 
 from library_analyzer.utils import ensure_file_exists
 
@@ -15,6 +17,7 @@ if TYPE_CHECKING:
     from library_analyzer.processing.api.purity_analysis.model import (
         ClassVariable,
         GlobalVariable,
+        Import,
         InstanceVariable,
         Parameter,
     )
@@ -148,6 +151,10 @@ class ImpurityReason(ABC):  # this is just a base class, and it is important tha
     If a function is impure it is because of one or more impurity reasons.
     """
 
+    # TODO:
+    # origin
+    # neighbor
+
     @abstractmethod
     def __str__(self) -> str:
         pass
@@ -166,11 +173,11 @@ class NonLocalVariableRead(Read):
 
     Attributes
     ----------
-    symbol : GlobalVariable | ClassVariable | InstanceVariable
+    symbol : GlobalVariable | ClassVariable | InstanceVariable | Import
         The symbol that is read.
     """
 
-    symbol: GlobalVariable | ClassVariable | InstanceVariable
+    symbol: GlobalVariable | ClassVariable | InstanceVariable | Import
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -187,10 +194,10 @@ class FileRead(Read):
     ----------
     source : Expression | None
         The source of the read.
-        This is None if the source is unknown.  # TODO: or should that be a of Type Unknown? LARS
+        This is None if the source is unknown.
     """
 
-    source: Expression | None = None  # TODO: this should never be None? or should it? LARS
+    source: Expression | None = None  # TODO: this should never be None
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -211,11 +218,11 @@ class NonLocalVariableWrite(Write):
 
     Attributes
     ----------
-    symbol : GlobalVariable | ClassVariable | InstanceVariable
+    symbol : GlobalVariable | ClassVariable | InstanceVariable | Import
         The symbol that is written to.
     """
 
-    symbol: GlobalVariable | ClassVariable | InstanceVariable
+    symbol: GlobalVariable | ClassVariable | InstanceVariable | Import
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -343,7 +350,7 @@ class ParameterAccess(Expression):
     def __str__(self) -> str:
         if isinstance(self.parameter, str):
             return self.parameter
-        return f"ParameterAccess.{self.parameter.name}"
+        return f"{self.__class__.__name__}.{self.parameter.name}"
 
 
 @dataclass
@@ -360,6 +367,68 @@ class StringLiteral(Expression):
 
     def __str__(self) -> str:
         return f"StringLiteral.{self.value}"
+
+
+@dataclass
+class UnknownFunctionCall(Expression):
+    """Class for unknown function calls.
+
+    Attributes
+    ----------
+    call : astroid.Call
+        The call node.
+    inferred_def : astroid.FunctionDef | None
+        The inferred function definition for the call if it is known.
+    name : str
+        The name of the call.
+    """
+
+    call: astroid.Call
+    inferred_def: astroid.FunctionDef | None = None
+    name: str = field(init=False)
+
+    def __post_init__(self) -> None:
+        if self.inferred_def is not None:
+            self.name = f"{self.inferred_def.root().name}.{self.inferred_def.name}"
+        elif isinstance(self.call.func, astroid.Attribute):
+            self.name = self.call.func.attrname
+        elif isinstance(self.call.func, astroid.Name):
+            self.name = self.call.func.name
+        else:
+            self.name = "UNKNOWN"
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}"
+
+
+@dataclass
+class UnknownClassInit(Expression):
+    """Class for unknown class initializations.
+
+    Attributes
+    ----------
+    call : astroid.Call
+        The call node.
+    inferred_def : astroid.ClassDef | None
+        The inferred class definition for the call if it is known.
+    name : str
+        The name of the call.
+    """
+
+    call: astroid.Call
+    inferred_def: astroid.ClassDef | None = None
+    name: str = field(init=False)
+
+    def __post_init__(self) -> None:
+        if self.inferred_def is not None:
+            self.name = f"{self.inferred_def.root().name}.{self.inferred_def.name}"
+        elif isinstance(self.call.func, astroid.Attribute):
+            self.name = self.call.func.attrname
+        else:
+            self.name = self.call.func.name
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}"
 
 
 class APIPurity:

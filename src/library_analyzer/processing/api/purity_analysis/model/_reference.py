@@ -11,6 +11,7 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
     ClassVariable,
     FunctionScope,
     GlobalVariable,
+    Import,
     InstanceVariable,
     MemberAccessTarget,
     MemberAccessValue,
@@ -101,14 +102,14 @@ class ModuleAnalysisResult:
         The key is the NodeID of the function, the value is the Reasons for the function.
     classes : dict[str, ClassScope]
         All classes and their ClassScope.
-    call_graph : CallGraphForest
+    call_graph_forest : CallGraphForest
         The call graph forest of the module.
     """
 
     resolved_references: dict[str, list[ReferenceNode]]
     raw_reasons: dict[NodeID, Reasons]
     classes: dict[str, ClassScope]
-    call_graph: CallGraphForest
+    call_graph_forest: CallGraphForest
 
 
 @dataclass
@@ -123,10 +124,11 @@ class Reasons:
     function_scope : FunctionScope | None
         The scope of the function which the reasons belong to.
         Is None if the reasons are not for a FunctionDef node.
-        This is the case when a combined node is created, or a ClassScope is used to propagate reasons.
-    writes_to : set[Symbol]
+        This is the case when either a builtin or a combined node is created,
+        or a ClassScope is used to propagate reasons.
+    writes_to : set[GlobalVariable | ClassVariable | InstanceVariable | Import]
         A set of all nodes that are written to.
-    reads_from : set[Symbol]
+    reads_from : set[GlobalVariable | ClassVariable | InstanceVariable | Import]
         A set of all nodes that are read from.
     calls : set[Symbol]
         A set of all nodes that are called.
@@ -134,20 +136,20 @@ class Reasons:
         The result of the purity analysis
         This also works as a flag to determine if the purity analysis has already been performed:
         If it is None, the purity analysis has not been performed
-    unknown_calls : list[astroid.Call | astroid.NodeNG] | None
+    unknown_calls : set[Symbol | Reference]
         A list of all unknown calls.
-        Unknown calls are calls to functions that are not defined in the module or are simply not existing.
+        Unknown calls are calls to functions that are not defined in the module or are parameters.
     """
 
+    id: NodeID
     function_scope: FunctionScope | None = field(default=None)
-    writes_to: set[GlobalVariable | ClassVariable | InstanceVariable] = field(default_factory=set)
-    reads_from: set[GlobalVariable | ClassVariable | InstanceVariable] = field(default_factory=set)
+    writes_to: set[GlobalVariable | ClassVariable | InstanceVariable | Import] = field(default_factory=set)
+    reads_from: set[GlobalVariable | ClassVariable | InstanceVariable | Import] = field(default_factory=set)
     calls: set[Symbol] = field(default_factory=set)
     result: PurityResult | None = field(default=None)
-    unknown_calls: set[astroid.Call] = field(default_factory=set)
+    unknown_calls: set[Symbol | Reference] = field(default_factory=set)
 
-    @staticmethod
-    def join_reasons_list(reasons_list: list[Reasons]) -> Reasons:
+    def join_reasons_list(self, reasons_list: list[Reasons]) -> Reasons:
         """Join a list of Reasons objects.
 
         Combines a list of Reasons objects into one Reasons object.
@@ -171,7 +173,7 @@ class Reasons:
         if not reasons_list:
             raise ValueError("List of Reasons is empty.")
 
-        result = Reasons()
+        result = self
         for reason in reasons_list:
             result.join_reasons(reason)
         return result
@@ -201,3 +203,13 @@ class Reasons:
         self.unknown_calls.update(other.unknown_calls)
 
         return self
+
+    def remove_unknown_call(self, node_id: NodeID) -> None:
+        """Remove an unknown call from the reasons.
+
+        Parameters
+        ----------
+        node_id : NodeID
+            The NodeID of the unknown call to remove.
+        """
+        self.unknown_calls = {call for call in self.unknown_calls if call.id != node_id}
