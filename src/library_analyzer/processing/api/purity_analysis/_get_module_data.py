@@ -1112,7 +1112,7 @@ class ModuleDataBuilder:
         self.imports.update(symbols)
 
 
-def get_module_data(code: str) -> ModuleData:
+def get_module_data(code: str, module_name: str = "", path: str | None = None) -> ModuleData:
     """Get the module data of the given code.
 
     To get the module data of the given code, the code is parsed into an AST and then walked by an ASTWalker.
@@ -1124,6 +1124,10 @@ def get_module_data(code: str) -> ModuleData:
     ----------
     code : str
         The source code of the module whose module data is to be found.
+    module_name : str, optional
+        The name of the module, by default "".
+    path : str, optional
+        The path of the module, by default None.
 
     Returns
     -------
@@ -1132,7 +1136,7 @@ def get_module_data(code: str) -> ModuleData:
     """
     module_data_handler = ModuleDataBuilder()
     walker = ASTWalker(module_data_handler)
-    module = astroid.parse(code)
+    module = astroid.parse(code, module_name, path)
     # print(module.repr_tree())
     walker.walk(module)
 

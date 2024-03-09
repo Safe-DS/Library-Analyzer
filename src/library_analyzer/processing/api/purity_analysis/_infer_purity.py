@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import logging
+from pathlib import Path
+
 import astroid
 
+from library_analyzer.processing.api._file_filters import _is_test_file
 from library_analyzer.processing.api.purity_analysis._resolve_references import resolve_references
 from library_analyzer.processing.api.purity_analysis.model import (
+    APIPurity,
     Builtin,
     BuiltinOpen,
     CallGraphForest,
@@ -242,7 +247,7 @@ class PurityAnalyzer:
         This attribute stores the original nodes inside after the combined node was analyzed.
     """
 
-    def __init__(self, code: str) -> None:
+    def __init__(self, code: str, module_name: str = "", path: str | None = None) -> None:
         """
         Initialize the PurityAnalyzer.
 
@@ -251,7 +256,7 @@ class PurityAnalyzer:
         code : str
             The source code of the module.
         """
-        self.call_graph_forest: CallGraphForest = resolve_references(code).call_graph_forest
+        self.call_graph_forest: CallGraphForest = resolve_references(code, module_name, path).call_graph_forest
         self.purity_results: dict[NodeID, PurityResult] = {}
         self.decombinded_nodes: dict[NodeID, CallGraphNode] = {}
         self.purity_cache_imported_modules: dict[NodeID, dict[NodeID, PurityResult]] = {}
@@ -567,7 +572,7 @@ class PurityAnalyzer:
                 self.purity_results[graph_id] = graph.reasons.result
 
 
-def infer_purity(code: str) -> dict[NodeID, PurityResult]:
+def infer_purity(code: str, module_name: str = "", path: str | None = None) -> dict[NodeID, PurityResult]:
     """
     Infer the purity of functions.
 
@@ -578,6 +583,10 @@ def infer_purity(code: str) -> dict[NodeID, PurityResult]:
     ----------
     code : str
         The source code of the module.
+    module_name : str, optional
+        The name of the module, by default "".
+    path : str, optional
+        The path of the module, by default None.
 
     Returns
     -------
@@ -585,4 +594,61 @@ def infer_purity(code: str) -> dict[NodeID, PurityResult]:
         The purity results of the functions in the module.
         Keys are the node ids, values are the purity results.
     """
-    return PurityAnalyzer(code).purity_results
+    return PurityAnalyzer(code, module_name, path).purity_results
+
+
+def get_purity_results(
+    src_dir_path: Path,
+) -> APIPurity:
+    """Get the purity results of a package.
+
+    This function is the entry to the purity analysis of a package.
+    It iterates over all modules in the package and infers the purity of the functions in the modules.
+
+    Parameters
+    ----------
+    src_dir_path : Path
+        The path of the source directory of the package.
+
+    Returns
+    -------
+    APIPurity
+        The purity results of the package.
+    """
+    modules = list(src_dir_path.glob("**/*.py"))
+    package_purity = APIPurity()
+
+    for module in modules:
+        posix_path = Path(module).as_posix()
+        logging.info(
+            "Working on purity of file {posix_path}",
+            extra={"posix_path": posix_path},
+        )
+
+        if _is_test_file(posix_path):
+            logging.info("Skipping test file")
+            continue
+
+        module_name = __module_name(src_dir_path, Path(module))
+        with module.open("r", encoding="utf-8") as file:
+            code = file.read()
+
+            module_purity_results = infer_purity(code=code,
+                                                 module_name=module_name,
+                                                 path=posix_path)
+            # TODO: do we want to differentiate between classes -> hierarchical result with classes
+            sorted_results = sorted(
+                module_purity_results.items(),
+                key=lambda item: item[0].line if item[0] is not None else float("inf")
+            )
+
+            module_purity_results_str = {func_id.__str__(): value for func_id, value in sorted_results}
+
+        package_purity.purity_results[module_name] = module_purity_results_str
+
+    return package_purity
+
+
+def __module_name(root: Path, file: Path) -> str:
+    relative_path = file.relative_to(root.parent).as_posix()
+    return str(relative_path).replace(".py", "").replace("/", ".")

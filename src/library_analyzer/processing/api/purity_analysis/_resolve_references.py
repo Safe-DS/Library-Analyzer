@@ -423,6 +423,8 @@ def _find_target_references(
 
 def resolve_references(
     code: str,
+    module_name: str = "",
+    path: str | None = None
 ) -> ModuleAnalysisResult:
     """
     Resolve all references in a module.
@@ -436,6 +438,11 @@ def resolve_references(
     ----------
     code : str
         The source code of the module.
+    module_name : str, optional
+        The name of the module, by default "".
+    path : str, optional
+        The path of the module, by default None.
+
 
     Returns
     -------
@@ -443,7 +450,7 @@ def resolve_references(
         The result of the reference resolving as well as all other information
         that is needed for the purity analysis.
     """
-    module_data = get_module_data(code)
+    module_data = get_module_data(code, module_name, path)
 
     raw_reasons: dict[NodeID, Reasons] = {}
     call_references: dict[str, list[ReferenceNode]] = {}
