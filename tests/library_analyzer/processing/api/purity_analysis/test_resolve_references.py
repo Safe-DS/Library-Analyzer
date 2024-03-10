@@ -1485,21 +1485,59 @@ def f():
         #              ReferenceTestNode("b.line6", "Module.", ["GlobalVariable.b.line6"])]
         #             # TODO: ask Lars if this is true GlobalVariable
         #         ),
-        #         (  # language=Python "try except statement global scope"
-        #             """
-        # num1 = 2
-        # num2 = 0
-        # try:
-        #     result = num1 / num2
-        #     result
-        # except ZeroDivisionError as zde:   # TODO: zde is not detected as a global variable -> do we really want that?
-        #     zde
-        #         """,  # language=none
-        #             [ReferenceTestNode("num1.line5", "Module.", ["GlobalVariable.num1.line2"]),
-        #              ReferenceTestNode("num2.line5", "Module.", ["GlobalVariable.num2.line3"]),
-        #              ReferenceTestNode("result.line6", "Module.", ["GlobalVariable.result.line5"]),
-        #              ReferenceTestNode("zde.line8", "Module.", ["GlobalVariable.zde.line7"])]
-        #         ),
+        (  # language=Python "Try Except"
+            """
+def try_except(num1, num2):
+    try:
+        result = num1 / num2
+    except ZeroDivisionError as error:
+        print(error)
+
+    print(result)
+        """,  # language=none
+            [ReferenceTestNode("num1.line4", "FunctionDef.try_except", ["Parameter.num1.line2"]),
+             ReferenceTestNode("num2.line4", "FunctionDef.try_except", ["Parameter.num2.line2"]),
+             ReferenceTestNode("ZeroDivisionError.line5", "FunctionDef.try_except", ["Builtin.ZeroDivisionError"]),
+             ReferenceTestNode("print.line6", "FunctionDef.try_except", ["Builtin.print"]),
+             ReferenceTestNode("error.line6", "FunctionDef.try_except", ["LocalVariable.error.line5"]),
+             ReferenceTestNode("print.line8", "FunctionDef.try_except", ["Builtin.print"]),
+             ReferenceTestNode("result.line8", "FunctionDef.try_except", ["LocalVariable.result.line4"])
+             ]
+        ),
+        (  # language=Python "Try Except Else Finally"
+            """
+def try_except_else_finally(num1, num2, num3):
+    try:
+        result = num1 / num2
+    except ZeroDivisionError as error:
+        print(error)
+    except Exception as error:
+        print(error)
+    else:
+        result2 = num1
+    finally:
+        final = num3
+
+    print(result, result2, final)
+
+            """,  # language=none
+            [
+                ReferenceTestNode("num1.line4", "FunctionDef.try_except_else_finally", ["Parameter.num1.line2"]),
+                ReferenceTestNode("num2.line4", "FunctionDef.try_except_else_finally", ["Parameter.num2.line2"]),
+                ReferenceTestNode("ZeroDivisionError.line5", "FunctionDef.try_except", ["Builtin.ZeroDivisionError"]),
+                ReferenceTestNode("print.line6", "FunctionDef.try_except", ["Builtin.print"]),
+                ReferenceTestNode("error.line6", "FunctionDef.try_except_else_finally", ["LocalVariable.error.line5"]),
+                ReferenceTestNode("Exception.line7", "FunctionDef.try_except", ["Builtin.Exception"]),
+                ReferenceTestNode("print.line8", "FunctionDef.try_except", ["Builtin.print"]),
+                ReferenceTestNode("error.line8", "FunctionDef.try_except_else_finally", ["LocalVariable.error.line7"]),  # the error in line 5 is out of scope for this reference
+                ReferenceTestNode("num1.line10", "FunctionDef.try_except_else_finally", ["Parameter.num1.line2"]),
+                ReferenceTestNode("num3.line12", "FunctionDef.try_except_else_finally", ["Parameter.num3.line2"]),
+                ReferenceTestNode("print.line14", "FunctionDef.try_except", ["Builtin.print"]),
+                ReferenceTestNode("result.line14", "FunctionDef.try_except_else_finally", ["LocalVariable.result.line4"]),
+                ReferenceTestNode("result2.line14", "FunctionDef.try_except_else_finally", ["LocalVariable.result2.line10"]),
+                ReferenceTestNode("final.line14", "FunctionDef.try_except_else_finally", ["LocalVariable.final.line12"]),
+            ],
+        ),
     ],
     ids=[
         "If statement",
@@ -1508,8 +1546,9 @@ def f():
         "If elif else statement global scope",
         "Ternary operator",
         # "match statement global scope",
-        # "try except statement global scope",
-    ],  # TODO: add cases with try except finally -> first check scope detection
+        "Try Except",
+        "Try Except Else Finally",
+    ],
 )
 def test_resolve_references_conditional_statements(code: str, expected: list[ReferenceTestNode]) -> None:
     references = resolve_references(code).resolved_references

@@ -195,7 +195,7 @@ class ModuleDataBuilder:
             case (
                 astroid.TryExcept() | astroid.TryFinally()
             ):  # TODO: can we summarize Lambda and ListComp here? -> only if nodes in try except are not global
-                return LocalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name)
+                return LocalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name if hasattr(node, "name") else "None")
 
         # This line is a fallback but should never be reached
         return Symbol(node=node, id=NodeID.calc_node_id(node), name=node.name)  # pragma: no cover
@@ -230,6 +230,14 @@ class ModuleDataBuilder:
                     outer_scope_children.append(child)  # Add the child to the outer scope.
                 else:
                     inner_scope_children.append(child)  # Add the child to the inner scope.
+
+                # Special case for try-except and try-finally nodes.
+                # There is no need to add another nested scope for try-except and try-finally nodes.
+                # If a try-finally node is the parent of a try-except node,
+                # add all children of the try-finally node and remove the try-except node.
+                if isinstance(current_node, astroid.TryFinally) and isinstance(child.symbol.node, astroid.TryExcept):
+                    inner_scope_children.extend(child.children)
+                    inner_scope_children.remove(child)
 
         self.current_node_stack[-1].children = inner_scope_children  # Set the children of the current node.
         self.children = outer_scope_children  # Keep the children that are not in the scope of the current node.
@@ -753,15 +761,15 @@ class ModuleDataBuilder:
     def leave_generatorexp(self, node: astroid.DictComp) -> None:
         self._detect_scope(node)
 
-    # def enter_tryfinally(self, node: astroid.TryFinally) -> None:
-    #     self.current_node_stack.append(
-    #         Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-    #               _children=[],
-    #               _parent=self.current_node_stack[-1]),
-    #     )
-    #
-    # def leave_tryfinally(self, node: astroid.TryFinally) -> None:
-    #     self._detect_scope(node)
+    def enter_tryfinally(self, node: astroid.TryFinally) -> None:
+        self.current_node_stack.append(
+            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                  _children=[],
+                  _parent=self.current_node_stack[-1]),
+        )
+
+    def leave_tryfinally(self, node: astroid.TryFinally) -> None:
+        self._detect_scope(node)
 
     def enter_tryexcept(self, node: astroid.TryExcept) -> None:
         self.current_node_stack.append(
@@ -907,8 +915,12 @@ class ModuleDataBuilder:
             | astroid.ExceptHandler
             | astroid.With,
         ):
-            # Only add assignments if they are inside a function
-            if isinstance(self.current_node_stack[-1], FunctionScope):
+            # Only add assignments if they are inside a function, or if they are inside a try-except block.
+            # Nodes inside try-except will be propagated to the next function scope.
+            if (isinstance(self.current_node_stack[-1], FunctionScope)
+                or isinstance(self.current_node_stack[-1].symbol.node, astroid.TryExcept | astroid.TryFinally)
+                and self.find_first_parent_function(node) == self.current_function_def[-1].symbol.node
+            ):
                 self.targets.append(self.get_symbol(node, self.current_node_stack[-1].symbol.node))
 
         # The following nodes are no real target nodes, but astroid generates an AssignName node for them.
@@ -1133,7 +1145,7 @@ def get_module_data(code: str) -> ModuleData:
     module_data_handler = ModuleDataBuilder()
     walker = ASTWalker(module_data_handler)
     module = astroid.parse(code)
-    # print(module.repr_tree())
+    print(module.repr_tree())
     walker.walk(module)
 
     scope = module_data_handler.children[0]  # Get the children of the root node, which are the scopes of the module
