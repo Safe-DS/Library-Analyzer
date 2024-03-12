@@ -323,7 +323,7 @@ def transform_member_access(member_access: MemberAccess) -> str:
             "numpy.numpy.0.0",
         ),
         (
-            astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy")),
+            astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy"), end_lineno=2, end_col_offset=10),
             "numpy.A.2.3",
         ),
         (
@@ -331,7 +331,7 @@ def transform_member_access(member_access: MemberAccess) -> str:
                 "local_func",
                 lineno=1,
                 col_offset=0,
-                parent=astroid.ClassDef("A", lineno=2, col_offset=3),
+                parent=astroid.ClassDef("A", lineno=2, col_offset=3, end_lineno=2, end_col_offset=10),
             ),
             "A.local_func.1.0",
         ),
@@ -340,7 +340,7 @@ def transform_member_access(member_access: MemberAccess) -> str:
                 "global_func",
                 lineno=1,
                 col_offset=0,
-                parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy")),
+                parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy"), end_lineno=2, end_col_offset=10),
             ),
             "numpy.global_func.1.0",
         ),
@@ -366,7 +366,7 @@ def transform_member_access(member_access: MemberAccess) -> str:
                     "func1",
                     lineno=1,
                     col_offset=0,
-                    parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy")),
+                    parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy"), end_lineno=2, end_col_offset=10),
                 ),
             ),
             "numpy.glob.20.0",
@@ -2703,7 +2703,7 @@ with MyContext() as context:
         ),
         (  # language=Python "Try Except"
             """
-def try_except(num1, num2, num3):
+def try_except(num1, num2):
     try:
         result = num1 / num2
     except ZeroDivisionError as error:
@@ -2718,7 +2718,6 @@ def try_except(num1, num2, num3):
                             [
                                 SimpleScope("Parameter.AssignName.num1", []),
                                 SimpleScope("Parameter.AssignName.num2", []),
-                                SimpleScope("Parameter.AssignName.num3", []),
                                 SimpleScope(
                                     "TryExcept",
                                     [
@@ -2730,13 +2729,11 @@ def try_except(num1, num2, num3):
                             [
                                 "AssignName.num1",
                                 "AssignName.num2",
-                                "AssignName.num3",
-                                "AssignName.error",
                                 "AssignName.result",
                             ],
                             ["Name.num1", "Name.num2", "Name.ZeroDivisionError", "Name.error"],
-                            [],
-                            ["AssignName.num1", "AssignName.num2", "AssignName.num3"],
+                            ["Call.print"],
+                            ["AssignName.num1", "AssignName.num2"],
                         ),
                     ],
                 ),
@@ -2751,6 +2748,7 @@ def try_except_finally(num1, num2, num3):
         print(error)
     finally:
         final = num3
+
             """,  # language=none
             [
                 SimpleScope(
@@ -2763,7 +2761,7 @@ def try_except_finally(num1, num2, num3):
                                 SimpleScope("Parameter.AssignName.num2", []),
                                 SimpleScope("Parameter.AssignName.num3", []),
                                 SimpleScope(
-                                    "TryExceptFinally",
+                                    "TryFinally",
                                     [
                                         SimpleScope("LocalVariable.AssignName.result", []),
                                         SimpleScope("LocalVariable.AssignName.error", []),
@@ -2775,12 +2773,63 @@ def try_except_finally(num1, num2, num3):
                                 "AssignName.num1",
                                 "AssignName.num2",
                                 "AssignName.num3",
-                                "AssignName.error",
                                 "AssignName.result",
                                 "AssignName.final",
                             ],
                             ["Name.num1", "Name.num2", "Name.ZeroDivisionError", "Name.error", "Name.num3"],
-                            [],
+                            ["Call.print"],
+                            ["AssignName.num1", "AssignName.num2", "AssignName.num3"],
+                        ),
+                    ],
+                ),
+            ],
+        ),
+        (  # language=Python "Try Except Else Finally"
+            """
+def try_except_else_finally(num1, num2, num3):
+    try:
+        result = num1 / num2
+    except ZeroDivisionError as error:
+        print(error)
+    except Exception as error:
+        print(error)
+    else:
+        result2 = num1
+    finally:
+        final = num3
+
+            """,  # language=none
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleFunctionScope(
+                            "GlobalVariable.FunctionDef.try_except_else_finally",
+                            [
+                                SimpleScope("Parameter.AssignName.num1", []),
+                                SimpleScope("Parameter.AssignName.num2", []),
+                                SimpleScope("Parameter.AssignName.num3", []),
+                                SimpleScope(
+                                    "TryFinally",
+                                    [
+                                        SimpleScope("LocalVariable.AssignName.result", []),
+                                        SimpleScope("LocalVariable.AssignName.error", []),
+                                        SimpleScope("LocalVariable.AssignName.error", []),
+                                        SimpleScope("LocalVariable.AssignName.result2", []),
+                                        SimpleScope("LocalVariable.AssignName.final", []),
+                                    ],
+                                ),
+                            ],
+                            [
+                                "AssignName.num1",
+                                "AssignName.num2",
+                                "AssignName.num3",
+                                "AssignName.result",
+                                "AssignName.result2",
+                                "AssignName.final",
+                            ],
+                            ["Name.num1", "Name.num2", "Name.ZeroDivisionError", "Name.error", "Name.Exception", "Name.num3"],
+                            ["Call.print"],
                             ["AssignName.num1", "AssignName.num2", "AssignName.num3"],
                         ),
                     ],
@@ -3124,6 +3173,7 @@ class ASTWalker:
         "With Statement Class",
         "Try Except",
         "Try Except Finally",
+        "Try Except Else Finally",
         "Lambda",
         "Lambda call",
         "Lambda with name",
@@ -3131,7 +3181,6 @@ class ASTWalker:
         "ASTWalker",
     ],  # TODO: add tests for match
 )
-@pytest.mark.xfail(reason="Try Catch not yet implemented.")
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
     scope = get_module_data(code).scope
     # assert result == expected

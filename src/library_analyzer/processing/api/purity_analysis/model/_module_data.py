@@ -190,10 +190,10 @@ class NodeID:
         The name of the node.
     line : int
         The line of the node in the source code.
-        Is -1 for combined nodes. Builtins or any other node that do not have a line.
+        Is None for combined nodes, builtins or any other node that do not have a line.
     col : int | None
         The column of the node in the source code.
-        Is -1 for combined nodes. Builtins or any other node that do not have a line.
+        Is None for combined nodes, builtins or any other node that do not have a line.
     """
 
     module: astroid.Module | str | None
@@ -634,7 +634,7 @@ class ClassScope(Scope):
     init_function : FunctionScope | None
         The init function of the class if it exists else None.
     super_classes : list[ClassScope]
-        The list of super classes of the class if any.
+        The list of superclasses of the class if any.
     """
 
     class_variables: dict[str, list[Symbol]] = field(default_factory=dict)

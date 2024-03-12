@@ -31,6 +31,31 @@ from library_analyzer.processing.api.purity_analysis.model import (
 _BUILTINS = dir(builtins)
 
 
+def is_function_of_class(function: astroid.FunctionDef, klass: ClassScope) -> bool:
+    """Check if a function is a method of a class.
+
+    Parameters
+    ----------
+    function : astroid.FunctionDef
+        The function to check.
+    klass : ClassScope
+        The class to check.
+
+    Returns
+    -------
+    bool
+        True if the function is a method of the class, False otherwise.
+    """
+    parent = function
+    while not isinstance(parent, astroid.Module | None):
+        if isinstance(parent, astroid.ClassDef) and parent == klass.symbol.node:
+            return True
+        elif isinstance(parent, astroid.ClassDef):
+            return False
+        parent = parent.parent
+    return False
+
+
 def _find_call_references(
     call_reference: Reference,
     function: FunctionScope,
@@ -391,6 +416,25 @@ def _find_target_references(
                             and function.parent != klass
                         ):
                             continue
+                    # Do not add functions that are not of the current class (or superclass).
+                    if function.symbol.name not in klass.class_variables or not is_function_of_class(function.symbol.node, klass):
+                        # Collect all functions of superclasses for the current klass instance.
+                        super_functions = []
+                        for sup in klass.super_classes:
+                            for class_var_list in sup.class_variables.values():
+                                for var in class_var_list:
+                                    if isinstance(var.node, astroid.FunctionDef):
+                                        super_functions.append(var.node.name)
+
+                        # Make an exception for global functions and functions of superclasses.
+                        # Also check if the function was overwritten in the current class.
+                        if (isinstance(function.symbol, GlobalVariable)
+                            or function.symbol.name in super_functions and function.symbol.name not in klass.class_variables
+                        ):
+                            pass
+                        else:
+                            continue
+
                     result_target_reference.referenced_symbols.extend(
                         klass.class_variables[target_reference.node.member],
                     )
