@@ -634,7 +634,7 @@ class ClassScope(Scope):
     init_function : FunctionScope | None
         The init function of the class if it exists else None.
     super_classes : list[ClassScope]
-        The list of super classes of the class if any.
+        The list of superclasses of the class if any.
     """
 
     class_variables: dict[str, list[Symbol]] = field(default_factory=dict)

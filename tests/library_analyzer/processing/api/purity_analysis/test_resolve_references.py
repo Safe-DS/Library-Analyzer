@@ -1007,7 +1007,7 @@ class C:
                 ReferenceTestNode(
                     "node.state.line10",
                     "FunctionDef.set_state",
-                    ["ClassVariable.A.state.line3", "ClassVariable.C.state.line6"],
+                    ["ClassVariable.C.state.line6"],
                 ),
                 ReferenceTestNode("node.line10", "FunctionDef.set_state", ["Parameter.node.line9"]),
             ],
@@ -1029,8 +1029,7 @@ class C:
                 ReferenceTestNode(
                     "cls.state.line10",
                     "FunctionDef.set_state",
-                    ["ClassVariable.A.state.line3", "ClassVariable.C.state.line6"],
-                    # TODO: [LATER] A.state should be removed!
+                    ["ClassVariable.C.state.line6"],
                 ),
                 ReferenceTestNode("cls.line10", "FunctionDef.set_state", ["Parameter.cls.line9"]),
             ],
