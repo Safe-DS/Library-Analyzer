@@ -1120,6 +1120,24 @@ async def fun2():
                 "fun2.line5": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
             },
         ),
+        (  # language=Python "Try Except"
+            """
+glob1 = 10
+
+def try_except(num1):
+    global glob1
+    try:
+        result = num1 / glob1
+    except ZeroDivisionError as error:
+        print(glob1, error)
+
+    print(result)
+        """,  # language=none
+            {
+                "try_except.line4": SimpleImpure({"FileWrite.StringLiteral.stdout",
+                                                  "NonLocalVariableRead.GlobalVariable.glob1"}),
+            }
+        ),
     ],
     ids=[
         "Print with str",
@@ -1157,6 +1175,7 @@ async def fun2():
         "Call of Function with function as return",
         "Call within a call",
         "Async Function",
+        "Try Except",
     ],
 )
 @pytest.mark.xfail(reason="Some cases disabled for merging")

@@ -912,7 +912,6 @@ class ModuleDataBuilder:
             | astroid.NamedExpr
             | astroid.Starred
             | astroid.Comprehension
-            | astroid.ExceptHandler
             | astroid.With,
         ):
             # Only add assignments if they are inside a function, or if they are inside a try-except block.
@@ -1033,7 +1032,7 @@ class ModuleDataBuilder:
                 # Add the call node to the calls of the last function definition to ensure it is considered
                 # in the call graph since it would otherwise be lost in the (local) Scope of the Comprehension.
                 if (
-                    isinstance(self.current_node_stack[-1].symbol.node, _ComprehensionType)
+                    isinstance(self.current_node_stack[-1].symbol.node, _ComprehensionType | astroid.TryExcept | astroid.TryFinally)
                     and self.current_function_def
                 ):
                     self.current_function_def[-1].call_references.setdefault(call_name, []).append(call_reference)
