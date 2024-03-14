@@ -227,7 +227,10 @@ def g():
             {
                 "__init__.line3": Pure(),
                 "f.line9": SimpleImpure(
-                    {"NonLocalVariableRead.ClassVariable.B.upper_class", "NonLocalVariableRead.InstanceVariable.A.name"},
+                    {
+                        "NonLocalVariableRead.ClassVariable.B.upper_class",
+                        "NonLocalVariableRead.InstanceVariable.A.name",
+                    },
                 ),
                 "g.line13": SimpleImpure({
                     "NonLocalVariableWrite.ClassVariable.B.upper_class",

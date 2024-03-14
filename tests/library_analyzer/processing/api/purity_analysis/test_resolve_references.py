@@ -1542,13 +1542,19 @@ def try_except_else_finally(num1, num2, num3):
                 ReferenceTestNode("num3.line12", "FunctionDef.try_except_else_finally", ["Parameter.num3.line2"]),
                 ReferenceTestNode("print.line14", "FunctionDef.try_except_else_finally", ["Builtin.print"]),
                 ReferenceTestNode(
-                    "result.line14", "FunctionDef.try_except_else_finally", ["LocalVariable.result.line4"],
+                    "result.line14",
+                    "FunctionDef.try_except_else_finally",
+                    ["LocalVariable.result.line4"],
                 ),
                 ReferenceTestNode(
-                    "result2.line14", "FunctionDef.try_except_else_finally", ["LocalVariable.result2.line10"],
+                    "result2.line14",
+                    "FunctionDef.try_except_else_finally",
+                    ["LocalVariable.result2.line10"],
                 ),
                 ReferenceTestNode(
-                    "final.line14", "FunctionDef.try_except_else_finally", ["LocalVariable.final.line12"],
+                    "final.line14",
+                    "FunctionDef.try_except_else_finally",
+                    ["LocalVariable.final.line12"],
                 ),
             ],
         ),

@@ -194,7 +194,9 @@ class ModuleDataBuilder:
                 astroid.TryExcept() | astroid.TryFinally()
             ):  # TODO: can we summarize Lambda and ListComp here? -> only if nodes in try except are not global
                 return LocalVariable(
-                    node=node, id=NodeID.calc_node_id(node), name=node.name if hasattr(node, "name") else "None",
+                    node=node,
+                    id=NodeID.calc_node_id(node),
+                    name=node.name if hasattr(node, "name") else "None",
                 )
 
         # This line is a fallback but should never be reached

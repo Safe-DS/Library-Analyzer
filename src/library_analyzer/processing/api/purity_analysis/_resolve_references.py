@@ -418,7 +418,8 @@ def _find_target_references(
                             continue
                     # Do not add functions that are not of the current class (or superclass).
                     if function.symbol.name not in klass.class_variables or not is_function_of_class(
-                        function.symbol.node, klass,
+                        function.symbol.node,
+                        klass,
                     ):
                         # Collect all functions of superclasses for the current klass instance.
                         super_functions = []
