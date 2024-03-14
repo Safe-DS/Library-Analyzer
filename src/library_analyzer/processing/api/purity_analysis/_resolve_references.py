@@ -419,7 +419,10 @@ def _find_target_references(
                         ):
                             continue
                     # Do not add functions that are not of the current class (or superclass).
-                    if function.symbol.name not in klass.class_variables or not is_function_of_class(function.symbol.node, klass):
+                    if function.symbol.name not in klass.class_variables or not is_function_of_class(
+                        function.symbol.node,
+                        klass,
+                    ):
                         # Collect all functions of superclasses for the current klass instance.
                         super_functions = []
                         for sup in klass.super_classes:
@@ -430,8 +433,10 @@ def _find_target_references(
 
                         # Make an exception for global functions and functions of superclasses.
                         # Also check if the function was overwritten in the current class.
-                        if (isinstance(function.symbol, GlobalVariable)
-                            or function.symbol.name in super_functions and function.symbol.name not in klass.class_variables
+                        if (
+                            isinstance(function.symbol, GlobalVariable)
+                            or function.symbol.name in super_functions
+                            and function.symbol.name not in klass.class_variables
                         ):
                             pass
                         else:
@@ -636,10 +641,9 @@ def resolve_references(
 
     call_graph = build_call_graph(module_data.classes, raw_reasons)
 
-    # TODO: how do we change that? LARS
     # The resolved_references, raw_reasons and modul_data are not needed
     # in the next step anymore since the call_graph contains all the information.
-    # They are needed for testing though, so they are returned.
+    # They might be used in the future and are needed for testing though, so they are returned.
     return ModuleAnalysisResult(resolved_references, raw_reasons, module_data.classes, call_graph)
 
 

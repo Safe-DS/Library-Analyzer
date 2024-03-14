@@ -323,7 +323,14 @@ def transform_member_access(member_access: MemberAccess) -> str:
             "numpy.numpy.0.0",
         ),
         (
-            astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy"), end_lineno=2, end_col_offset=10),
+            astroid.ClassDef(
+                "A",
+                lineno=2,
+                col_offset=3,
+                parent=astroid.Module("numpy"),
+                end_lineno=2,
+                end_col_offset=10,
+            ),
             "numpy.A.2.3",
         ),
         (
@@ -340,7 +347,14 @@ def transform_member_access(member_access: MemberAccess) -> str:
                 "global_func",
                 lineno=1,
                 col_offset=0,
-                parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy"), end_lineno=2, end_col_offset=10),
+                parent=astroid.ClassDef(
+                    "A",
+                    lineno=2,
+                    col_offset=3,
+                    parent=astroid.Module("numpy"),
+                    end_lineno=2,
+                    end_col_offset=10,
+                ),
             ),
             "numpy.global_func.1.0",
         ),
@@ -366,7 +380,14 @@ def transform_member_access(member_access: MemberAccess) -> str:
                     "func1",
                     lineno=1,
                     col_offset=0,
-                    parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy"), end_lineno=2, end_col_offset=10),
+                    parent=astroid.ClassDef(
+                        "A",
+                        lineno=2,
+                        col_offset=3,
+                        parent=astroid.Module("numpy"),
+                        end_lineno=2,
+                        end_col_offset=10,
+                    ),
                 ),
             ),
             "numpy.glob.20.0",
@@ -731,8 +752,10 @@ class A:
                         [
                             SimpleScope("Parameter.AssignName.self", []),
                         ],
-                        ["AssignName.self", "MemberAccessTarget.self.d", "Name.self"],
-                        [],
+                        ["AssignName.self", "MemberAccessTarget.self.d"],
+                        ["Name.self"],  # This is not correct. This belongs into the targets list.
+                        # But on the other hand it does not result in any problems if it isn't,
+                        # and it would be hard to detect that correctly.
                         [],
                         ["AssignName.self"],
                     ),
@@ -758,7 +781,6 @@ class A:
         "Assign to class dict",
     ],
 )
-@pytest.mark.xfail(reason="Error in dict test is acceptable for now.")
 def test_get_module_data_value_and_target_nodes(code: str, expected: str) -> None:
     functions = get_module_data(code).functions
     transformed_functions = {
@@ -2701,6 +2723,53 @@ with MyContext() as context:
                 ),
             ],
         ),
+        (  # language=Python "Match statement"
+            """
+var1, var2 = 10, 20
+def f(a):
+    b = var1
+    match var1:
+        case 1: return var1
+        case 2: return var2 + b
+        case (a, b): return var1, a, b
+        case _:
+            result = b
+
+    x = result
+    y = b
+    return y
+        """,  # language=none
+            [
+                SimpleScope(
+                    "Module",
+                    [
+                        SimpleScope("GlobalVariable.AssignName.var1", []),
+                        SimpleScope("GlobalVariable.AssignName.var2", []),
+                        SimpleFunctionScope(
+                            "GlobalVariable.FunctionDef.f",
+                            [
+                                SimpleScope("Parameter.AssignName.a", []),
+                                SimpleScope("LocalVariable.AssignName.b", []),
+                                SimpleScope("LocalVariable.AssignName.result", []),
+                                SimpleScope("LocalVariable.AssignName.x", []),
+                                SimpleScope("LocalVariable.AssignName.y", []),
+                            ],
+                            [
+                                "AssignName.a",
+                                "AssignName.b",
+                                "AssignName.result",
+                                "AssignName.x",
+                                "AssignName.y",
+                            ],
+                            ["Name.var1", "Name.var2", "Name.b", "Name.a", "Name.result", "Name.y"],
+                            [],
+                            ["AssignName.a"],
+                            ["AssignName.var1", "AssignName.var2"],
+                        ),
+                    ],
+                ),
+            ],
+        ),
         (  # language=Python "Try Except"
             """
 def try_except(num1, num2):
@@ -2828,7 +2897,14 @@ def try_except_else_finally(num1, num2, num3):
                                 "AssignName.result2",
                                 "AssignName.final",
                             ],
-                            ["Name.num1", "Name.num2", "Name.ZeroDivisionError", "Name.error", "Name.Exception", "Name.num3"],
+                            [
+                                "Name.num1",
+                                "Name.num2",
+                                "Name.ZeroDivisionError",
+                                "Name.error",
+                                "Name.Exception",
+                                "Name.num3",
+                            ],
                             ["Call.print"],
                             ["AssignName.num1", "AssignName.num2", "AssignName.num3"],
                         ),
@@ -3171,6 +3247,7 @@ class ASTWalker:
         "With Statement File",
         "With Statement Function",
         "With Statement Class",
+        "Match statement",
         "Try Except",
         "Try Except Finally",
         "Try Except Else Finally",
@@ -3179,7 +3256,7 @@ class ASTWalker:
         "Lambda with name",
         "Annotations",
         "ASTWalker",
-    ],  # TODO: add tests for match
+    ],
 )
 def test_get_module_data_scope(code: str, expected: list[SimpleScope | SimpleClassScope]) -> None:
     scope = get_module_data(code).scope

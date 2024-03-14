@@ -186,8 +186,10 @@ def fun():
     a = A()
     a.instance_attr1 = 20  # Pure: VariableWrite to InstanceVariable - but actually a LocalVariable
             """,  # language= None
-            {"__init__.line3": Pure(),
-             "fun.line6": SimpleImpure({"NonLocalVariableWrite.InstanceVariable.A.instance_attr1"})},
+            {
+                "__init__.line3": Pure(),
+                "fun.line6": SimpleImpure({"NonLocalVariableWrite.InstanceVariable.A.instance_attr1"}),
+            },
         ),  # TODO: [LATER] For this case it would be good to check if the instance that is accessed is local or not. Since this case is actually pure.
         (  # language=Python "VariableRead from InstanceVariable - but actually a LocalVariable"
             """
@@ -200,8 +202,10 @@ def fun():
     res = a.instance_attr1  # Pure: VariableRead from InstanceVariable - but actually a LocalVariable
     return res
             """,  # language= None
-            {"__init__.line3": Pure(),
-             "fun.line6": SimpleImpure({"NonLocalVariableRead.InstanceVariable.A.instance_attr1"})},
+            {
+                "__init__.line3": Pure(),
+                "fun.line6": SimpleImpure({"NonLocalVariableRead.InstanceVariable.A.instance_attr1"}),
+            },
         ),  # TODO: [LATER] For this case it would be good to check if the instance that is accessed is local or not. Since this case is actually pure.
         (  # language=Python "VariableRead and VariableWrite in chained class attribute and instance attribute"
             """
@@ -222,10 +226,16 @@ def g():
             """,  # language=none
             {
                 "__init__.line3": Pure(),
-                "f.line9": SimpleImpure({"NonLocalVariableRead.ClassVariable.B.upper_class",
-                                         "NonLocalVariableRead.InstanceVariable.A.name"}),
-                "g.line13": SimpleImpure({"NonLocalVariableWrite.ClassVariable.B.upper_class",
-                                         "NonLocalVariableWrite.InstanceVariable.A.name"}),
+                "f.line9": SimpleImpure(
+                    {
+                        "NonLocalVariableRead.ClassVariable.B.upper_class",
+                        "NonLocalVariableRead.InstanceVariable.A.name",
+                    },
+                ),
+                "g.line13": SimpleImpure({
+                    "NonLocalVariableWrite.ClassVariable.B.upper_class",
+                    "NonLocalVariableWrite.InstanceVariable.A.name",
+                }),
             },
         ),
         (  # language=Python "Pure Class initialization"
@@ -270,8 +280,9 @@ class A:
         self.test = 10  # Impure: VariableWrite to InstanceVariable
             """,  # language= None
             {  # TODO: [LATER] For init we need to filter out all reasons which are related to instance variables of the class (from the init function itself or propagated from called functions)
-                "__init__.line3": SimpleImpure({"NonLocalVariableRead.InstanceVariable.A.name",
-                                                "NonLocalVariableWrite.InstanceVariable.A.test"}),
+                "__init__.line3": SimpleImpure(
+                    {"NonLocalVariableRead.InstanceVariable.A.name", "NonLocalVariableWrite.InstanceVariable.A.test"},
+                ),
                 "fun1.line10": Pure(),
                 "fun2.line13": SimpleImpure({"NonLocalVariableRead.InstanceVariable.A.name"}),
                 "fun3.line16": SimpleImpure({"NonLocalVariableWrite.InstanceVariable.A.test"}),
@@ -412,7 +423,6 @@ c = fun1()
         "Multiple Calls of same Pure function (Caching)",
     ],  # TODO: class inits in cycles
 )
-# @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     purity_results = infer_purity(code)
     transformed_purity_results = {
@@ -550,12 +560,15 @@ def fun2():
     C().set_state(1)
             """,  # language= None
             {  # Since the analysis only checks the name of the attributes, both class attributes are referenced here.
-                "set_state.line6": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.state",
-                                                 "NonLocalVariableWrite.ClassVariable.C.state"}),  # this mistake is acceptable due to the restrictions we made
-                "fun1.line12": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.state",
-                                             "NonLocalVariableWrite.ClassVariable.C.state"}),
-                "fun2.line16": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.state",
-                                             "NonLocalVariableWrite.ClassVariable.C.state"}),
+                "set_state.line6": SimpleImpure(
+                    {"NonLocalVariableWrite.ClassVariable.A.state", "NonLocalVariableWrite.ClassVariable.C.state"},
+                ),  # this mistake is acceptable due to the restrictions we made
+                "fun1.line12": SimpleImpure(
+                    {"NonLocalVariableWrite.ClassVariable.A.state", "NonLocalVariableWrite.ClassVariable.C.state"},
+                ),
+                "fun2.line16": SimpleImpure(
+                    {"NonLocalVariableWrite.ClassVariable.A.state", "NonLocalVariableWrite.ClassVariable.C.state"},
+                ),
             },
         ),
         (  # language=Python "Class methode call of superclass (overwritten method)"
@@ -587,13 +600,17 @@ def fun2():  # Impure
                 "set_state.line13": SimpleImpure(
                     {"NonLocalVariableWrite.ClassVariable.C.state", "FileWrite.StringLiteral.stdout"},
                 ),
-                "fun1.line17": SimpleImpure({"NonLocalVariableWrite.ClassVariable.A.state",
-                                             "NonLocalVariableWrite.ClassVariable.C.state",  # this mistake is acceptable due to the restrictions we made
-                                             "FileWrite.StringLiteral.stdout"}),  # this mistake is acceptable due to the restrictions we made
+                "fun1.line17": SimpleImpure({
+                    "NonLocalVariableWrite.ClassVariable.A.state",
+                    "NonLocalVariableWrite.ClassVariable.C.state",  # this mistake is acceptable due to the restrictions we made
+                    "FileWrite.StringLiteral.stdout",
+                }),  # this mistake is acceptable due to the restrictions we made
                 "fun2.line21": SimpleImpure(
-                    {"NonLocalVariableWrite.ClassVariable.A.state",  # this mistake is acceptable due to the restrictions we made
-                     "NonLocalVariableWrite.ClassVariable.C.state",
-                     "FileWrite.StringLiteral.stdout"},
+                    {
+                        "NonLocalVariableWrite.ClassVariable.A.state",  # this mistake is acceptable due to the restrictions we made
+                        "NonLocalVariableWrite.ClassVariable.C.state",
+                        "FileWrite.StringLiteral.stdout",
+                    },
                 ),
             },
         ),
@@ -625,11 +642,15 @@ def fun3():
                 "__init__.line3": Pure(),
                 "__init__.line7": Pure(),
                 "b_fun.line10": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-                "fun1.line13": SimpleImpure({"NonLocalVariableRead.InstanceVariable.A.a_inst"}),  # this mistake is acceptable due to the restrictions we made
-                "fun2.line17": SimpleImpure({"FileWrite.StringLiteral.stdout",
-                                             "NonLocalVariableRead.InstanceVariable.A.a_inst"}),
-                "fun3.line21": SimpleImpure({"FileWrite.StringLiteral.stdout",
-                                             "NonLocalVariableRead.InstanceVariable.A.a_inst"}),
+                "fun1.line13": SimpleImpure(
+                    {"NonLocalVariableRead.InstanceVariable.A.a_inst"},
+                ),  # this mistake is acceptable due to the restrictions we made
+                "fun2.line17": SimpleImpure(
+                    {"FileWrite.StringLiteral.stdout", "NonLocalVariableRead.InstanceVariable.A.a_inst"},
+                ),
+                "fun3.line21": SimpleImpure(
+                    {"FileWrite.StringLiteral.stdout", "NonLocalVariableRead.InstanceVariable.A.a_inst"},
+                ),
             },
         ),
         (  # language=Python "VariableWrite to ClassVariable"
@@ -727,16 +748,22 @@ def g():
             """,  # language=none
             {
                 "__init__.line3": Pure(),
-                "a_fun.line6": SimpleImpure({"FileWrite.StringLiteral.stdout",
-                                             "NonLocalVariableRead.InstanceVariable.A.name"}),  # this mistake is acceptable due to the restrictions we made
-                "b_fun.line12": SimpleImpure({"FileRead.StringLiteral.stdin",
-                                              "NonLocalVariableRead.ClassVariable.B.upper_class"}),  # this mistake is acceptable due to the restrictions we made
-                "f.line16": SimpleImpure({"FileWrite.StringLiteral.stdout",
-                                          "NonLocalVariableRead.ClassVariable.B.upper_class",  # this mistake is acceptable due to the restrictions we made
-                                          "NonLocalVariableRead.InstanceVariable.A.name"}),  # this mistake is acceptable due to the restrictions we made
-                "g.line20": SimpleImpure({"FileRead.StringLiteral.stdin",
-                                          "NonLocalVariableRead.ClassVariable.B.upper_class",  # this mistake is acceptable due to the restrictions we made
-                                          "NonLocalVariableRead.InstanceVariable.A.name"}),  # this mistake is acceptable due to the restrictions we made
+                "a_fun.line6": SimpleImpure(
+                    {"FileWrite.StringLiteral.stdout", "NonLocalVariableRead.InstanceVariable.A.name"},
+                ),  # this mistake is acceptable due to the restrictions we made
+                "b_fun.line12": SimpleImpure(
+                    {"FileRead.StringLiteral.stdin", "NonLocalVariableRead.ClassVariable.B.upper_class"},
+                ),  # this mistake is acceptable due to the restrictions we made
+                "f.line16": SimpleImpure({
+                    "FileWrite.StringLiteral.stdout",
+                    "NonLocalVariableRead.ClassVariable.B.upper_class",  # this mistake is acceptable due to the restrictions we made
+                    "NonLocalVariableRead.InstanceVariable.A.name",
+                }),  # this mistake is acceptable due to the restrictions we made
+                "g.line20": SimpleImpure({
+                    "FileRead.StringLiteral.stdin",
+                    "NonLocalVariableRead.ClassVariable.B.upper_class",  # this mistake is acceptable due to the restrictions we made
+                    "NonLocalVariableRead.InstanceVariable.A.name",
+                }),  # this mistake is acceptable due to the restrictions we made
             },
         ),
         (  # language=Python "Function call of functions with same name and different purity"
@@ -1170,9 +1197,35 @@ def try_except(num1):
     print(result)
         """,  # language=none
             {
-                "try_except.line4": SimpleImpure({"FileWrite.StringLiteral.stdout",
-                                                  "NonLocalVariableRead.GlobalVariable.glob1"}),
-            }
+                "try_except.line4": SimpleImpure(
+                    {"FileWrite.StringLiteral.stdout", "NonLocalVariableRead.GlobalVariable.glob1"},
+                ),
+            },
+        ),
+        (  # language=Python "Match statement"
+            """
+var1, var2 = 10, 20
+def f(a):
+    b = var1
+    match var1:
+        case 1: return var1
+        case 2: return var2 + b
+        case (a, b): return var1, a, b
+        case _:
+            result = b
+            print(result)
+
+    x = result
+    y = b
+    return y
+        """,  # language=none
+            {
+                "f.line3": SimpleImpure({
+                    "NonLocalVariableRead.GlobalVariable.var1",
+                    "NonLocalVariableRead.GlobalVariable.var2",
+                    "FileWrite.StringLiteral.stdout",
+                }),
+            },
         ),
     ],
     ids=[
@@ -1213,6 +1266,7 @@ def try_except(num1):
         "Call within a call",
         "Async Function",
         "Try Except",
+        "Match statement",
     ],
 )
 @pytest.mark.xfail(reason="Some cases disabled for merging")
@@ -1327,7 +1381,6 @@ def fun3():
         "Unknown Call of Function with function as return",
     ],
 )
-# @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_unknown(code: str, expected: dict[str, SimpleImpure]) -> None:
     purity_results = infer_purity(code)
 
