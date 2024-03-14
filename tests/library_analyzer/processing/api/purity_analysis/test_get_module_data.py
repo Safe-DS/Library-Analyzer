@@ -323,7 +323,9 @@ def transform_member_access(member_access: MemberAccess) -> str:
             "numpy.numpy.0.0",
         ),
         (
-            astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy"), end_lineno=2, end_col_offset=10),
+            astroid.ClassDef(
+                "A", lineno=2, col_offset=3, parent=astroid.Module("numpy"), end_lineno=2, end_col_offset=10,
+            ),
             "numpy.A.2.3",
         ),
         (
@@ -340,7 +342,9 @@ def transform_member_access(member_access: MemberAccess) -> str:
                 "global_func",
                 lineno=1,
                 col_offset=0,
-                parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy"), end_lineno=2, end_col_offset=10),
+                parent=astroid.ClassDef(
+                    "A", lineno=2, col_offset=3, parent=astroid.Module("numpy"), end_lineno=2, end_col_offset=10,
+                ),
             ),
             "numpy.global_func.1.0",
         ),
@@ -366,7 +370,9 @@ def transform_member_access(member_access: MemberAccess) -> str:
                     "func1",
                     lineno=1,
                     col_offset=0,
-                    parent=astroid.ClassDef("A", lineno=2, col_offset=3, parent=astroid.Module("numpy"), end_lineno=2, end_col_offset=10),
+                    parent=astroid.ClassDef(
+                        "A", lineno=2, col_offset=3, parent=astroid.Module("numpy"), end_lineno=2, end_col_offset=10,
+                    ),
                 ),
             ),
             "numpy.glob.20.0",
@@ -2743,7 +2749,7 @@ def f(a):
                             ["Name.var1", "Name.var2", "Name.b", "Name.a", "Name.result", "Name.y"],
                             [],
                             ["AssignName.a"],
-                            ["AssignName.var1", "AssignName.var2"]
+                            ["AssignName.var1", "AssignName.var2"],
                         ),
                     ],
                 ),
@@ -2876,7 +2882,14 @@ def try_except_else_finally(num1, num2, num3):
                                 "AssignName.result2",
                                 "AssignName.final",
                             ],
-                            ["Name.num1", "Name.num2", "Name.ZeroDivisionError", "Name.error", "Name.Exception", "Name.num3"],
+                            [
+                                "Name.num1",
+                                "Name.num2",
+                                "Name.ZeroDivisionError",
+                                "Name.error",
+                                "Name.Exception",
+                                "Name.num3",
+                            ],
                             ["Call.print"],
                             ["AssignName.num1", "AssignName.num2", "AssignName.num3"],
                         ),

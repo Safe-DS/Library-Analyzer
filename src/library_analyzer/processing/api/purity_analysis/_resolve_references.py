@@ -417,7 +417,9 @@ def _find_target_references(
                         ):
                             continue
                     # Do not add functions that are not of the current class (or superclass).
-                    if function.symbol.name not in klass.class_variables or not is_function_of_class(function.symbol.node, klass):
+                    if function.symbol.name not in klass.class_variables or not is_function_of_class(
+                        function.symbol.node, klass,
+                    ):
                         # Collect all functions of superclasses for the current klass instance.
                         super_functions = []
                         for sup in klass.super_classes:
@@ -428,8 +430,10 @@ def _find_target_references(
 
                         # Make an exception for global functions and functions of superclasses.
                         # Also check if the function was overwritten in the current class.
-                        if (isinstance(function.symbol, GlobalVariable)
-                            or function.symbol.name in super_functions and function.symbol.name not in klass.class_variables
+                        if (
+                            isinstance(function.symbol, GlobalVariable)
+                            or function.symbol.name in super_functions
+                            and function.symbol.name not in klass.class_variables
                         ):
                             pass
                         else:

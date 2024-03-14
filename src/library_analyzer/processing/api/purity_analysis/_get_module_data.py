@@ -193,7 +193,9 @@ class ModuleDataBuilder:
             case (
                 astroid.TryExcept() | astroid.TryFinally()
             ):  # TODO: can we summarize Lambda and ListComp here? -> only if nodes in try except are not global
-                return LocalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name if hasattr(node, "name") else "None")
+                return LocalVariable(
+                    node=node, id=NodeID.calc_node_id(node), name=node.name if hasattr(node, "name") else "None",
+                )
 
         # This line is a fallback but should never be reached
         return Symbol(node=node, id=NodeID.calc_node_id(node), name=node.name)  # pragma: no cover
@@ -761,9 +763,11 @@ class ModuleDataBuilder:
 
     def enter_tryfinally(self, node: astroid.TryFinally) -> None:
         self.current_node_stack.append(
-            Scope(_symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
-                  _children=[],
-                  _parent=self.current_node_stack[-1]),
+            Scope(
+                _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
+                _children=[],
+                _parent=self.current_node_stack[-1],
+            ),
         )
 
     def leave_tryfinally(self, node: astroid.TryFinally) -> None:
@@ -914,7 +918,8 @@ class ModuleDataBuilder:
         ):
             # Only add assignments if they are inside a function, or if they are inside a try-except block.
             # Nodes inside try-except will be propagated to the next function scope.
-            if (isinstance(self.current_node_stack[-1], FunctionScope)
+            if (
+                isinstance(self.current_node_stack[-1], FunctionScope)
                 or isinstance(self.current_node_stack[-1].symbol.node, astroid.TryExcept | astroid.TryFinally)
                 and self.find_first_parent_function(node) == self.current_function_def[-1].symbol.node
             ):
@@ -1030,7 +1035,10 @@ class ModuleDataBuilder:
                 # Add the call node to the calls of the last function definition to ensure it is considered
                 # in the call graph since it would otherwise be lost in the (local) Scope of the Comprehension.
                 if (
-                    isinstance(self.current_node_stack[-1].symbol.node, _ComprehensionType | astroid.TryExcept | astroid.TryFinally)
+                    isinstance(
+                        self.current_node_stack[-1].symbol.node,
+                        _ComprehensionType | astroid.TryExcept | astroid.TryFinally,
+                    )
                     and self.current_function_def
                 ):
                     self.current_function_def[-1].call_references.setdefault(call_name, []).append(call_reference)
