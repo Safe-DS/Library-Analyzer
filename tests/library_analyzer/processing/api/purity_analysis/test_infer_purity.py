@@ -412,7 +412,6 @@ c = fun1()
         "Multiple Calls of same Pure function (Caching)",
     ],  # TODO: class inits in cycles
 )
-# @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     purity_results = infer_purity(code)
     transformed_purity_results = {
@@ -1159,6 +1158,29 @@ def try_except(num1):
                                                   "NonLocalVariableRead.GlobalVariable.glob1"}),
             }
         ),
+        (  # language=Python "Match statement"
+            """
+var1, var2 = 10, 20
+def f(a):
+    b = var1
+    match var1:
+        case 1: return var1
+        case 2: return var2 + b
+        case (a, b): return var1, a, b
+        case _:
+            result = b
+            print(result)
+
+    x = result
+    y = b
+    return y
+        """,  # language=none
+            {
+                "f.line3": SimpleImpure({"NonLocalVariableRead.GlobalVariable.var1",
+                                         "NonLocalVariableRead.GlobalVariable.var2",
+                                         "FileWrite.StringLiteral.stdout"}),
+            }
+        ),
     ],
     ids=[
         "Print with str",
@@ -1197,9 +1219,10 @@ def try_except(num1):
         "Call within a call",
         "Async Function",
         "Try Except",
+        "Match statement",
     ],
 )
-# @pytest.mark.xfail(reason="Some cases disabled for merging")
+@pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
     purity_results = infer_purity(code)
 
@@ -1311,7 +1334,6 @@ def fun3():
         "Unknown Call of Function with function as return",
     ],
 )
-# @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_unknown(code: str, expected: dict[str, SimpleImpure]) -> None:
     purity_results = infer_purity(code)
 

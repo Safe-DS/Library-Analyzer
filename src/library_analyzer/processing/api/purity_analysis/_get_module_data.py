@@ -99,8 +99,6 @@ class ModuleDataBuilder:
             True if any parent of the given node is an AssignAttr node, False otherwise.
             True means that the given node is a target node, False means that the given node is a value node.
         """
-        # TODO: deal with attribute access to items of a target: self.cache[a] = 1
-        #  this currently is detected as value because of the ast structure.
         current_node = node
         while current_node is not None:
             if isinstance(current_node, astroid.AssignAttr):

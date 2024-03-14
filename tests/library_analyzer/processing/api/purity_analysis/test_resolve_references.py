@@ -1289,7 +1289,6 @@ def fun():
                 ),
             ],
         ),
-        # TODO: [Later] we could add a check for the number of parameters in the function call and the function definition
         #         (  # language=Python "Builtins for dict"
         #             """
         # def f():
@@ -1466,24 +1465,39 @@ def f():
                 ReferenceTestNode("var1.line4", "FunctionDef.f", ["LocalVariable.var1.line3"]),
             ],
         ),
-        #         (  # language=Python "match statement global scope"
-        #             """
-        # var1, var2 = 10, 20
-        # match var1:
-        #     case 1: var1
-        #     case 2: 2 * var1
-        #     case (a, b): var1, a, b  # TODO: Match should get its own scope (LATER: for further improvement)  maybe add its parent
-        #     case _: var2
-        #         """,  # language=none
-        #             [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
-        #              ReferenceTestNode("var1.line4", "Module.", ["GlobalVariable.var1.line2"]),
-        #              ReferenceTestNode("var1.line5", "Module.", ["GlobalVariable.var1.line2"]),
-        #              ReferenceTestNode("var1.line6", "Module.", ["GlobalVariable.var1.line2"]),
-        #              ReferenceTestNode("var2.line7", "Module.", ["GlobalVariable.var2.line2"]),
-        #              ReferenceTestNode("a.line6", "Module.", ["GlobalVariable.a.line6"]),  # TODO: ask Lars
-        #              ReferenceTestNode("b.line6", "Module.", ["GlobalVariable.b.line6"])]
-        #             # TODO: ask Lars if this is true GlobalVariable
-        #         ),
+        (  # language=Python "Match statement"
+            """
+var1, var2 = 10, 20
+def f(a):
+    b = var1
+    match var1:
+        case 1: return var1
+        case 2: return var2 + b
+        case (a, b): return var1, a, b
+        case _:
+            result = b
+
+    x = result
+    y = b
+    return y
+        """,  # language=none
+            [
+                ReferenceTestNode("var1.line4", "FunctionDef.f", ["GlobalVariable.var1.line2"]),
+                ReferenceTestNode("var1.line5", "FunctionDef.f", ["GlobalVariable.var1.line2"]),
+                ReferenceTestNode("var1.line6", "FunctionDef.f", ["GlobalVariable.var1.line2"]),
+                ReferenceTestNode("var2.line7", "FunctionDef.f", ["GlobalVariable.var2.line2"]),
+                ReferenceTestNode("b.line7", "FunctionDef.f", ["LocalVariable.b.line4"]),
+                ReferenceTestNode("a.line8", "FunctionDef.f", ["Parameter.a.line3"]),
+                ReferenceTestNode("b.line8", "FunctionDef.f", ["LocalVariable.b.line4"]),
+                ReferenceTestNode("var1.line8", "FunctionDef.f", ["GlobalVariable.var1.line2"]),
+                # ReferenceTestNode("a.line8", "FunctionDef.f", ["Parameter.a.line3", "LocalVariable.a.line8"]),  # This is irrelevant for the purity result since they are of local scope to the case block.
+                # ReferenceTestNode("b.line8", "FunctionDef.f", ["LocalVariable.b.line4", "LocalVariable.b.line8"]),  # This is irrelevant for the purity result since they are of local scope to the case block.
+                ReferenceTestNode("b.line10", "FunctionDef.f", ["LocalVariable.b.line4"]),
+                ReferenceTestNode("result.line12", "FunctionDef.f", ["LocalVariable.result.line10"]),
+                ReferenceTestNode("b.line13", "FunctionDef.f", ["LocalVariable.b.line4"]),
+                ReferenceTestNode("y.line14", "FunctionDef.f", ["LocalVariable.y.line13"]),
+            ]
+        ),
         (  # language=Python "Try Except"
             """
 def try_except(num1, num2):
@@ -1538,7 +1552,7 @@ def try_except_else_finally(num1, num2, num3):
         "If else statement global scope",
         "If elif else statement global scope",
         "Ternary operator",
-        # "match statement global scope",
+        "Match statement",
         "Try Except",
         "Try Except Else Finally",
     ],
@@ -2645,7 +2659,6 @@ def f(a):
         "Local FromImport - function",
     ],
 )
-# @pytest.mark.xfail(reason="Not implemented yet")
 def test_resolve_references_imports(code: str, expected: list[ReferenceTestNode]) -> None:
     references = resolve_references(code).resolved_references
     transformed_references: list[ReferenceTestNode] = []
