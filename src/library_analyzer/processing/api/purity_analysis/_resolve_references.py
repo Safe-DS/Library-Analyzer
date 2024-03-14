@@ -156,6 +156,8 @@ def _find_call_references(
     if call_reference.name in imports:
         import_def = imports.get(call_reference.name)
         inferred_node_def = safe_infer(call_reference.node.func)
+        if not inferred_node_def:
+            inferred_node_def = next(call_reference.node.func.infer())
         if not isinstance(inferred_node_def, astroid.FunctionDef | astroid.ClassDef):
             # These cases will be added to the unknown calls since they do not have any referenced_symbols.
             pass

@@ -20,6 +20,7 @@ if TYPE_CHECKING:
         Import,
         InstanceVariable,
         Parameter,
+        Symbol,
     )
 
 
@@ -151,10 +152,6 @@ class ImpurityReason(ABC):  # this is just a base class, and it is important tha
     If a function is impure it is because of one or more impurity reasons.
     """
 
-    # TODO:
-    # origin
-    # neighbor
-
     @abstractmethod
     def __str__(self) -> str:
         pass
@@ -178,11 +175,14 @@ class NonLocalVariableRead(Read):
     """
 
     symbol: GlobalVariable | ClassVariable | InstanceVariable | Import
+    origin: Symbol = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
+        if self.origin is not None:
+            return f"{self.__class__.__name__} (origin: {self.origin.name}): {self.symbol.__class__.__name__}.{self.symbol.name}"
         return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
 
 
@@ -198,12 +198,15 @@ class FileRead(Read):
     """
 
     source: Expression | None = None  # TODO: this should never be None
+    origin: Symbol = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
         if isinstance(self.source, Expression):
+            if self.origin is not None:
+                return f"{self.__class__.__name__} (origin: {self.origin.name}): {self.source.__str__()}"
             return f"{self.__class__.__name__}: {self.source.__str__()}"
         return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
@@ -223,11 +226,14 @@ class NonLocalVariableWrite(Write):
     """
 
     symbol: GlobalVariable | ClassVariable | InstanceVariable | Import
+    origin: Symbol = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
+        if self.origin is not None:
+            return f"{self.__class__.__name__} (origin: {self.origin.name}): {self.symbol.__class__.__name__}.{self.symbol.name}"
         return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
 
 
@@ -243,12 +249,15 @@ class FileWrite(Write):
     """
 
     source: Expression | None = None
+    origin: Symbol = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
         if isinstance(self.source, Expression):
+            if self.origin is not None:
+                return f"{self.__class__.__name__} (origin: {self.origin.name}): {self.source.__str__()}"
             return f"{self.__class__.__name__}: {self.source.__str__()}"
         return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
@@ -270,11 +279,14 @@ class UnknownCall(Unknown):
     """
 
     expression: Expression
+    origin: Symbol = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
+        if self.origin is not None:
+            return f"{self.__class__.__name__} (origin: {self.origin.name}): {self.expression.__str__()}"
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
 
@@ -291,11 +303,14 @@ class NativeCall(Unknown):  # ExternalCall
     """
 
     expression: Expression
+    origin: Symbol = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
+        if self.origin is not None:
+            return f"{self.__class__.__name__} (origin: {self.origin.name}): {self.expression.__str__()}"
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
 
@@ -316,11 +331,14 @@ class CallOfParameter(Unknown):  # ParameterCall
     """
 
     expression: Expression
+    origin: Symbol = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
+        if self.origin is not None:
+            return f"{self.__class__.__name__} (origin: {self.origin.name}): {self.expression.__str__()}"
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
 

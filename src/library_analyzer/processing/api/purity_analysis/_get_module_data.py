@@ -1148,7 +1148,7 @@ def get_module_data(code: str, module_name: str = "", path: str | None = None) -
     module_data_handler = ModuleDataBuilder()
     walker = ASTWalker(module_data_handler)
     module = astroid.parse(code, module_name, path)
-    print(module.repr_tree())
+    # print(module.repr_tree())
     walker.walk(module)
 
     scope = module_data_handler.children[0]  # Get the children of the root node, which are the scopes of the module

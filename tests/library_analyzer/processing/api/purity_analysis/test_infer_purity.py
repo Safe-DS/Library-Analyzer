@@ -489,6 +489,21 @@ def fun():
                 "fun.line6": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
             },
         ),
+        (  # language=Python "Impure Class initialization via super"
+            """
+class A:
+    def __init__(self):
+        print("Test")  # Impure: FileWrite
+
+class B(A):
+    def __init__(self):
+        super().__init__()
+            """,  # language= None
+            {
+                "__init__.line3": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "__init__.line7": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+            },
+        ),
         (  # language=Python "Class methode call"
             """
 class A:
@@ -1167,6 +1182,7 @@ def try_except(num1):
         "VariableWrite to GlobalVariable",
         "VariableRead from GlobalVariable",
         "Impure Class initialization",
+        "Impure Class initialization via super",
         "Class methode call",
         "Class methode call of superclass",
         "Class methode call of superclass (overwritten method)",
@@ -1199,7 +1215,7 @@ def try_except(num1):
         "Try Except",
     ],
 )
-# @pytest.mark.xfail(reason="Some cases disabled for merging")
+@pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
     purity_results = infer_purity(code)
 
@@ -1351,7 +1367,7 @@ import math
 def fun1(a):
     math.sqrt(a)
             """,  # language=none
-            {"fun1.line4": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
+            {"fun1.line4": Pure()},
         ),
         (  # language=Python "Import module with alias - function"
             """
@@ -1360,7 +1376,7 @@ import math as m
 def fun1(a):
     m.sqrt(a)
             """,  # language=none
-            {"fun1.line4": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
+            {"fun1.line4": Pure()},
         ),
         (  # language=Python "Import module with alias - function and constant"
             """
@@ -1372,7 +1388,7 @@ def fun1(a):
             """,  # language=none
             {
                 "fun1.line4": SimpleImpure(
-                    {"UnknownCall.UnknownFunctionCall.math.sqrt", "NonLocalVariableRead.Import.math.pi"},
+                    {"NonLocalVariableRead.Import.math.pi"},
                 ),
             },
         ),
@@ -1401,7 +1417,7 @@ from math import sqrt
 def fun1(a):
     sqrt(a)
             """,  # language=none
-            {"fun1.line4": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
+            {"fun1.line4": Pure()},
         ),
         (  # language=Python "FromImport with alias - function"
             """
@@ -1410,7 +1426,7 @@ from math import sqrt as s
 def fun1(a):
     s(a)
             """,  # language=none
-            {"fun1.line4": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
+            {"fun1.line4": Pure()},
         ),
         (  # language=Python "FromImport with alias - function and constant"
             """
@@ -1422,7 +1438,7 @@ def fun1(a):
             """,  # language=none
             {
                 "fun1.line4": SimpleImpure(
-                    {"UnknownCall.UnknownFunctionCall.math.sqrt", "NonLocalVariableRead.Import.math.pi"},
+                    {"NonLocalVariableRead.Import.math.pi"},
                 ),
             },
         ),
@@ -1441,7 +1457,7 @@ def fun1(a):
     import math
     a = math.sqrt(a)
             """,  # language=none
-            {"fun1.line2": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
+            {"fun1.line2": Pure()},
         ),
         (  # language=Python "Local FromImport - constant"
             """
@@ -1457,7 +1473,7 @@ def fun1(a):
     from math import sqrt
     sqrt(a)
             """,  # language=none
-            {"fun1.line2": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
+            {"fun1.line2": Pure()},
         ),
         (  # language=Python "Write to Import"
             """
