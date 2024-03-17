@@ -300,16 +300,85 @@ def external_inner_cycle1():
     external_inner_cycle2()
 
 def external_inner_cycle2():
+    external_inner_cycle1()
+
+def entry():
+    cycle1()
+            """,  # language=none
+            {
+                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": {".external_inner_cycle1.12.0+.external_inner_cycle2.15.0"},
+                ".external_inner_cycle1.12.0+.external_inner_cycle2.15.0": set(),
+                ".entry.18.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
+            },
+        ),
+        (  # language=Python "function call with cycle - external recursive cycle within a cycle"
+            """
+def cycle1():
+    cycle2()
+
+def cycle2():
+    cycle3()
+
+def cycle3():
+    external_inner_cycle1()
+    cycle1()
+
+def external_inner_cycle1():
+    external_inner_cycle2()
+
+def external_inner_cycle2():
     external_inner_cycle2()
 
 def entry():
     cycle1()
             """,  # language=none
             {
-                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": {".inner_cycle1.12.0+.inner_cycle2.15.0"},
-                ".inner_cycle1.12.0+.inner_cycle2.15.0": set(),
+                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": {".external_inner_cycle1.12.0"},
+                ".external_inner_cycle1.12.0": {".external_inner_cycle2.15.0"},
+                ".external_inner_cycle2.15.0": set(),
                 ".entry.18.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
-            },  # TODO: case for super super knote, case for external cycle with call to original cycle
+            },
+        ),
+        (  # language=Python "function call with cycle - cycle within a cycle"
+            """
+def cycle1():
+    cycle2()
+
+def cycle2():
+    cycle3()
+
+def cycle3():
+    inner_cycle1()
+    cycle1()
+
+def inner_cycle1():
+    inner_cycle2()
+
+def inner_cycle2():
+    inner_cycle1()
+    cycle2()
+
+def entry():
+    cycle1()
+            """,  # language=none
+            {
+                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0+.inner_cycle1.12.0+.inner_cycle2.15.0": set(),
+                ".entry.19.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0+.inner_cycle1.12.0+.inner_cycle2.15.0"},
+            },
+        ),
+        (  # language=Python "cycle in class"
+            """
+class C:
+    def fun1(self):
+        self.fun2()
+
+    def fun2(self):
+        self.fun1()
+            """,  # language=none
+            {
+                ".C.2.0": set(),
+                ".fun1.3.4+.fun2.6.4": set(),
+            },
         ),
         (  # language=Python "recursive function call",
             """
@@ -330,10 +399,12 @@ def f(a):
         "function call with cycle - multiple other calls in cycle",
         "function call with cycle - cycle within a cycle",
         "function call with cycle - external cycle within a cycle",
+        "function call with cycle - external recursive cycle within a cycle",
+        "function call with cycle - cycle within a cycle",
+        "cycle in class",
         "recursive function call",
-    ],  # TODO: add cyclic cases for member access
+    ],
 )
-@pytest.mark.xfail(reason="External cycles are not handled yet.")
 def test_build_call_graph_cycles(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = resolve_references(code).call_graph_forest
 

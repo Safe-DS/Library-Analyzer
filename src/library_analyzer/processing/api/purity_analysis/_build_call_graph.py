@@ -262,7 +262,6 @@ class CallGraphBuilder:
 
         # If the current node is already in the path, a cycle is found.
         if cgn.symbol.id in path:
-            # TODO: how to handle nested cycles? LARS
             cut_path = path[path.index(cgn.symbol.id) :]
             return {node_id: self.call_graph_forest.get_graph(node_id) for node_id in cut_path}
 
@@ -306,7 +305,7 @@ class CallGraphBuilder:
             return
 
         # Find all other calls (calls that are not part of the cycle) and remove all nodes in the cycle from the forest.
-        for node in cycle.values():  # TODO: call _test_cgn_for_cycles recursively
+        for node in cycle.values():
             for child in node.children.values():
                 if child.symbol.id not in cycle and not combined_cgn.has_child(child.symbol.id):
                     combined_cgn.add_child(child)
