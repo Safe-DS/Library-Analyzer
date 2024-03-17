@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import builtins
 import dataclasses
+from typing import Tuple, Dict, List
 
 import astroid
 from astroid.helpers import safe_infer
@@ -509,7 +510,7 @@ class ReferenceResolver:
 
         return result_target_reference
 
-    def _resolve_references(self):
+    def _resolve_references(self) -> tuple[dict[str, list[ReferenceNode]], dict[NodeID, Reasons]]:
         """
         Resolve all references in a module.
 
@@ -517,8 +518,12 @@ class ReferenceResolver:
         It calls all other functions that are needed to resolve the references.
         First, get the module data for the given (module) code.
         Then call the functions to find all references (call, target in the module.
-        """
 
+        Returns
+        -------
+        tuple[dict[NodeID, list[ReferenceNode]], dict[NodeID, Reasons]]
+            The resolved references and the raw reasons for the functions.
+        """
         raw_reasons: dict[NodeID, Reasons] = {}
         call_references: dict[str, list[ReferenceNode]] = {}
         value_references: dict[str, list[ReferenceNode]] = {}

@@ -109,7 +109,7 @@ class ModuleAnalysisResult:
     resolved_references: dict[str, list[ReferenceNode]] = field(default_factory=dict)
     raw_reasons: dict[NodeID, Reasons] = field(default_factory=dict)
     classes: dict[str, ClassScope] = field(default_factory=dict)
-    call_graph_forest: CallGraphForest = None
+    call_graph_forest: CallGraphForest | None = None
 
 
 @dataclass

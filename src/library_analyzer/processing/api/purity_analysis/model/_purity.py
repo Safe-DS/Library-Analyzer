@@ -175,7 +175,7 @@ class NonLocalVariableRead(Read):
     """
 
     symbol: GlobalVariable | ClassVariable | InstanceVariable | Import
-    origin: Symbol = field(default=None)
+    origin: Symbol | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -198,7 +198,7 @@ class FileRead(Read):
     """
 
     source: Expression | None = None  # TODO: this should never be None
-    origin: Symbol = field(default=None)
+    origin: Symbol | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -226,7 +226,7 @@ class NonLocalVariableWrite(Write):
     """
 
     symbol: GlobalVariable | ClassVariable | InstanceVariable | Import
-    origin: Symbol = field(default=None)
+    origin: Symbol | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -249,7 +249,7 @@ class FileWrite(Write):
     """
 
     source: Expression | None = None
-    origin: Symbol = field(default=None)
+    origin: Symbol | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -279,7 +279,7 @@ class UnknownCall(Unknown):
     """
 
     expression: Expression
-    origin: Symbol = field(default=None)
+    origin: Symbol | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -303,7 +303,7 @@ class NativeCall(Unknown):  # ExternalCall
     """
 
     expression: Expression
-    origin: Symbol = field(default=None)
+    origin: Symbol | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -331,7 +331,7 @@ class CallOfParameter(Unknown):  # ParameterCall
     """
 
     expression: Expression
-    origin: Symbol = field(default=None)
+    origin: Symbol | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
