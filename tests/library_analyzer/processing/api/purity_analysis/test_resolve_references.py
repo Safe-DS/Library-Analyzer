@@ -1007,7 +1007,7 @@ class C:
                 ReferenceTestNode(
                     "node.state.line10",
                     "FunctionDef.set_state",
-                    ["ClassVariable.A.state.line3", "ClassVariable.C.state.line6"],
+                    ["ClassVariable.C.state.line6"],
                 ),
                 ReferenceTestNode("node.line10", "FunctionDef.set_state", ["Parameter.node.line9"]),
             ],
@@ -1029,8 +1029,7 @@ class C:
                 ReferenceTestNode(
                     "cls.state.line10",
                     "FunctionDef.set_state",
-                    ["ClassVariable.A.state.line3", "ClassVariable.C.state.line6"],
-                    # TODO: [LATER] A.state should be removed!
+                    ["ClassVariable.C.state.line6"],
                 ),
                 ReferenceTestNode("cls.line10", "FunctionDef.set_state", ["Parameter.cls.line9"]),
             ],
@@ -1290,7 +1289,6 @@ def fun():
                 ),
             ],
         ),
-        # TODO: [Later] we could add a check for the number of parameters in the function call and the function definition
         #         (  # language=Python "Builtins for dict"
         #             """
         # def f():
@@ -1467,39 +1465,99 @@ def f():
                 ReferenceTestNode("var1.line4", "FunctionDef.f", ["LocalVariable.var1.line3"]),
             ],
         ),
-        #         (  # language=Python "match statement global scope"
-        #             """
-        # var1, var2 = 10, 20
-        # match var1:
-        #     case 1: var1
-        #     case 2: 2 * var1
-        #     case (a, b): var1, a, b  # TODO: Match should get its own scope (LATER: for further improvement)  maybe add its parent
-        #     case _: var2
-        #         """,  # language=none
-        #             [ReferenceTestNode("var1.line3", "Module.", ["GlobalVariable.var1.line2"]),
-        #              ReferenceTestNode("var1.line4", "Module.", ["GlobalVariable.var1.line2"]),
-        #              ReferenceTestNode("var1.line5", "Module.", ["GlobalVariable.var1.line2"]),
-        #              ReferenceTestNode("var1.line6", "Module.", ["GlobalVariable.var1.line2"]),
-        #              ReferenceTestNode("var2.line7", "Module.", ["GlobalVariable.var2.line2"]),
-        #              ReferenceTestNode("a.line6", "Module.", ["GlobalVariable.a.line6"]),  # TODO: ask Lars
-        #              ReferenceTestNode("b.line6", "Module.", ["GlobalVariable.b.line6"])]
-        #             # TODO: ask Lars if this is true GlobalVariable
-        #         ),
-        #         (  # language=Python "try except statement global scope"
-        #             """
-        # num1 = 2
-        # num2 = 0
-        # try:
-        #     result = num1 / num2
-        #     result
-        # except ZeroDivisionError as zde:   # TODO: zde is not detected as a global variable -> do we really want that?
-        #     zde
-        #         """,  # language=none
-        #             [ReferenceTestNode("num1.line5", "Module.", ["GlobalVariable.num1.line2"]),
-        #              ReferenceTestNode("num2.line5", "Module.", ["GlobalVariable.num2.line3"]),
-        #              ReferenceTestNode("result.line6", "Module.", ["GlobalVariable.result.line5"]),
-        #              ReferenceTestNode("zde.line8", "Module.", ["GlobalVariable.zde.line7"])]
-        #         ),
+        (  # language=Python "Match statement"
+            """
+var1, var2 = 10, 20
+def f(a):
+    b = var1
+    match var1:
+        case 1: return var1
+        case 2: return var2 + b
+        case (a, b): return var1, a, b
+        case _:
+            result = b
+
+    x = result
+    y = b
+    return y
+        """,  # language=none
+            [
+                ReferenceTestNode("var1.line4", "FunctionDef.f", ["GlobalVariable.var1.line2"]),
+                ReferenceTestNode("var1.line5", "FunctionDef.f", ["GlobalVariable.var1.line2"]),
+                ReferenceTestNode("var1.line6", "FunctionDef.f", ["GlobalVariable.var1.line2"]),
+                ReferenceTestNode("var2.line7", "FunctionDef.f", ["GlobalVariable.var2.line2"]),
+                ReferenceTestNode("b.line7", "FunctionDef.f", ["LocalVariable.b.line4"]),
+                ReferenceTestNode("a.line8", "FunctionDef.f", ["Parameter.a.line3"]),
+                ReferenceTestNode("b.line8", "FunctionDef.f", ["LocalVariable.b.line4"]),
+                ReferenceTestNode("var1.line8", "FunctionDef.f", ["GlobalVariable.var1.line2"]),
+                # ReferenceTestNode("a.line8", "FunctionDef.f", ["Parameter.a.line3", "LocalVariable.a.line8"]),  # This is irrelevant for the purity result since they are of local scope to the case block.
+                # ReferenceTestNode("b.line8", "FunctionDef.f", ["LocalVariable.b.line4", "LocalVariable.b.line8"]),  # This is irrelevant for the purity result since they are of local scope to the case block.
+                ReferenceTestNode("b.line10", "FunctionDef.f", ["LocalVariable.b.line4"]),
+                ReferenceTestNode("result.line12", "FunctionDef.f", ["LocalVariable.result.line10"]),
+                ReferenceTestNode("b.line13", "FunctionDef.f", ["LocalVariable.b.line4"]),
+                ReferenceTestNode("y.line14", "FunctionDef.f", ["LocalVariable.y.line13"]),
+            ],
+        ),
+        (  # language=Python "Try Except"
+            """
+def try_except(num1, num2):
+    try:
+        result = num1 / num2
+    except ZeroDivisionError as error:  # This is of local scope to the except block.
+        print(error)  # This reference is not relevant, and it would be a lot of work to implement its detection correctly.
+
+    print(result)
+        """,  # language=none
+            [
+                ReferenceTestNode("num1.line4", "FunctionDef.try_except", ["Parameter.num1.line2"]),
+                ReferenceTestNode("num2.line4", "FunctionDef.try_except", ["Parameter.num2.line2"]),
+                ReferenceTestNode("print.line6", "FunctionDef.try_except", ["Builtin.print"]),
+                ReferenceTestNode("print.line8", "FunctionDef.try_except", ["Builtin.print"]),
+                ReferenceTestNode("result.line8", "FunctionDef.try_except", ["LocalVariable.result.line4"]),
+            ],
+        ),
+        (  # language=Python "Try Except Else Finally"
+            """
+def try_except_else_finally(num1, num2, num3):
+    try:
+        result = num1 / num2
+    except ZeroDivisionError as error:  # This is of local scope to the except block.
+        print(error)  # This reference is not relevant, and it would be a lot of work to implement its detection correctly.
+    except Exception as error:
+        print(error)  # This reference is not relevant, and it would be a lot of work to implement its detection correctly.
+    else:
+        result2 = num1
+    finally:
+        final = num3
+
+    print(result, result2, final)
+
+            """,  # language=none
+            [
+                ReferenceTestNode("num1.line4", "FunctionDef.try_except_else_finally", ["Parameter.num1.line2"]),
+                ReferenceTestNode("num2.line4", "FunctionDef.try_except_else_finally", ["Parameter.num2.line2"]),
+                ReferenceTestNode("print.line6", "FunctionDef.try_except_else_finally", ["Builtin.print"]),
+                ReferenceTestNode("print.line8", "FunctionDef.try_except_else_finally", ["Builtin.print"]),
+                ReferenceTestNode("num1.line10", "FunctionDef.try_except_else_finally", ["Parameter.num1.line2"]),
+                ReferenceTestNode("num3.line12", "FunctionDef.try_except_else_finally", ["Parameter.num3.line2"]),
+                ReferenceTestNode("print.line14", "FunctionDef.try_except_else_finally", ["Builtin.print"]),
+                ReferenceTestNode(
+                    "result.line14",
+                    "FunctionDef.try_except_else_finally",
+                    ["LocalVariable.result.line4"],
+                ),
+                ReferenceTestNode(
+                    "result2.line14",
+                    "FunctionDef.try_except_else_finally",
+                    ["LocalVariable.result2.line10"],
+                ),
+                ReferenceTestNode(
+                    "final.line14",
+                    "FunctionDef.try_except_else_finally",
+                    ["LocalVariable.final.line12"],
+                ),
+            ],
+        ),
     ],
     ids=[
         "If statement",
@@ -1507,9 +1565,10 @@ def f():
         "If else statement global scope",
         "If elif else statement global scope",
         "Ternary operator",
-        # "match statement global scope",
-        # "try except statement global scope",
-    ],  # TODO: add cases with try except finally -> first check scope detection
+        "Match statement",
+        "Try Except",
+        "Try Except Else Finally",
+    ],
 )
 def test_resolve_references_conditional_statements(code: str, expected: list[ReferenceTestNode]) -> None:
     references = resolve_references(code).resolved_references
@@ -2613,7 +2672,6 @@ def f(a):
         "Local FromImport - function",
     ],
 )
-# @pytest.mark.xfail(reason="Not implemented yet")
 def test_resolve_references_imports(code: str, expected: list[ReferenceTestNode]) -> None:
     references = resolve_references(code).resolved_references
     transformed_references: list[ReferenceTestNode] = []
@@ -3050,10 +3108,9 @@ def f():
         "Two classes with same attribute name",
         "Multiple classes with same function name - same signature",
         "Multiple classes with same function name - different signature",
-        # TODO: [LATER] we should detect the different signatures
     ],
 )
-def test_get_module_data_reasons(code: str, expected: dict[str, SimpleReasons]) -> None:
+def test_resolve_references_reasons(code: str, expected: dict[str, SimpleReasons]) -> None:
     function_references = resolve_references(code).raw_reasons
 
     transformed_function_references = transform_reasons(function_references)
