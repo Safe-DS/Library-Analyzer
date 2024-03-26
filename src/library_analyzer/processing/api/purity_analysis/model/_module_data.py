@@ -442,7 +442,15 @@ class Import(Symbol):
 
 @dataclass
 class Builtin(Symbol):
-    """Represents a builtin (function)."""
+    """Represents a builtin (function).
+
+    Attributes
+    ----------
+    call : astroid.Call
+        The call node of the function.
+    """
+
+    call: astroid.Call
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"

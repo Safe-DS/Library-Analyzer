@@ -923,6 +923,7 @@ class ModuleDataBuilder:
             if (
                 isinstance(self.current_node_stack[-1], FunctionScope)
                 or isinstance(self.current_node_stack[-1].symbol.node, astroid.TryExcept | astroid.TryFinally)
+                and self.current_function_def
                 and self.find_first_parent_function(node) == self.current_function_def[-1].symbol.node
             ):
                 self.targets.append(self.get_symbol(node, self.current_node_stack[-1].symbol.node))

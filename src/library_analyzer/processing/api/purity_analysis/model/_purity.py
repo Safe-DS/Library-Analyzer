@@ -10,6 +10,9 @@ from typing import TYPE_CHECKING, Any
 import astroid
 
 from library_analyzer.utils import ensure_file_exists
+from library_analyzer.processing.api.purity_analysis.model._module_data import (
+        MemberAccessValue,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -21,7 +24,7 @@ if TYPE_CHECKING:
         InstanceVariable,
         Parameter,
         Symbol,
-    )
+)
 
 
 class PurityResult(ABC):
@@ -182,7 +185,7 @@ class NonLocalVariableRead(Read):
 
     def __str__(self) -> str:
         if self.origin is not None:
-            return f"{self.__class__.__name__} (origin: {self.origin.name}): {self.symbol.__class__.__name__}.{self.symbol.name}"
+            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.symbol.__class__.__name__}.{self.symbol.name}"
         return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
 
 
@@ -206,7 +209,7 @@ class FileRead(Read):
     def __str__(self) -> str:
         if isinstance(self.source, Expression):
             if self.origin is not None:
-                return f"{self.__class__.__name__} (origin: {self.origin.name}): {self.source.__str__()}"
+                return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.source.__str__()}"
             return f"{self.__class__.__name__}: {self.source.__str__()}"
         return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
@@ -233,7 +236,7 @@ class NonLocalVariableWrite(Write):
 
     def __str__(self) -> str:
         if self.origin is not None:
-            return f"{self.__class__.__name__} (origin: {self.origin.name}): {self.symbol.__class__.__name__}.{self.symbol.name}"
+            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.symbol.__class__.__name__}.{self.symbol.name}"
         return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
 
 
@@ -257,7 +260,7 @@ class FileWrite(Write):
     def __str__(self) -> str:
         if isinstance(self.source, Expression):
             if self.origin is not None:
-                return f"{self.__class__.__name__} (origin: {self.origin.name}): {self.source.__str__()}"
+                return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.source.__str__()}"
             return f"{self.__class__.__name__}: {self.source.__str__()}"
         return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
@@ -286,7 +289,7 @@ class UnknownCall(Unknown):
 
     def __str__(self) -> str:
         if self.origin is not None:
-            return f"{self.__class__.__name__} (origin: {self.origin.name}): {self.expression.__str__()}"
+            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.expression.__str__()}"
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
 
@@ -310,7 +313,7 @@ class NativeCall(Unknown):  # ExternalCall
 
     def __str__(self) -> str:
         if self.origin is not None:
-            return f"{self.__class__.__name__} (origin: {self.origin.name}): {self.expression.__str__()}"
+            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.expression.__str__()}"
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
 
@@ -338,7 +341,7 @@ class CallOfParameter(Unknown):  # ParameterCall
 
     def __str__(self) -> str:
         if self.origin is not None:
-            return f"{self.__class__.__name__} (origin: {self.origin.name}): {self.expression.__str__()}"
+            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.expression.__str__()}"
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
 
@@ -408,6 +411,8 @@ class UnknownFunctionCall(Expression):
     def __post_init__(self) -> None:
         if self.inferred_def is not None:
             self.name = f"{self.inferred_def.root().name}.{self.inferred_def.name}"
+        elif isinstance(self.call, MemberAccessValue):
+            self.name = self.call.name
         elif isinstance(self.call.func, astroid.Attribute):
             self.name = self.call.func.attrname
         elif isinstance(self.call.func, astroid.Name):

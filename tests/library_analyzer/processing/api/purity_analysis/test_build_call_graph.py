@@ -133,6 +133,10 @@ double = lambda x: 2 * x
 def test_build_call_graph_basics(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = resolve_references(code).call_graph_forest
 
+    if call_graph_forest is None:
+        assert expected == {}
+        return
+
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.graphs.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
@@ -407,6 +411,10 @@ def f(a):
 )
 def test_build_call_graph_cycles(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = resolve_references(code).call_graph_forest
+
+    if call_graph_forest is None:
+        assert expected == {}
+        return
 
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.graphs.items():
@@ -785,6 +793,10 @@ lambda_add = lambda x, y: A().value.add(x, y)
 )
 def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = resolve_references(code).call_graph_forest
+
+    if call_graph_forest is None:
+        assert expected == {}
+        return
 
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.graphs.items():

@@ -13,6 +13,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Impure,
     ImpurityReason,
     InstanceVariable,
+    NativeCall,
     NodeID,
     NonLocalVariableRead,
     NonLocalVariableWrite,
@@ -119,18 +120,13 @@ def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # a
             return f"FileWrite.{reason.source.__class__.__name__}.{reason.source.parameter}"
         if isinstance(reason.source, StringLiteral):
             return f"FileWrite.{reason.source.__class__.__name__}.{reason.source.value}"
-    elif isinstance(reason, UnknownCall):
+    elif isinstance(reason, UnknownCall | NativeCall | CallOfParameter):
         if isinstance(reason.expression, StringLiteral):
-            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.value}"
+            return f"{reason.__class__.__name__}.{reason.expression.__class__.__name__}.{reason.expression.value}"
         elif isinstance(reason.expression, ParameterAccess):
-            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.parameter.name}"
+            return f"{reason.__class__.__name__}.{reason.expression.__class__.__name__}.{reason.expression.parameter.name}"
         elif isinstance(reason.expression, UnknownFunctionCall | UnknownClassInit):
-            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.name}"
-    elif isinstance(reason, CallOfParameter):
-        if isinstance(reason.expression, StringLiteral):
-            return f"CallOfParameter.{reason.expression.__class__.__name__}.{reason.expression.value}"
-        elif isinstance(reason.expression, ParameterAccess):
-            return f"CallOfParameter.{reason.expression.__class__.__name__}.{reason.expression.parameter.name}"
+            return f"{reason.__class__.__name__}.{reason.expression.__class__.__name__}.{reason.expression.name}"
     else:
         raise NotImplementedError(f"Unknown reason: {reason}")
 
@@ -1420,7 +1416,7 @@ import math
 def fun1(a):
     math.sqrt(a)
             """,  # language=none
-            {"fun1.line4": Pure()},
+            {"fun1.line4": SimpleImpure({"NativeCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "Import module with alias - function"
             """
@@ -1429,7 +1425,7 @@ import math as m
 def fun1(a):
     m.sqrt(a)
             """,  # language=none
-            {"fun1.line4": Pure()},
+            {"fun1.line4":  SimpleImpure({"NativeCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "Import module with alias - function and constant"
             """
@@ -1441,7 +1437,8 @@ def fun1(a):
             """,  # language=none
             {
                 "fun1.line4": SimpleImpure(
-                    {"NonLocalVariableRead.Import.math.pi"},
+                    {"NonLocalVariableRead.Import.math.pi",
+                     "NativeCall.UnknownFunctionCall.math.sqrt"},
                 ),
             },
         ),
@@ -1470,7 +1467,7 @@ from math import sqrt
 def fun1(a):
     sqrt(a)
             """,  # language=none
-            {"fun1.line4": Pure()},
+            {"fun1.line4": SimpleImpure({"NativeCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "FromImport with alias - function"
             """
@@ -1479,7 +1476,7 @@ from math import sqrt as s
 def fun1(a):
     s(a)
             """,  # language=none
-            {"fun1.line4": Pure()},
+            {"fun1.line4": SimpleImpure({"NativeCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "FromImport with alias - function and constant"
             """
@@ -1491,7 +1488,8 @@ def fun1(a):
             """,  # language=none
             {
                 "fun1.line4": SimpleImpure(
-                    {"NonLocalVariableRead.Import.math.pi"},
+                    {"NonLocalVariableRead.Import.math.pi",
+                     "NativeCall.UnknownFunctionCall.math.sqrt"},
                 ),
             },
         ),
@@ -1510,7 +1508,7 @@ def fun1(a):
     import math
     a = math.sqrt(a)
             """,  # language=none
-            {"fun1.line2": Pure()},
+            {"fun1.line2": SimpleImpure({"NativeCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "Local FromImport - constant"
             """
@@ -1526,7 +1524,7 @@ def fun1(a):
     from math import sqrt
     sqrt(a)
             """,  # language=none
-            {"fun1.line2": Pure()},
+            {"fun1.line2": SimpleImpure({"NativeCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "Write to Import"
             """

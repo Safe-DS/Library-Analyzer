@@ -209,8 +209,8 @@ class CombinedCallGraphNode(CallGraphNode):
     def __repr__(self) -> str:
         return f"{self.symbol.name}: {id(self)}"
 
-    def decombine(self) -> dict[NodeID, CallGraphNode]:
-        """Decombine the node.
+    def separate(self) -> dict[NodeID, CallGraphNode]:
+        """Separate the node.
 
         After the purity of a combined node is inferred,
         the reasons of the combined node are transferred to the original nodes.

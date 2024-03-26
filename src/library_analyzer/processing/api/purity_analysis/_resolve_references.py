@@ -28,6 +28,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     TargetReference,
     ValueReference,
 )
+import contextlib
 
 _BUILTINS = dir(builtins)
 
@@ -46,6 +47,7 @@ class ReferenceResolver:
     module_analysis_result : ModuleAnalysisResult
         The result of the reference resolving.
     """
+
     functions: dict[str, list[FunctionScope]]
     classes: dict[str, ClassScope]
     imports: dict[str, Import]
@@ -187,6 +189,7 @@ class ReferenceResolver:
                 node=builtin_function,
                 id=NodeID(None, call_reference.name),
                 name=call_reference.name,
+                call=call_reference.node,
             )
             if call_reference.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
                 builtin_call = BuiltinOpen(
@@ -293,7 +296,7 @@ class ReferenceResolver:
         # Find global variables that are referenced.
         if value_reference.name in function.globals_used:
             global_symbols = function.globals_used[value_reference.name]  # type: ignore[assignment]
-            # globals_used contains GlobalVariable which are a subtype of Symbol.
+            # globals_used contains GlobalVariable instances, which are a subtype of Symbol.
             result_value_reference.referenced_symbols.extend(global_symbols)
 
         # Find functions that are referenced (as value).
@@ -317,13 +320,14 @@ class ReferenceResolver:
             if not inferred_node_def:
                 inferred_node_def = next(value_reference.node.infer())
             if not inferred_node_def:
-                raise ValueError(f"Could not resolve the node {value_reference.node} for the import {import_def}")
-            specified_import_def = dataclasses.replace(
-                import_def,
-                inferred_node=inferred_node_def,  # type: ignore[type-var] # import def is not None.
-            )
-            if specified_import_def:
-                result_value_reference.referenced_symbols.append(specified_import_def)
+                pass
+            else:
+                specified_import_def = dataclasses.replace(
+                    import_def,
+                    inferred_node=inferred_node_def,  # type: ignore[type-var] # import def is not None.
+                )
+                if specified_import_def:
+                    result_value_reference.referenced_symbols.append(specified_import_def)
 
         # Find class and instance variables that are referenced.
         if isinstance(value_reference.node, MemberAccessValue):
@@ -374,26 +378,25 @@ class ReferenceResolver:
                     if not inferred_node_def:
                         inferred_node_def = next(value_reference.node.node.infer())
                     if not inferred_node_def:
-                        raise ValueError(
-                            f"Could not resolve the node {value_reference.node.node} for the import {import_def}",
+                        pass
+
+                    else:
+                        # Overcome the problem, that the import symbol object is the same for all possible functions and
+                        # classes that are imported from one module.
+                        # Therefore, copy the original import node and define a new one for one specific function or class.
+                        # This means that every function or class imported from a module has its own import node.
+                        specified_import_def = dataclasses.replace(
+                            import_def,
+                            name=value_reference.node.member,
+                            inferred_node=inferred_node_def,
                         )
 
-                    # Overcome the problem, that the import symbol object is the same for all possible functions and
-                    # classes that are imported from one module.
-                    # Therefore, copy the original import node and define a new one for one specific function or class.
-                    # This means that every function or class imported from a module has its own import node.
-                    specified_import_def = dataclasses.replace(
-                        import_def,
-                        name=value_reference.node.member,
-                        inferred_node=inferred_node_def,
-                    )
+                        # If the member is a call, add the call node to the specified_import_def as fallback for the case
+                        # that the purity of the called function cannot be inferred.
+                        if isinstance(value_reference.node.node.parent, astroid.Call):
+                            specified_import_def.call = value_reference.node.node.parent
 
-                    # If the member is a call, add the call node to the specified_import_def as fallback for
-                    # the case that the purity of the called function cannot be inferred.
-                    if isinstance(value_reference.node.node.parent, astroid.Call):
-                        specified_import_def.call = value_reference.node.node.parent
-
-                    result_value_reference.referenced_symbols.append(specified_import_def)
+                        result_value_reference.referenced_symbols.append(specified_import_def)
 
         return result_value_reference
 
@@ -615,6 +618,12 @@ class ReferenceResolver:
                                         else:  # noqa: PLR5501
                                             if referenced_symbol not in raw_reasons[function.symbol.id].reads_from:
                                                 raw_reasons[function.symbol.id].reads_from.add(referenced_symbol)
+                            # If no referenced symbols are found, add the call to the list of unknown_calls
+                            # of the raw_reasons dict for this function
+                            elif (value_reference_result.node not in raw_reasons[function.symbol.id].unknown_calls
+                                  and isinstance(value_reference_result.node.node, astroid.Call)
+                            ):
+                                raw_reasons[function.symbol.id].unknown_calls.add(value_reference_result.node)
 
                 # Check if the function has target_references (References from a target node to another target node).
                 if function.target_symbols:

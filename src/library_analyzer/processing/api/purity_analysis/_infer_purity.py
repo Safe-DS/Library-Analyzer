@@ -35,6 +35,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     UnknownCall,
     UnknownClassInit,
     UnknownFunctionCall,
+    NativeCall,
 )
 
 # TODO: check these for correctness and add reasons for impurity
@@ -240,11 +241,14 @@ class PurityAnalyzer:
         The call graph forest of the module.
     purity_results : dict[NodeID, PurityResult]
         The purity results of the functions in the module.
-    decombinded_nodes : dict[NodeID, CallGraphNode]
+    separated_nodes : dict[NodeID, CallGraphNode]
         If the module has cycles, they will be found by the CallGraphBuilder and combined to a single node.
         Since these combined nodes are not part of the module but needed for the analysis,
         their purity results will be propagated to the original nodes during the analysis.
         This attribute stores the original nodes inside after the combined node was analyzed.
+    purity_cache_imported_modules : dict[NodeID, dict[str, PurityResult]]
+        A cache for the purity results of imported modules.
+        This is only saves the imported modules from the current module.
     """
 
     def __init__(self, code: str, module_name: str = "", path: str | None = None) -> None:
@@ -256,15 +260,18 @@ class PurityAnalyzer:
         code : str
             The source code of the module.
         """
-        self.call_graph_forest: CallGraphForest = resolve_references(code, module_name, path).call_graph_forest
+        forest = resolve_references(code, module_name, path).call_graph_forest
+        if forest is None:
+            raise ValueError("The call graph forest is empty.")
+
+        self.call_graph_forest: CallGraphForest = forest
         self.purity_results: dict[NodeID, PurityResult] = {}
         self.decombinded_nodes: dict[NodeID, CallGraphNode] = {}
         self.purity_cache_imported_modules: dict[NodeID, dict[str, PurityResult]] = {}
+        self.separated_nodes: dict[NodeID, CallGraphNode] = {}
+        self.purity_cache_imported_modules: dict[NodeID, dict[NodeID, PurityResult]] = {}
 
-        if self.call_graph_forest:
-            self._analyze_purity()
-        else:
-            raise ValueError("The call graph forest is empty.")
+        self._analyze_purity()
 
     @staticmethod
     def _handle_open_like_functions(call: astroid.Call) -> PurityResult:
@@ -457,36 +464,42 @@ class PurityAnalyzer:
                                        )})
 
         imported_module = imported_node.symbol.inferred_node.root()
+        # Some imported modules are not written in python. Their purity cannot be analyzed.
+        if not imported_module.path:
+            return Impure({NativeCall(expression=UnknownFunctionCall(call=imported_node.symbol.call,
+                                                                     inferred_def=imported_node.symbol.inferred_node
+                                                                     if isinstance(imported_node.symbol.inferred_node,
+                                                                                   astroid.FunctionDef) else None),
+                                      origin=imported_node.symbol
+                                      )})
+        # Check if the imported module is actually a module.
         if not isinstance(imported_module, astroid.Module):
             return Impure({UnknownCall(expression=UnknownFunctionCall(imported_node.symbol.call),
                                        origin=imported_node.symbol,
                                        )})
         imported_module_id = NodeID.calc_node_id(imported_module)
-        # Use the name instead of NodeID since sometimes the result of astroids inference
-        # does not contain the line of the referenced symbol.
-        inferred_node_name = imported_node.symbol.name
+        inferred_node_id = imported_node.symbol.id
 
         # Check the cache for the purity results of the imported module and return the result for the imported node.
         if (
             imported_module_id in self.purity_cache_imported_modules
-            and inferred_node_name in self.purity_cache_imported_modules[imported_module_id]
+            and inferred_node_id in self.purity_cache_imported_modules[imported_module_id]
         ):
             return self.purity_cache_imported_modules[imported_module_id].get(
-                inferred_node_name,
+                inferred_node_id,
             )  # type: ignore[return-value] # It is checked before that the key exists.
 
         # Get the source code of the imported module and the purity result for all functions of that module.
         source_code = imported_module.as_string()
-        all_purity_result: dict[str, PurityResult] = {idx.name: result for idx, result in infer_purity(source_code).items()}
+        all_purity_result: dict[NodeID, PurityResult] = infer_purity(source_code)
 
         # Save the purity results for the imported module in the cache.
         self.purity_cache_imported_modules[imported_module_id] = all_purity_result
 
         # In some cases, the inferred_node cannot be found in the result.
         # In this case the fallback is to return an unknown call.
-        # TODO: how can we detect that a builtin is called -> where we do not now the actual code <-> native call?
-        if inferred_node_name in all_purity_result:
-            return all_purity_result[inferred_node_name]
+        if inferred_node_id in all_purity_result:
+            return all_purity_result[inferred_node_id]
         else:
             if isinstance(imported_node.symbol.inferred_node, astroid.ClassDef):
                 return Impure({
@@ -535,8 +548,10 @@ class PurityAnalyzer:
         if isinstance(node.symbol, Builtin | BuiltinOpen):
             if isinstance(node.symbol, BuiltinOpen):
                 result = self._handle_open_like_functions(node.symbol.call)
-            else:
+            elif node.symbol.name in BUILTIN_FUNCTIONS:
                 result = BUILTIN_FUNCTIONS[node.symbol.name]
+            else:
+                result = Impure({UnknownCall(UnknownFunctionCall(call=node.symbol.call))})
             # Add the origin to the reasons if it is not set.
             if isinstance(result, Impure):
                 for reason in result.reasons:
@@ -555,7 +570,7 @@ class PurityAnalyzer:
                 # Check combined nodes separately.
                 elif isinstance(child, CombinedCallGraphNode):
                     purity_result_child = self._process_node(child)
-                    self.decombinded_nodes.update(child.decombine())
+                    self.separated_nodes.update(child.separate())
                 else:
                     purity_result_child = self._process_node(child)
                 # Combine the reasons of all children.
@@ -583,14 +598,14 @@ class PurityAnalyzer:
         for graph in self.call_graph_forest.graphs.values():
             if isinstance(graph, CombinedCallGraphNode):
                 self._process_node(graph)
-                self.decombinded_nodes.update(graph.decombine())
+                self.separated_nodes.update(graph.separate())
             elif isinstance(graph, ImportedCallGraphNode):
                 pass
             elif isinstance(graph, CallGraphNode) and not isinstance(graph.symbol.node, astroid.ClassDef):
                 self.purity_results[graph.symbol.id] = self._process_node(graph)
 
-        if self.decombinded_nodes:
-            for graph_id, graph in self.decombinded_nodes.items():
+        if self.separated_nodes:
+            for graph_id, graph in self.separated_nodes.items():
                 if graph.reasons.result is None:
                     raise ValueError(f"The purity of the combined node {graph_id} is not inferred.")
                 self.purity_results[graph_id] = graph.reasons.result

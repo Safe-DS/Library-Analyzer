@@ -19,36 +19,25 @@ class CallGraphBuilder:
 
     This class is used to build a call graph forest for a module from a dict of Reasons.
 
-    Attributes
+    Parameters
     ----------
     classes : dict[str, ClassScope]
         Classnames in the module as key and their corresponding ClassScope instance as value.
     raw_reasons : dict[NodeID, Reasons]
         The raw reasons for impurity for all functions.
-    call_graph_forest : CallGraphForest
-        The call graph forest of the module.
+        Keys are the ids of the functions.
     """
 
-    # TODO: is this the right way to document instance attributes? LARS
+    # TODO: fix docstring type hints (everywhere)
     def __init__(
         self,
         classes: dict[str, ClassScope],
         raw_reasons: dict[NodeID, Reasons],
     ) -> None:
-        """Initialize the CallGraphBuilder.
-
-        Parameters
-        ----------
-        classes : dict[str, ClassScope]
-            Classnames in the module as key and their corresponding ClassScope instance as value.
-        raw_reasons : dict[str, Reasons]
-            The raw reasons for impurity for all functions.
-            Keys are the ids of the functions.
-        """
         self.classes = classes
         self.raw_reasons = raw_reasons
         self.call_graph_forest = CallGraphForest()
-        # TODO: does this belong into post init? LARS
+
         self._build_call_graph_forest()
 
     def _build_call_graph_forest(self) -> CallGraphForest:
@@ -131,7 +120,7 @@ class CallGraphBuilder:
         self.call_graph_forest.add_graph(reason.id, cgn)
 
         # The node has calls, which need to be added to the forest and to the children of the current node.
-        for call in cgn.reasons.calls.copy():
+        for call in cgn.reasons.calls.copy():  # TODO: sort this (for testing)
             if call in self.call_graph_forest.get_graph(reason.id).reasons.calls:
                 self.call_graph_forest.get_graph(reason.id).reasons.calls.remove(call)
             if isinstance(call, Builtin):
@@ -174,7 +163,6 @@ class CallGraphBuilder:
             imported_cgn = ImportedCallGraphNode(
                 symbol=call,
                 reasons=Reasons(id=call.id),
-                # is_imported=bool(isinstance(call.node, astroid.Import | astroid.ImportFrom))
             )
             self.call_graph_forest.add_graph(call.id, imported_cgn)
             self.call_graph_forest.get_graph(reason_id).add_child(self.call_graph_forest.get_graph(call.id))
