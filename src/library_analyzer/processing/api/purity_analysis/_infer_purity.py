@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import logging
+from pathlib import Path
+
 import astroid
 
+from library_analyzer.processing.api._file_filters import _is_test_file
 from library_analyzer.processing.api.purity_analysis._resolve_references import resolve_references
 from library_analyzer.processing.api.purity_analysis.model import (
+    APIPurity,
     Builtin,
     BuiltinOpen,
     CallGraphForest,
@@ -16,6 +21,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ImportedCallGraphNode,
     Impure,
     ImpurityReason,
+    NativeCall,
     NodeID,
     NonLocalVariableRead,
     NonLocalVariableWrite,
@@ -231,18 +237,28 @@ class PurityAnalyzer:
 
     Attributes
     ----------
+    module_id : NodeID
+        The ID of the module to analyze.
+    visited_nodes : set[NodeID]
+        A set of all nodes that have been visited during the analysis.
     call_graph_forest : CallGraphForest
         The call graph forest of the module.
-    purity_results : dict[NodeID, PurityResult]
+    current_purity_results : dict[NodeID, dict[NodeID, PurityResult]]
         The purity results of the functions in the module.
-    decombinded_nodes : dict[NodeID, CallGraphNode]
+    separated_nodes : dict[NodeID, CallGraphNode]
         If the module has cycles, they will be found by the CallGraphBuilder and combined to a single node.
         Since these combined nodes are not part of the module but needed for the analysis,
         their purity results will be propagated to the original nodes during the analysis.
         This attribute stores the original nodes inside after the combined node was analyzed.
+    cached_module_results : dict[NodeID, dict[NodeID, PurityResult]]
+        The results of all previously analyzed modules.
+        The key is the NodeID of the module,
+        the value is a dictionary of the purity results of the functions in the module.
+        After the analysis of the module, the results are saved in this dictionary.
+        All imported modules are saved in this dictionary too for further runtime reduction.
     """
 
-    def __init__(self, code: str) -> None:
+    def __init__(self, code: str, module_name: str = "", path: str | None = None, results: dict[NodeID, dict[NodeID, PurityResult]] | None = None) -> None:
         """
         Initialize the PurityAnalyzer.
 
@@ -250,16 +266,28 @@ class PurityAnalyzer:
         ----------
         code : str
             The source code of the module.
+        module_name : str
+            The name of the module.
+        path : str | None
+            The path of the module.
+        results : dict[NodeID, dict[NodeID, PurityResult]] | None
+            The results of all previously analyzed modules.
+            The key is the NodeID of the module,
+            the value is a dictionary of the purity results of the functions in the module.
         """
-        self.call_graph_forest: CallGraphForest = resolve_references(code).call_graph_forest
-        self.purity_results: dict[NodeID, PurityResult] = {}
-        self.decombinded_nodes: dict[NodeID, CallGraphNode] = {}
-        self.purity_cache_imported_modules: dict[NodeID, dict[NodeID, PurityResult]] = {}
-
-        if self.call_graph_forest:
-            self._analyze_purity()
-        else:
+        references = resolve_references(code, module_name, path)
+        forest = references.call_graph_forest
+        if forest is None:
             raise ValueError("The call graph forest is empty.")
+
+        self.module_id = references.module_id
+        self.visited_nodes: set[NodeID] = set()
+        self.call_graph_forest: CallGraphForest = forest
+        self.current_purity_results: dict[NodeID, dict[NodeID, PurityResult]] = {self.module_id: {}}
+        self.separated_nodes: dict[NodeID, CallGraphNode] = {}
+        self.cached_module_results: dict[NodeID, dict[NodeID, PurityResult]] = results if results else {}
+
+        self._analyze_purity()
 
     @staticmethod
     def _handle_open_like_functions(call: astroid.Call) -> PurityResult:
@@ -288,6 +316,9 @@ class PurityAnalyzer:
             open_mode_str = "r"
             open_mode = None
 
+            if not call.args:
+                return Impure({FileRead(StringLiteral("")), FileWrite(StringLiteral(""))})
+
             # Check if a mode is set and if the value is a string literal
             if len(call.args) >= 2 and isinstance(call.args[1], astroid.Const):
                 if call.args[1].value in OPEN_MODES:
@@ -306,12 +337,13 @@ class PurityAnalyzer:
                 open_mode = open_mode or OPEN_MODES[open_mode_str]
                 return Impure(
                     (
-                        {FileRead(ParameterAccess(file_var))}
+                        {FileRead(source=ParameterAccess(file_var))}
                         if open_mode is OpenMode.READ
                         else (
-                            {FileWrite(ParameterAccess(file_var))}
+                            {FileWrite(source=ParameterAccess(file_var))}
                             if open_mode is OpenMode.WRITE
-                            else {FileRead(ParameterAccess(file_var)), FileWrite(ParameterAccess(file_var))}
+                            else {FileRead(source=ParameterAccess(file_var)),
+                                  FileWrite(source=ParameterAccess(file_var))}
                         )
                     ),
                 )
@@ -365,7 +397,9 @@ class PurityAnalyzer:
         # Check if the function has any non-local variable writes.
         if reasons.writes_to:
             for write in reasons.writes_to:
-                impurity_reasons.add(NonLocalVariableWrite(write))
+                impurity_reasons.add(NonLocalVariableWrite(symbol=write,
+                                                           origin=reasons.function_scope.symbol
+                                                           if reasons.function_scope is not None else None))
 
         # Check if the function has any non-local variable reads.
         if reasons.reads_from:
@@ -389,22 +423,30 @@ class PurityAnalyzer:
                             pass
                         # Default case for symbols that could not be inferred.
                         else:  # TODO: what type of nodes are allowed here?
-                            impurity_reasons.add(NonLocalVariableRead(read))
+                            impurity_reasons.add(NonLocalVariableRead(symbol=read,
+                                                                      origin=reasons.function_scope.symbol
+                                                                      if reasons.function_scope is not None else None))
                     else:
                         raise ValueError(f"Imported node {read.name} has no inferred node.") from None
 
                 else:
-                    impurity_reasons.add(NonLocalVariableRead(read))
+                    impurity_reasons.add(NonLocalVariableRead(symbol=read,
+                                                              origin=reasons.function_scope.symbol
+                                                              if reasons.function_scope is not None else None))
 
         # Check if the function has any unknown calls.
         if reasons.unknown_calls:
             for unknown_call in reasons.unknown_calls:
                 # Handle calls of code where no definition was found.
                 if isinstance(unknown_call, Reference):
-                    impurity_reasons.add(UnknownCall(UnknownFunctionCall(call=unknown_call.node)))
+                    impurity_reasons.add(UnknownCall(expression=UnknownFunctionCall(call=unknown_call.node),
+                                                     origin=reasons.function_scope.symbol
+                                                     if reasons.function_scope is not None else None))
                 # Handle parameter calls
                 elif isinstance(unknown_call, Parameter):
-                    impurity_reasons.add(CallOfParameter(ParameterAccess(unknown_call)))
+                    impurity_reasons.add(CallOfParameter(expression=ParameterAccess(unknown_call),
+                                                         origin=reasons.function_scope.symbol
+                                                         if reasons.function_scope is not None else None))
                 # Do not handle imported calls here since they are handled separately.
                 elif isinstance(unknown_call, Import):
                     pass
@@ -436,52 +478,81 @@ class PurityAnalyzer:
         """
         # Check if the reference was resolved and the symbol has an inferred node.
         if imported_node.symbol.inferred_node is None:
-            return Impure({UnknownCall(UnknownFunctionCall(imported_node.symbol.call))})
+            return Impure({UnknownCall(expression=UnknownFunctionCall(imported_node.symbol.call),
+                                       origin=imported_node.symbol,
+                                       )})
 
         imported_module = imported_node.symbol.inferred_node.root()
+        # Some imported modules are not written in python. Their purity cannot be analyzed.
+        if not imported_module.path:
+            return Impure({NativeCall(expression=UnknownFunctionCall(call=imported_node.symbol.call,
+                                                                     inferred_def=imported_node.symbol.inferred_node
+                                                                     if isinstance(imported_node.symbol.inferred_node,
+                                                                                   astroid.FunctionDef) else None),
+                                      origin=imported_node.symbol,
+                                      )})
+        # Check if the imported module is actually a module.
         if not isinstance(imported_module, astroid.Module):
-            return Impure({UnknownCall(UnknownFunctionCall(imported_node.symbol.call))})
+            return Impure({UnknownCall(expression=UnknownFunctionCall(imported_node.symbol.call),
+                                       origin=imported_node.symbol,
+                                       )})
+
+        # Calculate the ID of the imported module.
         imported_module_id = NodeID.calc_node_id(imported_module)
-        inferred_node_id = NodeID.calc_node_id(imported_node.symbol.inferred_node)
+        inferred_node_id = imported_node.symbol.id
 
-        # Check the cache for the purity results of the imported module and return the result for the imported node.
-        if (
-            imported_module_id in self.purity_cache_imported_modules
-            and inferred_node_id in self.purity_cache_imported_modules[imported_module_id]
+        # Check if the imported module has already been analyzed.
+        # Check if the purity result for the inferred node is available in the cache.
+        if (imported_module_id in self.cached_module_results and
+            inferred_node_id in self.cached_module_results[imported_module_id]
         ):
-            return self.purity_cache_imported_modules[imported_module_id].get(
-                inferred_node_id,
-            )  # type: ignore[return-value] # It is checked before that the key exists.
+            return self.cached_module_results[imported_module_id].get(inferred_node_id)
 
-        # Get the source code of the imported module and the purity result for all functions of that module.
+        # Check if the imported module is currently being analyzed to prevent recursion.
+        elif (imported_module_id in self.cached_module_results and
+              inferred_node_id not in self.cached_module_results[imported_module_id]
+        ):
+            # The module is being analyzed, return an impure result to break the recursion.
+            return Impure({UnknownCall(expression=UnknownFunctionCall(imported_node.symbol.call),
+                                       origin=imported_node.symbol)})
+
+        # Mark the imported module as being analyzed.
+        elif imported_module_id not in self.cached_module_results:
+            self.cached_module_results.update({imported_module_id: {}})
+
+        # Get the source code of the imported module.
         source_code = imported_module.as_string()
-        all_purity_result = infer_purity(source_code)
+        # Analyze the purity of the imported module.
+        purity_result_imported_module = infer_purity(code=source_code,
+                                                     module_name=imported_module.name,
+                                                     path=imported_module.path[0],
+                                                     results=self.cached_module_results)
 
-        # Save the purity results for the imported module in the cache.
-        self.purity_cache_imported_modules[imported_module_id] = all_purity_result
+        # Update the cache with the purity results of the imported module.
+        self.cached_module_results.update(purity_result_imported_module)
 
-        # In some cases, the inferred_node does not have any line number since astroid sometimes doesn't return it.
-        # Therefore the correct function def cannot be found in the result.
-        # In this case the fallback is to return an unknown call.
-        # TODO: make sure that the node ids are calculated correctly for builtin modules
-        if inferred_node_id in all_purity_result:
-            return all_purity_result[inferred_node_id]
+        # Check if the purity result for the inferred node is available in the cache.
+        if inferred_node_id in self.cached_module_results[imported_module_id]:
+            return self.cached_module_results[imported_module_id].get(inferred_node_id)
+        # If the inferred_node cannot be found in the result, return an unknown call.
         else:
             if isinstance(imported_node.symbol.inferred_node, astroid.ClassDef):
                 return Impure({
                     UnknownCall(
-                        UnknownClassInit(
+                        expression=UnknownClassInit(
                             call=imported_node.symbol.call,
                             inferred_def=imported_node.symbol.inferred_node,
                         ),
+                        origin=imported_node.symbol,
                     ),
                 })
             return Impure({
                 UnknownCall(
-                    UnknownFunctionCall(
+                    expression=UnknownFunctionCall(
                         call=imported_node.symbol.call,
                         inferred_def=imported_node.symbol.inferred_node if imported_node.symbol.inferred_node else None,
                     ),
+                    origin=imported_node.symbol,
                 ),
             })
 
@@ -507,13 +578,29 @@ class PurityAnalyzer:
         if node.is_inferred():
             # The purity of the function is determined already.
             return node.reasons.result  # type: ignore[return-value] # It is checked before that the result is not None.
+        elif (self.module_id in self.cached_module_results
+              and node.symbol.id in self.cached_module_results[self.module_id]
+        ):
+            return self.cached_module_results[self.module_id].get(node.symbol.id)
+        elif node.symbol.id in self.visited_nodes and not isinstance(node.symbol, Builtin | BuiltinOpen):
+            return Impure({UnknownCall(expression=UnknownFunctionCall(), origin=node.symbol)})  # TODO: find better return value
+
+        self.visited_nodes.add(node.symbol.id)
 
         # Check if the node is a builtin function.
         if isinstance(node.symbol, Builtin | BuiltinOpen):
             if isinstance(node.symbol, BuiltinOpen):
-                return self._handle_open_like_functions(node.symbol.call)
+                result = self._handle_open_like_functions(node.symbol.call)
+            elif node.symbol.name in BUILTIN_FUNCTIONS:
+                result = BUILTIN_FUNCTIONS[node.symbol.name]
             else:
-                return BUILTIN_FUNCTIONS[node.symbol.name]
+                result = Impure({UnknownCall(UnknownFunctionCall(call=node.symbol.call))})
+            # Add the origin to the reasons if it is not set.
+            if isinstance(result, Impure):
+                for reason in result.reasons:
+                    if reason.origin is None:
+                        reason.origin = node.symbol
+            return result
 
         # The purity of the node is not determined yet, but the node has children.
         # Check their purity first and propagate the results afterward.
@@ -526,7 +613,7 @@ class PurityAnalyzer:
                 # Check combined nodes separately.
                 elif isinstance(child, CombinedCallGraphNode):
                     purity_result_child = self._process_node(child)
-                    self.decombinded_nodes.update(child.decombine())
+                    self.separated_nodes.update(child.separate())
                 else:
                     purity_result_child = self._process_node(child)
                 # Combine the reasons of all children.
@@ -551,23 +638,33 @@ class PurityAnalyzer:
 
         While traversing the forest, it saves the purity results in the purity_results attribute.
         """
+        # Check if the module was already analyzed and the results are cached.
+        if self.module_id in self.cached_module_results:
+            self.current_purity_results[self.module_id] = self.cached_module_results[self.module_id]
+            return
+
+        # The purity of the module is not determined yet, so all graphs in the forest need to be analyzed.
         for graph in self.call_graph_forest.graphs.values():
             if isinstance(graph, CombinedCallGraphNode):
                 self._process_node(graph)
-                self.decombinded_nodes.update(graph.decombine())
+                self.separated_nodes.update(graph.separate())
             elif isinstance(graph, ImportedCallGraphNode):
                 pass
             elif isinstance(graph, CallGraphNode) and not isinstance(graph.symbol.node, astroid.ClassDef):
-                self.purity_results[graph.symbol.id] = self._process_node(graph)
+                self.current_purity_results[self.module_id].update({graph.symbol.id: self._process_node(graph)})
 
-        if self.decombinded_nodes:
-            for graph_id, graph in self.decombinded_nodes.items():
+        if self.separated_nodes:
+            for func_id, graph in self.separated_nodes.items():
                 if graph.reasons.result is None:
-                    raise ValueError(f"The purity of the combined node {graph_id} is not inferred.")
-                self.purity_results[graph_id] = graph.reasons.result
+                    raise ValueError(f"The purity of the combined node {func_id} is not inferred.")
+                self.current_purity_results[self.module_id].update({func_id: graph.reasons.result})
 
 
-def infer_purity(code: str) -> dict[NodeID, PurityResult]:
+def infer_purity(code: str,
+                 module_name: str = "",
+                 path: str | None = None,
+                 results: dict[NodeID, dict[NodeID, PurityResult]] | None = None,
+) -> dict[NodeID, dict[NodeID, PurityResult]]:
     """
     Infer the purity of functions.
 
@@ -578,11 +675,86 @@ def infer_purity(code: str) -> dict[NodeID, PurityResult]:
     ----------
     code : str
         The source code of the module.
+    module_name : str, optional
+        The name of the module, by default "".
+    path : str, optional
+        The path of the module, by default None.
+    results : dict[NodeID, dict[NodeID, PurityResult]] | None
+        The results of all previously analyzed modules.
+        The key is the NodeID of the module, the value is a dictionary of the purity results of the functions in the module.
+        After the analysis of the module, the results are saved in this dictionary.
+        All imported modules are saved in this dictionary too for further runtime reduction.
+        Is None if no results are available.
 
     Returns
     -------
-    purity_results : dict[NodeID, PurityResult]
+    purity_results : dict[NodeID, dict[NodeID, PurityResult]]
         The purity results of the functions in the module.
-        Keys are the node ids, values are the purity results.
+        The key is the NodeID of the module, the value is a dictionary of the purity results of the functions in the module.
     """
-    return PurityAnalyzer(code).purity_results
+    purity_analyzer = PurityAnalyzer(code, module_name, path, results)
+    return purity_analyzer.current_purity_results
+
+
+def get_purity_results(
+    src_dir_path: Path,
+) -> APIPurity:
+    """Get the purity results of a package.
+
+    This function is the entry to the purity analysis of a package.
+    It iterates over all modules in the package and infers the purity of the functions in the modules.
+
+    Parameters
+    ----------
+    src_dir_path : Path
+        The path of the source directory of the package.
+
+    Returns
+    -------
+    APIPurity
+        The purity results of the package.
+    """
+    modules = list(src_dir_path.glob("**/*.py"))
+    package_purity = APIPurity()
+
+    for module in modules:
+        posix_path = Path(module).as_posix()
+        logging.info(
+            "Working on purity of file {posix_path}",
+            extra={"posix_path": posix_path},
+        )
+
+        if _is_test_file(posix_path):
+            logging.info("Skipping test file")
+            continue
+
+        module_name = __module_name(src_dir_path, Path(module))
+        with module.open("r", encoding="utf-8") as file:
+            code = file.read()
+
+            module_purity_results = infer_purity(code=code,
+                                                 module_name=module_name,
+                                                 path=posix_path,
+                                                 results=package_purity.purity_results)
+
+            # Sort the functions by line number to make the results more readable.
+            sorted_module_purity_results: dict[NodeID, dict[NodeID, PurityResult]] = {
+                key: dict(sorted(
+                    value.items(),
+                    key=lambda item: item[0].line if item[0] is not None and item[0].line is not None else float("inf"),
+                ))
+                for key, value in module_purity_results.items()
+            }
+
+            # print("Finished purity analysis of module", module_name)
+            logging.info("Finished purity analysis of module {module_name}.",
+                         extra={"module_name": module_name})
+
+        package_purity.purity_results.update(sorted_module_purity_results)
+
+    return package_purity
+
+
+def __module_name(root: Path, file: Path) -> str:
+    relative_path = file.relative_to(root.parent).as_posix()
+    return str(relative_path).replace(".py", "").replace("/", ".")

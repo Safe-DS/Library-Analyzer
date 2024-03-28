@@ -9,6 +9,10 @@ from typing import TYPE_CHECKING, Any
 
 import astroid
 
+from library_analyzer.processing.api.purity_analysis.model._module_data import (
+    MemberAccessValue,
+    NodeID,
+)
 from library_analyzer.utils import ensure_file_exists
 
 if TYPE_CHECKING:
@@ -20,7 +24,8 @@ if TYPE_CHECKING:
         Import,
         InstanceVariable,
         Parameter,
-    )
+        Symbol,
+)
 
 
 class PurityResult(ABC):
@@ -151,10 +156,6 @@ class ImpurityReason(ABC):  # this is just a base class, and it is important tha
     If a function is impure it is because of one or more impurity reasons.
     """
 
-    # TODO:
-    # origin
-    # neighbor
-
     @abstractmethod
     def __str__(self) -> str:
         pass
@@ -178,11 +179,14 @@ class NonLocalVariableRead(Read):
     """
 
     symbol: GlobalVariable | ClassVariable | InstanceVariable | Import
+    origin: Symbol | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
+        if self.origin is not None:
+            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.symbol.__class__.__name__}.{self.symbol.name}"
         return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
 
 
@@ -198,12 +202,15 @@ class FileRead(Read):
     """
 
     source: Expression | None = None  # TODO: this should never be None
+    origin: Symbol | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
         if isinstance(self.source, Expression):
+            if self.origin is not None:
+                return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.source.__str__()}"
             return f"{self.__class__.__name__}: {self.source.__str__()}"
         return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
@@ -223,11 +230,14 @@ class NonLocalVariableWrite(Write):
     """
 
     symbol: GlobalVariable | ClassVariable | InstanceVariable | Import
+    origin: Symbol | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
+        if self.origin is not None:
+            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.symbol.__class__.__name__}.{self.symbol.name}"
         return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
 
 
@@ -243,12 +253,15 @@ class FileWrite(Write):
     """
 
     source: Expression | None = None
+    origin: Symbol | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
         if isinstance(self.source, Expression):
+            if self.origin is not None:
+                return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.source.__str__()}"
             return f"{self.__class__.__name__}: {self.source.__str__()}"
         return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
@@ -270,11 +283,14 @@ class UnknownCall(Unknown):
     """
 
     expression: Expression
+    origin: Symbol | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
+        if self.origin is not None:
+            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.expression.__str__()}"
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
 
@@ -291,11 +307,14 @@ class NativeCall(Unknown):  # ExternalCall
     """
 
     expression: Expression
+    origin: Symbol | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
+        if self.origin is not None:
+            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.expression.__str__()}"
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
 
@@ -316,11 +335,14 @@ class CallOfParameter(Unknown):  # ParameterCall
     """
 
     expression: Expression
+    origin: Symbol | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
+        if self.origin is not None:
+            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.expression.__str__()}"
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
 
@@ -383,13 +405,17 @@ class UnknownFunctionCall(Expression):
         The name of the call.
     """
 
-    call: astroid.Call
+    call: astroid.Call | None = None
     inferred_def: astroid.FunctionDef | None = None
     name: str = field(init=False)
 
     def __post_init__(self) -> None:
         if self.inferred_def is not None:
             self.name = f"{self.inferred_def.root().name}.{self.inferred_def.name}"
+        elif self.call is None:
+            self.name = "UNKNOWN"
+        elif isinstance(self.call, MemberAccessValue):
+            self.name = self.call.name
         elif isinstance(self.call.func, astroid.Attribute):
             self.name = self.call.func.attrname
         elif isinstance(self.call.func, astroid.Name):
@@ -438,12 +464,13 @@ class APIPurity:
 
     Attributes
     ----------
-    purity_results : dict[str, dict[str, PurityResult]]
-        The purity results of the API.
-        The first key is the name of the module, and the second key is the function id.
+    purity_results : dict[NodeID, dict[NodeID, PurityResult]]
+        The purity results of all functions of the API.
+        The key is the NodeID of the module,
+        the value is a dictionary of the purity results of the functions in the module.
     """
 
-    purity_results: typing.ClassVar[dict[str, dict[str, PurityResult]]] = {}
+    purity_results: typing.ClassVar[dict[NodeID, dict[NodeID, PurityResult]]] = {}
 
     def to_json_file(self, path: Path) -> None:
         ensure_file_exists(path)
@@ -452,7 +479,8 @@ class APIPurity:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            module_name: {function_def: purity.to_dict() for function_def, purity in purity_result.items()}
+            module_name.__str__(): {function_id.__str__(): purity.to_dict()
+                                    for function_id, purity in purity_result.items()}
             for module_name, purity_result in self.purity_results.items()
         }
 

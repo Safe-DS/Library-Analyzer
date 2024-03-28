@@ -13,6 +13,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Impure,
     ImpurityReason,
     InstanceVariable,
+    NativeCall,
     NodeID,
     NonLocalVariableRead,
     NonLocalVariableWrite,
@@ -119,18 +120,13 @@ def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # a
             return f"FileWrite.{reason.source.__class__.__name__}.{reason.source.parameter}"
         if isinstance(reason.source, StringLiteral):
             return f"FileWrite.{reason.source.__class__.__name__}.{reason.source.value}"
-    elif isinstance(reason, UnknownCall):
+    elif isinstance(reason, UnknownCall | NativeCall | CallOfParameter):
         if isinstance(reason.expression, StringLiteral):
-            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.value}"
+            return f"{reason.__class__.__name__}.{reason.expression.__class__.__name__}.{reason.expression.value}"
         elif isinstance(reason.expression, ParameterAccess):
-            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.parameter.name}"
+            return f"{reason.__class__.__name__}.{reason.expression.__class__.__name__}.{reason.expression.parameter.name}"
         elif isinstance(reason.expression, UnknownFunctionCall | UnknownClassInit):
-            return f"UnknownCall.{reason.expression.__class__.__name__}.{reason.expression.name}"
-    elif isinstance(reason, CallOfParameter):
-        if isinstance(reason.expression, StringLiteral):
-            return f"CallOfParameter.{reason.expression.__class__.__name__}.{reason.expression.value}"
-        elif isinstance(reason.expression, ParameterAccess):
-            return f"CallOfParameter.{reason.expression.__class__.__name__}.{reason.expression.parameter.name}"
+            return f"{reason.__class__.__name__}.{reason.expression.__class__.__name__}.{reason.expression.name}"
     else:
         raise NotImplementedError(f"Unknown reason: {reason}")
 
@@ -424,7 +420,7 @@ c = fun1()
     ],  # TODO: class inits in cycles
 )
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
-    purity_results = infer_purity(code)
+    purity_results = next(iter(infer_purity(code).values()))
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
         for function_id, purity_result in purity_results.items()
@@ -497,6 +493,21 @@ def fun():
             {
                 "__init__.line3": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
                 "fun.line6": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+            },
+        ),
+        (  # language=Python "Impure Class initialization via super"
+            """
+class A:
+    def __init__(self):
+        print("Test")  # Impure: FileWrite
+
+class B(A):
+    def __init__(self):
+        super().__init__()
+            """,  # language= None
+            {
+                "__init__.line3": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "__init__.line7": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
             },
         ),
         (  # language=Python "Class methode call"
@@ -1220,6 +1231,7 @@ def f(a):
         "VariableWrite to GlobalVariable",
         "VariableRead from GlobalVariable",
         "Impure Class initialization",
+        "Impure Class initialization via super",
         "Class methode call",
         "Class methode call of superclass",
         "Class methode call of superclass (overwritten method)",
@@ -1255,7 +1267,7 @@ def f(a):
 )
 @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
-    purity_results = infer_purity(code)
+    purity_results = next(iter(infer_purity(code).values()))
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
@@ -1366,7 +1378,7 @@ def fun3():
     ],
 )
 def test_infer_purity_unknown(code: str, expected: dict[str, SimpleImpure]) -> None:
-    purity_results = infer_purity(code)
+    purity_results = next(iter(infer_purity(code).values()))
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
@@ -1404,7 +1416,7 @@ import math
 def fun1(a):
     math.sqrt(a)
             """,  # language=none
-            {"fun1.line4": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
+            {"fun1.line4": SimpleImpure({"NativeCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "Import module with alias - function"
             """
@@ -1413,7 +1425,7 @@ import math as m
 def fun1(a):
     m.sqrt(a)
             """,  # language=none
-            {"fun1.line4": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
+            {"fun1.line4":  SimpleImpure({"NativeCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "Import module with alias - function and constant"
             """
@@ -1425,7 +1437,8 @@ def fun1(a):
             """,  # language=none
             {
                 "fun1.line4": SimpleImpure(
-                    {"UnknownCall.UnknownFunctionCall.math.sqrt", "NonLocalVariableRead.Import.math.pi"},
+                    {"NonLocalVariableRead.Import.math.pi",
+                     "NativeCall.UnknownFunctionCall.math.sqrt"},
                 ),
             },
         ),
@@ -1454,7 +1467,7 @@ from math import sqrt
 def fun1(a):
     sqrt(a)
             """,  # language=none
-            {"fun1.line4": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
+            {"fun1.line4": SimpleImpure({"NativeCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "FromImport with alias - function"
             """
@@ -1463,7 +1476,7 @@ from math import sqrt as s
 def fun1(a):
     s(a)
             """,  # language=none
-            {"fun1.line4": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
+            {"fun1.line4": SimpleImpure({"NativeCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "FromImport with alias - function and constant"
             """
@@ -1475,7 +1488,8 @@ def fun1(a):
             """,  # language=none
             {
                 "fun1.line4": SimpleImpure(
-                    {"UnknownCall.UnknownFunctionCall.math.sqrt", "NonLocalVariableRead.Import.math.pi"},
+                    {"NonLocalVariableRead.Import.math.pi",
+                     "NativeCall.UnknownFunctionCall.math.sqrt"},
                 ),
             },
         ),
@@ -1494,7 +1508,7 @@ def fun1(a):
     import math
     a = math.sqrt(a)
             """,  # language=none
-            {"fun1.line2": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
+            {"fun1.line2": SimpleImpure({"NativeCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "Local FromImport - constant"
             """
@@ -1510,7 +1524,7 @@ def fun1(a):
     from math import sqrt
     sqrt(a)
             """,  # language=none
-            {"fun1.line2": SimpleImpure({"UnknownCall.UnknownFunctionCall.math.sqrt"})},
+            {"fun1.line2": SimpleImpure({"NativeCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "Write to Import"
             """
@@ -1541,7 +1555,7 @@ def fun1():
     ],
 )  # TODO: to test this correctly we need real imports from modules that are no dubs
 def test_infer_purity_import(code: str, expected: dict[str, SimpleImpure]) -> None:
-    purity_results = infer_purity(code)
+    purity_results = next(iter(infer_purity(code).values()))
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
@@ -1690,7 +1704,7 @@ def fun():
     ],
 )
 def test_infer_purity_open(code: str, expected: dict[str, SimpleImpure]) -> None:
-    purity_results = infer_purity(code)
+    purity_results = next(iter(infer_purity(code).values()))
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)

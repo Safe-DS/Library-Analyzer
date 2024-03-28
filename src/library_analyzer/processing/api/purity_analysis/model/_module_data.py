@@ -202,14 +202,48 @@ class NodeID:
     col: int | None = None
 
     def __str__(self) -> str:
-        if self.line is None or self.col is None:
-            if self.module is None:
+        if isinstance(self.module, astroid.Module):
+            self.module = self.module.name
+
+        if self.module is not None:
+            if self.line is not None and self.col is not None:
+                return f"{self.module}.{self.name}.{self.line}.{self.col}"
+            else:
+                return f"{self.module}.{self.name}"
+        elif self.line is not None and self.col is not None:
+            if self.line == 0 and self.col == 0:
                 return f"{self.name}"
-            return f"{self.module}.{self.name}"
-        return f"{self.module}.{self.name}.{self.line}.{self.col}"
+            return f"{self.name}.{self.line}.{self.col}"
+        else:
+            return f"{self.name}"
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    def __eq__(self, other):
+        if not isinstance(other, NodeID):
+            raise TypeError(f"Cannot compare NodeID with {type(other)}")
+        return self.module == other.module and self.name == other.name and self.line == other.line and self.col == other.col
+
+    def __lt__(self, other):
+        if not isinstance(other, NodeID):
+            raise TypeError(f"Cannot compare NodeID with {type(other)}")
+
+        if self.line is None:
+            if other.line is None:
+                return False  # Both lines are None, consider them equal
+            return True  # self.line is None, other.line is not, so other is greater
+        elif other.line is None:
+            return False  # other.line is None, self.line is not, so self is greater
+
+        if self.line != other.line:
+            return self.line < other.line
+
+        if self.col != other.col:
+            return self.col < other.col
+
+        # If both line and column are equal, compare by name,
+        return self.name < other.name
 
     @classmethod
     def calc_node_id(
@@ -248,11 +282,10 @@ class NodeID:
             module = node.node.root().name
         else:
             module = node.root().name
-            # TODO: check if this is correct when working with a real module
 
         match node:
             case astroid.Module():
-                return NodeID(module, node.name, 0, 0)
+                return NodeID(None, node.name, 0, 0)
             case astroid.ClassDef():
                 return NodeID(module, node.name, node.lineno, node.col_offset)
             case astroid.FunctionDef():
@@ -442,7 +475,15 @@ class Import(Symbol):
 
 @dataclass
 class Builtin(Symbol):
-    """Represents a builtin (function)."""
+    """Represents a builtin (function).
+
+    Attributes
+    ----------
+    call : astroid.Call
+        The call node of the function.
+    """
+
+    call: astroid.Call
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"

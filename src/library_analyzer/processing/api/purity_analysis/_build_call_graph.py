@@ -19,36 +19,25 @@ class CallGraphBuilder:
 
     This class is used to build a call graph forest for a module from a dict of Reasons.
 
-    Attributes
+    Parameters
     ----------
     classes : dict[str, ClassScope]
         Classnames in the module as key and their corresponding ClassScope instance as value.
     raw_reasons : dict[NodeID, Reasons]
         The raw reasons for impurity for all functions.
-    call_graph_forest : CallGraphForest
-        The call graph forest of the module.
+        Keys are the ids of the functions.
     """
 
-    # TODO: is this the right way to document instance attributes? LARS
+    # TODO: fix docstring type hints (everywhere)
     def __init__(
         self,
         classes: dict[str, ClassScope],
         raw_reasons: dict[NodeID, Reasons],
     ) -> None:
-        """Initialize the CallGraphBuilder.
-
-        Parameters
-        ----------
-        classes : dict[str, ClassScope]
-            Classnames in the module as key and their corresponding ClassScope instance as value.
-        raw_reasons : dict[str, Reasons]
-            The raw reasons for impurity for all functions.
-            Keys are the ids of the functions.
-        """
         self.classes = classes
         self.raw_reasons = raw_reasons
         self.call_graph_forest = CallGraphForest()
-        # TODO: does this belong into post init? LARS
+
         self._build_call_graph_forest()
 
     def _build_call_graph_forest(self) -> CallGraphForest:
@@ -131,7 +120,9 @@ class CallGraphBuilder:
         self.call_graph_forest.add_graph(reason.id, cgn)
 
         # The node has calls, which need to be added to the forest and to the children of the current node.
-        for call in cgn.reasons.calls.copy():
+        # They are sorted to ensure a deterministic order of the children (especially but not only for testing).
+        sorted_calls = sorted(cgn.reasons.calls, key=lambda x: x.id)
+        for call in sorted_calls:
             if call in self.call_graph_forest.get_graph(reason.id).reasons.calls:
                 self.call_graph_forest.get_graph(reason.id).reasons.calls.remove(call)
             if isinstance(call, Builtin):
@@ -174,7 +165,6 @@ class CallGraphBuilder:
             imported_cgn = ImportedCallGraphNode(
                 symbol=call,
                 reasons=Reasons(id=call.id),
-                # is_imported=bool(isinstance(call.node, astroid.Import | astroid.ImportFrom))
             )
             self.call_graph_forest.add_graph(call.id, imported_cgn)
             self.call_graph_forest.get_graph(reason_id).add_child(self.call_graph_forest.get_graph(call.id))
@@ -262,7 +252,6 @@ class CallGraphBuilder:
 
         # If the current node is already in the path, a cycle is found.
         if cgn.symbol.id in path:
-            # TODO: how to handle nested cycles? LARS
             cut_path = path[path.index(cgn.symbol.id) :]
             return {node_id: self.call_graph_forest.get_graph(node_id) for node_id in cut_path}
 
@@ -306,7 +295,7 @@ class CallGraphBuilder:
             return
 
         # Find all other calls (calls that are not part of the cycle) and remove all nodes in the cycle from the forest.
-        for node in cycle.values():  # TODO: call _test_cgn_for_cycles recursively
+        for node in cycle.values():
             for child in node.children.values():
                 if child.symbol.id not in cycle and not combined_cgn.has_child(child.symbol.id):
                     combined_cgn.add_child(child)

@@ -320,7 +320,7 @@ def transform_member_access(member_access: MemberAccess) -> str:
     [
         (
             astroid.Module("numpy"),
-            "numpy.numpy.0.0",
+            "numpy",
         ),
         (
             astroid.ClassDef(

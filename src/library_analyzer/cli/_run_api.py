@@ -2,6 +2,8 @@ from pathlib import Path
 
 from library_analyzer.processing.api import get_api
 from library_analyzer.processing.api.docstring_parsing import DocstringStyle
+
+from library_analyzer.processing.api.purity_analysis import get_purity_results
 from library_analyzer.processing.dependencies import get_dependencies
 
 
@@ -32,3 +34,7 @@ def _run_api_command(
     api_dependencies = get_dependencies(api)
     out_file_api_dependencies = out_dir_path.joinpath(f"{package}__api_dependencies.json")
     api_dependencies.to_json_file(out_file_api_dependencies)
+
+    api_purity = get_purity_results(src_dir_path)
+    out_file_api_purity = out_dir_path.joinpath(f"{package}__api_purity.json")
+    api_purity.to_json_file(out_file_api_purity)

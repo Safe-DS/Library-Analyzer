@@ -289,7 +289,7 @@ def local_var():
 glob1 = 10
 glob1
             """,  # language= None
-            [],  # TODO: LARS - is there any problem with this not being detected?
+            [],
         ),
         (  # language=Python "Global variable in class scope"
             """
@@ -298,7 +298,7 @@ class A:
     global glob1
     glob1
             """,  # language= None
-            [],  # TODO: LARS - is there any problem with this not being detected?
+            [],
         ),
         (  # language=Python "Global variable in function scope"
             """
@@ -334,7 +334,7 @@ def local_global():
     return glob1
             """,  # language= None
             [
-                # ReferenceTestNode("glob1.line5", "ClassDef.A", ["GlobalVariable.glob1.line2"]), # TODO: LARS - is there any problem with this not being detected?
+                # ReferenceTestNode("glob1.line5", "ClassDef.A", ["GlobalVariable.glob1.line2"]),
                 ReferenceTestNode("glob1.line10", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"]),
             ],
         ),
@@ -371,7 +371,7 @@ class A:
     glob1, glob2
             """,  # language= None
             [
-                # ReferenceTestNode("glob1.line6", "ClassDef.A", ["GlobalVariable.glob1.line2"]),  # TODO: LARS - is there any problem with this not being detected?
+                # ReferenceTestNode("glob1.line6", "ClassDef.A", ["GlobalVariable.glob1.line2"]),
                 # ReferenceTestNode("glob2.line6", "ClassDef.A", ["GlobalVariable.glob2.line3"]),
             ],
         ),
@@ -383,7 +383,7 @@ class A:
     glob1
             """,  # language= None
             # [ReferenceTestNode("glob1.line5", "ClassDef.A", ["ClassVariable.A.glob1.line4"])],
-            [],  # TODO: LARS - is there any problem with this not being detected?
+            [],
             # glob1 is not detected as a global variable since it is defined in the class scope - this is intended
         ),
         (  # language=Python "New global variable in function scope"

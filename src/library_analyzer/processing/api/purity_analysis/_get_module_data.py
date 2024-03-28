@@ -188,7 +188,7 @@ class ModuleDataBuilder:
                 # This deals with global variables that are used inside a lambda
                 if isinstance(node, astroid.AssignName) and node.name in self.global_variables:
                     return GlobalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name)
-                return LocalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name)
+                return LocalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name if hasattr(node, "name") else "None")
 
             case (
                 astroid.TryExcept() | astroid.TryFinally()
@@ -354,8 +354,10 @@ class ModuleDataBuilder:
             # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
             if isinstance(current_node.parent.targets[0], astroid.AssignAttr):
                 node_name = current_node.parent.targets[0].attrname
-            else:
+            elif isinstance(current_node.parent.targets[0], astroid.AssignName):
                 node_name = current_node.parent.targets[0].name
+            else:
+                node_name = "Lambda"
             # If the Lambda function is assigned to a name, it can be called just as a normal function.
             # Since Lambdas normally do not have names, they need to be assigned manually.
             self.current_function_def[-1].symbol.name = node_name
@@ -923,6 +925,7 @@ class ModuleDataBuilder:
             if (
                 isinstance(self.current_node_stack[-1], FunctionScope)
                 or isinstance(self.current_node_stack[-1].symbol.node, astroid.TryExcept | astroid.TryFinally)
+                and self.current_function_def
                 and self.find_first_parent_function(node) == self.current_function_def[-1].symbol.node
             ):
                 self.targets.append(self.get_symbol(node, self.current_node_stack[-1].symbol.node))
@@ -1131,7 +1134,7 @@ class ModuleDataBuilder:
         self.imports.update(symbols)
 
 
-def get_module_data(code: str) -> ModuleData:
+def get_module_data(code: str, module_name: str = "", path: str | None = None) -> ModuleData:
     """Get the module data of the given code.
 
     To get the module data of the given code, the code is parsed into an AST and then walked by an ASTWalker.
@@ -1143,15 +1146,27 @@ def get_module_data(code: str) -> ModuleData:
     ----------
     code : str
         The source code of the module whose module data is to be found.
+    module_name : str, optional
+        The name of the module, by default "".
+    path : str, optional
+        The path of the module, by default None.
 
     Returns
     -------
     ModuleData
         The module data of the given module.
+
+    Raises
+    ------
+    ValueError
+        If the code has invalid syntax.
     """
     module_data_handler = ModuleDataBuilder()
     walker = ASTWalker(module_data_handler)
-    module = astroid.parse(code)
+    try:
+        module = astroid.parse(code, module_name, path)
+    except astroid.AstroidSyntaxError as e:
+        raise ValueError(f"Invalid syntax in code: {e}") from e
     # print(module.repr_tree())
     walker.walk(module)
 
