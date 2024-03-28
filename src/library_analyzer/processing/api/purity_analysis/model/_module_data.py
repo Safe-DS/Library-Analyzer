@@ -211,6 +211,8 @@ class NodeID:
             else:
                 return f"{self.module}.{self.name}"
         elif self.line is not None and self.col is not None:
+            if self.line == 0 and self.col == 0:
+                return f"{self.name}"
             return f"{self.name}.{self.line}.{self.col}"
         else:
             return f"{self.name}"
