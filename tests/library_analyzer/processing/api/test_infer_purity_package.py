@@ -9,7 +9,7 @@ def test_run_api_command_safe_ds() -> None:
     _run_api_command("safe-ds",
                      Path(r"C:\Users\Lukas Radermacher\AppData\Local\pypoetry\Cache\virtualenvs\library-analyzer-FK1WveJV-py3.11\Lib\site-packages\safeds"),
                      Path(r"C:\Users\Lukas Radermacher\Desktop\Results"),
-                     DocstringStyle.NUMPY
+                     DocstringStyle.NUMPY,
                      )
 
 
@@ -17,5 +17,5 @@ def test_run_api_command_small_module() -> None:
     _run_api_command("test_module",
                      Path(r"C:\Users\Lukas Radermacher\Desktop\Results\Tests"),
                      Path(r"C:\Users\Lukas Radermacher\Desktop\Results\Tests"),
-                     DocstringStyle.NUMPY
+                     DocstringStyle.NUMPY,
                      )

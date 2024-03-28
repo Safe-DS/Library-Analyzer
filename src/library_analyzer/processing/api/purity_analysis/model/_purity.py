@@ -9,10 +9,11 @@ from typing import TYPE_CHECKING, Any
 
 import astroid
 
-from library_analyzer.utils import ensure_file_exists
 from library_analyzer.processing.api.purity_analysis.model._module_data import (
-        MemberAccessValue,
+    MemberAccessValue,
+    NodeID,
 )
+from library_analyzer.utils import ensure_file_exists
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -404,13 +405,15 @@ class UnknownFunctionCall(Expression):
         The name of the call.
     """
 
-    call: astroid.Call
+    call: astroid.Call | None = None
     inferred_def: astroid.FunctionDef | None = None
     name: str = field(init=False)
 
     def __post_init__(self) -> None:
         if self.inferred_def is not None:
             self.name = f"{self.inferred_def.root().name}.{self.inferred_def.name}"
+        elif self.call is None:
+            self.name = "UNKNOWN"
         elif isinstance(self.call, MemberAccessValue):
             self.name = self.call.name
         elif isinstance(self.call.func, astroid.Attribute):
@@ -461,12 +464,13 @@ class APIPurity:
 
     Attributes
     ----------
-    purity_results : dict[str, dict[str, PurityResult]]
-        The purity results of the API.
-        The first key is the name of the module, and the second key is the function id.
+    purity_results : dict[NodeID, dict[NodeID, PurityResult]]
+        The purity results of all functions of the API.
+        The key is the NodeID of the module,
+        the value is a dictionary of the purity results of the functions in the module.
     """
 
-    purity_results: typing.ClassVar[dict[str, dict[str, PurityResult]]] = {}
+    purity_results: typing.ClassVar[dict[NodeID, dict[NodeID, PurityResult]]] = {}
 
     def to_json_file(self, path: Path) -> None:
         ensure_file_exists(path)
@@ -475,7 +479,8 @@ class APIPurity:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            module_name: {function_def: purity.to_dict() for function_def, purity in purity_result.items()}
+            module_name.__str__(): {function_id.__str__(): purity.to_dict()
+                                    for function_id, purity in purity_result.items()}
             for module_name, purity_result in self.purity_results.items()
         }
 

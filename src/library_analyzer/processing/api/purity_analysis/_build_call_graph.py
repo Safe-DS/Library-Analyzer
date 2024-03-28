@@ -120,7 +120,9 @@ class CallGraphBuilder:
         self.call_graph_forest.add_graph(reason.id, cgn)
 
         # The node has calls, which need to be added to the forest and to the children of the current node.
-        for call in cgn.reasons.calls.copy():  # TODO: sort this (for testing)
+        # They are sorted to ensure a deterministic order of the children (especially but not only for testing).
+        sorted_calls = sorted(cgn.reasons.calls, key=lambda x: x.id)
+        for call in sorted_calls:
             if call in self.call_graph_forest.get_graph(reason.id).reasons.calls:
                 self.call_graph_forest.get_graph(reason.id).reasons.calls.remove(call)
             if isinstance(call, Builtin):

@@ -188,7 +188,7 @@ class ModuleDataBuilder:
                 # This deals with global variables that are used inside a lambda
                 if isinstance(node, astroid.AssignName) and node.name in self.global_variables:
                     return GlobalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name)
-                return LocalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name)
+                return LocalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name if hasattr(node, "name") else "None")
 
             case (
                 astroid.TryExcept() | astroid.TryFinally()
@@ -354,8 +354,10 @@ class ModuleDataBuilder:
             # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
             if isinstance(current_node.parent.targets[0], astroid.AssignAttr):
                 node_name = current_node.parent.targets[0].attrname
-            else:
+            elif isinstance(current_node.parent.targets[0], astroid.AssignName):
                 node_name = current_node.parent.targets[0].name
+            else:
+                node_name = "Lambda"
             # If the Lambda function is assigned to a name, it can be called just as a normal function.
             # Since Lambdas normally do not have names, they need to be assigned manually.
             self.current_function_def[-1].symbol.name = node_name
@@ -1153,10 +1155,18 @@ def get_module_data(code: str, module_name: str = "", path: str | None = None) -
     -------
     ModuleData
         The module data of the given module.
+
+    Raises
+    ------
+    ValueError
+        If the code has invalid syntax.
     """
     module_data_handler = ModuleDataBuilder()
     walker = ASTWalker(module_data_handler)
-    module = astroid.parse(code, module_name, path)
+    try:
+        module = astroid.parse(code, module_name, path)
+    except astroid.AstroidSyntaxError as e:
+        raise ValueError(f"Invalid syntax in code: {e}") from e
     # print(module.repr_tree())
     walker.walk(module)
 

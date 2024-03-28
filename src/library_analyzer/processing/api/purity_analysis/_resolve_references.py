@@ -55,7 +55,11 @@ class ReferenceResolver:
 
     def __init__(self, code: str, module_name: str = "", path: str | None = None):
         # Initialize the Class by getting the module data for the given (module) code.
-        module_data = get_module_data(code, module_name, path)
+        try:
+            module_data = get_module_data(code, module_name, path)
+            self.module_analysis_result.module_id = module_data.scope.symbol.id
+        except ValueError:
+            return  # TODO: add error message to result?
         self.functions = module_data.functions
         self.classes = module_data.classes
         self.imports = module_data.imports
@@ -213,7 +217,8 @@ class ReferenceResolver:
             import_def = self.imports.get(call_reference.name)
             inferred_node_def = safe_infer(call_reference.node.func)
             if not inferred_node_def:
-                inferred_node_def = next(call_reference.node.func.infer())
+                with contextlib.suppress(astroid.InferenceError):
+                    inferred_node_def = next(call_reference.node.func.infer())
             if not isinstance(inferred_node_def, astroid.FunctionDef | astroid.ClassDef):
                 # These cases will be added to the unknown calls since they do not have any referenced_symbols.
                 pass
@@ -318,7 +323,8 @@ class ReferenceResolver:
             import_def = self.imports.get(value_reference.name)
             inferred_node_def = safe_infer(value_reference.node)
             if not inferred_node_def:
-                inferred_node_def = next(value_reference.node.infer())
+                with contextlib.suppress(astroid.InferenceError):
+                    inferred_node_def = next(value_reference.node.infer())
             if not inferred_node_def:
                 pass
             else:
@@ -376,7 +382,8 @@ class ReferenceResolver:
                     inferred_node_def = safe_infer(
                         value_reference.node.node)  # TODO: what if node is a MemberAccessValue?
                     if not inferred_node_def:
-                        inferred_node_def = next(value_reference.node.node.infer())
+                        with contextlib.suppress(astroid.InferenceError):
+                            inferred_node_def = next(value_reference.node.node.infer())
                     if not inferred_node_def:
                         pass
 

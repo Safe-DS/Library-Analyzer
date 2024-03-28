@@ -420,7 +420,7 @@ c = fun1()
     ],  # TODO: class inits in cycles
 )
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
-    purity_results = infer_purity(code)
+    purity_results = next(iter(infer_purity(code).values()))
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
         for function_id, purity_result in purity_results.items()
@@ -1267,7 +1267,7 @@ def f(a):
 )
 @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
-    purity_results = infer_purity(code)
+    purity_results = next(iter(infer_purity(code).values()))
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
@@ -1378,7 +1378,7 @@ def fun3():
     ],
 )
 def test_infer_purity_unknown(code: str, expected: dict[str, SimpleImpure]) -> None:
-    purity_results = infer_purity(code)
+    purity_results = next(iter(infer_purity(code).values()))
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
@@ -1555,7 +1555,7 @@ def fun1():
     ],
 )  # TODO: to test this correctly we need real imports from modules that are no dubs
 def test_infer_purity_import(code: str, expected: dict[str, SimpleImpure]) -> None:
-    purity_results = infer_purity(code)
+    purity_results = next(iter(infer_purity(code).values()))
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
@@ -1704,7 +1704,7 @@ def fun():
     ],
 )
 def test_infer_purity_open(code: str, expected: dict[str, SimpleImpure]) -> None:
-    purity_results = infer_purity(code)
+    purity_results = next(iter(infer_purity(code).values()))
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)

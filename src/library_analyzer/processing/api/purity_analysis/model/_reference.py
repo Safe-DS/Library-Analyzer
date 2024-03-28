@@ -104,12 +104,15 @@ class ModuleAnalysisResult:
         All classes and their ClassScope.
     call_graph_forest : CallGraphForest
         The call graph forest of the module.
+    module_id : NodeID | None
+        The NodeID of the module which the analysis result belongs to.
     """
 
     resolved_references: dict[str, list[ReferenceNode]] = field(default_factory=dict)
     raw_reasons: dict[NodeID, Reasons] = field(default_factory=dict)
     classes: dict[str, ClassScope] = field(default_factory=dict)
     call_graph_forest: CallGraphForest | None = None
+    module_id: NodeID | None = None
 
 
 @dataclass
