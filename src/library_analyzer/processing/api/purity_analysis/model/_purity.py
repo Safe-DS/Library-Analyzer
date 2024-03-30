@@ -146,7 +146,7 @@ class Impure(PurityResult):
     def to_dict(self) -> dict[str, Any]:
         return {
             "purity": self.__class__.__name__,
-            "reasons": [reason.__str__() for reason in self.reasons],
+            "reasons": [reason.to_dict() for reason in self.reasons],
         }
 
 
@@ -163,6 +163,9 @@ class ImpurityReason(ABC):  # this is just a base class, and it is important tha
     def __hash__(self) -> int:
         return hash(str(self))
 
+    @abstractmethod
+    def to_dict(self) -> dict[str, Any]:
+        pass
 
 class Read(ImpurityReason, ABC):
     """Superclass for read type impurity reasons."""
@@ -185,10 +188,14 @@ class NonLocalVariableRead(Read):
         return hash(str(self))
 
     def __str__(self) -> str:
-        if self.origin is not None:
-            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.symbol.__class__.__name__}.{self.symbol.name}"
         return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "result": f"{self.__class__.__name__}",
+            "origin": f"{self.origin.id}" if self.origin is not None else None,
+            "reason": f"{self.symbol.__class__.__name__}.{self.symbol.name}",
+        }
 
 @dataclass
 class FileRead(Read):
@@ -209,10 +216,15 @@ class FileRead(Read):
 
     def __str__(self) -> str:
         if isinstance(self.source, Expression):
-            if self.origin is not None:
-                return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.source.__str__()}"
             return f"{self.__class__.__name__}: {self.source.__str__()}"
         return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "result": f"{self.__class__.__name__}",
+            "origin": f"{self.origin.id}" if self.origin is not None else None,
+            "reason": f"{self.source.__str__()}",
+        }
 
 
 class Write(ImpurityReason, ABC):
@@ -236,9 +248,14 @@ class NonLocalVariableWrite(Write):
         return hash(str(self))
 
     def __str__(self) -> str:
-        if self.origin is not None:
-            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.symbol.__class__.__name__}.{self.symbol.name}"
         return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "result": f"{self.__class__.__name__}",
+            "origin": f"{self.origin.id}" if self.origin is not None else None,
+            "reason": f"{self.symbol.__class__.__name__}.{self.symbol.name}",
+        }
 
 
 @dataclass
@@ -260,11 +277,15 @@ class FileWrite(Write):
 
     def __str__(self) -> str:
         if isinstance(self.source, Expression):
-            if self.origin is not None:
-                return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.source.__str__()}"
             return f"{self.__class__.__name__}: {self.source.__str__()}"
         return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "result": f"{self.__class__.__name__}",
+            "origin": f"{self.origin.id}" if self.origin is not None else None,
+            "reason": f"{self.source.__str__()}",
+        }
 
 class Unknown(ImpurityReason, ABC):
     """Superclass for unknown type impurity reasons."""
@@ -289,9 +310,14 @@ class UnknownCall(Unknown):
         return hash(str(self))
 
     def __str__(self) -> str:
-        if self.origin is not None:
-            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.expression.__str__()}"
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "result": f"{self.__class__.__name__}",
+            "origin": f"{self.origin.id}" if self.origin is not None else None,
+            "reason": f"{self.expression.__str__()}",
+        }
 
 
 @dataclass
@@ -313,10 +339,14 @@ class NativeCall(Unknown):  # ExternalCall
         return hash(str(self))
 
     def __str__(self) -> str:
-        if self.origin is not None:
-            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.expression.__str__()}"
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "result": f"{self.__class__.__name__}",
+            "origin": f"{self.origin.id}" if self.origin is not None else None,
+            "reason": f"{self.expression.__str__()}",
+        }
 
 @dataclass
 class CallOfParameter(Unknown):  # ParameterCall
@@ -341,9 +371,14 @@ class CallOfParameter(Unknown):  # ParameterCall
         return hash(str(self))
 
     def __str__(self) -> str:
-        if self.origin is not None:
-            return f"{self.__class__.__name__} (origin: {self.origin.id}): {self.expression.__str__()}"
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "result": f"{self.__class__.__name__}",
+            "origin": f"{self.origin.id}" if self.origin is not None else None,
+            "reason": f"{self.expression.__str__()}",
+        }
 
 
 class Expression(ABC):  # this is just a base class, and it is important that it cannot be instantiated

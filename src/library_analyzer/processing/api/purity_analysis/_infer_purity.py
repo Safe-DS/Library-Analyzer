@@ -256,31 +256,30 @@ class PurityAnalyzer:
         the value is a dictionary of the purity results of the functions in the module.
         After the analysis of the module, the results are saved in this dictionary.
         All imported modules are saved in this dictionary too for further runtime reduction.
+
+    Parameters
+    ----------
+    code : str
+        The source code of the module.
+    module_name : str
+        The name of the module.
+    path : str | None
+        The path of the module.
+    results : dict[NodeID, dict[NodeID, PurityResult]] | None
+        The results of all previously analyzed modules.
+        The key is the NodeID of the module,
+        the value is a dictionary of the purity results of the functions in the module.
     """
 
     def __init__(self, code: str, module_name: str = "", path: str | None = None, results: dict[NodeID, dict[NodeID, PurityResult]] | None = None) -> None:
-        """
-        Initialize the PurityAnalyzer.
-
-        Parameters
-        ----------
-        code : str
-            The source code of the module.
-        module_name : str
-            The name of the module.
-        path : str | None
-            The path of the module.
-        results : dict[NodeID, dict[NodeID, PurityResult]] | None
-            The results of all previously analyzed modules.
-            The key is the NodeID of the module,
-            the value is a dictionary of the purity results of the functions in the module.
-        """
         references = resolve_references(code, module_name, path)
         forest = references.call_graph_forest
         if forest is None:
             raise ValueError("The call graph forest is empty.")
 
         self.module_id = references.module_id
+        if self.module_id is None:
+            raise ValueError("The module ID is None.")
         self.visited_nodes: set[NodeID] = set()
         self.call_graph_forest: CallGraphForest = forest
         self.current_purity_results: dict[NodeID, dict[NodeID, PurityResult]] = {self.module_id: {}}
@@ -330,7 +329,7 @@ class PurityAnalyzer:
 
             # Check if the file name is a variable or a string literal
             file_var = call.args[0].name if isinstance(call.args[0], astroid.Name) else None
-            file_str = call.args[0].value if not file_var else None
+            file_str = call.args[0].value if not file_var and hasattr(call.args[0], "value") else None
 
             # The file name is a variable
             if file_var:
@@ -521,7 +520,16 @@ class PurityAnalyzer:
             self.cached_module_results.update({imported_module_id: {}})
 
         # Get the source code of the imported module.
-        source_code = imported_module.as_string()
+        with imported_module.stream() as s:
+            source_code = s.read()
+            s.close()
+        try:
+            source_code = source_code.decode("utf-8")
+        except UnicodeDecodeError:
+            return Impure({UnknownCall(expression=UnknownFunctionCall(imported_node.symbol.call),
+                                       origin=imported_node.symbol,
+                                       )})
+
         # Analyze the purity of the imported module.
         purity_result_imported_module = infer_purity(code=source_code,
                                                      module_name=imported_module.name,
@@ -715,6 +723,7 @@ def get_purity_results(
         The purity results of the package.
     """
     modules = list(src_dir_path.glob("**/*.py"))
+    module_names: list[str] = []
     package_purity = APIPurity()
 
     for module in modules:
@@ -729,6 +738,7 @@ def get_purity_results(
             continue
 
         module_name = __module_name(src_dir_path, Path(module))
+        module_names.append(module_name)
         with module.open("r", encoding="utf-8") as file:
             code = file.read()
 
@@ -746,11 +756,23 @@ def get_purity_results(
                 for key, value in module_purity_results.items()
             }
 
-            # print("Finished purity analysis of module", module_name)
             logging.info("Finished purity analysis of module {module_name}.",
                          extra={"module_name": module_name})
 
         package_purity.purity_results.update(sorted_module_purity_results)
+
+    # Clean the purity results by removing all modules that are not part of the package.
+    cleaned_module_names = []
+
+    for name in module_names:
+        parts = name.split(".")
+        if parts[-1] == "__init__":
+            parts.pop()
+        cleaned_module_names.append(".".join(parts))
+
+    for module_id in package_purity.purity_results.copy():
+        if module_id.name not in cleaned_module_names:
+            package_purity.purity_results.pop(module_id)
 
     return package_purity
 

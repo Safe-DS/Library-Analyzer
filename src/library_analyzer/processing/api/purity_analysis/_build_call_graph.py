@@ -28,7 +28,6 @@ class CallGraphBuilder:
         Keys are the ids of the functions.
     """
 
-    # TODO: fix docstring type hints (everywhere)
     def __init__(
         self,
         classes: dict[str, ClassScope],
@@ -276,9 +275,19 @@ class CallGraphBuilder:
         return cycle
 
     def _contract_cycle(self, cycle: dict[NodeID, CallGraphNode]) -> None:
+        """Contract a cycle in the call graph.
+
+        Contracts a cycle in the call graph into a single node.
+        Therefore, creates a new CombinedCallGraphNode out of all nodes in the cycle and adds it to the forest.
+
+        Parameters
+        ----------
+        cycle : dict[NodeID, CallGraphNode]
+            A dict of all nodes in the cycle.
+            Keys are the NodeIDs of the CallGraphNodes.
+        """
         # Create the new combined node.
         combined_name = "+".join(sorted(c.__str__() for c in cycle))
-        # module = cycle[next(iter(cycle))].symbol.node.root()
         combined_id = NodeID(None, combined_name)
         combined_reasons = Reasons(id=combined_id).join_reasons_list([node.reasons for node in cycle.values()])
         combined_cgn = CombinedCallGraphNode(

@@ -420,7 +420,7 @@ class ModuleDataBuilder:
             self.values = []
 
             # Add all calls that are used inside the lambda body to its parent function calls' dict.
-            if self.calls and isinstance(self.current_function_def[-2], FunctionScope):
+            if self.calls and len(self.current_function_def) >= 2 and isinstance(self.current_function_def[-2], FunctionScope):
                 for call in self.calls:
                     if call.name not in self.current_function_def[-2].call_references:
                         self.current_function_def[-2].call_references[call.name] = [call]

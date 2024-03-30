@@ -46,6 +46,15 @@ class ReferenceResolver:
         The imports of the module.
     module_analysis_result : ModuleAnalysisResult
         The result of the reference resolving.
+
+    Parameters
+    ----------
+    code : str
+        The code of the module.
+    module_name : str
+        The name of the module if any.
+    path : str | None
+        The path of the module if any.
     """
 
     functions: dict[str, list[FunctionScope]]
@@ -366,6 +375,9 @@ class ReferenceResolver:
                 receiver_name = "UNKNOWN"
             elif isinstance(value_reference.node.receiver, astroid.Attribute):
                 receiver_name = value_reference.node.receiver.attrname
+            elif (isinstance(value_reference.node.receiver, astroid.Call)
+                  and isinstance(value_reference.node.receiver.func, astroid.Name)):
+                receiver_name = value_reference.node.receiver.func.name
             else:
                 receiver_name = value_reference.node.receiver.name
 
@@ -527,7 +539,7 @@ class ReferenceResolver:
         This function is the entry point for the reference resolving.
         It calls all other functions that are needed to resolve the references.
         First, get the module data for the given (module) code.
-        Then call the functions to find all references (call, target in the module.
+        Then call the functions to find all call, target and value references in the module.
 
         Returns
         -------

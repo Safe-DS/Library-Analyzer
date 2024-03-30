@@ -220,12 +220,12 @@ class NodeID:
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if not isinstance(other, NodeID):
             raise TypeError(f"Cannot compare NodeID with {type(other)}")
         return self.module == other.module and self.name == other.name and self.line == other.line and self.col == other.col
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         if not isinstance(other, NodeID):
             raise TypeError(f"Cannot compare NodeID with {type(other)}")
 
