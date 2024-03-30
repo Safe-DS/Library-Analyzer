@@ -510,6 +510,34 @@ class B(A):
                 "__init__.line7": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
             },
         ),
+
+        (  # language=Python "Impure Class initialization via super multiple classes"
+            """
+class A:
+    def __init__(self):
+        print("Test")  # Impure: FileWrite
+
+var1 = 1
+class C:
+    def __init__(self):
+        global var1
+        var1 = 2  # Impure: VariableWrite to GlobalVariable
+
+class D:
+    def __init__(self):
+        input()  # Impure: FileRead
+
+class B(A):
+    def __init__(self):
+        super().__init__()
+            """,  # language= None
+            {
+                "__init__.line3": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "__init__.line8": SimpleImpure({"NonLocalVariableWrite.GlobalVariable.var1"}),
+                "__init__.line13": SimpleImpure({"FileRead.StringLiteral.stdin"}),
+                "__init__.line17": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+            },
+        ),
         (  # language=Python "Class methode call"
             """
 class A:
@@ -1232,6 +1260,7 @@ def f(a):
         "VariableRead from GlobalVariable",
         "Impure Class initialization",
         "Impure Class initialization via super",
+        "Impure Class initialization via super multiple classes",
         "Class methode call",
         "Class methode call of superclass",
         "Class methode call of superclass (overwritten method)",
@@ -1265,7 +1294,7 @@ def f(a):
         "Match statement",
     ],
 )
-@pytest.mark.xfail(reason="Some cases disabled for merging")
+# @pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
     purity_results = next(iter(infer_purity(code).values()))
 
@@ -1684,6 +1713,26 @@ def fun():
             """,  # language= None
             {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})},
         ),
+        (  # language=Python "Open MemberAccess with str default"
+            """
+import builtins
+
+def fun():
+    builtins.open("text.txt")  # Impure: FileRead
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})},
+        ),
+        (  # language=Python "With open MemberAccess str default"
+            """
+from pathlib import Path
+
+def fun():
+    x: Path = Path("text.txt")
+    with x.open() as f:  # Impure: FileRead
+        f.read()
+            """,  # language= None
+            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})},
+        ),
     ],
     ids=[
         "Open with str default",
@@ -1701,6 +1750,8 @@ def fun():
         "With open parameter read and write",
         "With open parameter and variable mode",
         "With open close",
+        "Open MemberAccess with str default",
+        "With open MemberAccess str default",
     ],
 )
 def test_infer_purity_open(code: str, expected: dict[str, SimpleImpure]) -> None:
