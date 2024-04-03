@@ -1546,6 +1546,23 @@ def f():
                 ],
             },
         ),
+        (  # language=Python "Function with @overload"
+            """
+from typing import overload
+
+@overload  # We do not want these in the results, since they are not actual functions
+def f():
+    ...
+
+def f():
+    pass
+            """,  # language=none
+            {
+                "f": [
+                    SimpleFunctionScope("GlobalVariable.FunctionDef.f", [], [], [], []),
+                ],
+            },
+        ),
     ],
     ids=[
         "Trivial function",
@@ -1559,6 +1576,7 @@ def f():
         "Function with value in loop",
         "Function with call",
         "Function with same name",
+        "Function with @overload",
     ],
 )
 def test_get_module_data_functions(code: str, expected: dict[str, list[str]]) -> None:

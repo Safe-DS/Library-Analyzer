@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import builtins
+import contextlib
 import dataclasses
-from typing import Tuple, Dict, List
 
 import astroid
 from astroid.helpers import safe_infer
@@ -28,7 +28,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     TargetReference,
     ValueReference,
 )
-import contextlib
 
 _BUILTINS = dir(builtins)
 
@@ -165,7 +164,25 @@ class ReferenceResolver:
             function_def = self.functions.get(call_reference.name)
             function_symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr]
             # "None" is not iterable, but it is checked before
-            result_value_reference.referenced_symbols.extend(function_symbols)
+            class_iterator = function.symbol.node
+            klass = None
+            while class_iterator:
+                if isinstance(class_iterator, astroid.ClassDef):
+                    klass = self.classes.get(class_iterator.name)
+                    break
+                class_iterator = class_iterator.parent
+
+            if klass and klass.super_classes:
+                res = []
+                for sup in klass.super_classes:
+                    for func in sup.class_variables.values():
+                        for f in func:
+                            if f.name == call_reference.name:
+                                res.append(f)
+
+                result_value_reference.referenced_symbols.extend(res)
+            else:
+                result_value_reference.referenced_symbols.extend(function_symbols)
 
         # Find classes that are called (initialized).
         elif call_reference.name in self.classes:
@@ -477,13 +494,17 @@ class ReferenceResolver:
                             if (
                                 function.symbol.name == "__init__"
                                 and function.parent != klass
-                                or target_reference.node.receiver.name == "self"
+                                or isinstance(target_reference.node.receiver, astroid.Name)
+                                and target_reference.node.receiver.name == "self"
+                                and function.parent != klass
+                                or isinstance(target_reference.node.receiver, astroid.Attribute)
+                                and target_reference.node.receiver.attrname == "self"
                                 and function.parent != klass
                             ):
                                 continue
                         # Do not add functions that are not of the current class (or superclass).
                         if function.symbol.name not in klass.class_variables or not self.is_function_of_class(
-                            function.symbol.node, klass
+                            function.symbol.node, klass,
                         ):
                             # Collect all functions of superclasses for the current klass instance.
                             super_functions = []
@@ -685,7 +706,7 @@ class ReferenceResolver:
 
 def resolve_references(code: str,
                        module_name: str = "",
-                       path: str | None = None
+                       path: str | None = None,
                        ) -> ModuleAnalysisResult:
     """Resolve all references in a module.
 

@@ -273,15 +273,14 @@ class PurityAnalyzer:
 
     def __init__(self, code: str, module_name: str = "", path: str | None = None, results: dict[NodeID, dict[NodeID, PurityResult]] | None = None) -> None:
         references = resolve_references(code, module_name, path)
-        forest = references.call_graph_forest
-        if forest is None:
+        if references.call_graph_forest is None:
             raise ValueError("The call graph forest is empty.")
 
         self.module_id = references.module_id
         if self.module_id is None:
             raise ValueError("The module ID is None.")
         self.visited_nodes: set[NodeID] = set()
-        self.call_graph_forest: CallGraphForest = forest
+        self.call_graph_forest: CallGraphForest = references.call_graph_forest
         self.current_purity_results: dict[NodeID, dict[NodeID, PurityResult]] = {self.module_id: {}}
         self.separated_nodes: dict[NodeID, CallGraphNode] = {}
         self.cached_module_results: dict[NodeID, dict[NodeID, PurityResult]] = results if results else {}
@@ -316,7 +315,7 @@ class PurityAnalyzer:
             open_mode = None
 
             if not call.args:
-                return Impure({FileRead(StringLiteral("")), FileWrite(StringLiteral(""))})
+                return Impure({FileRead(StringLiteral("UNKNOWN")), FileWrite(StringLiteral("UNKNOWN"))})
 
             # Check if a mode is set and if the value is a string literal
             if len(call.args) >= 2 and isinstance(call.args[1], astroid.Const):
@@ -362,7 +361,7 @@ class PurityAnalyzer:
                     ),
                 )
             else:
-                return Impure({FileRead(StringLiteral("")), FileWrite(StringLiteral(""))})
+                return Impure({FileRead(StringLiteral("UNKNOWN")), FileWrite(StringLiteral("UNKNOWN"))})
         else:
             return Pure()
 
@@ -647,9 +646,9 @@ class PurityAnalyzer:
         While traversing the forest, it saves the purity results in the purity_results attribute.
         """
         # Check if the module was already analyzed and the results are cached.
-        if self.module_id in self.cached_module_results:
-            self.current_purity_results[self.module_id] = self.cached_module_results[self.module_id]
-            return
+        # if self.module_id in self.cached_module_results:
+        #     self.current_purity_results[self.module_id] = self.cached_module_results[self.module_id]
+        #     return
 
         # The purity of the module is not determined yet, so all graphs in the forest need to be analyzed.
         for graph in self.call_graph_forest.graphs.values():

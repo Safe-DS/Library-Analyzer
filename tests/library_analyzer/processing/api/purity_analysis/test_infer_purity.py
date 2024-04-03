@@ -1720,7 +1720,7 @@ import builtins
 def fun():
     builtins.open("text.txt")  # Impure: FileRead
             """,  # language= None
-            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})},
+            {"fun.line4": SimpleImpure({"FileRead.StringLiteral.text.txt"})},
         ),
         (  # language=Python "With open MemberAccess str default"
             """
@@ -1731,7 +1731,7 @@ def fun():
     with x.open() as f:  # Impure: FileRead
         f.read()
             """,  # language= None
-            {"fun.line2": SimpleImpure({"FileRead.StringLiteral.text.txt"})},
+            {"fun.line4": SimpleImpure({"FileRead.StringLiteral.text.txt"})},
         ),
     ],
     ids=[

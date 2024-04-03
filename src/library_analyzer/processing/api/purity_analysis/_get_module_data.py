@@ -404,7 +404,7 @@ class ModuleDataBuilder:
                 self.targets = []
 
             # Add all values that are used inside the lambda body to its parent function values' dict.
-            if self.values and isinstance(self.current_node_stack[-2], FunctionScope):
+            if self.values and len(self.current_function_def) >= 2 and isinstance(self.current_node_stack[-2], FunctionScope):
                 for value in self.values:
                     if value.name not in self.current_function_def[-1].parameters:
                         self.current_function_def[-2].value_references.setdefault(value.name, []).append(value)
@@ -443,11 +443,11 @@ class ModuleDataBuilder:
             # Add all globals that are used inside the Lambda to the parent function globals list.
             if self.current_function_def[-1].globals_used:
                 for glob_name, glob_def_list in self.current_function_def[-1].globals_used.items():
-                    if glob_name not in self.current_function_def[-2].globals_used:
+                    if len(self.current_function_def) >= 2 and glob_name not in self.current_function_def[-2].globals_used:
                         self.current_function_def[-2].globals_used[glob_name] = glob_def_list
                     else:
                         for glob_def in glob_def_list:
-                            if glob_def not in self.current_function_def[-2].globals_used[glob_name]:
+                            if len(self.current_function_def) >= 2 and glob_def not in self.current_function_def[-2].globals_used[glob_name]:
                                 self.current_function_def[-2].globals_used[glob_name].append(glob_def)
 
     def _analyze_constructor(self) -> None:
@@ -672,6 +672,11 @@ class ModuleDataBuilder:
         self._detect_scope(node)
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
+        if node.decorators:
+            for decorator in node.decorators.nodes:
+                if isinstance(decorator, astroid.Name) and decorator.name == "overload":
+                    return
+
         self.current_node_stack.append(
             FunctionScope(
                 _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
@@ -683,6 +688,11 @@ class ModuleDataBuilder:
         # The current_node_stack[-1] is always of type FunctionScope here.
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
+        if node.decorators:
+            for decorator in node.decorators.nodes:
+                if isinstance(decorator, astroid.Name) and decorator.name == "overload":
+                    return
+
         self._detect_scope(node)
         self.current_function_def.pop()
 

@@ -251,7 +251,7 @@ class CallGraphBuilder:
 
         # If the current node is already in the path, a cycle is found.
         if cgn.symbol.id in path:
-            cut_path = path[path.index(cgn.symbol.id) :]
+            cut_path = path[path.index(cgn.symbol.id):]
             return {node_id: self.call_graph_forest.get_graph(node_id) for node_id in cut_path}
 
         # If a node has no children, it is a leaf node, and an empty list is returned.
