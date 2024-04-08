@@ -1289,84 +1289,6 @@ def fun():
                 ),
             ],
         ),
-        (  # language=Python "Builtins for dict"
-            """
-def f():
-    dictionary = {"a": 1, "b": 2, "c": 3}
-
-    dictionary["a"] = 10
-    dictionary.get("a")
-    dictionary.update({"d": 4})
-    dictionary.pop("a")
-    dictionary.popitem()
-    dictionary.clear()
-    dictionary.copy()
-    dictionary.fromkeys("a")
-    dictionary.items()
-    dictionary.keys()
-    dictionary.values()
-    dictionary.setdefault("a", 10)
-
-    dictionary.__contains__("a")
-            """,  # language=none
-            [
-
-            ],
-        ),
-        (  # language=Python "Builtins for list"
-            """
-def f():
-    list1 = [1, 2, 3]
-    list2 = [4, 5, 6]
-
-    list1.append(4)
-    list1.clear()
-    list1.copy()
-    list1.count(1)
-    list1.extend(list2)
-    list1.index(1)
-    list1.insert(1, 10)
-    list1.pop()
-    list1.remove(1)
-    list1.reverse()
-    list1.sort()
-
-    list1.__contains__(1)
-            """,  # language=none
-            [
-
-            ],
-        ),
-        (  # language=Python "Builtins for set"
-            """
-def f():
-    set1 = {1, 2, 3}
-    set2 = {4, 5, 6}
-
-    set1.add(4)
-    set1.clear()
-    set1.copy()
-    set1.difference(set2)
-    set1.difference_update(set2)
-    set1.discard(1)
-    set1.intersection(set2)
-    set1.intersection_update(set2)
-    set1.isdisjoint(set2)
-    set1.issubset(set2)
-    set1.issuperset(set2)
-    set1.pop()
-    set1.remove(1)
-    set1.symmetric_difference(set2)
-    set1.symmetric_difference_update(set2)
-    set1.union(set2)
-    set1.update(set2)
-
-    set1.__contains__()
-            """,  # language=none
-            [
-
-            ],
-        ),
     ],
     ids=[
         "Class attribute value",
@@ -1399,9 +1321,6 @@ def f():
         "Member access - function call of functions with the same name and nested calls",
         "Member access - function call of functions with the same name (no distinction possible)",
         "Member access - function call of functions with the same name (different signatures)",
-        "Builtins for dict",
-        "Builtins for list",
-        "Builtins for set",
     ],
 )
 def test_resolve_references_member_access(code: str, expected: list[ReferenceTestNode]) -> None:

@@ -395,7 +395,6 @@ c = fun1()
             """,  # language= None
             {"fun1.line2": Pure()},
         ),  # here the purity for fun1 can be cached for the other calls
-
         (  # language=Python "Builtins for dict"
             """
 def f():
@@ -416,9 +415,9 @@ def f():
 
     dictionary.__contains__("a")
             """,  # language=none
-            [
-
-            ],
+            {
+              "f.line2": Pure(),
+            },
         ),
         (  # language=Python "Builtins for list"
             """
@@ -440,9 +439,9 @@ def f():
 
     list1.__contains__(1)
             """,  # language=none
-            [
-
-            ],
+            {
+                "f.line2": Pure(),
+            },
         ),
         (  # language=Python "Builtins for set"
             """
@@ -470,9 +469,9 @@ def f():
 
     set1.__contains__()
             """,  # language=none
-            [
-
-            ],
+            {
+                "f.line2": Pure(),
+            },
         ),
     ],
     ids=[
@@ -1352,6 +1351,7 @@ def f(a):
         "Impure Class initialization",
         "Impure Class initialization via super",
         "Impure Class initialization via super multiple classes",
+        "Impure Class initialization via super with Builtin",
         "Class methode call",
         "Class methode call of superclass",
         "Class methode call of superclass (overwritten method)",
@@ -1372,7 +1372,6 @@ def f(a):
         "Call of Impure BuiltIn Function",
         "Call of Impure Builtin type class methode",
         "Lambda function",
-        "Lambda function with assign to global",
         "Lambda function with Impure Call",
         "Assigned Lambda function",
         "Lambda as key",

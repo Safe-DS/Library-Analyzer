@@ -763,4 +763,10 @@ BUILTIN_SPECIALS = {
     "symmetric_difference": Pure(),  # set
     "symmetric_difference_update": Pure(),  # set
     "union": Pure(),  # set
+
+    "GenericAlias": Pure(),
+    "UnionType": Pure(),
+    "EllipsisType": Pure(),
+    "NoneType": Pure(),
+    "NotImplementedType": Pure(),
 }
