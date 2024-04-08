@@ -598,7 +598,7 @@ def fun_b():
                     ".A.2.0",
                     ".add.4.4",
                     ".add.9.4",
-                },  # TODO: [LATER] is it possible to distinguish between the two add functions?
+                },
                 ".fun_b.16.0": {".B.7.0", ".add.4.4", ".add.9.4"},
             },
         ),

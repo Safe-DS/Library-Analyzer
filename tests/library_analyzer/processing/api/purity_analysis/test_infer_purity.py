@@ -510,7 +510,6 @@ class B(A):
                 "__init__.line7": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
             },
         ),
-
         (  # language=Python "Impure Class initialization via super multiple classes"
             """
 class A:
@@ -536,6 +535,16 @@ class B(A):
                 "__init__.line8": SimpleImpure({"NonLocalVariableWrite.GlobalVariable.var1"}),
                 "__init__.line13": SimpleImpure({"FileRead.StringLiteral.stdin"}),
                 "__init__.line17": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+            },
+        ),
+        (  # language=Python "Impure Class initialization via super with Builtin"
+            """
+class A(ValueError):
+    def __init__(self):
+        super().__init__()
+            """,  # language= None
+            {
+                "__init__.line3": Pure(),
             },
         ),
         (  # language=Python "Class methode call"
@@ -1281,6 +1290,7 @@ def f(a):
         "Call of Impure BuiltIn Function",
         "Call of Impure Builtin type class methode",
         "Lambda function",
+        "Lambda function with assign to global",
         "Lambda function with Impure Call",
         "Assigned Lambda function",
         "Lambda as key",
@@ -1582,7 +1592,7 @@ def fun1():
         "Local FromImport - function",
         "Write to Import",
     ],
-)  # TODO: to test this correctly we need real imports from modules that are no dubs
+)
 def test_infer_purity_import(code: str, expected: dict[str, SimpleImpure]) -> None:
     purity_results = next(iter(infer_purity(code).values()))
 

@@ -74,8 +74,9 @@ class ReferenceResolver:
 
         # Resolve the references for the module.
         self.module_analysis_result.classes = self.classes
-        self.module_analysis_result.resolved_references = self._resolve_references()[0]
-        self.module_analysis_result.raw_reasons = self._resolve_references()[1]
+        resolved_references, raw_reasons = self._resolve_references()
+        self.module_analysis_result.resolved_references = resolved_references
+        self.module_analysis_result.raw_reasons = raw_reasons
         self.module_analysis_result.call_graph_forest = build_call_graph(self.classes,
                                                                          self.module_analysis_result.raw_reasons)
 

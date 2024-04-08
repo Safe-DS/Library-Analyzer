@@ -90,6 +90,9 @@ class Pure(PurityResult):
     def to_dict(self) -> dict[str, Any]:
         return {"purity": self.__class__.__name__}
 
+    def __hash__(self) -> int:
+        return hash(str(self))
+
 
 @dataclass
 class Impure(PurityResult):
@@ -148,6 +151,9 @@ class Impure(PurityResult):
             "purity": self.__class__.__name__,
             "reasons": [reason.to_dict() for reason in self.reasons],
         }
+
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 
 class ImpurityReason(ABC):  # this is just a base class, and it is important that it cannot be instantiated

@@ -8,6 +8,8 @@ import astroid
 from library_analyzer.processing.api._file_filters import _is_test_file
 from library_analyzer.processing.api.purity_analysis._resolve_references import resolve_references
 from library_analyzer.processing.api.purity_analysis.model import (
+    BUILTIN_FUNCTIONS,
+    OPEN_MODES,
     APIPurity,
     Builtin,
     BuiltinOpen,
@@ -37,195 +39,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     UnknownClassInit,
     UnknownFunctionCall,
 )
-
-# TODO: check these for correctness and add reasons for impurity
-BUILTIN_FUNCTIONS: dict[str, PurityResult] = {  # all errors and warnings are pure
-    "ArithmeticError": Pure(),
-    "AssertionError": Pure(),
-    "AttributeError": Pure(),
-    "BaseException": Impure(set()),
-    "BaseExceptionGroup": Impure(set()),
-    "BlockingIOError": Pure(),
-    "BrokenPipeError": Pure(),
-    "BufferError": Pure(),
-    "BytesWarning": Pure(),
-    "ChildProcessError": Pure(),
-    "ConnectionAbortedError": Pure(),
-    "ConnectionError": Pure(),
-    "ConnectionRefusedError": Pure(),
-    "ConnectionResetError": Pure(),
-    "DeprecationWarning": Pure(),
-    "EOFError": Pure(),
-    "Ellipsis": Impure(set()),
-    "EncodingWarning": Pure(),
-    "EnvironmentError": Pure(),
-    "Exception": Impure(set()),
-    "ExceptionGroup": Impure(set()),
-    "False": Impure(set()),
-    "FileExistsError": Pure(),
-    "FileNotFoundError": Pure(),
-    "FloatingPointError": Pure(),
-    "FutureWarning": Pure(),
-    "GeneratorExit": Impure(set()),
-    "IOError": Pure(),
-    "ImportError": Pure(),
-    "ImportWarning": Pure(),
-    "IndentationError": Pure(),
-    "IndexError": Pure(),
-    "InterruptedError": Pure(),
-    "IsADirectoryError": Pure(),
-    "KeyError": Pure(),
-    "KeyboardInterrupt": Impure(set()),
-    "LookupError": Pure(),
-    "MemoryError": Pure(),
-    "ModuleNotFoundError": Pure(),
-    "NameError": Pure(),
-    "None": Impure(set()),
-    "NotADirectoryError": Pure(),
-    "NotImplemented": Impure(set()),
-    "NotImplementedError": Pure(),
-    "OSError": Pure(),
-    "OverflowError": Pure(),
-    "PendingDeprecationWarning": Pure(),
-    "PermissionError": Pure(),
-    "ProcessLookupError": Pure(),
-    "RecursionError": Pure(),
-    "ReferenceError": Pure(),
-    "ResourceWarning": Pure(),
-    "RuntimeError": Pure(),
-    "RuntimeWarning": Pure(),
-    "StopAsyncIteration": Impure(set()),
-    "StopIteration": Impure(set()),
-    "SyntaxError": Pure(),
-    "SyntaxWarning": Pure(),
-    "SystemError": Pure(),
-    "SystemExit": Impure(set()),
-    "TabError": Pure(),
-    "TimeoutError": Pure(),
-    "True": Impure(set()),
-    "TypeError": Pure(),
-    "UnboundLocalError": Pure(),
-    "UnicodeDecodeError": Pure(),
-    "UnicodeEncodeError": Pure(),
-    "UnicodeError": Pure(),
-    "UnicodeTranslateError": Pure(),
-    "UnicodeWarning": Pure(),
-    "UserWarning": Pure(),
-    "ValueError": Pure(),
-    "Warning": Pure(),
-    "WindowsError": Pure(),
-    "ZeroDivisionError": Pure(),
-    "__build_class__": Impure(set()),
-    "__debug__": Impure(set()),
-    "__doc__": Impure(set()),
-    "__import__": Impure(set()),
-    "__loader__": Impure(set()),
-    "__name__": Impure(set()),
-    "__package__": Impure(set()),
-    "__spec__": Impure(set()),
-    "abs": Pure(),
-    "aiter": Impure(set()),  # May raise exceptions or interact with external resources
-    "all": Pure(),
-    "anext": Impure(set()),  # May raise exceptions or interact with external resources
-    "any": Pure(),
-    "ascii": Pure(),
-    "bin": Pure(),
-    "bool": Pure(),
-    "breakpoint": Impure(set()),  # Debugger-related, doesn't affect program behavior
-    "bytearray": Impure(set()),  # Can be modified
-    "bytes": Impure(set()),  # Can be modified
-    "callable": Pure(),
-    "chr": Pure(),
-    "classmethod": Pure(),
-    "compile": Impure(set()),  # Can execute arbitrary code
-    "complex": Pure(),
-    "delattr": Impure(set()),  # Can modify objects
-    "dict": Impure(set()),  # Can be modified
-    "dir": Impure(set()),  # May interact with external resources
-    "divmod": Pure(),
-    "enumerate": Pure(),
-    "eval": Impure(set()),  # Can execute arbitrary code
-    "exec": Impure(set()),  # Can execute arbitrary code
-    "filter": Pure(),
-    "float": Pure(),
-    "format": Impure(set()),  # Can produce variable output
-    "frozenset": Pure(),
-    "getattr": Impure(set()),  # Can raise exceptions or interact with external resources
-    "globals": Impure(set()),  # May interact with external resources
-    "hasattr": Pure(),
-    "hash": Pure(),
-    "help": Impure(set()),  # May interact with external resources
-    "hex": Pure(),
-    "id": Pure(),
-    "input": Impure({FileRead(StringLiteral("stdin"))}),  # Reads user input
-    "int": Pure(),
-    "isinstance": Pure(),
-    "issubclass": Pure(),
-    "iter": Pure(),
-    "len": Pure(),
-    "list": Impure(set()),  # Can be modified
-    "locals": Impure(set()),  # May interact with external resources
-    "map": Pure(),
-    "max": Pure(),
-    "memoryview": Impure(set()),  # Can be modified
-    "min": Pure(),
-    "next": Impure(set()),  # May raise exceptions or interact with external resources
-    "object": Pure(),
-    "oct": Pure(),
-    "open": Impure(set()),  # Can interact with external resources (write and read)
-    "ord": Pure(),
-    "pow": Pure(),
-    "print": Impure({FileWrite(StringLiteral("stdout"))}),
-    "property": Pure(),
-    "range": Pure(),
-    "repr": Pure(),
-    "reversed": Pure(),
-    "round": Pure(),
-    "set": Impure(set()),  # Can be modified
-    "setattr": Impure(set()),  # Can modify objects
-    "slice": Pure(),
-    "sorted": Pure(),
-    "staticmethod": Pure(),
-    "str": Impure(set()),  # Can be modified
-    "sum": Pure(),
-    "super": Impure(set()),  # Can interact with classes
-    "tuple": Impure(set()),  # Can be modified
-    "type": Pure(),
-    "vars": Impure(set()),  # May interact with external resources
-    "zip": Pure(),
-}
-
-OPEN_MODES = {
-    "": OpenMode.READ,
-    "r": OpenMode.READ,
-    "rb": OpenMode.READ,
-    "rt": OpenMode.READ,
-    "w": OpenMode.WRITE,
-    "wb": OpenMode.WRITE,
-    "wt": OpenMode.WRITE,
-    "a": OpenMode.WRITE,
-    "ab": OpenMode.WRITE,
-    "at": OpenMode.WRITE,
-    "x": OpenMode.WRITE,
-    "xb": OpenMode.WRITE,
-    "xt": OpenMode.WRITE,
-    "r+": OpenMode.READ_WRITE,
-    "rb+": OpenMode.READ_WRITE,
-    "w+": OpenMode.READ_WRITE,
-    "wb+": OpenMode.READ_WRITE,
-    "a+": OpenMode.READ_WRITE,
-    "ab+": OpenMode.READ_WRITE,
-    "x+": OpenMode.READ_WRITE,
-    "xb+": OpenMode.READ_WRITE,
-    "r+b": OpenMode.READ_WRITE,
-    "rb+b": OpenMode.READ_WRITE,
-    "w+b": OpenMode.READ_WRITE,
-    "wb+b": OpenMode.READ_WRITE,
-    "a+b": OpenMode.READ_WRITE,
-    "ab+b": OpenMode.READ_WRITE,
-    "x+b": OpenMode.READ_WRITE,
-    "xb+b": OpenMode.READ_WRITE,
-}
 
 
 class PurityAnalyzer:
@@ -476,7 +289,7 @@ class PurityAnalyzer:
         """
         # Check if the reference was resolved and the symbol has an inferred node.
         if imported_node.symbol.inferred_node is None:
-            return Impure({UnknownCall(expression=UnknownFunctionCall(imported_node.symbol.call),
+            return Impure({UnknownCall(expression=UnknownFunctionCall(call=imported_node.symbol.call),
                                        origin=imported_node.symbol,
                                        )})
 
@@ -491,7 +304,7 @@ class PurityAnalyzer:
                                       )})
         # Check if the imported module is actually a module.
         if not isinstance(imported_module, astroid.Module):
-            return Impure({UnknownCall(expression=UnknownFunctionCall(imported_node.symbol.call),
+            return Impure({UnknownCall(expression=UnknownFunctionCall(call=imported_node.symbol.call),
                                        origin=imported_node.symbol,
                                        )})
 
@@ -511,7 +324,7 @@ class PurityAnalyzer:
               inferred_node_id not in self.cached_module_results[imported_module_id]
         ):
             # The module is being analyzed, return an impure result to break the recursion.
-            return Impure({UnknownCall(expression=UnknownFunctionCall(imported_node.symbol.call),
+            return Impure({UnknownCall(expression=UnknownFunctionCall(call=imported_node.symbol.call),
                                        origin=imported_node.symbol)})
 
         # Mark the imported module as being analyzed.
@@ -525,7 +338,7 @@ class PurityAnalyzer:
         try:
             source_code = source_code.decode("utf-8")
         except UnicodeDecodeError:
-            return Impure({UnknownCall(expression=UnknownFunctionCall(imported_node.symbol.call),
+            return Impure({UnknownCall(expression=UnknownFunctionCall(call=imported_node.symbol.call),
                                        origin=imported_node.symbol,
                                        )})
 
@@ -658,13 +471,13 @@ class PurityAnalyzer:
             elif isinstance(graph, ImportedCallGraphNode):
                 pass
             elif isinstance(graph, CallGraphNode) and not isinstance(graph.symbol.node, astroid.ClassDef):
-                self.current_purity_results[self.module_id].update({graph.symbol.id: self._process_node(graph)})
+                self.current_purity_results[self.module_id].update({graph.symbol.id: self._process_node(graph)})  # type: ignore[index] # self.module_id is never None here, since an exception is raised before.
 
         if self.separated_nodes:
             for func_id, graph in self.separated_nodes.items():
                 if graph.reasons.result is None:
                     raise ValueError(f"The purity of the combined node {func_id} is not inferred.")
-                self.current_purity_results[self.module_id].update({func_id: graph.reasons.result})
+                self.current_purity_results[self.module_id].update({func_id: graph.reasons.result})  # type: ignore[index] # self.module_id is never None here, since an exception is raised before.
 
 
 def infer_purity(code: str,
