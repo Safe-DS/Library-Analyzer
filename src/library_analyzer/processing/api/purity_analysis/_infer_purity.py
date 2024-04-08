@@ -9,6 +9,7 @@ from library_analyzer.processing.api._file_filters import _is_test_file
 from library_analyzer.processing.api.purity_analysis._resolve_references import resolve_references
 from library_analyzer.processing.api.purity_analysis.model import (
     BUILTIN_FUNCTIONS,
+    BUILTIN_SPECIALS,
     OPEN_MODES,
     APIPurity,
     Builtin,
@@ -250,9 +251,15 @@ class PurityAnalyzer:
             for unknown_call in reasons.unknown_calls:
                 # Handle calls of code where no definition was found.
                 if isinstance(unknown_call, Reference):
-                    impurity_reasons.add(UnknownCall(expression=UnknownFunctionCall(call=unknown_call.node),
-                                                     origin=reasons.function_scope.symbol
-                                                     if reasons.function_scope is not None else None))
+                    # This checks special cases of unknown calls.
+                    # These are cases where a function is not a true builtin, but also not a user-defined function.
+                    # Cases like dict.pop(), list.remove(), set.union(), etc.
+                    if unknown_call.name in BUILTIN_SPECIALS:
+                        pass
+                    else:
+                        impurity_reasons.add(UnknownCall(expression=UnknownFunctionCall(call=unknown_call.node),
+                                                         origin=reasons.function_scope.symbol
+                                                         if reasons.function_scope is not None else None))
                 # Handle parameter calls
                 elif isinstance(unknown_call, Parameter):
                     impurity_reasons.add(CallOfParameter(expression=ParameterAccess(unknown_call),

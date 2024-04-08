@@ -220,12 +220,12 @@ class NodeID:
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: NodeID) -> bool:
         if not isinstance(other, NodeID):
             raise TypeError(f"Cannot compare NodeID with {type(other)}")
         return self.module == other.module and self.name == other.name and self.line == other.line and self.col == other.col
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: NodeID) -> bool:
         if not isinstance(other, NodeID):
             raise TypeError(f"Cannot compare NodeID with {type(other)}")
 
@@ -236,10 +236,10 @@ class NodeID:
         elif other.line is None:
             return False  # other.line is None, self.line is not, so self is greater
 
-        if self.line != other.line:
+        if self.line != other.line and self.line is not None and other.line is not None:
             return self.line < other.line
 
-        if self.col != other.col:
+        if self.col != other.col and self.col is not None and other.col is not None:
             return self.col < other.col
 
         # If both line and column are equal, compare by name,
@@ -348,6 +348,29 @@ class Symbol(ABC):
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+
+@dataclass
+class UnknownSymbol(Symbol):
+    """Represents an unknown symbol.
+
+    An unknown symbol is used to represent a symbol that could not be determined.
+    It is used as a placeholder for symbols that could not be determined during the analysis.
+
+    Attributes
+    ----------
+    node : None
+    """
+
+    node: None = None
+    id: None = None
+    name: str = "UNKNOWN"
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}"
 
 
 @dataclass

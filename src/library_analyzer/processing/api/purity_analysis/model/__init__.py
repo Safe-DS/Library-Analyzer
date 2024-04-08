@@ -26,6 +26,7 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
     Reference,
     Scope,
     Symbol,
+    UnknownSymbol,
 )
 from library_analyzer.processing.api.purity_analysis.model._purity import (
     APIPurity,
@@ -50,6 +51,8 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
 from library_analyzer.processing.api.purity_analysis.model._purity_builtins import (
     BUILTIN_CLASSSCOPES,
     BUILTIN_FUNCTIONS,
+    OPEN_MODES,
+    BUILTIN_SPECIALS,
 )
 from library_analyzer.processing.api.purity_analysis.model._reference import (
     ModuleAnalysisResult,
@@ -108,4 +111,7 @@ __all__ = [
     "ImportedCallGraphNode",
     "BUILTIN_CLASSSCOPES",
     "BUILTIN_FUNCTIONS",
+    "OPEN_MODES",
+    "UnknownSymbol",
+    "BUILTIN_SPECIALS",
 ]
