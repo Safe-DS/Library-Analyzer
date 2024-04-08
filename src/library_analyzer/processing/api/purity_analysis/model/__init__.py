@@ -47,6 +47,9 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
     UnknownClassInit,
     UnknownFunctionCall,
 )
+from library_analyzer.processing.api.purity_analysis.model._purity_builtins import (
+    BUILTIN_CLASSSCOPES,
+)
 from library_analyzer.processing.api.purity_analysis.model._reference import (
     ModuleAnalysisResult,
     Reasons,
@@ -102,4 +105,5 @@ __all__ = [
     "UnknownFunctionCall",
     "UnknownClassInit",
     "ImportedCallGraphNode",
+    "BUILTIN_CLASSSCOPES",
 ]

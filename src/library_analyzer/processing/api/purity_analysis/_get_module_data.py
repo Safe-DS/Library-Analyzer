@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 import astroid
 
 from library_analyzer.processing.api.purity_analysis.model import (
+    BUILTIN_CLASSSCOPES,
     ClassScope,
     ClassVariable,
     FunctionScope,
@@ -614,6 +615,8 @@ class ModuleDataBuilder:
                 base_class = self.get_class_by_name(base.name)
                 if isinstance(base_class, ClassScope):
                     base_classes.append(base_class)
+                elif base.name in BUILTIN_CLASSSCOPES:
+                    base_classes.append(BUILTIN_CLASSSCOPES[base.name])
 
         return base_classes
 
