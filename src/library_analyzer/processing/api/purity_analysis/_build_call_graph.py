@@ -21,7 +21,7 @@ class CallGraphBuilder:
 
     Parameters
     ----------
-    classes : dict[str, list[ClassScope]]
+    classes : dict[str, ClassScope]
         Classnames in the module as key and their corresponding ClassScope instance as value.
     raw_reasons : dict[NodeID, Reasons]
         The raw reasons for impurity for all functions.
@@ -30,7 +30,7 @@ class CallGraphBuilder:
 
     def __init__(
         self,
-        classes: dict[str, list[ClassScope]],
+        classes: dict[str, ClassScope],
         raw_reasons: dict[NodeID, Reasons],
     ) -> None:
         self.classes = classes
@@ -79,22 +79,21 @@ class CallGraphBuilder:
         This is done by creating a new CallGraphNode for each class
         and adding it to the forest before the call graph is built.
         """
-        for klass_list in self.classes.values():
-            for klass in klass_list:
-                # Create a new CallGraphNode for each class and add it to the forest.
-                class_cgn = CallGraphNode(symbol=klass.symbol, reasons=Reasons(klass.symbol.id))
-                # If the class has an init function, add it to the class node as a child.
-                # Also add the init function to the forest if it is not already there.
-                if klass.init_function:
-                    init_cgn = CallGraphNode(
-                        symbol=klass.init_function.symbol,
-                        reasons=self.raw_reasons[klass.init_function.symbol.id],
-                    )
-                    self.call_graph_forest.add_graph(klass.init_function.symbol.id, init_cgn)
-                    class_cgn.add_child(init_cgn)
+        for klass in self.classes.values():
+            # Create a new CallGraphNode for each class and add it to the forest.
+            class_cgn = CallGraphNode(symbol=klass.symbol, reasons=Reasons(klass.symbol.id))
+            # If the class has an init function, add it to the class node as a child.
+            # Also add the init function to the forest if it is not already there.
+            if klass.init_function:
+                init_cgn = CallGraphNode(
+                    symbol=klass.init_function.symbol,
+                    reasons=self.raw_reasons[klass.init_function.symbol.id],
+                )
+                self.call_graph_forest.add_graph(klass.init_function.symbol.id, init_cgn)
+                class_cgn.add_child(init_cgn)
 
-                # Add the class to the forest.
-                self.call_graph_forest.add_graph(klass.symbol.id, class_cgn)
+            # Add the class to the forest.
+            self.call_graph_forest.add_graph(klass.symbol.id, class_cgn)
 
     def _built_call_graph(self, reason: Reasons) -> None:
         """Build the call graph for a function.
@@ -337,12 +336,12 @@ class CallGraphBuilder:
                     graph.add_child(combined_node)
 
 
-def build_call_graph(classes: dict[str, list[ClassScope]], raw_reasons: dict[NodeID, Reasons]) -> CallGraphForest:
+def build_call_graph(classes: dict[str, ClassScope], raw_reasons: dict[NodeID, Reasons]) -> CallGraphForest:
     """Build the call graph forest for the given classes and reasons.
 
     Parameters
     ----------
-    classes : dict[str, list[ClassScope]]
+    classes : dict[str, ClassScope]
         Classnames in the module as key and their corresponding ClassScope instance as value.
     raw_reasons : dict[NodeID, Reasons]
         The raw reasons for impurity for all functions.

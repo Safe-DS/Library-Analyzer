@@ -19,7 +19,7 @@ class ModuleData:
     ----------
     scope : Scope
         The module's scope, this contains all child scopes.
-    classes : dict[str, list[ClassScope]]
+    classes : dict[str, ClassScope]
         All classes and their ClassScope.
     functions : dict[str, list[FunctionScope]]
         All functions and a list of their FunctionScopes.
@@ -29,7 +29,7 @@ class ModuleData:
     """
 
     scope: Scope
-    classes: dict[str, list[ClassScope]]
+    classes: dict[str, ClassScope]
     functions: dict[str, list[FunctionScope]]
     imports: dict[str, Import]
 

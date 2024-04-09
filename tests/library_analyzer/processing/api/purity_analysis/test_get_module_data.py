@@ -1596,7 +1596,7 @@ def test_get_module_data_functions(code: str, expected: dict[str, list[str]]) ->
 class A:
     pass
             """,  # language=none
-            {"A": [SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [])]},
+            {"A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [])},
         ),
         (  # language=Python "ClassDef with class attribute"
             """
@@ -1604,12 +1604,12 @@ class A:
     var1 = 1
             """,  # language=none
             {
-                "A": [SimpleClassScope(
+                "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
                     [SimpleScope("ClassVariable.AssignName.var1", [])],
                     ["AssignName.var1"],
                     [],
-                )],
+                ),
             },
         ),
         (  # language=Python "ClassDef with multiple class attribute"
@@ -1619,7 +1619,7 @@ class A:
     var2 = 2
             """,  # language=none
             {
-                "A": [SimpleClassScope(
+                "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
                     [
                         SimpleScope("ClassVariable.AssignName.var1", []),
@@ -1627,7 +1627,7 @@ class A:
                     ],
                     ["AssignName.var1", "AssignName.var2"],
                     [],
-                )],
+                ),
             },
         ),
         (  # language=Python "ClassDef with multiple class attribute (same name)"
@@ -1639,7 +1639,7 @@ class A:
         var1 = 2
             """,  # language=none
             {
-                "A": [SimpleClassScope(
+                "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
                     [
                         SimpleScope("ClassVariable.AssignName.var1", []),
@@ -1647,7 +1647,7 @@ class A:
                     ],
                     ["AssignName.var1", "AssignName.var1"],
                     [],
-                )],
+                ),
             },
         ),
         (  # language=Python "ClassDef with instance attribute"
@@ -1657,7 +1657,7 @@ class A:
         self.var1 = 1
             """,  # language=none
             {
-                "A": [SimpleClassScope(
+                "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
                     [
                         SimpleFunctionScope(
@@ -1674,7 +1674,7 @@ class A:
                     ],
                     ["FunctionDef.__init__"],
                     ["AssignAttr.var1"],
-                )],
+                ),
             },
         ),
         (  # language=Python "ClassDef with multiple instance attributes (and type annotations)"
@@ -1686,7 +1686,7 @@ class A:
         self.state: bool = True
             """,  # language=none
             {
-                "A": [SimpleClassScope(
+                "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
                     [
                         SimpleFunctionScope(
@@ -1711,7 +1711,7 @@ class A:
                     ],
                     ["FunctionDef.__init__"],
                     ["AssignAttr.var1", "AssignAttr.name", "AssignAttr.state"],
-                )],
+                ),
             },
         ),
         (  # language=Python "ClassDef with conditional instance attributes (instance attributes with the same name)"
@@ -1724,7 +1724,7 @@ class A:
             self.var1 = 0
             """,  # language=none
             {
-                "A": [SimpleClassScope(
+                "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
                     [
                         SimpleFunctionScope(
@@ -1742,7 +1742,7 @@ class A:
                     ],
                     ["FunctionDef.__init__"],
                     ["AssignAttr.var1", "AssignAttr.var1"],
-                )],
+                ),
             },
         ),
         (  # language=Python "ClassDef with class and instance attribute"
@@ -1754,7 +1754,7 @@ class A:
         self.var1 = 1
             """,  # language=none
             {
-                "A": [SimpleClassScope(
+                "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
                     [
                         SimpleScope("ClassVariable.AssignName.var1", []),
@@ -1772,7 +1772,7 @@ class A:
                     ],
                     ["AssignName.var1", "FunctionDef.__init__"],
                     ["AssignAttr.var1"],
-                )],
+                ),
             },
         ),
         (  # language=Python "ClassDef with nested class"
@@ -1782,13 +1782,13 @@ class A:
         pass
             """,  # language=none
             {
-                "A": [SimpleClassScope(
+                "A": SimpleClassScope(
                     "GlobalVariable.ClassDef.A",
                     [SimpleClassScope("ClassVariable.ClassDef.B", [], [], [])],
                     ["ClassDef.B"],
                     [],
-                )],
-                "B": [SimpleClassScope("ClassVariable.ClassDef.B", [], [], [])],
+                ),
+                "B": SimpleClassScope("ClassVariable.ClassDef.B", [], [], []),
             },
         ),
         (  # language=Python "Multiple ClassDef"
@@ -1800,8 +1800,8 @@ class B:
     pass
             """,  # language=none
             {
-                "A": [SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [])],
-                "B": [SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [])],
+                "A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], []),
+                "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], []),
             },
         ),
         (  # language=Python "ClassDef with superclass"
@@ -1813,8 +1813,8 @@ class B(A):
     pass
             """,  # language=none
             {
-                "A": [SimpleClassScope("GlobalVariable.ClassDef.A", [], [], [])],
-                "B": [SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [], ["ClassDef.A"])],
+                "A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], []),
+                "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [], ["ClassDef.A"]),
             },
         ),
     ],
@@ -1836,7 +1836,7 @@ def test_get_module_data_classes(code: str, expected: dict[str, SimpleClassScope
     classes = get_module_data(code).classes
 
     transformed_classes = {
-        klassname: [transform_scope_node(klass) for klass in klass_list] for klassname, klass_list in classes.items()
+        klassname: transform_scope_node(klass) for klassname, klass in classes.items()
     }  # The result is simplified to make the comparison easier
     assert transformed_classes == expected
 
