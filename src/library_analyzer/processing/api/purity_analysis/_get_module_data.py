@@ -59,7 +59,7 @@ class ModuleDataBuilder:
     calls : list[Reference]
         All calls found on function level are stored in calls until their scope is determined.
         It Is only used while walking the AST.
-    classes : dict[str, ClassScope]
+    classes : dict[str, list[ClassScope]]
         Classnames in the module as key and their corresponding ClassScope instance as value.
     functions : dict[str, list[FunctionScope]]
         Function names in the module as key and a list of their corresponding FunctionScope instances as value.
@@ -75,7 +75,7 @@ class ModuleDataBuilder:
     targets: list[Symbol] = field(default_factory=list)
     values: list[Reference] = field(default_factory=list)
     calls: list[Reference] = field(default_factory=list)
-    classes: dict[str, ClassScope] = field(default_factory=dict)
+    classes: dict[str, list[ClassScope]] = field(default_factory=dict)
     functions: dict[str, list[FunctionScope]] = field(default_factory=dict)
     global_variables: dict[str, Scope] = field(default_factory=dict)
     imports: dict[str, Import] = field(default_factory=dict)
@@ -277,7 +277,7 @@ class ModuleDataBuilder:
             return
         # Add classdef to the classes dict.
         if isinstance(self.current_node_stack[-1], ClassScope):
-            self.classes[current_node.name] = self.current_node_stack[-1]
+            self.classes.setdefault(current_node.name, []).append(self.current_node_stack[-1])
 
         # Add class variables to the class_variables dict.
         for child in self.current_node_stack[-1].children:
@@ -609,36 +609,19 @@ class ModuleDataBuilder:
         list[ClassScope]
             A list of all base classes of the given class if it has any, else an empty list.
         """
-        base_classes = []
+        base_classes_result = []
         for base in node.bases:
             if isinstance(base, astroid.Name):
-                base_class = self.get_class_by_name(base.name)
-                if isinstance(base_class, ClassScope):
-                    base_classes.append(base_class)
-                elif base.name in BUILTIN_CLASSSCOPES:
-                    base_classes.append(BUILTIN_CLASSSCOPES[base.name])
+                base_classes = self.classes.get(base.name, None)
+                if not base_classes:
+                    return base_classes_result
+                for base_class in base_classes:
+                    if isinstance(base_class, ClassScope):
+                        base_classes_result.append(base_class)
+                if base.name in BUILTIN_CLASSSCOPES:
+                    base_classes_result.append(BUILTIN_CLASSSCOPES[base.name])
 
-        return base_classes
-
-    def get_class_by_name(self, name: str) -> ClassScope | None:
-        """Get the class with the given name.
-
-        Parameters
-        ----------
-        name : str
-            The name of the class to get.
-
-        Returns
-        -------
-        ClassScope | None
-            The class with the given name if it exists, None otherwise.
-            None will never be returned since this function is only called when it is certain that the class exists.
-        """
-        for klass in self.classes:
-            if klass == name:
-                return self.classes[klass]
-        # This is not possible because the class is always added to the classes dict when it is defined.
-        return None  # pragma: no cover
+        return base_classes_result
 
     def enter_module(self, node: astroid.Module) -> None:
         """

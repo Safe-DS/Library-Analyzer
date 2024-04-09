@@ -39,7 +39,7 @@ class ReferenceResolver:
     ----------
     functions : dict[str, list[FunctionScope]]
         The functions of the module.
-    classes : dict[str, ClassScope]
+    classes : dict[str, list[ClassScope]]
         The classes of the module.
     imports : dict[str, Import]
         The imports of the module.
@@ -57,7 +57,7 @@ class ReferenceResolver:
     """
 
     functions: dict[str, list[FunctionScope]]
-    classes: dict[str, ClassScope]
+    classes: dict[str, list[ClassScope]]
     imports: dict[str, Import]
     module_analysis_result: ModuleAnalysisResult = ModuleAnalysisResult()
 
@@ -166,29 +166,34 @@ class ReferenceResolver:
             function_symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr]
             # "None" is not iterable, but it is checked before
             class_iterator = function.symbol.node
-            klass = None
+            class_list = None
+
             while class_iterator:
                 if isinstance(class_iterator, astroid.ClassDef):
-                    klass = self.classes.get(class_iterator.name)
+                    class_list = self.classes.get(class_iterator.name)
                     break
                 class_iterator = class_iterator.parent
 
-            if klass and klass.super_classes:
-                res = []
-                for sup in klass.super_classes:
-                    for func in sup.class_variables.values():
-                        for f in func:
-                            if f.name == call_reference.name:
-                                res.append(f)
+            if class_list:
+                for klass in class_list:
+                    if klass and klass.super_classes:
+                        res = []
+                        for sup in klass.super_classes:
+                            for func in sup.class_variables.values():
+                                for f in func:
+                                    if f.name == call_reference.name:
+                                        res.append(f)
 
-                result_value_reference.referenced_symbols.extend(res)
+                        result_value_reference.referenced_symbols.extend(res)
+                    else:
+                        result_value_reference.referenced_symbols.extend(function_symbols)
             else:
                 result_value_reference.referenced_symbols.extend(function_symbols)
 
         # Find classes that are called (initialized).
         elif call_reference.name in self.classes:
-            class_def = self.classes.get(call_reference.name)
-            if class_def:
+            class_def_list = self.classes.get(call_reference.name)
+            for class_def in class_def_list:
                 result_value_reference.referenced_symbols.append(class_def.symbol)
 
         # Find builtins that are called, this includes open-like functions.
@@ -303,17 +308,18 @@ class ReferenceResolver:
 
                 for symbol in missing_refined:
                     if isinstance(symbol.node, MemberAccessTarget):
-                        for klass in self.classes.values():
-                            if klass.class_variables:
-                                if value_reference.node.member in klass.class_variables:
-                                    symbols.append(
-                                        ClassVariable(symbol.node, symbol.id, symbol.node.member, klass.symbol.node),
-                                    )
-                            if klass.instance_variables:
-                                if value_reference.node.member in klass.instance_variables:
-                                    symbols.append(
-                                        InstanceVariable(symbol.node, symbol.id, symbol.node.member, klass.symbol.node),
-                                    )
+                        for class_list in self.classes.values():
+                            for klass in class_list:
+                                if klass.class_variables:
+                                    if value_reference.node.member in klass.class_variables:
+                                        symbols.append(
+                                            ClassVariable(symbol.node, symbol.id, symbol.node.member, klass.symbol.node),
+                                        )
+                                if klass.instance_variables:
+                                    if value_reference.node.member in klass.instance_variables:
+                                        symbols.append(
+                                            InstanceVariable(symbol.node, symbol.id, symbol.node.member, klass.symbol.node),
+                                        )
 
             # Only add symbols that are defined before the value is used.
             for symbol in symbols:
@@ -340,8 +346,8 @@ class ReferenceResolver:
 
         # Find classes that are referenced (as value).
         if value_reference.name in self.classes:
-            class_def = self.classes.get(value_reference.name)
-            if class_def:
+            class_def_list = self.classes.get(value_reference.name)
+            for class_def in class_def_list:
                 result_value_reference.referenced_symbols.append(class_def.symbol)
 
         # Find imported modules that are referenced (as value) for Import.
@@ -364,22 +370,23 @@ class ReferenceResolver:
 
         # Find class and instance variables that are referenced.
         if isinstance(value_reference.node, MemberAccessValue):
-            for klass in self.classes.values():
-                if klass.class_variables:
-                    if (
-                        value_reference.node.member in klass.class_variables
-                        and value_reference.node.member not in function.call_references
-                    ):
-                        result_value_reference.referenced_symbols.extend(
-                            klass.class_variables[value_reference.node.member])
-                if klass.instance_variables:
-                    if (
-                        value_reference.node.member in klass.instance_variables
-                        and value_reference.node.member not in function.call_references
-                    ):
-                        result_value_reference.referenced_symbols.extend(
-                            klass.instance_variables[value_reference.node.member],
-                        )
+            for class_list in self.classes.values():
+                for klass in class_list:
+                    if klass.class_variables:
+                        if (
+                            value_reference.node.member in klass.class_variables
+                            and value_reference.node.member not in function.call_references
+                        ):
+                            result_value_reference.referenced_symbols.extend(
+                                klass.class_variables[value_reference.node.member])
+                    if klass.instance_variables:
+                        if (
+                            value_reference.node.member in klass.instance_variables
+                            and value_reference.node.member not in function.call_references
+                        ):
+                            result_value_reference.referenced_symbols.extend(
+                                klass.instance_variables[value_reference.node.member],
+                            )
 
             # Find imported symbols that are referenced (as member of a MemberAccessValue).
 
@@ -481,61 +488,62 @@ class ReferenceResolver:
 
         # Find classes that are referenced (as value).
         if target_reference.name in self.classes:
-            class_def = self.classes.get(target_reference.name)
-            if class_def:
+            class_def_list = self.classes.get(target_reference.name)
+            for class_def in class_def_list:
                 result_target_reference.referenced_symbols.append(class_def.symbol)
 
         # Find class and instance variables that are referenced.
         if isinstance(target_reference.node, MemberAccessTarget):
-            for klass in self.classes.values():
-                if klass.class_variables:
-                    if target_reference.node.member in klass.class_variables:
-                        # Do not add class variables from other classes
-                        if target_reference.node.receiver is not None:
-                            if (
-                                function.symbol.name == "__init__"
-                                and function.parent != klass
-                                or isinstance(target_reference.node.receiver, astroid.Name)
-                                and target_reference.node.receiver.name == "self"
-                                and function.parent != klass
-                                or isinstance(target_reference.node.receiver, astroid.Attribute)
-                                and target_reference.node.receiver.attrname == "self"
-                                and function.parent != klass
+            for class_list in self.classes.values():
+                for klass in class_list:
+                    if klass.class_variables:
+                        if target_reference.node.member in klass.class_variables:
+                            # Do not add class variables from other classes
+                            if target_reference.node.receiver is not None:
+                                if (
+                                    function.symbol.name == "__init__"
+                                    and function.parent != klass
+                                    or isinstance(target_reference.node.receiver, astroid.Name)
+                                    and target_reference.node.receiver.name == "self"
+                                    and function.parent != klass
+                                    or isinstance(target_reference.node.receiver, astroid.Attribute)
+                                    and target_reference.node.receiver.attrname == "self"
+                                    and function.parent != klass
+                                ):
+                                    continue
+                            # Do not add functions that are not of the current class (or superclass).
+                            if function.symbol.name not in klass.class_variables or not self.is_function_of_class(
+                                function.symbol.node, klass,
                             ):
-                                continue
-                        # Do not add functions that are not of the current class (or superclass).
-                        if function.symbol.name not in klass.class_variables or not self.is_function_of_class(
-                            function.symbol.node, klass,
-                        ):
-                            # Collect all functions of superclasses for the current klass instance.
-                            super_functions = []
-                            for sup in klass.super_classes:
-                                for class_var_list in sup.class_variables.values():
-                                    for var in class_var_list:
-                                        if isinstance(var.node, astroid.FunctionDef):
-                                            super_functions.append(var.node.name)
+                                # Collect all functions of superclasses for the current klass instance.
+                                super_functions = []
+                                for sup in klass.super_classes:
+                                    for class_var_list in sup.class_variables.values():
+                                        for var in class_var_list:
+                                            if isinstance(var.node, astroid.FunctionDef):
+                                                super_functions.append(var.node.name)
 
-                            # Make an exception for global functions and functions of superclasses.
-                            # Also check if the function was overwritten in the current class.
-                            if (isinstance(function.symbol, GlobalVariable)
-                                or function.symbol.name in super_functions
-                                and function.symbol.name not in klass.class_variables
-                            ):
-                                pass
-                            else:
-                                continue
+                                # Make an exception for global functions and functions of superclasses.
+                                # Also check if the function was overwritten in the current class.
+                                if (isinstance(function.symbol, GlobalVariable)
+                                    or function.symbol.name in super_functions
+                                    and function.symbol.name not in klass.class_variables
+                                ):
+                                    pass
+                                else:
+                                    continue
 
-                        result_target_reference.referenced_symbols.extend(
-                            klass.class_variables[target_reference.node.member],
-                        )
-                if klass.instance_variables:
-                    if (
-                        target_reference.node.member in klass.instance_variables
-                        and target_reference.node != klass.instance_variables[target_reference.node.member][0].node
-                    ):  # This excludes the case where the instance variable is assigned
-                        result_target_reference.referenced_symbols.extend(
-                            klass.instance_variables[target_reference.node.member],
-                        )
+                            result_target_reference.referenced_symbols.extend(
+                                klass.class_variables[target_reference.node.member],
+                            )
+                    if klass.instance_variables:
+                        if (
+                            target_reference.node.member in klass.instance_variables
+                            and target_reference.node != klass.instance_variables[target_reference.node.member][0].node
+                        ):  # This excludes the case where the instance variable is assigned
+                            result_target_reference.referenced_symbols.extend(
+                                klass.instance_variables[target_reference.node.member],
+                            )
 
             # Find imported symbols that are referenced (as member of a MemberAccessTarget).
             # Astroids safe_infer methode will get the value of the assignment in the MemberAccessTarget node.

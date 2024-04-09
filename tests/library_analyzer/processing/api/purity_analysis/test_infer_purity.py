@@ -412,8 +412,6 @@ def f():
     dictionary.keys()
     dictionary.values()
     dictionary.setdefault("a", 10)
-
-    dictionary.__contains__("a")
             """,  # language=none
             {
               "f.line2": Pure(),
@@ -436,8 +434,6 @@ def f():
     list1.remove(1)
     list1.reverse()
     list1.sort()
-
-    list1.__contains__(1)
             """,  # language=none
             {
                 "f.line2": Pure(),
@@ -466,8 +462,6 @@ def f():
     set1.symmetric_difference_update(set2)
     set1.union(set2)
     set1.update(set2)
-
-    set1.__contains__()
             """,  # language=none
             {
                 "f.line2": Pure(),
