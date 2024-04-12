@@ -22,6 +22,7 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
     MemberAccessValue,
     ModuleData,
     NodeID,
+    PackageData,
     Parameter,
     Reference,
     Scope,
@@ -51,8 +52,8 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
 from library_analyzer.processing.api.purity_analysis.model._purity_builtins import (
     BUILTIN_CLASSSCOPES,
     BUILTIN_FUNCTIONS,
-    OPEN_MODES,
     BUILTIN_SPECIALS,
+    OPEN_MODES,
 )
 from library_analyzer.processing.api.purity_analysis.model._reference import (
     ModuleAnalysisResult,
@@ -114,4 +115,5 @@ __all__ = [
     "OPEN_MODES",
     "UnknownSymbol",
     "BUILTIN_SPECIALS",
+    "PackageData",
 ]

@@ -21,6 +21,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     MemberAccessValue,
     ModuleAnalysisResult,
     NodeID,
+    PackageData,
     Reasons,
     Reference,
     ReferenceNode,
@@ -61,13 +62,22 @@ class ReferenceResolver:
     imports: dict[str, Import]
     module_analysis_result: ModuleAnalysisResult = ModuleAnalysisResult()
 
-    def __init__(self, code: str, module_name: str = "", path: str | None = None):
-        # Initialize the Class by getting the module data for the given (module) code.
-        try:
-            module_data = get_module_data(code, module_name, path)
-            self.module_analysis_result.module_id = module_data.scope.symbol.id
-        except ValueError:
-            return  # TODO: add error message to result?
+    def __init__(self, code: str,
+                 module_name: str = "",
+                 path: str | None = None,
+                 package_data: PackageData | None = None,
+                 ):
+        # Check if the module is part of a package and if the package data is given.
+        if package_data:
+            module_data = package_data.combined_module
+            self.module_analysis_result.module_id = package_data.combined_module.scope.symbol.id
+        else:
+            # Initialize the Class by getting the module data for the given (module) code.
+            try:
+                module_data = get_module_data(code, module_name, path)
+                self.module_analysis_result.module_id = module_data.scope.symbol.id
+            except ValueError:
+                return  # TODO: add error message to result?
         self.functions = module_data.functions
         self.classes = module_data.classes
         self.imports = module_data.imports
@@ -584,11 +594,8 @@ class ReferenceResolver:
                 # Collect the reasons while iterating over the functions, so there is no need to iterate over them again.
                 raw_reasons[function.symbol.id] = Reasons(function.symbol.id, function)
 
-                # TODO: these steps can be done parallel - is it necessary
                 # Check if the function has call_references (References from a call to the function definition itself).
                 if function.call_references:
-                    # TODO: move this to a function called: _find_references
-                    # TODO: give the result into the function to use it as a cache to look up already determined references
                     for call_list in function.call_references.values():
                         for call_reference in call_list:
                             call_references_result: ReferenceNode
@@ -708,6 +715,7 @@ class ReferenceResolver:
 def resolve_references(code: str,
                        module_name: str = "",
                        path: str | None = None,
+                       package_data: PackageData | None = None,
                        ) -> ModuleAnalysisResult:
     """Resolve all references in a module.
 
@@ -725,4 +733,4 @@ def resolve_references(code: str,
     ModuleAnalysisResult
         The result of the reference resolving.
     """
-    return ReferenceResolver(code, module_name, path).module_analysis_result
+    return ReferenceResolver(code, module_name, path, package_data).module_analysis_result

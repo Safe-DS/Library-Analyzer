@@ -35,6 +35,56 @@ class ModuleData:
 
 
 @dataclass
+class PackageData:
+    """
+    Contains all data collected for a package.
+
+    Attributes
+    ----------
+    package_name : str
+        The name of the package.
+    modules : dict[str, tuple[str, ModuleData]]
+        All modules and their ModuleData.
+        The key is the name of the module.
+        The value is a tuple of the path to the module and the ModuleData.
+    combined_module : ModuleData
+        The combined ModuleData of all modules in the package.
+    """
+
+    package_name: str
+    modules: dict[str, tuple[str, ModuleData]] = field(default_factory=dict)
+    combined_module: ModuleData = field(default=None)
+
+    def combine_modules(self) -> None:
+        """Combine the data of all modules into one ModuleData.
+
+        Combines the data of all modules in the package into one ModuleData.
+        The scope of the new ModuleData is of type UnkownSymbol, and the children are the scopes of the modules.
+        The classes, functions, and imports are combined into one dict each.
+
+        Returns
+        -------
+        ModuleData
+            The combined ModuleData.
+        """
+        combined_module = ModuleData(
+            scope=Scope(UnknownSymbol(id=NodeID(None, self.package_name)), [], None),
+            classes={},
+            functions={},
+            imports={},
+        )
+
+        for module_data in self.modules.values():
+            combined_module.scope.children.extend(module_data[1].scope)
+            combined_module.classes.update(module_data[1].classes)
+            for name, functions in module_data[1].functions.items():
+                combined_module.functions.setdefault(name, []).extend(functions)
+            combined_module.imports.update(module_data[1].imports)
+
+        self.combined_module = combined_module
+
+
+@dataclass
 class MemberAccess(astroid.NodeNG):
     """Represents a member access.
 
@@ -222,7 +272,9 @@ class NodeID:
 
     def __eq__(self, other: NodeID) -> bool:
         if not isinstance(other, NodeID):
-            raise TypeError(f"Cannot compare NodeID with {type(other)}")
+            if isinstance(other, Symbol):
+                return self == other.id
+            raise NotImplementedError(f"Cannot compare NodeID with {type(other)}")
         return self.module == other.module and self.name == other.name and self.line == other.line and self.col == other.col
 
     def __lt__(self, other: NodeID) -> bool:
@@ -363,7 +415,7 @@ class UnknownSymbol(Symbol):
     """
 
     node: None = None
-    id: None = None
+    id: NodeID | None = None
     name: str = "UNKNOWN"
 
     def __hash__(self) -> int:

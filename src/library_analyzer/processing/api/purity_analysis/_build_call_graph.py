@@ -181,7 +181,7 @@ class CallGraphBuilder:
                     )
 
         # Deal with the case that the call calls a function parameter.
-        if isinstance(call, Parameter):
+        elif isinstance(call, Parameter):
             self.call_graph_forest.get_graph(reason_id).reasons.unknown_calls.add(call)
 
         else:
@@ -288,7 +288,9 @@ class CallGraphBuilder:
         """
         # Create the new combined node.
         combined_name = "+".join(sorted(c.__str__() for c in cycle))
-        combined_id = NodeID(None, combined_name)
+        module = next(iter(cycle.values())).symbol.node.root().name if (
+            next(iter(cycle.values())).symbol.node and next(iter(cycle.values())).symbol.node.root().name != "") else None
+        combined_id = NodeID(module, combined_name)
         combined_reasons = Reasons(id=combined_id).join_reasons_list([node.reasons for node in cycle.values()])
         combined_cgn = CombinedCallGraphNode(
             symbol=CombinedSymbol(

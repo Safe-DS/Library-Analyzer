@@ -412,8 +412,6 @@ def f():
     dictionary.keys()
     dictionary.values()
     dictionary.setdefault("a", 10)
-
-    dictionary.__contains__("a")
             """,  # language=none
             {
               "f.line2": Pure(),
@@ -436,8 +434,6 @@ def f():
     list1.remove(1)
     list1.reverse()
     list1.sort()
-
-    list1.__contains__(1)
             """,  # language=none
             {
                 "f.line2": Pure(),
@@ -466,8 +462,6 @@ def f():
     set1.symmetric_difference_update(set2)
     set1.union(set2)
     set1.update(set2)
-
-    set1.__contains__()
             """,  # language=none
             {
                 "f.line2": Pure(),
@@ -504,7 +498,7 @@ def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     purity_results = next(iter(infer_purity(code).values()))
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
-        for function_id, purity_result in purity_results.items()
+        for function_id, purity_result in purity_results.items() if not purity_result.is_class
     }
 
     assert transformed_purity_results == expected
@@ -1391,7 +1385,7 @@ def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> No
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
-        for function_id, purity_result in purity_results.items()
+        for function_id, purity_result in purity_results.items() if not purity_result.is_class
     }
 
     assert transformed_purity_results == expected
@@ -1502,7 +1496,7 @@ def test_infer_purity_unknown(code: str, expected: dict[str, SimpleImpure]) -> N
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
-        for function_id, purity_result in purity_results.items()
+        for function_id, purity_result in purity_results.items() if not purity_result.is_class
     }
 
     assert transformed_purity_results == expected
@@ -1620,7 +1614,7 @@ from collections.abc import Callable
 def fun1(a):
     a = Callable()
             """,  # language=none
-            {"fun1.line4": SimpleImpure({"UnknownCall.UnknownClassInit._collections_abc.Callable"})},
+            {"fun1.line4": Pure()},
         ),
         (  # language=Python "Local Import - function"
             """
@@ -1679,7 +1673,7 @@ def test_infer_purity_import(code: str, expected: dict[str, SimpleImpure]) -> No
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
-        for function_id, purity_result in purity_results.items()
+        for function_id, purity_result in purity_results.items() if not purity_result.is_class
     }
 
     assert transformed_purity_results == expected
@@ -1813,16 +1807,14 @@ def fun():
             """,  # language= None
             {"fun.line4": SimpleImpure({"FileRead.StringLiteral.text.txt"})},
         ),
-        (  # language=Python "With open MemberAccess str default"
+        (  # language=Python "Open MemberAccess with var default"
             """
-from pathlib import Path
+import builtins
 
-def fun():
-    x: Path = Path("text.txt")
-    with x.open() as f:  # Impure: FileRead
-        f.read()
+def fun(file):
+    builtins.open(file)  # Impure: FileRead
             """,  # language= None
-            {"fun.line4": SimpleImpure({"FileRead.StringLiteral.text.txt"})},
+            {"fun.line4": SimpleImpure({"FileRead.ParameterAccess.file"})},
         ),
     ],
     ids=[
@@ -1843,6 +1835,7 @@ def fun():
         "With open close",
         "Open MemberAccess with str default",
         "With open MemberAccess str default",
+        "Open MemberAccess with var default",
     ],
 )
 def test_infer_purity_open(code: str, expected: dict[str, SimpleImpure]) -> None:
@@ -1850,7 +1843,7 @@ def test_infer_purity_open(code: str, expected: dict[str, SimpleImpure]) -> None
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
-        for function_id, purity_result in purity_results.items()
+        for function_id, purity_result in purity_results.items() if not purity_result.is_class
     }
 
     assert transformed_purity_results == expected

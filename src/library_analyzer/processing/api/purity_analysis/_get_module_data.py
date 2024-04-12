@@ -609,7 +609,7 @@ class ModuleDataBuilder:
         list[ClassScope]
             A list of all base classes of the given class if it has any, else an empty list.
         """
-        base_classes = []
+        base_classes: list[ClassScope] = []
         for base in node.bases:
             if isinstance(base, astroid.Name):
                 base_class = self.get_class_by_name(base.name)
