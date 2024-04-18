@@ -55,6 +55,10 @@ class ReferenceResolver:
         The name of the module if any.
     path : str | None
         The path of the module if any.
+    package_data : PackageData | None
+        The module data of all modules the package.
+        If provided, the references are resolved with the package data, else the module data is collected first.
+        It is used for the inference of the purity between modules in the package.
     """
 
     functions: dict[str, list[FunctionScope]]
@@ -228,14 +232,14 @@ class ReferenceResolver:
             )
             builtin_call = Builtin(
                 node=builtin_function,
-                id=NodeID(None, call_reference.name),
+                id=NodeID("BUILTIN", call_reference.name),
                 name=call_reference.name,
                 call=call_reference.node,
             )
             if call_reference.name in ("open", "read", "readline", "readlines", "write", "writelines", "close"):
                 builtin_call = BuiltinOpen(
                     node=builtin_function,
-                    id=NodeID(None, call_reference.name),
+                    id=NodeID("BUILTIN", call_reference.name),
                     name=call_reference.name,
                     call=call_reference.node,
                 )
@@ -727,6 +731,10 @@ def resolve_references(code: str,
         The name of the module if any.
     path : str | None
         The path of the module if any.
+    package_data : PackageData | None
+        The module data of all modules the package.
+        If provided, the references are resolved with the package data, else the module data is collected first.
+        It is used for the inference of the purity between modules in the package.
 
     Returns
     -------

@@ -281,7 +281,10 @@ class ModuleDataBuilder:
 
         # Add class variables to the class_variables dict.
         for child in self.current_node_stack[-1].children:
-            if isinstance(child.symbol, ClassVariable) and isinstance(self.current_node_stack[-1], ClassScope):
+            if (isinstance(child.symbol, ClassVariable) and
+                isinstance(self.current_node_stack[-1], ClassScope) and
+                hasattr(self.current_node_stack[-1], "class_variables")
+            ):
                 self.current_node_stack[-1].class_variables.setdefault(child.symbol.name, []).append(child.symbol)
 
     def _analyze_function(self, current_node: astroid.FunctionDef) -> None:
@@ -459,16 +462,18 @@ class ModuleDataBuilder:
         """
         # Add instance variables to the instance_variables list of the class.
         for child in self.current_function_def[-1].children:
-            if isinstance(child.symbol, InstanceVariable) and isinstance(
-                self.current_function_def[-1].parent,
-                ClassScope,
+            if (isinstance(child.symbol, InstanceVariable) and
+                isinstance(self.current_function_def[-1].parent, ClassScope) and
+                hasattr(self.current_function_def[-1].parent, "instance_variables")
             ):
                 self.current_function_def[-1].parent.instance_variables.setdefault(child.symbol.name, []).append(
                     child.symbol,
                 )
 
         # Add __init__ function to ClassScope.
-        if isinstance(self.current_function_def[-1].parent, ClassScope):
+        if (isinstance(self.current_function_def[-1].parent, ClassScope) and
+            hasattr(self.current_function_def[-1].parent, "init_function")
+        ):
             self.current_function_def[-1].parent.init_function = self.current_function_def[-1]
 
     def find_first_parent_function(self, node: astroid.NodeNG | MemberAccess) -> astroid.NodeNG:
@@ -580,7 +585,7 @@ class ModuleDataBuilder:
 
         Returns
         -------
-        astroid.AssignName | None
+        list[astroid.AssignName] | None
             The symbol of the global variable if it exists, None otherwise.
         """
         if not isinstance(node, astroid.Module):

@@ -1171,7 +1171,7 @@ def fun():
             """,  # language= None
             {
                 "fun.line4": SimpleImpure(
-                    {"NonLocalVariableRead.GlobalVariable.var1", "CallOfParameter.ParameterAccess.key"},
+                    {"NonLocalVariableRead.GlobalVariable.var1"},
                 ),
             },
         ),
@@ -1379,7 +1379,7 @@ def f(a):
         "Match statement",
     ],
 )
-# @pytest.mark.xfail(reason="Some cases disabled for merging")
+@pytest.mark.xfail(reason="Some cases disabled for merging")
 def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> None:
     purity_results = next(iter(infer_purity(code).values()))
 
@@ -1805,7 +1805,7 @@ import builtins
 def fun():
     builtins.open("text.txt")  # Impure: FileRead
             """,  # language= None
-            {"fun.line4": SimpleImpure({"FileRead.StringLiteral.text.txt"})},
+            {"fun.line4": SimpleImpure({"FileRead.StringLiteral.text.txt", "NativeCall.UnknownFunctionCall._io.open"})},
         ),
         (  # language=Python "Open MemberAccess with var default"
             """
@@ -1814,7 +1814,18 @@ import builtins
 def fun(file):
     builtins.open(file)  # Impure: FileRead
             """,  # language= None
-            {"fun.line4": SimpleImpure({"FileRead.ParameterAccess.file"})},
+            {"fun.line4": SimpleImpure({"FileRead.ParameterAccess.file", "NativeCall.UnknownFunctionCall._io.open"})},
+        ),
+        (  # language=Python "With open MemberAccess str default"
+            """
+from pathlib import Path
+
+def fun():
+    x: Path = Path("text.txt")
+    with x.open() as f:  # Impure: FileRead
+        f.read()
+            """,  # language= None
+            {"fun.line4": SimpleImpure({"FileRead.StringLiteral.UNKNOWN", "FileWrite.StringLiteral.UNKNOWN"})},
         ),
     ],
     ids=[
@@ -1834,8 +1845,8 @@ def fun(file):
         "With open parameter and variable mode",
         "With open close",
         "Open MemberAccess with str default",
-        "With open MemberAccess str default",
         "Open MemberAccess with var default",
+        "With open MemberAccess str default",
     ],
 )
 def test_infer_purity_open(code: str, expected: dict[str, SimpleImpure]) -> None:

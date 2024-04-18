@@ -81,7 +81,7 @@ def fun2():
             {
                 ".fun1.2.0": {".fun2.5.0"},
                 ".fun2.5.0": {
-                    "print",
+                    "BUILTIN.print",
                 },  # print is a builtin function and therefore has no function def to reference -> therefor it has no line
             },
         ),
@@ -179,7 +179,7 @@ def entry():
     cycle1()
             """,  # language=none
             {
-                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": {"print"},
+                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": {"BUILTIN.print"},
                 ".entry.12.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
             },
         ),
@@ -343,7 +343,7 @@ def entry():
                 ".entry.18.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
             },
         ),
-        (  # language=Python "function call with cycle - cycle within a cycle"
+        (  # language=Python "function call with cycle - inner cycle within a cycle"
             """
 def cycle1():
     cycle2()
@@ -401,7 +401,7 @@ def f(a):
         "function call with cycle - many entry points",
         "function call with cycle - other call in cycle",
         "function call with cycle - multiple other calls in cycle",
-        "function call with cycle - cycle within a cycle",
+        "function call with cycle - inner cycle within a cycle",
         "function call with cycle - external cycle within a cycle",
         "function call with cycle - external recursive cycle within a cycle",
         "function call with cycle - cycle within a cycle",
@@ -627,7 +627,7 @@ class B:
                 ".B.14.0": set(),
                 ".fun1.2.0": set(),
                 ".fun2.5.0": {
-                    "print",
+                    "BUILTIN.print",
                 },  # print is a builtin function and therefore has no function def to reference -> therefor it has no line
                 ".add.10.4": {".fun1.2.0"},
                 ".add.16.4": {".fun2.5.0"},

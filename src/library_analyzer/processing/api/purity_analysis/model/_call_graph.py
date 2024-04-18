@@ -234,7 +234,7 @@ class CombinedCallGraphNode(CallGraphNode):
                     ):
                         for nod in self.combines.values():
                             for unknown_call in nod.reasons.unknown_calls:
-                                if unknown_call.node == reason.expression.call:
+                                if unknown_call.node == reason.expression.call and nod.reasons.function_scope is not None:
                                     reason.origin = nod.reasons.function_scope.symbol
                                     break
 

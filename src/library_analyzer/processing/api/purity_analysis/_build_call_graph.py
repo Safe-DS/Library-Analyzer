@@ -299,8 +299,8 @@ class CallGraphBuilder:
                 name=combined_name,
             ),
             reasons=combined_reasons,
-            combines=cycle,
         )
+        combines: dict[NodeID, CallGraphNode] = {}
         # Check if the combined node is already in the forest.
         if self.call_graph_forest.has_graph(combined_cgn.symbol.id):
             return
@@ -311,6 +311,12 @@ class CallGraphBuilder:
                 if child.symbol.id not in cycle and not combined_cgn.has_child(child.symbol.id):
                     combined_cgn.add_child(child)
             self.call_graph_forest.delete_graph(node.symbol.id)
+
+            if isinstance(node, CombinedCallGraphNode):
+                combines.update(node.combines)
+            else:
+                combines[node.symbol.id] = node
+        combined_cgn.combines = combines
 
         # Add the combined node to the forest.
         self.call_graph_forest.add_graph(combined_id, combined_cgn)

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
 import astroid
@@ -85,6 +84,10 @@ class PurityAnalyzer:
         The results of all previously analyzed modules.
         The key is the NodeID of the module,
         the value is a dictionary of the purity results of the functions in the module.
+    package_data : PackageData | None
+        The module data of all modules the package.
+        If provided, the references are resolved with the package data, else the module data is collected first.
+        It is used for the inference of the purity between modules in the package.
     """
 
     def __init__(self, code: str,
@@ -207,7 +210,7 @@ class PurityAnalyzer:
 
         Returns
         -------
-        ImpurityReason
+        PurityResult
             The impurity result of the function (Pure, Impure or Unknown).
         """
         impurity_reasons: set[ImpurityReason] = set()
@@ -444,11 +447,24 @@ class PurityAnalyzer:
                 result = BUILTIN_FUNCTIONS[node.symbol.name]
             else:
                 result = Impure({UnknownCall(UnknownFunctionCall(call=node.symbol.call))})
-            # Add the origin to the reasons if it is not set.
+            # Add the origin to the reasons if it is not set yet.
+            # Also add the caller of a builtin function to the origin (for better traceability).
             if isinstance(result, Impure):
                 for reason in result.reasons:
                     if hasattr(reason, "origin") and reason.origin is None:
+                        caller = None
+                        parent = node.symbol.call.parent
+                        while not caller:
+                            if parent is None:
+                                break
+                            if isinstance(parent, astroid.FunctionDef):
+                                caller = parent
+                            else:
+                                parent = parent.parent
+
                         reason.origin = node.symbol
+                        if caller:
+                            reason.origin.id.name = reason.origin.id.name + " @ " + str(NodeID.calc_node_id(caller))
             return result
 
         # The purity of the node is not determined yet, but the node has children.
@@ -539,6 +555,10 @@ def infer_purity(code: str | None,
         After the analysis of the module, the results are saved in this dictionary.
         All imported modules are saved in this dictionary too for further runtime reduction.
         Is None if no results are available.
+    package_data : PackageData | None
+        The module data of all modules the package.
+        If provided, the references are resolved with the package data, else the module data is collected first.
+        It is used for the inference of the purity between modules in the package.
 
     Returns
     -------
