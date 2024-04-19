@@ -458,6 +458,52 @@ def fun():
                 ".fun.6.0": {".A.2.0"},
             },
         ),
+        (  # language=Python "Class call - init with super",
+            """
+class A:
+    def __init__(self):
+        pass
+
+class B(A):
+    def __init__(self):
+        super().__init__()
+
+def fun():
+    a = B()
+
+            """,  # language=none
+            {
+                ".A.2.0": {".__init__.3.4"},
+                ".__init__.3.4": set(),
+                ".B.6.0": {".__init__.7.4"},
+                ".__init__.7.4": {"BUILTIN.super", ".__init__.3.4"},
+                ".fun.10.0": {".B.6.0"},
+            },
+        ),
+        (  # language=Python "Class call - new, init and post_init",
+            """
+class A:
+    def __new__(cls):
+        return super().__new__(cls)
+
+    def __init__(self):
+        pass
+
+    def __post_init__(self):
+        pass
+
+def fun():
+    a = A()
+
+            """,  # language=none
+            {
+                ".A.2.0": {".__new__.3.4", ".__init__.6.4", ".__post_init__.9.4"},
+                ".__new__.3.4": {"BUILTIN.super"},  # TODO: [LATER] the analysis should be able to resolve the super call, right noow it is lost when the combined call graph node is created, since it is detected as an recursive call.
+                ".__init__.6.4": set(),
+                ".__post_init__.9.4": set(),
+                ".fun.12.0": {".A.2.0"},
+            },
+        ),
         (  # language=Python "Class call - init propagation",
             """
 class A:
@@ -777,6 +823,8 @@ lambda_add = lambda x, y: A().value.add(x, y)
     ids=[
         "Class call - pass",
         "Class call - init",
+        "Class call - init with super",
+        "Class call - new, init and post_init",
         "Class call - init propagation",
         "member access - class",
         "member access - class without call",

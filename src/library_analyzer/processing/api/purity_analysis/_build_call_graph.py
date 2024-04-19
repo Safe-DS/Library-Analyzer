@@ -82,8 +82,15 @@ class CallGraphBuilder:
         for klass in self.classes.values():
             # Create a new CallGraphNode for each class and add it to the forest.
             class_cgn = CallGraphNode(symbol=klass.symbol, reasons=Reasons(klass.symbol.id))
-            # If the class has an init function, add it to the class node as a child.
+            # If the class has a __new__, __init__ or __post_init__ function, add it to the class node as a child.
             # Also add the init function to the forest if it is not already there.
+            if klass.new_function:
+                new_cgn = CallGraphNode(
+                    symbol=klass.new_function.symbol,
+                    reasons=self.raw_reasons[klass.new_function.symbol.id],
+                )
+                self.call_graph_forest.add_graph(klass.new_function.symbol.id, new_cgn)
+                class_cgn.add_child(new_cgn)
             if klass.init_function:
                 init_cgn = CallGraphNode(
                     symbol=klass.init_function.symbol,
@@ -91,6 +98,13 @@ class CallGraphBuilder:
                 )
                 self.call_graph_forest.add_graph(klass.init_function.symbol.id, init_cgn)
                 class_cgn.add_child(init_cgn)
+            if klass.post_init_function:
+                post_init_cgn = CallGraphNode(
+                    symbol=klass.post_init_function.symbol,
+                    reasons=self.raw_reasons[klass.post_init_function.symbol.id],
+                )
+                self.call_graph_forest.add_graph(klass.post_init_function.symbol.id, post_init_cgn)
+                class_cgn.add_child(post_init_cgn)
 
             # Add the class to the forest.
             self.call_graph_forest.add_graph(klass.symbol.id, class_cgn)

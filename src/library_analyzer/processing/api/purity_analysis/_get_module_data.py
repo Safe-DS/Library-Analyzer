@@ -311,8 +311,8 @@ class ModuleDataBuilder:
             self.functions[current_node.name] = [self.current_function_def[-1]]
 
         # If the function is the constructor of a class, analyze it to find the instance variables of the class.
-        if current_node.name == "__init__":
-            self._analyze_constructor()
+        if current_node.name in ("__init__", "__new__", "__post_init__"):
+            self._analyze_constructor(current_node.name)
 
         # Add all calls that are used inside the function body to its calls' dict.
         if self.calls:
@@ -454,27 +454,40 @@ class ModuleDataBuilder:
                             if len(self.current_function_def) >= 2 and glob_def not in self.current_function_def[-2].globals_used[glob_name]:
                                 self.current_function_def[-2].globals_used[glob_name].append(glob_def)
 
-    def _analyze_constructor(self) -> None:
+    def _analyze_constructor(self, function_name: str) -> None:
         """Analyze the constructor of a class.
 
         The constructor of a class is a special function called when an instance of the class is created.
         This function must only be called when the name of the FunctionDef node is `__init__`.
         """
-        # Add instance variables to the instance_variables list of the class.
-        for child in self.current_function_def[-1].children:
-            if (isinstance(child.symbol, InstanceVariable) and
-                isinstance(self.current_function_def[-1].parent, ClassScope) and
-                hasattr(self.current_function_def[-1].parent, "instance_variables")
-            ):
-                self.current_function_def[-1].parent.instance_variables.setdefault(child.symbol.name, []).append(
-                    child.symbol,
-                )
+        if function_name == "__init__":
+            # Add instance variables to the instance_variables list of the class.
+            for child in self.current_function_def[-1].children:
+                if (isinstance(child.symbol, InstanceVariable) and
+                    isinstance(self.current_function_def[-1].parent, ClassScope) and
+                    hasattr(self.current_function_def[-1].parent, "instance_variables")
+                ):
+                    self.current_function_def[-1].parent.instance_variables.setdefault(child.symbol.name, []).append(
+                        child.symbol,
+                    )
 
-        # Add __init__ function to ClassScope.
-        if (isinstance(self.current_function_def[-1].parent, ClassScope) and
-            hasattr(self.current_function_def[-1].parent, "init_function")
-        ):
-            self.current_function_def[-1].parent.init_function = self.current_function_def[-1]
+            # Add __init__ function to ClassScope.
+            if (isinstance(self.current_function_def[-1].parent, ClassScope) and
+                hasattr(self.current_function_def[-1].parent, "init_function")
+            ):
+                self.current_function_def[-1].parent.init_function = self.current_function_def[-1]
+        elif function_name == "__new__":
+            # Add __init__ function to ClassScope.
+            if (isinstance(self.current_function_def[-1].parent, ClassScope) and
+                hasattr(self.current_function_def[-1].parent, "new_function")
+            ):
+                self.current_function_def[-1].parent.new_function = self.current_function_def[-1]
+        elif function_name == "__post_init__":
+            # Add __init__ function to ClassScope.
+            if (isinstance(self.current_function_def[-1].parent, ClassScope) and
+                hasattr(self.current_function_def[-1].parent, "post_init_function")
+            ):
+                self.current_function_def[-1].parent.post_init_function = self.current_function_def[-1]
 
     def find_first_parent_function(self, node: astroid.NodeNG | MemberAccess) -> astroid.NodeNG:
         """Find the first parent of a call node that is a function.

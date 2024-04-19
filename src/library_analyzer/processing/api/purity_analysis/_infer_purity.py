@@ -485,8 +485,6 @@ class PurityAnalyzer:
                 purity_result_children = purity_result_children.update(purity_result_child)
 
             node.reasons.result = self._get_impurity_result(node.reasons)
-            # if node.reasons.result is None:
-            #     print(node.reasons)
             node.reasons.result = node.reasons.result.update(purity_result_children)
 
         # The purity of the node is not determined yet, and it has no children.

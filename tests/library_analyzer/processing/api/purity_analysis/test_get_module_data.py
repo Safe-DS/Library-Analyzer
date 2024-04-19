@@ -59,6 +59,9 @@ class SimpleClassScope(SimpleScope):
 
     class_variables: list[str]
     instance_variables: list[str]
+    new_function: str | None = None
+    init_function: str | None = None
+    post_init_function: str | None = None
     super_class: list[str] | None = None
 
 
@@ -75,6 +78,8 @@ class SimpleFunctionScope(SimpleScope):
     children : list[SimpleScope] | None
         The children of the node.
         None if the node has no children.
+    targets : list[str]
+        The list of target nodes used in the function as string.
     values : list[str]
         The list of value nodes used in the function as string.
     calls : list[str]
@@ -136,6 +141,9 @@ def transform_scope_node(
                 [transform_scope_node(child) for child in node.children],
                 class_vars_transformed,
                 instance_vars_transformed,
+                node.new_function.symbol.name if node.new_function else None,
+                node.init_function.symbol.name if node.init_function else None,
+                node.post_init_function.symbol.name if node.post_init_function else None,
                 super_classes_transformed if super_classes_transformed else None,
             )
         if isinstance(node, FunctionScope):
@@ -1674,6 +1682,8 @@ class A:
                     ],
                     ["FunctionDef.__init__"],
                     ["AssignAttr.var1"],
+                    None,
+                    "__init__",
                 ),
             },
         ),
@@ -1711,6 +1721,8 @@ class A:
                     ],
                     ["FunctionDef.__init__"],
                     ["AssignAttr.var1", "AssignAttr.name", "AssignAttr.state"],
+                    None,
+                    "__init__",
                 ),
             },
         ),
@@ -1742,6 +1754,8 @@ class A:
                     ],
                     ["FunctionDef.__init__"],
                     ["AssignAttr.var1", "AssignAttr.var1"],
+                    None,
+                    "__init__",
                 ),
             },
         ),
@@ -1772,6 +1786,8 @@ class A:
                     ],
                     ["AssignName.var1", "FunctionDef.__init__"],
                     ["AssignAttr.var1"],
+                    None,
+                    "__init__",
                 ),
             },
         ),
@@ -1814,7 +1830,55 @@ class B(A):
             """,  # language=none
             {
                 "A": SimpleClassScope("GlobalVariable.ClassDef.A", [], [], []),
-                "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [], ["ClassDef.A"]),
+                "B": SimpleClassScope("GlobalVariable.ClassDef.B", [], [], [], None, None, None, ["ClassDef.A"]),
+            },
+        ),
+        (  # language=Python "ClassDef with __new__, __init__ and __post_init__"
+            """
+class A:
+    def __new__(cls):
+        return super().__new__(cls)
+
+    def __init__(self):
+        pass
+
+    def __post_init__(self):
+        pass
+            """,  # language=none
+            {
+                 "A": SimpleClassScope(
+                    "GlobalVariable.ClassDef.A",
+                    [
+                        SimpleFunctionScope("ClassVariable.FunctionDef.__new__",
+                                            [
+                                                SimpleScope("Parameter.AssignName.cls", []),
+                                            ],
+                                            ["AssignName.cls"],
+                                            ["MemberAccessValue.super.__new__", "Name.cls"],
+                                            ["Call.__new__", "Call.super"],
+                                            ["AssignName.cls"],
+                                            ),
+                        SimpleFunctionScope("ClassVariable.FunctionDef.__init__",
+                                            [SimpleScope("Parameter.AssignName.self", [])],
+                                            ["AssignName.self"],
+                                            [],
+                                            [],
+                                            ["AssignName.self"],
+                                            ),
+                        SimpleFunctionScope("ClassVariable.FunctionDef.__post_init__",
+                                            [SimpleScope("Parameter.AssignName.self", [])],
+                                            ["AssignName.self"],
+                                            [],
+                                            [],
+                                            ["AssignName.self"],
+                                            ),
+                    ],
+                    ["FunctionDef.__new__", "FunctionDef.__init__", "FunctionDef.__post_init__"],
+                    [],
+                    "__new__",
+                    "__init__",
+                    "__post_init__",
+                ),
             },
         ),
     ],
@@ -1830,6 +1894,7 @@ class B(A):
         "ClassDef with nested class",
         "Multiple ClassDef",
         "ClassDef with super class",
+        "ClassDef with __new__, __init__ and __post_init__",
     ],
 )
 def test_get_module_data_classes(code: str, expected: dict[str, SimpleClassScope]) -> None:
@@ -1895,6 +1960,8 @@ def g():
                             ],
                             ["FunctionDef.__init__", "FunctionDef.f"],
                             ["AssignAttr.value", "AssignAttr.test"],
+                            None,
+                            "__init__",
                         ),
                         SimpleFunctionScope(
                             "GlobalVariable.FunctionDef.g",
@@ -2290,6 +2357,8 @@ class B:
                                 "FunctionDef.local_instance_attr",
                             ],
                             ["AssignAttr.instance_attr1"],
+                            None,
+                            "__init__",
                         ),
                     ],
                 ),
@@ -2326,6 +2395,8 @@ def local_instance_attr():
                             ],
                             ["FunctionDef.__init__"],
                             ["AssignAttr.instance_attr1"],
+                            None,
+                            "__init__",
                         ),
                         SimpleFunctionScope(
                             "GlobalVariable.FunctionDef.local_instance_attr",
@@ -2400,6 +2471,7 @@ class B(A, X):
                             [SimpleScope("ClassVariable.AssignName.var2", [])],
                             ["AssignName.var2"],
                             [],
+                            None, None, None,
                             ["ClassDef.A", "ClassDef.X"],
                         ),
                     ],
@@ -3230,6 +3302,8 @@ class ASTWalker:
                                 "FunctionDef.__get_callbacks",
                             ],
                             ["AssignAttr._handler", "AssignAttr._cache"],
+                            None,
+                            "__init__",
                         ),
                     ],
                 ),

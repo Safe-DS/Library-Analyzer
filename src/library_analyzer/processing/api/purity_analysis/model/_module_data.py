@@ -755,7 +755,9 @@ class ClassScope(Scope):
 
     class_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     instance_variables: dict[str, list[Symbol]] = field(default_factory=dict)
+    new_function: FunctionScope | None = None
     init_function: FunctionScope | None = None
+    post_init_function: FunctionScope | None = None
     super_classes: list[ClassScope] = field(default_factory=list)
 
 
