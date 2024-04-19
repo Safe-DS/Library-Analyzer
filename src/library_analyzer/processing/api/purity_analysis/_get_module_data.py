@@ -1198,7 +1198,6 @@ def get_module_data(code: str, module_name: str = "", path: str | None = None) -
         module = astroid.parse(code, module_name, path)
     except astroid.AstroidSyntaxError as e:
         raise ValueError(f"Invalid syntax in code: {e}") from e
-    # print(module.repr_tree())
     walker.walk(module)
 
     scope = module_data_handler.children[0]  # Get the children of the root node, which are the scopes of the module

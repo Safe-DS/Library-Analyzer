@@ -100,9 +100,9 @@ class PurityAnalyzer:
         if code is None and not package_data:
             raise ValueError("The code and package data are None.")
         elif package_data:
-            references = resolve_references(code, module_name, path, package_data)
+            references = resolve_references(code, module_name, path, package_data)  # type: ignore[arg-type]  # code is not None, so the type is correct.
         else:
-            references = resolve_references(code, module_name, path)
+            references = resolve_references(code, module_name, path)  # type: ignore[arg-type]  # code is not None, so the type is correct.
         if references.call_graph_forest is None:
             raise ValueError("The call graph forest is empty.")
 
@@ -352,7 +352,7 @@ class PurityAnalyzer:
         if (imported_module_id in self.cached_module_results and
             inferred_node_id in self.cached_module_results[imported_module_id]
         ):
-            return self.cached_module_results[imported_module_id].get(inferred_node_id)
+            return self.cached_module_results[imported_module_id].get(inferred_node_id)  # type: ignore[return-type]
 
         # Check if the imported module is currently being analyzed to prevent recursion.
         elif (imported_module_id in self.cached_module_results and
@@ -388,7 +388,7 @@ class PurityAnalyzer:
 
         # Check if the purity result for the inferred node is available in the cache.
         if inferred_node_id in self.cached_module_results[imported_module_id]:
-            return self.cached_module_results[imported_module_id].get(inferred_node_id)
+            return self.cached_module_results[imported_module_id].get(inferred_node_id)  # type: ignore[return-type]
         # If the inferred_node cannot be found in the result, return an unknown call.
         else:
             if isinstance(imported_node.symbol.inferred_node, astroid.ClassDef):
@@ -436,7 +436,7 @@ class PurityAnalyzer:
         elif (self.module_id in self.cached_module_results
               and node.symbol.id in self.cached_module_results[self.module_id]
         ):
-            return self.cached_module_results[self.module_id].get(node.symbol.id)
+            return self.cached_module_results[self.module_id].get(node.symbol.id)  # type: ignore[return-type]
         elif node.symbol.id in self.visited_nodes and not isinstance(node.symbol, Builtin | BuiltinOpen):
             return Impure({UnknownCall(expression=UnknownFunctionCall(), origin=node.symbol)})  # TODO: find better return value
 

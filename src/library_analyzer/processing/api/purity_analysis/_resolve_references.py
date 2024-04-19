@@ -72,9 +72,9 @@ class ReferenceResolver:
                  package_data: PackageData | None = None,
                  ):
         # Check if the module is part of a package and if the package data is given.
-        if package_data:
+        if package_data and package_data.combined_module:
             module_data = package_data.combined_module
-            self.module_analysis_result.module_id = package_data.combined_module.scope.symbol.id
+            self.module_analysis_result.module_id = module_data.scope.symbol.id
         else:
             # Initialize the Class by getting the module data for the given (module) code.
             try:

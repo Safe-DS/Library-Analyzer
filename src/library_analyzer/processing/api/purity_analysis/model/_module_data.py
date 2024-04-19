@@ -415,7 +415,7 @@ class UnknownSymbol(Symbol):
     """
 
     node: None = None
-    id: NodeID | None = None
+    id: NodeID | None = None  # type: ignore[assignment]
     name: str = "UNKNOWN"
 
     def __hash__(self) -> int:

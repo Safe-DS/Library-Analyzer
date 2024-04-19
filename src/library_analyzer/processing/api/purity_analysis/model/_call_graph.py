@@ -230,7 +230,7 @@ class CombinedCallGraphNode(CallGraphNode):
                 and isinstance(original_nodes[node_id].reasons.result, Impure)
                 and hasattr(original_nodes[node_id].reasons.result, "reasons")
             ):
-                for reason in original_nodes[node_id].reasons.result.reasons:
+                for reason in original_nodes[node_id].reasons.result.reasons:  # type: ignore[union-attr] # it is cheked above
                     if (isinstance(reason, UnknownCall)
                         and isinstance(reason.expression, UnknownFunctionCall)
                         and reason.origin is None
