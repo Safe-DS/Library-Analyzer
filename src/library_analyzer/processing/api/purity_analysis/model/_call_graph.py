@@ -226,7 +226,10 @@ class CombinedCallGraphNode(CallGraphNode):
             original_nodes[node_id].reasons.result = self.reasons.result
 
             # The results need to be assigned an origin to be able to trace back the result.
-            if isinstance(original_nodes[node_id].reasons.result, Impure) and hasattr(original_nodes[node_id].reasons.result, "reasons"):
+            if (original_nodes[node_id].reasons is not None
+                and isinstance(original_nodes[node_id].reasons.result, Impure)
+                and hasattr(original_nodes[node_id].reasons.result, "reasons")
+            ):
                 for reason in original_nodes[node_id].reasons.result.reasons:
                     if (isinstance(reason, UnknownCall)
                         and isinstance(reason.expression, UnknownFunctionCall)

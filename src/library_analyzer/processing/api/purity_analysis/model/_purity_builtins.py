@@ -743,9 +743,9 @@ BUILTIN_SPECIALS = {
     "setdefault": Pure(),  # dict
 
     "append": Pure(),  # list
-    "count": Pure(),  # list
+    "count": Pure(),  # list, str
     "extend": Pure(),  # list
-    "index": Pure(),  # list
+    "index": Pure(),  # list, str
     "insert": Pure(),  # list
     "remove": Pure(),  # list, set
     "reverse": Pure(),  # list
@@ -763,6 +763,52 @@ BUILTIN_SPECIALS = {
     "symmetric_difference": Pure(),  # set
     "symmetric_difference_update": Pure(),  # set
     "union": Pure(),  # set
+
+    "capitalize": Pure(),  # str
+    "casefold": Pure(),  # str
+    "center": Pure(),  # str
+    "encode": Pure(),  # str
+    "endswith": Pure(),  # str
+    "expandtabs": Pure(),  # str
+    "find": Pure(),  # str
+    "format": Pure(),  # str
+    "format_map": Pure(),  # str
+    "isalnum": Pure(),  # str
+    "isalpha": Pure(),  # str
+    "isascii": Pure(),  # str
+    "isdecimal": Pure(),  # str
+    "isdigit": Pure(),  # str
+    "isidentifier": Pure(),  # str
+    "islower": Pure(),  # str
+    "isnumeric": Pure(),  # str
+    "isprintable": Pure(),  # str
+    "isspace": Pure(),  # str
+    "istitle": Pure(),  # str
+    "isupper": Pure(),  # str
+    "join": Pure(),  # str
+    "ljust": Pure(),  # str
+    "lower": Pure(),  # str
+    "lstrip": Pure(),  # str
+    "maketrans": Pure(),  # str
+    "partition": Pure(),  # str
+    "removeprefix": Pure(),  # str
+    "removesuffix": Pure(),  # str
+    "replace": Pure(),  # str
+    "rfind": Pure(),  # str
+    "rindex": Pure(),  # str
+    "rjust": Pure(),  # str
+    "rpartition": Pure(),  # str
+    "rsplit": Pure(),  # str
+    "rstrip": Pure(),  # str
+    "split": Pure(),  # str
+    "splitlines": Pure(),  # str
+    "startswith": Pure(),  # str
+    "strip": Pure(),  # str
+    "swapcase": Pure(),  # str
+    "title": Pure(),  # str
+    "translate": Pure(),  # str
+    "upper": Pure(),  # str
+    "zfill": Pure(),  # str
 
     "GenericAlias": Pure(),
     "UnionType": Pure(),

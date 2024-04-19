@@ -53,7 +53,7 @@ class PackageData:
 
     package_name: str
     modules: dict[str, tuple[str, ModuleData]] = field(default_factory=dict)
-    combined_module: ModuleData = field(default=None)
+    combined_module: ModuleData | None = field(default=None)
 
     def combine_modules(self) -> None:
         """Combine the data of all modules into one ModuleData.
@@ -270,7 +270,7 @@ class NodeID:
     def __hash__(self) -> int:
         return hash(str(self))
 
-    def __eq__(self, other: NodeID) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, NodeID):
             if isinstance(other, Symbol):
                 return self == other.id

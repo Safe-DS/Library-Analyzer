@@ -100,7 +100,7 @@ class ModuleAnalysisResult:
     raw_reasons : dict[NodeID, Reasons]
         The dictionary of function references.
         The key is the NodeID of the function, the value is the Reasons for the function.
-    classes : dict[str, list[ClassScope]]
+    classes : dict[str, ClassScope]
         All classes and their ClassScope.
     call_graph_forest : CallGraphForest
         The call graph forest of the module.
@@ -110,7 +110,7 @@ class ModuleAnalysisResult:
 
     resolved_references: dict[str, list[ReferenceNode]] = field(default_factory=dict)
     raw_reasons: dict[NodeID, Reasons] = field(default_factory=dict)
-    classes: dict[str, list[ClassScope]] = field(default_factory=dict)
+    classes: dict[str, ClassScope] = field(default_factory=dict)
     call_graph_forest: CallGraphForest | None = None
     module_id: NodeID | None = None
 

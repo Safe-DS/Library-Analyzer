@@ -221,6 +221,8 @@ class NonLocalVariableRead(Read):
     ----------
     symbol : GlobalVariable | ClassVariable | InstanceVariable | Import
         The symbol that is read.
+    origin : Symbol | NodeID | None
+        The origin of the read.
     """
 
     symbol: GlobalVariable | ClassVariable | InstanceVariable | Import | UnknownSymbol
@@ -250,10 +252,12 @@ class FileRead(Read):
     source : Expression | None
         The source of the read.
         This is None if the source is unknown.
+    origin : Symbol | NodeID | None
+        The origin of the read.
     """
 
     source: Expression | None = None  # TODO: this should never be None
-    origin: Symbol | None = field(default=None)
+    origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -284,10 +288,12 @@ class NonLocalVariableWrite(Write):
     ----------
     symbol : GlobalVariable | ClassVariable | InstanceVariable | Import
         The symbol that is written to.
+    origin : Symbol | NodeID | None
+        The origin of the write.
     """
 
     symbol: GlobalVariable | ClassVariable | InstanceVariable | Import | UnknownSymbol
-    origin: Symbol | None = field(default=None)
+    origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -313,10 +319,12 @@ class FileWrite(Write):
     source : Expression | None
         The source of the write.
         This is None if the source is unknown.  # TODO: see above LARS
+    origin : Symbol | NodeID | None
+        The origin of the write.
     """
 
     source: Expression | None = None
-    origin: Symbol | None = field(default=None)
+    origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -349,10 +357,12 @@ class UnknownCall(Unknown):
     ----------
     expression : Expression
         The expression that is called.
+    origin : Symbol | NodeID | None
+        The origin of the call.
     """
 
     expression: Expression
-    origin: Symbol | None = field(default=None)
+    origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -379,10 +389,12 @@ class NativeCall(Unknown):  # ExternalCall
     ----------
     expression : Expression
         The expression that is called.
+    origin : Symbol | NodeID | None
+        The origin of the call.
     """
 
     expression: Expression
-    origin: Symbol | None = field(default=None)
+    origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -412,10 +424,12 @@ class CallOfParameter(Unknown):  # ParameterCall
     ----------
     expression : Expression
         The expression that is called.
+    origin : Symbol | NodeID | None
+        The origin of the call.
     """
 
     expression: Expression
-    origin: Symbol | None = field(default=None)
+    origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))

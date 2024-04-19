@@ -74,8 +74,9 @@ class PurityAnalyzer:
 
     Parameters
     ----------
-    code : str
+    code : str | None
         The source code of the module.
+        If None is provided, the package data must be provided (or else an exception is raised).
     module_name : str
         The name of the module.
     path : str | None
@@ -90,13 +91,15 @@ class PurityAnalyzer:
         It is used for the inference of the purity between modules in the package.
     """
 
-    def __init__(self, code: str,
+    def __init__(self, code: str | None,
                  module_name: str = "",
                  path: str | None = None,
                  results: dict[NodeID, dict[NodeID, PurityResult]] | None = None,
                  package_data: PackageData | None = None,
                  ) -> None:
-        if package_data:
+        if code is None and not package_data:
+            raise ValueError("The code and package data are None.")
+        elif package_data:
             references = resolve_references(code, module_name, path, package_data)
         else:
             references = resolve_references(code, module_name, path)
@@ -541,8 +544,9 @@ def infer_purity(code: str | None,
 
     Parameters
     ----------
-    code : str
+    code : str | None
         The source code of the module.
+        If None is provided, the package data must be provided (or else an exception is raised).
     module_name : str, optional
         The name of the module, by default "".
     path : str, optional
@@ -614,7 +618,7 @@ def get_purity_results(
     sorted_module_purity_results: dict[NodeID, dict[NodeID, PurityResult]] = {}
     for values in package_purity_results.values():
         for k, v in values.items():
-            sorted_module_purity_results.setdefault(NodeID(None, k.module), {}).update({k: v})
+            sorted_module_purity_results.setdefault(NodeID(None, k.module.name if isinstance(k.module, astroid.Module) else ("UNKNOWN" if k.module is None else k.module)), {}).update({k: v})
 
     # Add back empty files.
     for mod in module_names:
