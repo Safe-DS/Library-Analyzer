@@ -65,6 +65,7 @@ class ReferenceResolver:
     classes: dict[str, ClassScope]
     imports: dict[str, Import]
     module_analysis_result: ModuleAnalysisResult = ModuleAnalysisResult()
+    package_data_is_provided: bool = False
 
     def __init__(self, code: str,
                  module_name: str = "",
@@ -73,6 +74,7 @@ class ReferenceResolver:
                  ):
         # Check if the module is part of a package and if the package data is given.
         if package_data and package_data.combined_module:
+            self.package_data_is_provided = True
             module_data = package_data.combined_module
             self.module_analysis_result.module_id = module_data.scope.symbol.id
         else:
@@ -413,15 +415,26 @@ class ReferenceResolver:
             else:
                 receiver_name = value_reference.node.receiver.name
 
+            # In references imported via "import" statements, the symbols of the imported module are not known yet.
+            # The symbol is accessed via its name, which is of type MemberAccessValue.
+            # At this point, only the receiver(=module name) is saved in the imports' dict.
+            # This means that the symbol for the member needs to be inferred from the module and added to the list
+            # of referenced symbols.
             if receiver_name in self.imports:
-                # In references imported via "import" statements, the symbols of the imported module are not known yet.
-                # The symbol is accessed via its name, which is of type MemberAccessValue.
-                # At this point, only the receiver(=module name) is saved in the imports' dict.
-                # This means that the symbol for the member needs to be inferred from the module and added to the list
-                # of referenced symbols.
+                # But first, it can be checked if the receiver is a class of the package (if one is provided).
+                # In this case, there is no need to use astroid to determine the function or class.
+                was_found = False
+                if self.package_data_is_provided and receiver_name in self.classes:
+                    class_def = self.classes.get(receiver_name)
+                    if class_def:
+                        if value_reference.node.member in class_def.class_variables:
+                            was_found = True
+                            for symbol in class_def.class_variables[value_reference.node.member]:
+                                result_value_reference.referenced_symbols.append(symbol)
+
+                # Since the symbol is not part of the package, it needs to be inferred from the imported module.
                 import_def = self.imports.get(receiver_name)
-                # TODO: we need a better way to make sure not all symbols are copied
-                if import_def and value_reference.node.node is not None:
+                if import_def and value_reference.node.node is not None and not was_found:
                     # Use astroid to infer the symbol of the member from the module.
                     inferred_node_def = safe_infer(
                         value_reference.node.node)  # TODO: what if node is a MemberAccessValue?

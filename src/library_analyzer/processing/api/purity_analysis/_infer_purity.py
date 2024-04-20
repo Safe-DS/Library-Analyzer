@@ -352,7 +352,7 @@ class PurityAnalyzer:
         if (imported_module_id in self.cached_module_results and
             inferred_node_id in self.cached_module_results[imported_module_id]
         ):
-            return self.cached_module_results[imported_module_id].get(inferred_node_id)  # type: ignore[return-type]
+            return self.cached_module_results[imported_module_id].get(inferred_node_id)  # type: ignore[return-value]
 
         # Check if the imported module is currently being analyzed to prevent recursion.
         elif (imported_module_id in self.cached_module_results and
@@ -388,7 +388,7 @@ class PurityAnalyzer:
 
         # Check if the purity result for the inferred node is available in the cache.
         if inferred_node_id in self.cached_module_results[imported_module_id]:
-            return self.cached_module_results[imported_module_id].get(inferred_node_id)  # type: ignore[return-type]
+            return self.cached_module_results[imported_module_id].get(inferred_node_id)  # type: ignore[return-value]
         # If the inferred_node cannot be found in the result, return an unknown call.
         else:
             if isinstance(imported_node.symbol.inferred_node, astroid.ClassDef):
@@ -436,7 +436,7 @@ class PurityAnalyzer:
         elif (self.module_id in self.cached_module_results
               and node.symbol.id in self.cached_module_results[self.module_id]
         ):
-            return self.cached_module_results[self.module_id].get(node.symbol.id)  # type: ignore[return-type]
+            return self.cached_module_results[self.module_id].get(node.symbol.id)  # type: ignore[return-value]
         elif node.symbol.id in self.visited_nodes and not isinstance(node.symbol, Builtin | BuiltinOpen):
             return Impure({UnknownCall(expression=UnknownFunctionCall(), origin=node.symbol)})  # TODO: find better return value
 
@@ -618,7 +618,7 @@ def get_purity_results(
     sorted_module_purity_results: dict[NodeID, dict[NodeID, PurityResult]] = {}
     for values in package_purity_results.values():
         for k, v in values.items():
-            sorted_module_purity_results.setdefault(NodeID(None, k.module.name if isinstance(k.module, astroid.Module) else ("UNKNOWN" if k.module is None else k.module)), {}).update({k: v})
+            sorted_module_purity_results.setdefault(NodeID(None, "UNKNOWN" if k.module is None else k.module), {}).update({k: v})
 
     # Add back empty files.
     for mod in module_names:

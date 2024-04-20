@@ -233,7 +233,7 @@ class NodeID:
 
     Attributes
     ----------
-    module : astroid.Module | str | None
+    module : str | None
         The module of the node.
         Is None for combined nodes.
     name : str
@@ -246,15 +246,12 @@ class NodeID:
         Is None for combined nodes, builtins or any other node that do not have a line.
     """
 
-    module: astroid.Module | str | None
+    module: str | None
     name: str
     line: int | None = None
     col: int | None = None
 
     def __str__(self) -> str:
-        if isinstance(self.module, astroid.Module):
-            self.module = self.module.name
-
         if self.module is not None:
             if self.line is not None and self.col is not None:
                 return f"{self.module}.{self.name}.{self.line}.{self.col}"

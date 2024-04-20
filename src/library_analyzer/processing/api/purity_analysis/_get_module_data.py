@@ -1053,7 +1053,7 @@ class ModuleDataBuilder:
                         FunctionScope,
                     ):
                         symbol = self.get_symbol(global_node_def, self.current_node_stack[-1].symbol.node)
-                        if isinstance(symbol, GlobalVariable):
+                        if isinstance(symbol, GlobalVariable) and hasattr(self.current_node_stack[-1], "globals_used"):
                             self.current_node_stack[-1].globals_used.setdefault(name, []).append(symbol)
 
     def enter_call(self, node: astroid.Call) -> None:
@@ -1104,7 +1104,7 @@ class ModuleDataBuilder:
             if alias and isinstance(alias, str):
                 import_symbol = Import(
                     node=node,
-                    id=NodeID(node.root(), module, node.lineno, node.col_offset),
+                    id=NodeID(node.root().name, module, node.lineno, node.col_offset),
                     # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
                     name=module,
                     module=module,
@@ -1114,7 +1114,7 @@ class ModuleDataBuilder:
             else:
                 import_symbol = Import(
                     node=node,
-                    id=NodeID(node.root(), module, node.lineno, node.col_offset),
+                    id=NodeID(node.root().name, module, node.lineno, node.col_offset),
                     # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
                     name=module,
                     module=module,
@@ -1139,7 +1139,7 @@ class ModuleDataBuilder:
             if alias and isinstance(alias, str):
                 import_symbol = Import(
                     node=node,
-                    id=NodeID(node.root(), name, node.lineno, node.col_offset),
+                    id=NodeID(node.root().name, name, node.lineno, node.col_offset),
                     # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
                     name=name,
                     module=module,
@@ -1149,7 +1149,7 @@ class ModuleDataBuilder:
             else:
                 import_symbol = Import(
                     node=node,
-                    id=NodeID(node.root(), name, node.lineno, node.col_offset),
+                    id=NodeID(node.root().name, name, node.lineno, node.col_offset),
                     # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
                     name=name,
                     module=module,
