@@ -26,7 +26,7 @@ if TYPE_CHECKING:
         Import,
         InstanceVariable,
         Parameter,
-)
+    )
 
 
 class PurityResult(ABC):
@@ -209,6 +209,7 @@ class ImpurityReason(ABC):  # this is just a base class, and it is important tha
     def to_dict(self) -> dict[str, Any]:
         pass
 
+
 class Read(ImpurityReason, ABC):
     """Superclass for read type impurity reasons."""
 
@@ -235,7 +236,9 @@ class NonLocalVariableRead(Read):
         return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
 
     def to_dict(self) -> dict[str, Any]:
-        origin = self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
         return {
             "result": f"{self.__class__.__name__}",
             "origin": f"{origin}",
@@ -268,7 +271,9 @@ class FileRead(Read):
         return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
     def to_dict(self) -> dict[str, Any]:
-        origin = self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
         return {
             "result": f"{self.__class__.__name__}",
             "origin": f"{origin}",
@@ -302,7 +307,9 @@ class NonLocalVariableWrite(Write):
         return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
 
     def to_dict(self) -> dict[str, Any]:
-        origin = self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
         return {
             "result": f"{self.__class__.__name__}",
             "origin": f"{origin}",
@@ -335,7 +342,9 @@ class FileWrite(Write):
         return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
 
     def to_dict(self) -> dict[str, Any]:
-        origin = self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
         return {
             "result": f"{self.__class__.__name__}",
             "origin": f"{origin}",
@@ -371,7 +380,9 @@ class UnknownCall(Unknown):
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
     def to_dict(self) -> dict[str, Any]:
-        origin = self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
         return {
             "result": f"{self.__class__.__name__}",
             "origin": f"{origin}",
@@ -403,12 +414,15 @@ class NativeCall(Unknown):  # ExternalCall
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
     def to_dict(self) -> dict[str, Any]:
-        origin = self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
         return {
             "result": f"{self.__class__.__name__}",
             "origin": f"{origin}",
             "reason": f"{self.expression.__str__()}",
         }
+
 
 @dataclass
 class CallOfParameter(Unknown):  # ParameterCall
@@ -438,7 +452,9 @@ class CallOfParameter(Unknown):  # ParameterCall
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
 
     def to_dict(self) -> dict[str, Any]:
-        origin = self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
         return {
             "result": f"{self.__class__.__name__}",
             "origin": f"{origin}",
@@ -579,8 +595,11 @@ class APIPurity:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            module_name.__str__(): {function_id.__str__(): purity.to_dict()
-                                    for function_id, purity in purity_result.items() if not purity.is_class}
+            module_name.__str__(): {
+                function_id.__str__(): purity.to_dict()
+                for function_id, purity in purity_result.items()
+                if not purity.is_class
+            }
             for module_name, purity_result in self.purity_results.items()
         }
 

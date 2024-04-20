@@ -14,10 +14,4 @@ from ._resolve_references import (
     resolve_references,
 )
 
-__all__ = [
-    "get_module_data",
-    "resolve_references",
-    "infer_purity",
-    "build_call_graph",
-    "get_purity_results"
-]
+__all__ = ["get_module_data", "resolve_references", "infer_purity", "build_call_graph", "get_purity_results"]

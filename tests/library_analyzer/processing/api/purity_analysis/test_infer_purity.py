@@ -124,7 +124,9 @@ def to_string_reason(reason: ImpurityReason) -> str:  # type: ignore[return] # a
         if isinstance(reason.expression, StringLiteral):
             return f"{reason.__class__.__name__}.{reason.expression.__class__.__name__}.{reason.expression.value}"
         elif isinstance(reason.expression, ParameterAccess):
-            return f"{reason.__class__.__name__}.{reason.expression.__class__.__name__}.{reason.expression.parameter.name}"
+            return (
+                f"{reason.__class__.__name__}.{reason.expression.__class__.__name__}.{reason.expression.parameter.name}"
+            )
         elif isinstance(reason.expression, UnknownFunctionCall | UnknownClassInit):
             return f"{reason.__class__.__name__}.{reason.expression.__class__.__name__}.{reason.expression.name}"
     else:
@@ -228,10 +230,12 @@ def g():
                         "NonLocalVariableRead.InstanceVariable.A.name",
                     },
                 ),
-                "g.line13": SimpleImpure({
-                    "NonLocalVariableWrite.ClassVariable.B.upper_class",
-                    "NonLocalVariableWrite.InstanceVariable.A.name",
-                }),
+                "g.line13": SimpleImpure(
+                    {
+                        "NonLocalVariableWrite.ClassVariable.B.upper_class",
+                        "NonLocalVariableWrite.InstanceVariable.A.name",
+                    },
+                ),
             },
         ),
         (  # language=Python "Pure Class initialization"
@@ -414,7 +418,7 @@ def f():
     dictionary.setdefault("a", 10)
             """,  # language=none
             {
-              "f.line2": Pure(),
+                "f.line2": Pure(),
             },
         ),
         (  # language=Python "Builtins for list"
@@ -498,7 +502,8 @@ def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
     purity_results = next(iter(infer_purity(code).values()))
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
-        for function_id, purity_result in purity_results.items() if not purity_result.is_class
+        for function_id, purity_result in purity_results.items()
+        if not purity_result.is_class
     }
 
     assert transformed_purity_results == expected
@@ -541,10 +546,12 @@ def fun(x):
     return var1  # Impure: VariableRead from GlobalVariable
             """,  # language= None
             {
-                "fun.line3": SimpleImpure({
-                    "NonLocalVariableWrite.GlobalVariable.var1",
-                    "NonLocalVariableRead.GlobalVariable.var1",
-                }),
+                "fun.line3": SimpleImpure(
+                    {
+                        "NonLocalVariableWrite.GlobalVariable.var1",
+                        "NonLocalVariableRead.GlobalVariable.var1",
+                    },
+                ),
             },
         ),
         (  # language=Python "VariableRead from GlobalVariable"
@@ -708,11 +715,13 @@ def fun2():  # Impure
                 "set_state.line13": SimpleImpure(
                     {"NonLocalVariableWrite.ClassVariable.C.state", "FileWrite.StringLiteral.stdout"},
                 ),
-                "fun1.line17": SimpleImpure({
-                    "NonLocalVariableWrite.ClassVariable.A.state",
-                    "NonLocalVariableWrite.ClassVariable.C.state",  # this mistake is acceptable due to the restrictions we made
-                    "FileWrite.StringLiteral.stdout",
-                }),  # this mistake is acceptable due to the restrictions we made
+                "fun1.line17": SimpleImpure(
+                    {
+                        "NonLocalVariableWrite.ClassVariable.A.state",
+                        "NonLocalVariableWrite.ClassVariable.C.state",  # this mistake is acceptable due to the restrictions we made
+                        "FileWrite.StringLiteral.stdout",
+                    },
+                ),  # this mistake is acceptable due to the restrictions we made
                 "fun2.line21": SimpleImpure(
                     {
                         "NonLocalVariableWrite.ClassVariable.A.state",  # this mistake is acceptable due to the restrictions we made
@@ -862,16 +871,20 @@ def g():
                 "b_fun.line12": SimpleImpure(
                     {"FileRead.StringLiteral.stdin", "NonLocalVariableRead.ClassVariable.B.upper_class"},
                 ),  # this mistake is acceptable due to the restrictions we made
-                "f.line16": SimpleImpure({
-                    "FileWrite.StringLiteral.stdout",
-                    "NonLocalVariableRead.ClassVariable.B.upper_class",  # this mistake is acceptable due to the restrictions we made
-                    "NonLocalVariableRead.InstanceVariable.A.name",
-                }),  # this mistake is acceptable due to the restrictions we made
-                "g.line20": SimpleImpure({
-                    "FileRead.StringLiteral.stdin",
-                    "NonLocalVariableRead.ClassVariable.B.upper_class",  # this mistake is acceptable due to the restrictions we made
-                    "NonLocalVariableRead.InstanceVariable.A.name",
-                }),  # this mistake is acceptable due to the restrictions we made
+                "f.line16": SimpleImpure(
+                    {
+                        "FileWrite.StringLiteral.stdout",
+                        "NonLocalVariableRead.ClassVariable.B.upper_class",  # this mistake is acceptable due to the restrictions we made
+                        "NonLocalVariableRead.InstanceVariable.A.name",
+                    },
+                ),  # this mistake is acceptable due to the restrictions we made
+                "g.line20": SimpleImpure(
+                    {
+                        "FileRead.StringLiteral.stdin",
+                        "NonLocalVariableRead.ClassVariable.B.upper_class",  # this mistake is acceptable due to the restrictions we made
+                        "NonLocalVariableRead.InstanceVariable.A.name",
+                    },
+                ),  # this mistake is acceptable due to the restrictions we made
             },
         ),
         (  # language=Python "Function call of functions with same name and different purity"
@@ -1206,12 +1219,14 @@ def fun2():
     return res  # Impure: Call of Impure Builtin Function - User input is requested
             """,  # language=none
             {
-                "fun1.line4": SimpleImpure({
-                    "NonLocalVariableRead.GlobalVariable.var1",
-                    "NonLocalVariableWrite.GlobalVariable.var1",
-                    "FileWrite.StringLiteral.stdout",
-                    "FileRead.StringLiteral.stdin",
-                }),  # this is propagated from fun2
+                "fun1.line4": SimpleImpure(
+                    {
+                        "NonLocalVariableRead.GlobalVariable.var1",
+                        "NonLocalVariableWrite.GlobalVariable.var1",
+                        "FileWrite.StringLiteral.stdout",
+                        "FileRead.StringLiteral.stdin",
+                    },
+                ),  # this is propagated from fun2
                 "fun2.line12": SimpleImpure({"FileRead.StringLiteral.stdin"}),
             },
         ),
@@ -1230,12 +1245,14 @@ def fun1(a):
 
             """,  # language=none
             {
-                "fun1.line6": SimpleImpure({
-                    "FileRead.StringLiteral.stdin",
-                    "NonLocalVariableWrite.GlobalVariable.var1",
-                    "NonLocalVariableWrite.GlobalVariable.var2",
-                    "NonLocalVariableRead.GlobalVariable.var3",
-                }),
+                "fun1.line6": SimpleImpure(
+                    {
+                        "FileRead.StringLiteral.stdin",
+                        "NonLocalVariableWrite.GlobalVariable.var1",
+                        "NonLocalVariableWrite.GlobalVariable.var2",
+                        "NonLocalVariableRead.GlobalVariable.var3",
+                    },
+                ),
             },
         ),
         (  # language=Python "Call of Function with function as return",
@@ -1248,12 +1265,16 @@ def fun2():
     x = fun1(1)
             """,  # language=none
             {
-                "fun1.line2": SimpleImpure({
-                    "FileWrite.StringLiteral.stdout",
-                }),
-                "fun2.line6": SimpleImpure({
-                    "FileWrite.StringLiteral.stdout",
-                }),
+                "fun1.line2": SimpleImpure(
+                    {
+                        "FileWrite.StringLiteral.stdout",
+                    },
+                ),
+                "fun2.line6": SimpleImpure(
+                    {
+                        "FileWrite.StringLiteral.stdout",
+                    },
+                ),
             },
         ),
         (  # language=Python "Call within a call",
@@ -1269,13 +1290,17 @@ def fun3():
     x = fun2(fun1(2))
             """,  # language=none
             {
-                "fun1.line2": SimpleImpure({
-                    "FileWrite.StringLiteral.stdout",
-                }),
+                "fun1.line2": SimpleImpure(
+                    {
+                        "FileWrite.StringLiteral.stdout",
+                    },
+                ),
                 "fun2.line6": Pure(),
-                "fun3.line9": SimpleImpure({
-                    "FileWrite.StringLiteral.stdout",
-                }),
+                "fun3.line9": SimpleImpure(
+                    {
+                        "FileWrite.StringLiteral.stdout",
+                    },
+                ),
             },
         ),
         (  # language=Python "Async Function"
@@ -1328,11 +1353,13 @@ def f(a):
     return y
         """,  # language=none
             {
-                "f.line3": SimpleImpure({
-                    "NonLocalVariableRead.GlobalVariable.var1",
-                    "NonLocalVariableRead.GlobalVariable.var2",
-                    "FileWrite.StringLiteral.stdout",
-                }),
+                "f.line3": SimpleImpure(
+                    {
+                        "NonLocalVariableRead.GlobalVariable.var1",
+                        "NonLocalVariableRead.GlobalVariable.var2",
+                        "FileWrite.StringLiteral.stdout",
+                    },
+                ),
             },
         ),
     ],
@@ -1385,7 +1412,8 @@ def test_infer_purity_impure(code: str, expected: dict[str, SimpleImpure]) -> No
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
-        for function_id, purity_result in purity_results.items() if not purity_result.is_class
+        for function_id, purity_result in purity_results.items()
+        if not purity_result.is_class
     }
 
     assert transformed_purity_results == expected
@@ -1411,11 +1439,13 @@ def fun1():
     call3()
             """,  # language=none
             {
-                "fun1.line2": SimpleImpure({
-                    "UnknownCall.UnknownFunctionCall.call1",
-                    "UnknownCall.UnknownFunctionCall.call2",
-                    "UnknownCall.UnknownFunctionCall.call3",
-                }),
+                "fun1.line2": SimpleImpure(
+                    {
+                        "UnknownCall.UnknownFunctionCall.call1",
+                        "UnknownCall.UnknownFunctionCall.call2",
+                        "UnknownCall.UnknownFunctionCall.call3",
+                    },
+                ),
             },
         ),
         (  # language=Python "Unknown Call of Parameter",
@@ -1469,16 +1499,22 @@ def fun3():
     x = fun1(1)(2)(3)  # Here the call is unknown - since fun1 returns a function
             """,  # language=none
             {
-                "fun1.line2": SimpleImpure({
-                    "FileWrite.StringLiteral.stdout",
-                }),
-                "fun2.line9": SimpleImpure({
-                    "FileWrite.StringLiteral.stdout",
-                }),
-                "fun3.line12": SimpleImpure({
-                    "FileWrite.StringLiteral.stdout",
-                    "UnknownCall.UnknownFunctionCall.UNKNOWN",  # This is the worst case where the call node is unknown.
-                }),
+                "fun1.line2": SimpleImpure(
+                    {
+                        "FileWrite.StringLiteral.stdout",
+                    },
+                ),
+                "fun2.line9": SimpleImpure(
+                    {
+                        "FileWrite.StringLiteral.stdout",
+                    },
+                ),
+                "fun3.line12": SimpleImpure(
+                    {
+                        "FileWrite.StringLiteral.stdout",
+                        "UnknownCall.UnknownFunctionCall.UNKNOWN",  # This is the worst case where the call node is unknown.
+                    },
+                ),
             },
         ),
     ],
@@ -1496,7 +1532,8 @@ def test_infer_purity_unknown(code: str, expected: dict[str, SimpleImpure]) -> N
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
-        for function_id, purity_result in purity_results.items() if not purity_result.is_class
+        for function_id, purity_result in purity_results.items()
+        if not purity_result.is_class
     }
 
     assert transformed_purity_results == expected
@@ -1539,7 +1576,7 @@ import math as m
 def fun1(a):
     m.sqrt(a)
             """,  # language=none
-            {"fun1.line4":  SimpleImpure({"NativeCall.UnknownFunctionCall.math.sqrt"})},
+            {"fun1.line4": SimpleImpure({"NativeCall.UnknownFunctionCall.math.sqrt"})},
         ),
         (  # language=Python "Import module with alias - function and constant"
             """
@@ -1551,8 +1588,7 @@ def fun1(a):
             """,  # language=none
             {
                 "fun1.line4": SimpleImpure(
-                    {"NonLocalVariableRead.Import.math.pi",
-                     "NativeCall.UnknownFunctionCall.math.sqrt"},
+                    {"NonLocalVariableRead.Import.math.pi", "NativeCall.UnknownFunctionCall.math.sqrt"},
                 ),
             },
         ),
@@ -1602,8 +1638,7 @@ def fun1(a):
             """,  # language=none
             {
                 "fun1.line4": SimpleImpure(
-                    {"NonLocalVariableRead.Import.math.pi",
-                     "NativeCall.UnknownFunctionCall.math.sqrt"},
+                    {"NonLocalVariableRead.Import.math.pi", "NativeCall.UnknownFunctionCall.math.sqrt"},
                 ),
             },
         ),
@@ -1668,13 +1703,16 @@ def fun1():
         "Write to Import",
     ],
 )
-@pytest.mark.xfail(reason="This is required because the import handling does not work when running the tests for the PR.")
+@pytest.mark.xfail(
+    reason="This is required because the import handling does not work when running the tests for the PR.",
+)
 def test_infer_purity_import(code: str, expected: dict[str, SimpleImpure]) -> None:
     purity_results = next(iter(infer_purity(code).values()))
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
-        for function_id, purity_result in purity_results.items() if not purity_result.is_class
+        for function_id, purity_result in purity_results.items()
+        if not purity_result.is_class
     }
 
     assert transformed_purity_results == expected
@@ -1817,17 +1855,17 @@ def fun(file):
             """,  # language= None
             {"fun.line4": SimpleImpure({"FileRead.ParameterAccess.file", "NativeCall.UnknownFunctionCall._io.open"})},
         ),
-#         (  # language=Python "With open MemberAccess str default"
-#             """
-# from pathlib import Path
-#
-# def fun():
-#     x: Path = Path("text.txt")
-#     with x.open() as f:  # Impure: FileRead
-#         f.read()
-#             """,  # language= None
-#             {"fun.line4": SimpleImpure({"FileRead.StringLiteral.UNKNOWN", "FileWrite.StringLiteral.UNKNOWN"})},
-#         ),
+        #         (  # language=Python "With open MemberAccess str default"
+        #             """
+        # from pathlib import Path
+        #
+        # def fun():
+        #     x: Path = Path("text.txt")
+        #     with x.open() as f:  # Impure: FileRead
+        #         f.read()
+        #             """,  # language= None
+        #             {"fun.line4": SimpleImpure({"FileRead.StringLiteral.UNKNOWN", "FileWrite.StringLiteral.UNKNOWN"})},
+        #         ),
     ],
     ids=[
         "Open with str default",
@@ -1855,7 +1893,8 @@ def test_infer_purity_open(code: str, expected: dict[str, SimpleImpure]) -> None
 
     transformed_purity_results = {
         to_string_function_id(function_id): to_simple_result(purity_result)
-        for function_id, purity_result in purity_results.items() if not purity_result.is_class
+        for function_id, purity_result in purity_results.items()
+        if not purity_result.is_class
     }
 
     assert transformed_purity_results == expected
