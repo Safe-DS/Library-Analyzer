@@ -415,7 +415,8 @@ class PurityAnalyzer:
             return Impure(
                 {
                     UnknownCall(
-                        expression=UnknownFunctionCall(call=imported_node.symbol.call), origin=imported_node.symbol,
+                        expression=UnknownFunctionCall(call=imported_node.symbol.call),
+                        origin=imported_node.symbol,
                     ),
                 },
             )
@@ -692,7 +693,8 @@ def get_purity_results(
     for values in package_purity_results.values():
         for k, v in values.items():
             sorted_module_purity_results.setdefault(
-                NodeID(None, "UNKNOWN" if k.module is None else k.module), {},
+                NodeID(None, "UNKNOWN" if k.module is None else k.module),
+                {},
             ).update({k: v})
 
     # Add back empty files.

@@ -190,7 +190,9 @@ class ModuleDataBuilder:
                 if isinstance(node, astroid.AssignName) and node.name in self.global_variables:
                     return GlobalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name)
                 return LocalVariable(
-                    node=node, id=NodeID.calc_node_id(node), name=node.name if hasattr(node, "name") else "None",
+                    node=node,
+                    id=NodeID.calc_node_id(node),
+                    name=node.name if hasattr(node, "name") else "None",
                 )
 
             case (
@@ -491,19 +493,22 @@ class ModuleDataBuilder:
 
             # Add __init__ function to ClassScope.
             if isinstance(self.current_function_def[-1].parent, ClassScope) and hasattr(
-                self.current_function_def[-1].parent, "init_function",
+                self.current_function_def[-1].parent,
+                "init_function",
             ):
                 self.current_function_def[-1].parent.init_function = self.current_function_def[-1]
         elif function_name == "__new__":
             # Add __init__ function to ClassScope.
             if isinstance(self.current_function_def[-1].parent, ClassScope) and hasattr(
-                self.current_function_def[-1].parent, "new_function",
+                self.current_function_def[-1].parent,
+                "new_function",
             ):
                 self.current_function_def[-1].parent.new_function = self.current_function_def[-1]
         elif function_name == "__post_init__":
             # Add __init__ function to ClassScope.
             if isinstance(self.current_function_def[-1].parent, ClassScope) and hasattr(
-                self.current_function_def[-1].parent, "post_init_function",
+                self.current_function_def[-1].parent,
+                "post_init_function",
             ):
                 self.current_function_def[-1].parent.post_init_function = self.current_function_def[-1]
 

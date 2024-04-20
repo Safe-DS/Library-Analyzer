@@ -96,7 +96,8 @@ class ReferenceResolver:
         self.module_analysis_result.resolved_references = resolved_references
         self.module_analysis_result.raw_reasons = raw_reasons
         self.module_analysis_result.call_graph_forest = build_call_graph(
-            self.classes, self.module_analysis_result.raw_reasons,
+            self.classes,
+            self.module_analysis_result.raw_reasons,
         )
 
     @staticmethod
@@ -420,7 +421,8 @@ class ReferenceResolver:
             elif isinstance(value_reference.node.receiver, astroid.Attribute):
                 receiver_name = value_reference.node.receiver.attrname
             elif isinstance(value_reference.node.receiver, astroid.Call) and isinstance(
-                value_reference.node.receiver.func, astroid.Name,
+                value_reference.node.receiver.func,
+                astroid.Name,
             ):
                 receiver_name = value_reference.node.receiver.func.name
             else:

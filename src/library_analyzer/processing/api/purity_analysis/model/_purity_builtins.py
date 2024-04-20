@@ -270,7 +270,9 @@ OPEN_MODES = {
 BUILTIN_CLASSSCOPES = {
     "BaseException": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="BaseException"), NodeID("BUILTIN", "BaseException", 859, 0), "BaseException",
+            astroid.ClassDef(name="BaseException"),
+            NodeID("BUILTIN", "BaseException", 859, 0),
+            "BaseException",
         ),
         [],
         None,
@@ -390,7 +392,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "ArithmeticError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="ArithmeticError"), NodeID("BUILTIN", "ArithmeticError", 936, 0), "ArithmeticError",
+            astroid.ClassDef(name="ArithmeticError"),
+            NodeID("BUILTIN", "ArithmeticError", 936, 0),
+            "ArithmeticError",
         ),
         [],
         None,
@@ -415,7 +419,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "AssertionError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="AssertionError"), NodeID("BUILTIN", "AssertionError", 947, 0), "AssertionError",
+            astroid.ClassDef(name="AssertionError"),
+            NodeID("BUILTIN", "AssertionError", 947, 0),
+            "AssertionError",
         ),
         [],
         None,
@@ -440,7 +446,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "AttributeError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="AttributeError"), NodeID("BUILTIN", "AttributeError", 958, 0), "AttributeError",
+            astroid.ClassDef(name="AttributeError"),
+            NodeID("BUILTIN", "AttributeError", 958, 0),
+            "AttributeError",
         ),
         [],
         None,
@@ -532,7 +540,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "WindowsError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="WindowsError"), NodeID("BUILTIN", "WindowsError", 1010, 0), "WindowsError",
+            astroid.ClassDef(name="WindowsError"),
+            NodeID("BUILTIN", "WindowsError", 1010, 0),
+            "WindowsError",
         ),
         [],
         None,
@@ -573,7 +583,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "BlockingIOError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="BlockingIOError"), NodeID("BUILTIN", "BlockingIOError", 1055, 0), "BlockingIOError",
+            astroid.ClassDef(name="BlockingIOError"),
+            NodeID("BUILTIN", "BlockingIOError", 1055, 0),
+            "BlockingIOError",
         ),
         [],
         None,
@@ -590,7 +602,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "ConnectionError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="ConnectionError"), NodeID("BUILTIN", "ConnectionError", 1450, 0), "ConnectionError",
+            astroid.ClassDef(name="ConnectionError"),
+            NodeID("BUILTIN", "ConnectionError", 1450, 0),
+            "ConnectionError",
         ),
         [],
         None,
@@ -607,7 +621,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "BrokenPipeError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="BrokenPipeError"), NodeID("BUILTIN", "BrokenPipeError", 1456, 0), "BrokenPipeError",
+            astroid.ClassDef(name="BrokenPipeError"),
+            NodeID("BUILTIN", "BrokenPipeError", 1456, 0),
+            "BrokenPipeError",
         ),
         [],
         None,
@@ -670,7 +686,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "BytesWarning": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="BytesWarning"), NodeID("BUILTIN", "BytesWarning", 2699, 0), "BytesWarning",
+            astroid.ClassDef(name="BytesWarning"),
+            NodeID("BUILTIN", "BytesWarning", 2699, 0),
+            "BytesWarning",
         ),
         [],
         None,
@@ -798,7 +816,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "EncodingWarning": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="EncodingWarning"), NodeID("BUILTIN", "EncodingWarning", 3111, 0), "EncodingWarning",
+            astroid.ClassDef(name="EncodingWarning"),
+            NodeID("BUILTIN", "EncodingWarning", 3111, 0),
+            "EncodingWarning",
         ),
         [],
         None,
@@ -846,7 +866,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "ExceptionGroup": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="ExceptionGroup"), NodeID("BUILTIN", "ExceptionGroup", 3176, 0), "ExceptionGroup",
+            astroid.ClassDef(name="ExceptionGroup"),
+            NodeID("BUILTIN", "ExceptionGroup", 3176, 0),
+            "ExceptionGroup",
         ),
         [],
         None,
@@ -863,7 +885,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "FileExistsError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="FileExistsError"), NodeID("BUILTIN", "FileExistsError", 3186, 0), "FileExistsError",
+            astroid.ClassDef(name="FileExistsError"),
+            NodeID("BUILTIN", "FileExistsError", 3186, 0),
+            "FileExistsError",
         ),
         [],
         None,
@@ -926,7 +950,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "FutureWarning": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="FutureWarning"), NodeID("BUILTIN", "FutureWarning", 3631, 0), "FutureWarning",
+            astroid.ClassDef(name="FutureWarning"),
+            NodeID("BUILTIN", "FutureWarning", 3631, 0),
+            "FutureWarning",
         ),
         [],
         None,
@@ -951,7 +977,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "GeneratorExit": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="GeneratorExit"), NodeID("BUILTIN", "GeneratorExit", 3645, 0), "GeneratorExit",
+            astroid.ClassDef(name="GeneratorExit"),
+            NodeID("BUILTIN", "GeneratorExit", 3645, 0),
+            "GeneratorExit",
         ),
         [],
         None,
@@ -1007,7 +1035,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "ImportWarning": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="ImportWarning"), NodeID("BUILTIN", "ImportWarning", 3679, 0), "ImportWarning",
+            astroid.ClassDef(name="ImportWarning"),
+            NodeID("BUILTIN", "ImportWarning", 3679, 0),
+            "ImportWarning",
         ),
         [],
         None,
@@ -1292,7 +1322,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "RuntimeError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="RuntimeError"), NodeID("BUILTIN", "RuntimeError", 4200, 0), "RuntimeError",
+            astroid.ClassDef(name="RuntimeError"),
+            NodeID("BUILTIN", "RuntimeError", 4200, 0),
+            "RuntimeError",
         ),
         [],
         None,
@@ -1344,7 +1376,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "OverflowError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="OverflowError"), NodeID("BUILTIN", "OverflowError", 4222, 0), "OverflowError",
+            astroid.ClassDef(name="OverflowError"),
+            NodeID("BUILTIN", "OverflowError", 4222, 0),
+            "OverflowError",
         ),
         [],
         None,
@@ -1396,7 +1430,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "PermissionError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="PermissionError"), NodeID("BUILTIN", "PermissionError", 4247, 0), "PermissionError",
+            astroid.ClassDef(name="PermissionError"),
+            NodeID("BUILTIN", "PermissionError", 4247, 0),
+            "PermissionError",
         ),
         [],
         None,
@@ -1432,7 +1468,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "RecursionError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="RecursionError"), NodeID("BUILTIN", "RecursionError", 4480, 0), "RecursionError",
+            astroid.ClassDef(name="RecursionError"),
+            NodeID("BUILTIN", "RecursionError", 4480, 0),
+            "RecursionError",
         ),
         [],
         None,
@@ -1457,7 +1495,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "ReferenceError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="ReferenceError"), NodeID("BUILTIN", "ReferenceError", 4491, 0), "ReferenceError",
+            astroid.ClassDef(name="ReferenceError"),
+            NodeID("BUILTIN", "ReferenceError", 4491, 0),
+            "ReferenceError",
         ),
         [],
         None,
@@ -1482,7 +1522,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "ResourceWarning": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="ResourceWarning"), NodeID("BUILTIN", "ResourceWarning", 4502, 0), "ResourceWarning",
+            astroid.ClassDef(name="ResourceWarning"),
+            NodeID("BUILTIN", "ResourceWarning", 4502, 0),
+            "ResourceWarning",
         ),
         [],
         None,
@@ -1507,7 +1549,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "RuntimeWarning": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="RuntimeWarning"), NodeID("BUILTIN", "RuntimeWarning", 4548, 0), "RuntimeWarning",
+            astroid.ClassDef(name="RuntimeWarning"),
+            NodeID("BUILTIN", "RuntimeWarning", 4548, 0),
+            "RuntimeWarning",
         ),
         [],
         None,
@@ -1559,7 +1603,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "StopIteration": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="StopIteration"), NodeID("BUILTIN", "StopIteration", 4925, 0), "StopIteration",
+            astroid.ClassDef(name="StopIteration"),
+            NodeID("BUILTIN", "StopIteration", 4925, 0),
+            "StopIteration",
         ),
         [],
         None,
@@ -1576,7 +1622,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "SyntaxWarning": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="SyntaxWarning"), NodeID("BUILTIN", "SyntaxWarning", 5593, 0), "SyntaxWarning",
+            astroid.ClassDef(name="SyntaxWarning"),
+            NodeID("BUILTIN", "SyntaxWarning", 5593, 0),
+            "SyntaxWarning",
         ),
         [],
         None,
@@ -1654,7 +1702,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "TimeoutError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="TimeoutError"), NodeID("BUILTIN", "TimeoutError", 5636, 0), "TimeoutError",
+            astroid.ClassDef(name="TimeoutError"),
+            NodeID("BUILTIN", "TimeoutError", 5636, 0),
+            "TimeoutError",
         ),
         [],
         None,
@@ -1736,7 +1786,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "UnicodeError": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="UnicodeError"), NodeID("BUILTIN", "UnicodeError", 5881, 0), "UnicodeError",
+            astroid.ClassDef(name="UnicodeError"),
+            NodeID("BUILTIN", "UnicodeError", 5881, 0),
+            "UnicodeError",
         ),
         [],
         None,
@@ -1866,7 +1918,9 @@ BUILTIN_CLASSSCOPES = {
     ),
     "UnicodeWarning": ClassScope(
         GlobalVariable(
-            astroid.ClassDef(name="UnicodeWarning"), NodeID("BUILTIN", "UnicodeWarning", 5985, 0), "UnicodeWarning",
+            astroid.ClassDef(name="UnicodeWarning"),
+            NodeID("BUILTIN", "UnicodeWarning", 5985, 0),
+            "UnicodeWarning",
         ),
         [],
         None,
