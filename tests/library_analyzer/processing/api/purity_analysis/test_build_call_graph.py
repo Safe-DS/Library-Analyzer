@@ -435,7 +435,9 @@ def f(a):
         "recursive function call",
     ],
 )
-@pytest.mark.xfail(reason="The current implementation does not handle cycles of functions with the same name correctly.")
+@pytest.mark.xfail(
+    reason="The current implementation does not handle cycles of functions with the same name correctly.",
+)
 def test_build_call_graph_cycles(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = resolve_references(code).call_graph_forest
 
