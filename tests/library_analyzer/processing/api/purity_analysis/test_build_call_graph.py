@@ -525,7 +525,9 @@ def fun():
             """,  # language=none
             {
                 ".A.2.0": {".__new__.3.4", ".__init__.6.4", ".__post_init__.9.4"},
-                ".__new__.3.4": {"BUILTIN.super"},  # TODO: [LATER] the analysis should be able to resolve the super call, right noow it is lost when the combined call graph node is created, since it is detected as an recursive call.
+                ".__new__.3.4": {
+                    "BUILTIN.super",
+                },  # TODO: [LATER] the analysis should be able to resolve the super call, right noow it is lost when the combined call graph node is created, since it is detected as an recursive call.
                 ".__init__.6.4": set(),
                 ".__post_init__.9.4": set(),
                 ".fun.12.0": {".A.2.0"},

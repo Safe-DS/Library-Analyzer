@@ -189,7 +189,11 @@ class ModuleDataBuilder:
                 # This deals with global variables that are used inside a lambda
                 if isinstance(node, astroid.AssignName) and node.name in self.global_variables:
                     return GlobalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name)
-                return LocalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name if hasattr(node, "name") else "None")
+                return LocalVariable(
+                    node=node,
+                    id=NodeID.calc_node_id(node),
+                    name=node.name if hasattr(node, "name") else "None",
+                )
 
             case (
                 astroid.TryExcept() | astroid.TryFinally()
@@ -281,9 +285,10 @@ class ModuleDataBuilder:
 
         # Add class variables to the class_variables dict.
         for child in self.current_node_stack[-1].children:
-            if (isinstance(child.symbol, ClassVariable) and
-                isinstance(self.current_node_stack[-1], ClassScope) and
-                hasattr(self.current_node_stack[-1], "class_variables")
+            if (
+                isinstance(child.symbol, ClassVariable)
+                and isinstance(self.current_node_stack[-1], ClassScope)
+                and hasattr(self.current_node_stack[-1], "class_variables")
             ):
                 self.current_node_stack[-1].class_variables.setdefault(child.symbol.name, []).append(child.symbol)
 
@@ -408,7 +413,11 @@ class ModuleDataBuilder:
                 self.targets = []
 
             # Add all values that are used inside the lambda body to its parent function values' dict.
-            if self.values and len(self.current_function_def) >= 2 and isinstance(self.current_node_stack[-2], FunctionScope):
+            if (
+                self.values
+                and len(self.current_function_def) >= 2
+                and isinstance(self.current_node_stack[-2], FunctionScope)
+            ):
                 for value in self.values:
                     if value.name not in self.current_function_def[-1].parameters:
                         self.current_function_def[-2].value_references.setdefault(value.name, []).append(value)
@@ -424,7 +433,11 @@ class ModuleDataBuilder:
             self.values = []
 
             # Add all calls that are used inside the lambda body to its parent function calls' dict.
-            if self.calls and len(self.current_function_def) >= 2 and isinstance(self.current_function_def[-2], FunctionScope):
+            if (
+                self.calls
+                and len(self.current_function_def) >= 2
+                and isinstance(self.current_function_def[-2], FunctionScope)
+            ):
                 for call in self.calls:
                     if call.name not in self.current_function_def[-2].call_references:
                         self.current_function_def[-2].call_references[call.name] = [call]
@@ -447,11 +460,17 @@ class ModuleDataBuilder:
             # Add all globals that are used inside the Lambda to the parent function globals list.
             if self.current_function_def[-1].globals_used:
                 for glob_name, glob_def_list in self.current_function_def[-1].globals_used.items():
-                    if len(self.current_function_def) >= 2 and glob_name not in self.current_function_def[-2].globals_used:
+                    if (
+                        len(self.current_function_def) >= 2
+                        and glob_name not in self.current_function_def[-2].globals_used
+                    ):
                         self.current_function_def[-2].globals_used[glob_name] = glob_def_list
                     else:
                         for glob_def in glob_def_list:
-                            if len(self.current_function_def) >= 2 and glob_def not in self.current_function_def[-2].globals_used[glob_name]:
+                            if (
+                                len(self.current_function_def) >= 2
+                                and glob_def not in self.current_function_def[-2].globals_used[glob_name]
+                            ):
                                 self.current_function_def[-2].globals_used[glob_name].append(glob_def)
 
     def _analyze_constructor(self, function_name: str) -> None:
@@ -463,29 +482,33 @@ class ModuleDataBuilder:
         if function_name == "__init__":
             # Add instance variables to the instance_variables list of the class.
             for child in self.current_function_def[-1].children:
-                if (isinstance(child.symbol, InstanceVariable) and
-                    isinstance(self.current_function_def[-1].parent, ClassScope) and
-                    hasattr(self.current_function_def[-1].parent, "instance_variables")
+                if (
+                    isinstance(child.symbol, InstanceVariable)
+                    and isinstance(self.current_function_def[-1].parent, ClassScope)
+                    and hasattr(self.current_function_def[-1].parent, "instance_variables")
                 ):
                     self.current_function_def[-1].parent.instance_variables.setdefault(child.symbol.name, []).append(
                         child.symbol,
                     )
 
             # Add __init__ function to ClassScope.
-            if (isinstance(self.current_function_def[-1].parent, ClassScope) and
-                hasattr(self.current_function_def[-1].parent, "init_function")
+            if isinstance(self.current_function_def[-1].parent, ClassScope) and hasattr(
+                self.current_function_def[-1].parent,
+                "init_function",
             ):
                 self.current_function_def[-1].parent.init_function = self.current_function_def[-1]
         elif function_name == "__new__":
             # Add __new__ function to ClassScope.
-            if (isinstance(self.current_function_def[-1].parent, ClassScope) and
-                hasattr(self.current_function_def[-1].parent, "new_function")
+            if isinstance(self.current_function_def[-1].parent, ClassScope) and hasattr(
+                self.current_function_def[-1].parent,
+                "new_function",
             ):
                 self.current_function_def[-1].parent.new_function = self.current_function_def[-1]
         elif function_name == "__post_init__":
             # Add __post_init__ function to ClassScope.
-            if (isinstance(self.current_function_def[-1].parent, ClassScope) and
-                hasattr(self.current_function_def[-1].parent, "post_init_function")
+            if isinstance(self.current_function_def[-1].parent, ClassScope) and hasattr(
+                self.current_function_def[-1].parent,
+                "post_init_function",
             ):
                 self.current_function_def[-1].parent.post_init_function = self.current_function_def[-1]
 

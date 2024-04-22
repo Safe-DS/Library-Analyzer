@@ -69,11 +69,13 @@ class ReferenceResolver:
     module_analysis_result: ModuleAnalysisResult = ModuleAnalysisResult()
     package_data_is_provided: bool = False
 
-    def __init__(self, code: str,
-                 module_name: str = "",
-                 path: str | None = None,
-                 package_data: PackageData | None = None,
-                 ):
+    def __init__(
+        self,
+        code: str,
+        module_name: str = "",
+        path: str | None = None,
+        package_data: PackageData | None = None,
+    ):
         # Check if the module is part of a package and if the package data is given.
         if package_data and package_data.combined_module:
             self.package_data_is_provided = True
@@ -95,8 +97,10 @@ class ReferenceResolver:
         resolved_references, raw_reasons = self._resolve_references()
         self.module_analysis_result.resolved_references = resolved_references
         self.module_analysis_result.raw_reasons = raw_reasons
-        self.module_analysis_result.call_graph_forest = build_call_graph(self.classes,
-                                                                         self.module_analysis_result.raw_reasons)
+        self.module_analysis_result.call_graph_forest = build_call_graph(
+            self.classes,
+            self.module_analysis_result.raw_reasons,
+        )
 
     @staticmethod
     def is_function_of_class(function: astroid.FunctionDef, klass: ClassScope) -> bool:
@@ -150,10 +154,11 @@ class ReferenceResolver:
                 d3[key] = value
         return d3
 
-    def _find_call_references(self,
-                              call_reference: Reference,
-                              function: FunctionScope,
-                              ) -> ValueReference:
+    def _find_call_references(
+        self,
+        call_reference: Reference,
+        function: FunctionScope,
+    ) -> ValueReference:
         """Find all references for a function call.
 
         This function finds all referenced Symbols for a call reference.
@@ -278,10 +283,11 @@ class ReferenceResolver:
 
         return result_value_reference
 
-    def _find_value_references(self,
-                               value_reference: Reference,
-                               function: FunctionScope,
-                               ) -> ValueReference:
+    def _find_value_references(
+        self,
+        value_reference: Reference,
+        function: FunctionScope,
+    ) -> ValueReference:
         """Find all references for a value node.
 
         This functions finds all referenced Symbols for a value reference.
@@ -335,7 +341,11 @@ class ReferenceResolver:
 
             # Only add symbols that are defined before the value is used.
             for symbol in symbols:
-                if symbol.id.line is None or value_reference.id.line is None or symbol.id.line <= value_reference.id.line:
+                if (
+                    symbol.id.line is None
+                    or value_reference.id.line is None
+                    or symbol.id.line <= value_reference.id.line
+                ):
                     result_value_reference.referenced_symbols.append(symbol)
 
         # Find parameters that are referenced.
@@ -389,7 +399,8 @@ class ReferenceResolver:
                         and value_reference.node.member not in function.call_references
                     ):
                         result_value_reference.referenced_symbols.extend(
-                            klass.class_variables[value_reference.node.member])
+                            klass.class_variables[value_reference.node.member],
+                        )
                 if klass.instance_variables:
                     if (
                         value_reference.node.member in klass.instance_variables
@@ -411,8 +422,10 @@ class ReferenceResolver:
                 receiver_name = "UNKNOWN"
             elif isinstance(value_reference.node.receiver, astroid.Attribute):
                 receiver_name = value_reference.node.receiver.attrname
-            elif (isinstance(value_reference.node.receiver, astroid.Call)
-                  and isinstance(value_reference.node.receiver.func, astroid.Name)):
+            elif isinstance(value_reference.node.receiver, astroid.Call) and isinstance(
+                value_reference.node.receiver.func,
+                astroid.Name,
+            ):
                 receiver_name = value_reference.node.receiver.func.name
             else:
                 receiver_name = value_reference.node.receiver.name
@@ -439,7 +452,8 @@ class ReferenceResolver:
                 if import_def and value_reference.node.node is not None and not was_found:
                     # Use astroid to infer the symbol of the member from the module.
                     inferred_node_def = safe_infer(
-                        value_reference.node.node)  # TODO: what if node is a MemberAccessValue?
+                        value_reference.node.node,
+                    )  # TODO: what if node is a MemberAccessValue?
                     if not inferred_node_def:
                         with contextlib.suppress(astroid.InferenceError):
                             inferred_node_def = next(value_reference.node.node.infer())
@@ -466,10 +480,11 @@ class ReferenceResolver:
 
         return result_value_reference
 
-    def _find_target_references(self,
-                                target_reference: Symbol,
-                                function: FunctionScope,
-                                ) -> TargetReference:
+    def _find_target_references(
+        self,
+        target_reference: Symbol,
+        function: FunctionScope,
+    ) -> TargetReference:
         """Find all references for a target node.
 
         This functions finds all referenced Symbols for a target reference.
@@ -499,8 +514,8 @@ class ReferenceResolver:
         if target_reference.name in function.target_symbols:
             # Only check for symbols that are defined before the current target_reference.
             local_symbols = function.target_symbols[target_reference.name][
-                            : function.target_symbols[target_reference.name].index(target_reference)
-                            ]
+                : function.target_symbols[target_reference.name].index(target_reference)
+            ]
             result_target_reference.referenced_symbols.extend(local_symbols)
 
         # Find global variables that are referenced.
@@ -534,7 +549,8 @@ class ReferenceResolver:
                                 continue
                         # Do not add functions that are not of the current class (or superclass).
                         if function.symbol.name not in klass.class_variables or not self.is_function_of_class(
-                            function.symbol.node, klass,
+                            function.symbol.node,
+                            klass,
                         ):
                             # Collect all functions of superclasses for the current klass instance.
                             super_functions = []
@@ -546,7 +562,8 @@ class ReferenceResolver:
 
                             # Make an exception for global functions and functions of superclasses.
                             # Also check if the function was overwritten in the current class.
-                            if (isinstance(function.symbol, GlobalVariable)
+                            if (
+                                isinstance(function.symbol, GlobalVariable)
                                 or function.symbol.name in super_functions
                                 and function.symbol.name not in klass.class_variables
                             ):
@@ -687,9 +704,9 @@ class ReferenceResolver:
                                                 raw_reasons[function.symbol.id].reads_from.add(referenced_symbol)
                             # If no referenced symbols are found, add the call to the list of unknown_calls
                             # of the raw_reasons dict for this function
-                            elif (value_reference_result.node not in raw_reasons[function.symbol.id].unknown_calls
-                                  and isinstance(value_reference_result.node.node, astroid.Call)
-                            ):
+                            elif value_reference_result.node not in raw_reasons[
+                                function.symbol.id
+                            ].unknown_calls and isinstance(value_reference_result.node.node, astroid.Call):
                                 raw_reasons[function.symbol.id].unknown_calls.add(value_reference_result.node)
 
                 # Check if the function has target_references (References from a target node to another target node).
@@ -731,11 +748,12 @@ class ReferenceResolver:
         return resolved_references, raw_reasons
 
 
-def resolve_references(code: str,
-                       module_name: str = "",
-                       path: str | None = None,
-                       package_data: PackageData | None = None,
-                       ) -> ModuleAnalysisResult:
+def resolve_references(
+    code: str,
+    module_name: str = "",
+    path: str | None = None,
+    package_data: PackageData | None = None,
+) -> ModuleAnalysisResult:
     """Resolve all references in a module.
 
     Parameters

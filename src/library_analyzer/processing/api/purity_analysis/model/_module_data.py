@@ -272,7 +272,12 @@ class NodeID:
             if isinstance(other, Symbol):
                 return self == other.id
             raise NotImplementedError(f"Cannot compare NodeID with {type(other)}")
-        return self.module == other.module and self.name == other.name and self.line == other.line and self.col == other.col
+        return (
+            self.module == other.module
+            and self.name == other.name
+            and self.line == other.line
+            and self.col == other.col
+        )
 
     def __lt__(self, other: NodeID) -> bool:
         if not isinstance(other, NodeID):

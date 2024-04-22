@@ -265,7 +265,7 @@ class CallGraphBuilder:
 
         # If the current node is already in the path, a cycle is found.
         if cgn.symbol.id in path:
-            cut_path = path[path.index(cgn.symbol.id):]
+            cut_path = path[path.index(cgn.symbol.id) :]
             return {node_id: self.call_graph_forest.get_graph(node_id) for node_id in cut_path}
 
         # If a node has no children, it is a leaf node, and an empty list is returned.
@@ -302,8 +302,11 @@ class CallGraphBuilder:
         """
         # Create the new combined node.
         combined_name = "+".join(sorted(c.__str__() for c in cycle))
-        module = next(iter(cycle.values())).symbol.node.root().name if (
-            next(iter(cycle.values())).symbol.node and next(iter(cycle.values())).symbol.node.root().name != "") else None
+        module = (
+            next(iter(cycle.values())).symbol.node.root().name
+            if (next(iter(cycle.values())).symbol.node and next(iter(cycle.values())).symbol.node.root().name != "")
+            else None
+        )
         combined_id = NodeID(module, combined_name)
         combined_reasons = Reasons(id=combined_id).join_reasons_list([node.reasons for node in cycle.values()])
         combined_cgn = CombinedCallGraphNode(
