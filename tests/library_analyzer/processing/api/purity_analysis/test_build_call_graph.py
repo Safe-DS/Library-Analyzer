@@ -384,6 +384,31 @@ class C:
                 ".fun1.3.4+.fun2.6.4": set(),
             },
         ),
+        (  # language=Python "cycle with same name in class"
+            """
+from typing import Any
+
+class A:
+    def __init__(self):
+        pass
+
+class B(Any):
+    def __init__(self):
+        super().__init__()
+
+class C(Any):
+    def __init__(self):
+        Any.__init__(self)
+            """,  # language=none
+            {
+                ".A.4.0": {".__init__.5.4"},
+                ".B.8.0": {".__init__.9.4"},
+                ".C.12.0": {".__init__.13.4"},
+                ".__init__.5.4": set(),
+                ".__init__.9.4": {"BUILTIN.super", ".__init__.5.4"},
+                ".__init__.13.4": {".__init__.5.4"},
+            },
+        ),
         (  # language=Python "recursive function call",
             """
 def f(a):
@@ -406,9 +431,11 @@ def f(a):
         "function call with cycle - external recursive cycle within a cycle",
         "function call with cycle - cycle within a cycle",
         "cycle in class",
+        "cycle with same name in class",
         "recursive function call",
     ],
 )
+@pytest.mark.xfail(reason="The current implementation does not handle cycles of functions with the same name correctly.")
 def test_build_call_graph_cycles(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = resolve_references(code).call_graph_forest
 

@@ -477,13 +477,13 @@ class ModuleDataBuilder:
             ):
                 self.current_function_def[-1].parent.init_function = self.current_function_def[-1]
         elif function_name == "__new__":
-            # Add __init__ function to ClassScope.
+            # Add __new__ function to ClassScope.
             if (isinstance(self.current_function_def[-1].parent, ClassScope) and
                 hasattr(self.current_function_def[-1].parent, "new_function")
             ):
                 self.current_function_def[-1].parent.new_function = self.current_function_def[-1]
         elif function_name == "__post_init__":
-            # Add __init__ function to ClassScope.
+            # Add __post_init__ function to ClassScope.
             if (isinstance(self.current_function_def[-1].parent, ClassScope) and
                 hasattr(self.current_function_def[-1].parent, "post_init_function")
             ):
@@ -630,33 +630,12 @@ class ModuleDataBuilder:
         base_classes: list[ClassScope] = []
         for base in node.bases:
             if isinstance(base, astroid.Name):
-                base_class = self.get_class_by_name(base.name)
-                if isinstance(base_class, ClassScope):
-                    base_classes.append(base_class)
+                if base.name in self.classes:
+                    base_classes.append(self.classes[base.name])
                 elif base.name in BUILTIN_CLASSSCOPES:
                     base_classes.append(BUILTIN_CLASSSCOPES[base.name])
 
         return base_classes
-
-    def get_class_by_name(self, name: str) -> ClassScope | None:
-        """Get the class with the given name.
-
-        Parameters
-        ----------
-        name : str
-            The name of the class to get.
-
-        Returns
-        -------
-        ClassScope | None
-            The class with the given name if it exists, None otherwise.
-            None will never be returned since this function is only called when it is certain that the class exists.
-        """
-        for klass in self.classes:
-            if klass == name:
-                return self.classes[klass]
-        # This is not possible because the class is always added to the classes dict when it is defined.
-        return None  # pragma: no cover
 
     def enter_module(self, node: astroid.Module) -> None:
         """

@@ -46,6 +46,8 @@ class ReferenceResolver:
         The imports of the module.
     module_analysis_result : ModuleAnalysisResult
         The result of the reference resolving.
+    package_data_is_provided : bool
+        True if package data is given, False otherwise.
 
     Parameters
     ----------
