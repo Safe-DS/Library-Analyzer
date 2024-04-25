@@ -1281,13 +1281,13 @@ def fun():
                 ReferenceTestNode(
                     "add.line13",
                     "FunctionDef.fun",
-                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                    ["ClassVariable.A.add.line4"],
                 ),
                 ReferenceTestNode("B.line14", "FunctionDef.fun", ["GlobalVariable.B.line7"]),
                 ReferenceTestNode(
                     "add.line14",
                     "FunctionDef.fun",
-                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                    ["ClassVariable.B.add.line9"],
                 ),
             ],
         ),
@@ -2300,7 +2300,7 @@ def g():
                 ),
             ],
         ),  # since we only return a list of all possible references, we can't distinguish between the two functions
-        (  # language=Python "Functions with the same name but different signature"
+        (  # language=Python "Functions with the same name but different arity"
             """
 class A:
     @staticmethod
@@ -2326,16 +2326,156 @@ def g():
                 ReferenceTestNode(
                     "add.line13",
                     "FunctionDef.g",
-                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
-                ),  # remove this
+                    ["ClassVariable.A.add.line4"],
+                ),
                 ReferenceTestNode("B.line14", "FunctionDef.g", ["GlobalVariable.B.line7"]),
                 ReferenceTestNode(
                     "add.line14",
                     "FunctionDef.g",
-                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],  # remove this
+                    ["ClassVariable.B.add.line9"],
                 ),
             ],
-            # TODO: [LATER] we should detect the different signatures
+        ),
+        (  # language=Python "Functions with the same name but different arity with star arguments"
+            """
+class A:
+    @staticmethod
+    def add(a, b, c):
+        return a + b + c
+
+class B:
+    @staticmethod
+    def add(a, b, *args):
+        return a + b + args
+
+class C:
+    @staticmethod
+    def add(a, b, *c):
+        return a + b + c
+
+class D:
+    @staticmethod
+    def add(pos_arg, def_arg="default_value", *args, key_arg="default_kwarg", **kwargs):
+        pass
+
+def g():
+    A.add(1, 2, 3)
+    B.add(1, 2, 3, 4, [5, 6])
+    D.add(1, "2", 3, 4, [5, 6], key_arg="seven", name="eight")
+    D.add(1, def_arg="2", args=(3, 4, [5, 6]), key_arg="seven", name="eight")
+    D.add(pos_arg=1, def_arg="2", key_arg="seven")
+            """,  # language=none
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.add", ["Parameter.a.line4"]),
+                ReferenceTestNode("b.line5", "FunctionDef.add", ["Parameter.b.line4"]),
+                ReferenceTestNode("c.line5", "FunctionDef.add", ["Parameter.c.line4"]),
+                ReferenceTestNode("a.line10", "FunctionDef.add", ["Parameter.a.line9"]),
+                ReferenceTestNode("b.line10", "FunctionDef.add", ["Parameter.b.line9"]),
+                ReferenceTestNode("args.line10", "FunctionDef.add", ["Parameter.args.line9"]),
+                ReferenceTestNode("a.line15", "FunctionDef.add", ["Parameter.a.line14"]),
+                ReferenceTestNode("b.line15", "FunctionDef.add", ["Parameter.b.line14"]),
+                ReferenceTestNode("c.line15", "FunctionDef.add", ["Parameter.c.line14"]),
+                ReferenceTestNode("A.line23", "FunctionDef.g", ["GlobalVariable.A.line2"]),
+                ReferenceTestNode(
+                    "add.line23",
+                    "FunctionDef.g",
+                    ["ClassVariable.A.add.line4"],
+                ),
+                ReferenceTestNode("B.line24", "FunctionDef.g", ["GlobalVariable.B.line7"]),
+                ReferenceTestNode(
+                    "add.line24",
+                    "FunctionDef.g",
+                    ["ClassVariable.B.add.line9"],
+                ),
+                ReferenceTestNode("D.line25", "FunctionDef.g", ["GlobalVariable.D.line17"]),
+                ReferenceTestNode(
+                    "add.line25",
+                    "FunctionDef.g",
+                    ["ClassVariable.D.add.line19"],
+                ),
+                ReferenceTestNode("D.line26", "FunctionDef.g", ["GlobalVariable.D.line17"]),
+                ReferenceTestNode(
+                    "add.line26",
+                    "FunctionDef.g",
+                    ["ClassVariable.D.add.line19"],
+                ),
+                ReferenceTestNode("D.line27", "FunctionDef.g", ["GlobalVariable.D.line17"]),
+                ReferenceTestNode(
+                    "add.line27",
+                    "FunctionDef.g",
+                    ["ClassVariable.D.add.line19"],
+                ),
+            ],
+        ),
+        (  # language=Python "Functions with the same name but different signature positionals"
+            """
+class A:
+    @staticmethod
+    def add(a:int, b:int):
+        return a + b
+
+class B:
+    @staticmethod
+    def add(a:int, b:float):
+        return a + b
+
+def g():
+    A.add(a=1, b=2)
+    B.add(a=1, b=2)
+            """,  # language=none
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.add", ["Parameter.a.line4"]),
+                ReferenceTestNode("b.line5", "FunctionDef.add", ["Parameter.b.line4"]),
+                ReferenceTestNode("a.line10", "FunctionDef.add", ["Parameter.a.line9"]),
+                ReferenceTestNode("b.line10", "FunctionDef.add", ["Parameter.b.line9"]),
+                ReferenceTestNode("A.line13", "FunctionDef.g", ["GlobalVariable.A.line2"]),
+                ReferenceTestNode(
+                    "add.line13",
+                    "FunctionDef.g",
+                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                ),
+                ReferenceTestNode("B.line14", "FunctionDef.g", ["GlobalVariable.B.line7"]),
+                ReferenceTestNode(
+                    "add.line14",
+                    "FunctionDef.g",
+                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                ),
+            ],
+        ),
+        (  # language=Python "Functions with the same name but different signature keywords"
+            """
+class A:
+    @staticmethod
+    def add(a:int=1, b:int=2):
+        return a + b
+
+class B:
+    @staticmethod
+    def add(a:int=1, b:float=2.0):
+        return a + b
+
+def g():
+    A.add(a=1, b=2)
+    B.add(a=1, b=2)
+            """,  # language=none
+            [
+                ReferenceTestNode("a.line5", "FunctionDef.add", ["Parameter.a.line4"]),
+                ReferenceTestNode("b.line5", "FunctionDef.add", ["Parameter.b.line4"]),
+                ReferenceTestNode("a.line10", "FunctionDef.add", ["Parameter.a.line9"]),
+                ReferenceTestNode("b.line10", "FunctionDef.add", ["Parameter.b.line9"]),
+                ReferenceTestNode("A.line13", "FunctionDef.g", ["GlobalVariable.A.line2"]),
+                ReferenceTestNode(
+                    "add.line13",
+                    "FunctionDef.g",
+                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                ),
+                ReferenceTestNode("B.line14", "FunctionDef.g", ["GlobalVariable.B.line7"]),
+                ReferenceTestNode(
+                    "add.line14",
+                    "FunctionDef.g",
+                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9"],
+                ),
+            ],
         ),
         (  # language=Python "Class function call"
             """
@@ -2404,7 +2544,10 @@ def g():
         "Lambda function as key",
         "Generator function",
         "Functions with the same name but different classes",
-        "Functions with the same name but different signature",
+        "Functions with the same name but different arity",
+        "Functions with the same name but different arity with star arguments",
+        "Functions with the same name but different signature positionals",  # TODO: [LATER] detect the difference between the two functions
+        "Functions with the same name but different signature keywords",  # TODO: [LATER] detect the difference between the two functions
         "Class function call",
         "Class function call, direct call",
         # "Class function and class variable with the same name"  # This is bad practice and therfore is not covered- only the function def will be found in this case
@@ -3038,7 +3181,7 @@ def f():
                     set(),
                 ),
             },
-        ),  # TODO: [LATER] we should detect the different signatures
+        ),
     ],
     ids=[
         "Basics",

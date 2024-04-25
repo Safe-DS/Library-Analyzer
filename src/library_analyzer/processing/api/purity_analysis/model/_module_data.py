@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass, field
+from enum import Enum, auto
 from typing import TYPE_CHECKING
 
 import astroid
@@ -432,6 +433,7 @@ class Parameter(Symbol):
     """Represents a parameter of a function."""
 
     node: astroid.AssignName
+    kind: ParameterKind | None = None
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -803,3 +805,13 @@ class FunctionScope(Scope):
             The name of the call node to remove.
         """
         self.call_references.pop(call_id, None)
+
+
+class ParameterKind(Enum):
+    """Represents the kind of a parameter."""
+
+    POSITIONAL_ONLY = auto()
+    POSITIONAL_OR_KEYWORD = auto()
+    VAR_POSITIONAL = auto()
+    KEYWORD_ONLY = auto()
+    VAR_KEYWORD = auto()

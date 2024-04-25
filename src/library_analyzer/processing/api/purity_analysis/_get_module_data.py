@@ -19,6 +19,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ModuleData,
     NodeID,
     Parameter,
+    ParameterKind,
     Reference,
     Scope,
     Symbol,
@@ -532,7 +533,7 @@ class ModuleDataBuilder:
             return node.parent
         return self.find_first_parent_function(node.parent)
 
-    def handle_arg(self, constructed_node: astroid.AssignName) -> None:
+    def handle_arg(self, node: astroid.AssignName, kind: ParameterKind) -> None:
         """Handle an argument node.
 
         This function is called when a vararg or a kwarg parameter is found inside an Argument node.
@@ -541,31 +542,36 @@ class ModuleDataBuilder:
 
         Parameters
         ----------
-        constructed_node : astroid.AssignName
+        node : astroid.AssignName
             The node that is to be handled.
+        kind : ParameterKind
+            The kind of the parameter.
         """
         scope_node = Scope(
-            _symbol=Parameter(constructed_node, NodeID.calc_node_id(constructed_node), constructed_node.name),
+            _symbol=Parameter(node, NodeID.calc_node_id(node), node.name, kind=kind),
             _children=[],
             _parent=self.current_node_stack[-1],
         )
         self.targets.append(scope_node.symbol)
         self.children.append(scope_node)
-        self.add_arg_to_function_scope_parameters(constructed_node)
+        self.add_arg_to_function_scope_parameters(node, kind)
 
-    def add_arg_to_function_scope_parameters(self, argument: astroid.AssignName) -> None:
+    def add_arg_to_function_scope_parameters(self, argument: astroid.AssignName, kind: ParameterKind) -> None:
         """Add an argument to the parameters dict of the current function scope.
 
         Parameters
         ----------
         argument : astroid.AssignName
             The argument node to add to the parameter dict.
+        kind : ParameterKind
+            The kind of the parameter.
         """
         if isinstance(self.current_node_stack[-1], FunctionScope):
             self.current_node_stack[-1].parameters[argument.name] = Parameter(
                 argument,
                 NodeID.calc_node_id(argument),
                 argument.name,
+                kind=kind,
             )
 
     def is_annotated(self, node: astroid.NodeNG | MemberAccess, found_annotation_node: bool) -> bool:
@@ -825,31 +831,36 @@ class ModuleDataBuilder:
     def enter_arguments(self, node: astroid.Arguments) -> None:
         if node.args:
             for arg in node.args:
-                self.add_arg_to_function_scope_parameters(arg)
+                kind = ParameterKind.POSITIONAL_OR_KEYWORD
+                self.add_arg_to_function_scope_parameters(arg, kind)
         if node.kwonlyargs:
             for arg in node.kwonlyargs:
-                self.add_arg_to_function_scope_parameters(arg)
+                kind = ParameterKind.KEYWORD_ONLY
+                self.add_arg_to_function_scope_parameters(arg, kind)
         if node.posonlyargs:
             for arg in node.posonlyargs:
-                self.add_arg_to_function_scope_parameters(arg)
+                kind = ParameterKind.POSITIONAL_ONLY
+                self.add_arg_to_function_scope_parameters(arg, kind)
         if node.vararg:
+            kind = ParameterKind.VAR_POSITIONAL
             constructed_node = astroid.AssignName(
                 name=node.vararg,
                 parent=node,
                 lineno=node.parent.lineno,
                 col_offset=node.parent.col_offset,
             )
+            self.handle_arg(constructed_node, kind)
             # TODO: col_offset is not correct: it should be the col_offset of the vararg/(kwarg) node which is not
             #  collected by astroid
-            self.handle_arg(constructed_node)
         if node.kwarg:
+            kind = ParameterKind.VAR_KEYWORD
             constructed_node = astroid.AssignName(
                 name=node.kwarg,
                 parent=node,
                 lineno=node.parent.lineno,
                 col_offset=node.parent.col_offset,
             )
-            self.handle_arg(constructed_node)
+            self.handle_arg(constructed_node, kind)
 
     def enter_name(self, node: astroid.Name) -> None:
         # Do not add names of decorators as values, since are not needed.
