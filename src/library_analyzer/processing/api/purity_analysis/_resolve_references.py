@@ -177,13 +177,28 @@ class ReferenceResolver:
             True if the parameters of the function match the arguments of the call, False otherwise.
         """
         if function.parameters:
-            argument_node: astroid.Arguments | None = next(iter(function.parameters.values())).node.parent if \
-                (isinstance(next(iter(function.parameters.values())).node.parent, astroid.Arguments)) else None
+            argument_node: astroid.Arguments | None = (
+                next(iter(function.parameters.values())).node.parent
+                if (isinstance(next(iter(function.parameters.values())).node.parent, astroid.Arguments))
+                else None
+            )
 
             # Get the parameters of the function and group them by kind.
-            star_param = [f for f in function.parameters.values() if f.kind in (ParameterKind.VAR_POSITIONAL, ParameterKind.VAR_KEYWORD)]
-            keyword_param = [f for f in function.parameters.values() if f.kind in (ParameterKind.KEYWORD_ONLY, ParameterKind.VAR_KEYWORD)]
-            positional_param = [f for f in function.parameters.values() if f.kind in (ParameterKind.POSITIONAL_ONLY, ParameterKind.POSITIONAL_OR_KEYWORD)]
+            star_param = [
+                f
+                for f in function.parameters.values()
+                if f.kind in (ParameterKind.VAR_POSITIONAL, ParameterKind.VAR_KEYWORD)
+            ]
+            keyword_param = [
+                f
+                for f in function.parameters.values()
+                if f.kind in (ParameterKind.KEYWORD_ONLY, ParameterKind.VAR_KEYWORD)
+            ]
+            positional_param = [
+                f
+                for f in function.parameters.values()
+                if f.kind in (ParameterKind.POSITIONAL_ONLY, ParameterKind.POSITIONAL_OR_KEYWORD)
+            ]
 
             if isinstance(function.parent, ClassScope):
                 positional_param = [f for f in positional_param if f.name not in ("self", "cls")]
@@ -208,7 +223,9 @@ class ReferenceResolver:
                 # Since it is possible to declare positional arguments as keyword arguments,
                 # it also needs to be checked if the keyword arguments are in the function parameters.
                 keyword_args_names = [keyword.arg for keyword in keyword_args]
-                keyword_args_names_matching_positional_parameter_names = [key for key in keyword_args_names if key in function.parameters]
+                keyword_args_names_matching_positional_parameter_names = [
+                    key for key in keyword_args_names if key in function.parameters
+                ]
                 if not keyword_args_names_matching_positional_parameter_names:
                     return False
 

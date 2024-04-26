@@ -2379,7 +2379,12 @@ def g():
                 ReferenceTestNode(
                     "add.line23",
                     "FunctionDef.g",
-                    ["ClassVariable.A.add.line4", "ClassVariable.B.add.line9", "ClassVariable.C.add.line14", "ClassVariable.D.add.line19"],
+                    [
+                        "ClassVariable.A.add.line4",
+                        "ClassVariable.B.add.line9",
+                        "ClassVariable.C.add.line14",
+                        "ClassVariable.D.add.line19",
+                    ],
                 ),
                 ReferenceTestNode("B.line24", "FunctionDef.g", ["GlobalVariable.B.line7"]),
                 ReferenceTestNode(

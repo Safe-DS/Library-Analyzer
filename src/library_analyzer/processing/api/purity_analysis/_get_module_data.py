@@ -182,7 +182,7 @@ class ModuleDataBuilder:
                 return LocalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name)
 
             case (
-            astroid.Lambda() | astroid.ListComp() | astroid.DictComp() | astroid.SetComp() | astroid.GeneratorExp()
+                astroid.Lambda() | astroid.ListComp() | astroid.DictComp() | astroid.SetComp() | astroid.GeneratorExp()
             ):
                 # This deals with the case where a lambda function has parameters
                 if isinstance(node, astroid.AssignName) and isinstance(node.parent, astroid.Arguments):
@@ -197,7 +197,7 @@ class ModuleDataBuilder:
                 )
 
             case (
-            astroid.TryExcept() | astroid.TryFinally()
+                astroid.TryExcept() | astroid.TryFinally()
             ):  # TODO: can we summarize Lambda and ListComp here? -> only if nodes in try except are not global
                 return LocalVariable(
                     node=node,
@@ -846,10 +846,15 @@ class ModuleDataBuilder:
             constructed_node = astroid.AssignName(
                 name=node.vararg,
                 parent=node,
-                lineno=node.parent.lineno if isinstance(node.parent,
-                                                        astroid.FunctionDef) and not node.parent.decorators else (
-                    node.parent.lineno + len(node.parent.decorators.nodes) if isinstance(node.parent,
-                                                                                         astroid.FunctionDef) else node.parent.lineno),
+                lineno=(
+                    node.parent.lineno
+                    if isinstance(node.parent, astroid.FunctionDef) and not node.parent.decorators
+                    else (
+                        node.parent.lineno + len(node.parent.decorators.nodes)
+                        if isinstance(node.parent, astroid.FunctionDef)
+                        else node.parent.lineno
+                    )
+                ),
                 col_offset=node.parent.col_offset,
             )
             self.handle_arg(constructed_node, kind)
@@ -860,11 +865,15 @@ class ModuleDataBuilder:
             constructed_node = astroid.AssignName(
                 name=node.kwarg,
                 parent=node,
-                lineno=node.parent.lineno if isinstance(node.parent,
-                                                        astroid.FunctionDef) and not node.parent.decorators else (
-                    node.parent.lineno + len(node.parent.decorators.nodes) if isinstance(node.parent,
-                                                                                         astroid.FunctionDef) else node.parent.lineno),
-
+                lineno=(
+                    node.parent.lineno
+                    if isinstance(node.parent, astroid.FunctionDef) and not node.parent.decorators
+                    else (
+                        node.parent.lineno + len(node.parent.decorators.nodes)
+                        if isinstance(node.parent, astroid.FunctionDef)
+                        else node.parent.lineno
+                    )
+                ),
                 col_offset=node.parent.col_offset,
             )
             self.handle_arg(constructed_node, kind)
