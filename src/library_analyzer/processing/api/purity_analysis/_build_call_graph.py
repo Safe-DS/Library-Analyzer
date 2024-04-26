@@ -19,6 +19,18 @@ class CallGraphBuilder:
 
     This class is used to build a call graph forest for a module from a dict of Reasons.
 
+    Attributes
+    ----------
+    classes : dict[str, ClassScope]
+        Classnames in the module as key and their corresponding ClassScope instance as value.
+    raw_reasons : dict[NodeID, Reasons]
+        The raw reasons for impurity for all functions.
+        Keys are the ids of the functions.
+    call_graph_forest : CallGraphForest
+        The call graph forest for the given functions.
+    visited : set[NodeID]
+        A set of all visited nodes.
+
     Parameters
     ----------
     classes : dict[str, ClassScope]
@@ -36,6 +48,7 @@ class CallGraphBuilder:
         self.classes = classes
         self.raw_reasons = raw_reasons
         self.call_graph_forest = CallGraphForest()
+        self.visited = set()
 
         self._build_call_graph_forest()
 
@@ -114,13 +127,20 @@ class CallGraphBuilder:
 
         Recursively builds the call graph for a function and adds it to the forest.
         The order in which the functions are handled does not matter,
-         since the functions will set the pointers to the children if needed.
+        since the functions will set the pointers to the children if needed.
 
         Parameters
         ----------
         reason : Reasons
             The raw reasons of the function.
         """
+        # If the node has already been visited, return
+        if reason.id in self.visited:
+            return
+
+        # Mark the current node as visited
+        self.visited.add(reason.id)
+
         # If the node is already inside the forest and does not have any calls left, it is considered to be finished.
         if self.call_graph_forest.has_graph(reason.id) and not reason.calls:
             return
