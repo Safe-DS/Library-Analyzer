@@ -404,11 +404,9 @@ class C(Any):
                 ".A.4.0": {".__init__.5.4"},
                 ".B.8.0": {".__init__.9.4"},
                 ".C.12.0": {".__init__.13.4"},
-                ".__init__.5.4": set(),
-                ".__init__.9.4": {"BUILTIN.super", ".__init__.5.4"},
-                ".__init__.13.4": {".__init__.5.4"},
+                ".__init__.5.4+.__init__.9.4+.__init__.13.4": {"BUILTIN.Super"},
             },
-        ),
+        ),  # TODO: fix cycle creation for functions with the same name and remove Any as cgn.
         (  # language=Python "recursive function call",
             """
 def f(a):
@@ -435,7 +433,9 @@ def f(a):
         "recursive function call",
     ],
 )
-@pytest.mark.xfail(reason="The current implementation does not handle cycles of functions with the same name correctly.")
+@pytest.mark.xfail(
+    reason="The current implementation does not handle cycles of functions with the same name correctly.",
+)
 def test_build_call_graph_cycles(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = resolve_references(code).call_graph_forest
 
