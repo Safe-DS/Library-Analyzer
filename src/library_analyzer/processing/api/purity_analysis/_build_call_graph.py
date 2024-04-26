@@ -48,7 +48,7 @@ class CallGraphBuilder:
         self.classes = classes
         self.raw_reasons = raw_reasons
         self.call_graph_forest = CallGraphForest()
-        self.visited = set()
+        self.visited: set[NodeID] = set()
 
         self._build_call_graph_forest()
 
