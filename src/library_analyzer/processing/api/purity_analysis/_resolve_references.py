@@ -252,7 +252,7 @@ class ReferenceResolver:
         # Find functions that are called.
         if call_reference.name in self.functions:
             function_def = self.functions.get(call_reference.name)
-            function_def = [function_d for function_d in function_def if self.compare_parameters(function_d, call_reference.node)]
+            function_def = [function_d for function_d in function_def if self.compare_parameters(function_d, call_reference.node)]  # type: ignore[union-attr]
             function_symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr]
             # "None" is not iterable, but it is checked before
             class_iterator = function.symbol.node
