@@ -25,30 +25,31 @@ class CallGraphBuilder:
         Classnames in the module as key and their corresponding ClassScope instance as value.
     raw_reasons : dict[NodeID, Reasons]
         The raw reasons for impurity for all functions.
+        Keys are the ids of the functions.
     call_graph_forest : CallGraphForest
-        The call graph forest of the module.
+        The call graph forest for the given functions.
+    visited : set[NodeID]
+        A set of all visited nodes.
+
+    Parameters
+    ----------
+    classes : dict[str, ClassScope]
+        Classnames in the module as key and their corresponding ClassScope instance as value.
+    raw_reasons : dict[NodeID, Reasons]
+        The raw reasons for impurity for all functions.
+        Keys are the ids of the functions.
     """
 
-    # TODO: is this the right way to document instance attributes? LARS
     def __init__(
         self,
         classes: dict[str, ClassScope],
         raw_reasons: dict[NodeID, Reasons],
     ) -> None:
-        """Initialize the CallGraphBuilder.
-
-        Parameters
-        ----------
-        classes : dict[str, ClassScope]
-            Classnames in the module as key and their corresponding ClassScope instance as value.
-        raw_reasons : dict[str, Reasons]
-            The raw reasons for impurity for all functions.
-            Keys are the ids of the functions.
-        """
         self.classes = classes
         self.raw_reasons = raw_reasons
         self.call_graph_forest = CallGraphForest()
-        # TODO: does this belong into post init? LARS
+        self.visited: set[NodeID] = set()
+
         self._build_call_graph_forest()
 
     def _build_call_graph_forest(self) -> CallGraphForest:
@@ -94,8 +95,15 @@ class CallGraphBuilder:
         for klass in self.classes.values():
             # Create a new CallGraphNode for each class and add it to the forest.
             class_cgn = CallGraphNode(symbol=klass.symbol, reasons=Reasons(klass.symbol.id))
-            # If the class has an init function, add it to the class node as a child.
+            # If the class has a __new__, __init__ or __post_init__ function, add it to the class node as a child.
             # Also add the init function to the forest if it is not already there.
+            if klass.new_function:
+                new_cgn = CallGraphNode(
+                    symbol=klass.new_function.symbol,
+                    reasons=self.raw_reasons[klass.new_function.symbol.id],
+                )
+                self.call_graph_forest.add_graph(klass.new_function.symbol.id, new_cgn)
+                class_cgn.add_child(new_cgn)
             if klass.init_function:
                 init_cgn = CallGraphNode(
                     symbol=klass.init_function.symbol,
@@ -103,6 +111,13 @@ class CallGraphBuilder:
                 )
                 self.call_graph_forest.add_graph(klass.init_function.symbol.id, init_cgn)
                 class_cgn.add_child(init_cgn)
+            if klass.post_init_function:
+                post_init_cgn = CallGraphNode(
+                    symbol=klass.post_init_function.symbol,
+                    reasons=self.raw_reasons[klass.post_init_function.symbol.id],
+                )
+                self.call_graph_forest.add_graph(klass.post_init_function.symbol.id, post_init_cgn)
+                class_cgn.add_child(post_init_cgn)
 
             # Add the class to the forest.
             self.call_graph_forest.add_graph(klass.symbol.id, class_cgn)
@@ -112,13 +127,20 @@ class CallGraphBuilder:
 
         Recursively builds the call graph for a function and adds it to the forest.
         The order in which the functions are handled does not matter,
-         since the functions will set the pointers to the children if needed.
+        since the functions will set the pointers to the children if needed.
 
         Parameters
         ----------
         reason : Reasons
             The raw reasons of the function.
         """
+        # If the node has already been visited, return
+        if reason.id in self.visited:
+            return
+
+        # Mark the current node as visited
+        self.visited.add(reason.id)
+
         # If the node is already inside the forest and does not have any calls left, it is considered to be finished.
         if self.call_graph_forest.has_graph(reason.id) and not reason.calls:
             return
@@ -131,7 +153,9 @@ class CallGraphBuilder:
         self.call_graph_forest.add_graph(reason.id, cgn)
 
         # The node has calls, which need to be added to the forest and to the children of the current node.
-        for call in cgn.reasons.calls.copy():
+        # They are sorted to ensure a deterministic order of the children (especially but not only for testing).
+        sorted_calls = sorted(cgn.reasons.calls, key=lambda x: x.id)
+        for call in sorted_calls:
             if call in self.call_graph_forest.get_graph(reason.id).reasons.calls:
                 self.call_graph_forest.get_graph(reason.id).reasons.calls.remove(call)
             if isinstance(call, Builtin):
@@ -174,7 +198,6 @@ class CallGraphBuilder:
             imported_cgn = ImportedCallGraphNode(
                 symbol=call,
                 reasons=Reasons(id=call.id),
-                # is_imported=bool(isinstance(call.node, astroid.Import | astroid.ImportFrom))
             )
             self.call_graph_forest.add_graph(call.id, imported_cgn)
             self.call_graph_forest.get_graph(reason_id).add_child(self.call_graph_forest.get_graph(call.id))
@@ -192,7 +215,7 @@ class CallGraphBuilder:
                     )
 
         # Deal with the case that the call calls a function parameter.
-        if isinstance(call, Parameter):
+        elif isinstance(call, Parameter):
             self.call_graph_forest.get_graph(reason_id).reasons.unknown_calls.add(call)
 
         else:
@@ -262,7 +285,6 @@ class CallGraphBuilder:
 
         # If the current node is already in the path, a cycle is found.
         if cgn.symbol.id in path:
-            # TODO: how to handle nested cycles? LARS
             cut_path = path[path.index(cgn.symbol.id) :]
             return {node_id: self.call_graph_forest.get_graph(node_id) for node_id in cut_path}
 
@@ -287,10 +309,25 @@ class CallGraphBuilder:
         return cycle
 
     def _contract_cycle(self, cycle: dict[NodeID, CallGraphNode]) -> None:
+        """Contract a cycle in the call graph.
+
+        Contracts a cycle in the call graph into a single node.
+        Therefore, creates a new CombinedCallGraphNode out of all nodes in the cycle and adds it to the forest.
+
+        Parameters
+        ----------
+        cycle : dict[NodeID, CallGraphNode]
+            A dict of all nodes in the cycle.
+            Keys are the NodeIDs of the CallGraphNodes.
+        """
         # Create the new combined node.
         combined_name = "+".join(sorted(c.__str__() for c in cycle))
-        # module = cycle[next(iter(cycle))].symbol.node.root()
-        combined_id = NodeID(None, combined_name)
+        module = (
+            next(iter(cycle.values())).symbol.node.root().name
+            if (next(iter(cycle.values())).symbol.node and next(iter(cycle.values())).symbol.node.root().name != "")
+            else None
+        )
+        combined_id = NodeID(module, combined_name)
         combined_reasons = Reasons(id=combined_id).join_reasons_list([node.reasons for node in cycle.values()])
         combined_cgn = CombinedCallGraphNode(
             symbol=CombinedSymbol(
@@ -299,18 +336,24 @@ class CallGraphBuilder:
                 name=combined_name,
             ),
             reasons=combined_reasons,
-            combines=cycle,
         )
+        combines: dict[NodeID, CallGraphNode] = {}
         # Check if the combined node is already in the forest.
         if self.call_graph_forest.has_graph(combined_cgn.symbol.id):
             return
 
         # Find all other calls (calls that are not part of the cycle) and remove all nodes in the cycle from the forest.
-        for node in cycle.values():  # TODO: call _test_cgn_for_cycles recursively
+        for node in cycle.values():
             for child in node.children.values():
                 if child.symbol.id not in cycle and not combined_cgn.has_child(child.symbol.id):
                     combined_cgn.add_child(child)
             self.call_graph_forest.delete_graph(node.symbol.id)
+
+            if isinstance(node, CombinedCallGraphNode):
+                combines.update(node.combines)
+            else:
+                combines[node.symbol.id] = node
+        combined_cgn.combines = combines
 
         # Add the combined node to the forest.
         self.call_graph_forest.add_graph(combined_id, combined_cgn)

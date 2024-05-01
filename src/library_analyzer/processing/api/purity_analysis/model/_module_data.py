@@ -35,6 +35,56 @@ class ModuleData:
 
 
 @dataclass
+class PackageData:
+    """
+    Contains all data collected for a package.
+
+    Attributes
+    ----------
+    package_name : str
+        The name of the package.
+    modules : dict[str, tuple[str, ModuleData]]
+        All modules and their ModuleData.
+        The key is the name of the module.
+        The value is a tuple of the path to the module and the ModuleData.
+    combined_module : ModuleData
+        The combined ModuleData of all modules in the package.
+    """
+
+    package_name: str
+    modules: dict[str, tuple[str, ModuleData]] = field(default_factory=dict)
+    combined_module: ModuleData | None = field(default=None)
+
+    def combine_modules(self) -> None:
+        """Combine the data of all modules into one ModuleData.
+
+        Combines the data of all modules in the package into one ModuleData.
+        The scope of the new ModuleData is of type UnkownSymbol, and the children are the scopes of the modules.
+        The classes, functions, and imports are combined into one dict each.
+
+        Returns
+        -------
+        ModuleData
+            The combined ModuleData.
+        """
+        combined_module = ModuleData(
+            scope=Scope(UnknownSymbol(id=NodeID(None, self.package_name)), [], None),
+            classes={},
+            functions={},
+            imports={},
+        )
+
+        for module_data in self.modules.values():
+            combined_module.scope.children.extend(module_data[1].scope)
+            combined_module.classes.update(module_data[1].classes)
+            for name, functions in module_data[1].functions.items():
+                combined_module.functions.setdefault(name, []).extend(functions)
+            combined_module.imports.update(module_data[1].imports)
+
+        self.combined_module = combined_module
+
+
+@dataclass
 class MemberAccess(astroid.NodeNG):
     """Represents a member access.
 
@@ -183,7 +233,7 @@ class NodeID:
 
     Attributes
     ----------
-    module : astroid.Module | str | None
+    module : str | None
         The module of the node.
         Is None for combined nodes.
     name : str
@@ -196,20 +246,58 @@ class NodeID:
         Is None for combined nodes, builtins or any other node that do not have a line.
     """
 
-    module: astroid.Module | str | None
+    module: str | None
     name: str
     line: int | None = None
     col: int | None = None
 
     def __str__(self) -> str:
-        if self.line is None or self.col is None:
-            if self.module is None:
+        if self.module is not None:
+            if self.line is not None and self.col is not None:
+                return f"{self.module}.{self.name}.{self.line}.{self.col}"
+            else:
+                return f"{self.module}.{self.name}"
+        elif self.line is not None and self.col is not None:
+            if self.line == 0 and self.col == 0:
                 return f"{self.name}"
-            return f"{self.module}.{self.name}"
-        return f"{self.module}.{self.name}.{self.line}.{self.col}"
+            return f"{self.name}.{self.line}.{self.col}"
+        else:
+            return f"{self.name}"
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, NodeID):
+            if isinstance(other, Symbol):
+                return self == other.id
+            raise NotImplementedError(f"Cannot compare NodeID with {type(other)}")
+        return (
+            self.module == other.module
+            and self.name == other.name
+            and self.line == other.line
+            and self.col == other.col
+        )
+
+    def __lt__(self, other: NodeID) -> bool:
+        if not isinstance(other, NodeID):
+            raise TypeError(f"Cannot compare NodeID with {type(other)}")
+
+        if self.line is None:
+            if other.line is None:
+                return False  # Both lines are None, consider them equal
+            return True  # self.line is None, other.line is not, so other is greater
+        elif other.line is None:
+            return False  # other.line is None, self.line is not, so self is greater
+
+        if self.line != other.line and self.line is not None and other.line is not None:
+            return self.line < other.line
+
+        if self.col != other.col and self.col is not None and other.col is not None:
+            return self.col < other.col
+
+        # If both line and column are equal, compare by name,
+        return self.name < other.name
 
     @classmethod
     def calc_node_id(
@@ -248,11 +336,10 @@ class NodeID:
             module = node.node.root().name
         else:
             module = node.root().name
-            # TODO: check if this is correct when working with a real module
 
         match node:
             case astroid.Module():
-                return NodeID(module, node.name, 0, 0)
+                return NodeID(None, node.name, 0, 0)
             case astroid.ClassDef():
                 return NodeID(module, node.name, node.lineno, node.col_offset)
             case astroid.FunctionDef():
@@ -315,6 +402,29 @@ class Symbol(ABC):
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+
+@dataclass
+class UnknownSymbol(Symbol):
+    """Represents an unknown symbol.
+
+    An unknown symbol is used to represent a symbol that could not be determined.
+    It is used as a placeholder for symbols that could not be determined during the analysis.
+
+    Attributes
+    ----------
+    node : None
+    """
+
+    node: None = None
+    id: NodeID | None = None  # type: ignore[assignment]
+    name: str = "UNKNOWN"
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}"
 
 
 @dataclass
@@ -442,7 +552,15 @@ class Import(Symbol):
 
 @dataclass
 class Builtin(Symbol):
-    """Represents a builtin (function)."""
+    """Represents a builtin (function).
+
+    Attributes
+    ----------
+    call : astroid.Call
+        The call node of the function.
+    """
+
+    call: astroid.Call
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.name}"
@@ -639,7 +757,9 @@ class ClassScope(Scope):
 
     class_variables: dict[str, list[Symbol]] = field(default_factory=dict)
     instance_variables: dict[str, list[Symbol]] = field(default_factory=dict)
+    new_function: FunctionScope | None = None
     init_function: FunctionScope | None = None
+    post_init_function: FunctionScope | None = None
     super_classes: list[ClassScope] = field(default_factory=list)
 
 

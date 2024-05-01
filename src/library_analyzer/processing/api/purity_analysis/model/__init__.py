@@ -22,10 +22,12 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
     MemberAccessValue,
     ModuleData,
     NodeID,
+    PackageData,
     Parameter,
     Reference,
     Scope,
     Symbol,
+    UnknownSymbol,
 )
 from library_analyzer.processing.api.purity_analysis.model._purity import (
     APIPurity,
@@ -46,6 +48,12 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
     UnknownCall,
     UnknownClassInit,
     UnknownFunctionCall,
+)
+from library_analyzer.processing.api.purity_analysis.model._purity_builtins import (
+    BUILTIN_CLASSSCOPES,
+    BUILTIN_FUNCTIONS,
+    BUILTIN_SPECIALS,
+    OPEN_MODES,
 )
 from library_analyzer.processing.api.purity_analysis.model._reference import (
     ModuleAnalysisResult,
@@ -102,4 +110,10 @@ __all__ = [
     "UnknownFunctionCall",
     "UnknownClassInit",
     "ImportedCallGraphNode",
+    "BUILTIN_CLASSSCOPES",
+    "BUILTIN_FUNCTIONS",
+    "OPEN_MODES",
+    "UnknownSymbol",
+    "BUILTIN_SPECIALS",
+    "PackageData",
 ]

@@ -240,35 +240,37 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
     """
     transformed_function_references = {}
     for function_id, function_references in reasons.items():
-        transformed_function_references.update({
-            function_id.__str__(): SimpleReasons(
-                function_references.function_scope.symbol.name,  # type: ignore[union-attr] # function_scope is not None
-                {
-                    (
-                        f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.name}.line{target_reference.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-                        if isinstance(target_reference, ClassVariable) and target_reference.klass is not None
-                        else (
-                            f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.member}.line{target_reference.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-                            if isinstance(target_reference, InstanceVariable)
-                            else f"{target_reference.__class__.__name__}.{target_reference.node.name}.line{target_reference.node.fromlineno}"
+        transformed_function_references.update(
+            {
+                function_id.__str__(): SimpleReasons(
+                    function_references.function_scope.symbol.name,  # type: ignore[union-attr] # function_scope is not None
+                    {
+                        (
+                            f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.name}.line{target_reference.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                            if isinstance(target_reference, ClassVariable) and target_reference.klass is not None
+                            else (
+                                f"{target_reference.__class__.__name__}.{target_reference.klass.name}.{target_reference.node.member}.line{target_reference.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                                if isinstance(target_reference, InstanceVariable)
+                                else f"{target_reference.__class__.__name__}.{target_reference.node.name}.line{target_reference.node.fromlineno}"
+                            )
                         )
-                    )
-                    for target_reference in function_references.writes_to
-                },
-                {
-                    (
-                        f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.name}.line{value_reference.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-                        if isinstance(value_reference, ClassVariable) and value_reference is not None
-                        else (
-                            f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.member}.line{value_reference.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-                            if isinstance(value_reference, InstanceVariable)
-                            else f"{value_reference.__class__.__name__}.{value_reference.node.name}.line{value_reference.node.fromlineno}"
+                        for target_reference in function_references.writes_to
+                    },
+                    {
+                        (
+                            f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.name}.line{value_reference.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                            if isinstance(value_reference, ClassVariable) and value_reference is not None
+                            else (
+                                f"{value_reference.__class__.__name__}.{value_reference.klass.name}.{value_reference.node.member}.line{value_reference.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
+                                if isinstance(value_reference, InstanceVariable)
+                                else f"{value_reference.__class__.__name__}.{value_reference.node.name}.line{value_reference.node.fromlineno}"
+                            )
                         )
-                    )
-                    for value_reference in function_references.reads_from
-                },
-            ),
-        })
+                        for value_reference in function_references.reads_from
+                    },
+                ),
+            },
+        )
 
     return transformed_function_references
 
@@ -289,7 +291,7 @@ def local_var():
 glob1 = 10
 glob1
             """,  # language= None
-            [],  # TODO: LARS - is there any problem with this not being detected?
+            [],
         ),
         (  # language=Python "Global variable in class scope"
             """
@@ -298,7 +300,7 @@ class A:
     global glob1
     glob1
             """,  # language= None
-            [],  # TODO: LARS - is there any problem with this not being detected?
+            [],
         ),
         (  # language=Python "Global variable in function scope"
             """
@@ -334,7 +336,7 @@ def local_global():
     return glob1
             """,  # language= None
             [
-                # ReferenceTestNode("glob1.line5", "ClassDef.A", ["GlobalVariable.glob1.line2"]), # TODO: LARS - is there any problem with this not being detected?
+                # ReferenceTestNode("glob1.line5", "ClassDef.A", ["GlobalVariable.glob1.line2"]),
                 ReferenceTestNode("glob1.line10", "FunctionDef.local_global", ["GlobalVariable.glob1.line2"]),
             ],
         ),
@@ -371,7 +373,7 @@ class A:
     glob1, glob2
             """,  # language= None
             [
-                # ReferenceTestNode("glob1.line6", "ClassDef.A", ["GlobalVariable.glob1.line2"]),  # TODO: LARS - is there any problem with this not being detected?
+                # ReferenceTestNode("glob1.line6", "ClassDef.A", ["GlobalVariable.glob1.line2"]),
                 # ReferenceTestNode("glob2.line6", "ClassDef.A", ["GlobalVariable.glob2.line3"]),
             ],
         ),
@@ -383,7 +385,7 @@ class A:
     glob1
             """,  # language= None
             # [ReferenceTestNode("glob1.line5", "ClassDef.A", ["ClassVariable.A.glob1.line4"])],
-            [],  # TODO: LARS - is there any problem with this not being detected?
+            [],
             # glob1 is not detected as a global variable since it is defined in the class scope - this is intended
         ),
         (  # language=Python "New global variable in function scope"
@@ -1289,63 +1291,6 @@ def fun():
                 ),
             ],
         ),
-        #         (  # language=Python "Builtins for dict"
-        #             """
-        # def f():
-        #     dictionary = {"a": 1, "b": 2, "c": 3}
-        #
-        #     dictionary["a"] = 10
-        #     dictionary.get("a")
-        #     dictionary.update({"d": 4})
-        #     dictionary.pop("a")
-        #     dictionary.popitem()
-        #     dictionary.clear()
-        #     dictionary.copy()
-        #     dictionary.fromkeys("a")
-        #     dictionary.items()
-        #     dictionary.keys()
-        #     dictionary.values()
-        #     dictionary.setdefault("a", 10)
-        #
-        #     dictionary.__contains__("a")
-        #             """,  # language=none
-        #             [
-        #
-        #             ]
-        #         ),
-        #         (  # language=Python "Builtins for list"
-        #             """
-        # def f():
-        #     list1 = [1, 2, 3]
-        #     list2 = [4, 5, 6]
-        #
-        #     list1.append(4)
-        #     list1.clear()
-        #     list1.copy()
-        #     list1.count(1)
-        #     list1.extend(list2)
-        #     list1.index(1)
-        #     list1.insert(1, 10)
-        #     list1.pop()
-        #     list1.remove(1)
-        #     list1.reverse()
-        #     list1.sort()
-        #
-        #     list1.__contains__(1)
-        #             """,  # language=none
-        #             [
-        #
-        #             ]
-        #         ),
-        #         (  # language=Python "Builtins for set"
-        #             """
-        # def f():
-        #
-        #             """,  # language=none
-        #             [
-        #
-        #             ]
-        #         ),
     ],
     ids=[
         "Class attribute value",
@@ -1378,9 +1323,6 @@ def fun():
         "Member access - function call of functions with the same name and nested calls",
         "Member access - function call of functions with the same name (no distinction possible)",
         "Member access - function call of functions with the same name (different signatures)",
-        # "Builtins for dict",  # TODO: We will only implement these special cases if they are needed
-        # "Builtins for list",
-        # "Builtins for set",
     ],
 )
 def test_resolve_references_member_access(code: str, expected: list[ReferenceTestNode]) -> None:

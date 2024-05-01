@@ -9,6 +9,12 @@ from typing import TYPE_CHECKING, Any
 
 import astroid
 
+from library_analyzer.processing.api.purity_analysis.model._module_data import (
+    MemberAccessValue,
+    NodeID,
+    Symbol,
+    UnknownSymbol,
+)
 from library_analyzer.utils import ensure_file_exists
 
 if TYPE_CHECKING:
@@ -27,7 +33,12 @@ class PurityResult(ABC):
     """Superclass for purity results.
 
     Purity results are either pure, impure or unknown.
+
+    is_class : bool
+        Whether the result is for a class or not.
     """
+
+    is_class: bool = False
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -47,7 +58,14 @@ class Pure(PurityResult):
 
     A function is pure if it has no (External-, Internal-)Read nor (External-, Internal-)Write side effects.
     A pure function must also have no unknown reasons.
+
+    Attributes
+    ----------
+    is_class : bool
+        Whether the result is for a class or not.
     """
+
+    is_class: bool = False
 
     def update(self, other: PurityResult | None) -> PurityResult:
         """Update the current result with another result.
@@ -68,22 +86,32 @@ class Pure(PurityResult):
             If the result cannot be updated with the given result.
         """
         if other is None:
-            return self
+            return self.clone()
         elif isinstance(self, Pure):
             if isinstance(other, Pure):
-                return self
+                return self.clone()
             elif isinstance(other, Impure):
-                return other
+                return other.clone()
         elif isinstance(self, Impure):
             if isinstance(other, Pure):
-                return self
+                return self.clone()
             elif isinstance(other, Impure):
-                return Impure(reasons=self.reasons | other.reasons)
+                return Impure(reasons=self.reasons | other.reasons).clone()
 
         raise TypeError(f"Cannot update {self} with {other}")
 
+    @staticmethod
+    def clone() -> Pure:
+        return Pure()
+
     def to_dict(self) -> dict[str, Any]:
         return {"purity": self.__class__.__name__}
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}"
 
 
 @dataclass
@@ -102,9 +130,12 @@ class Impure(PurityResult):
     ----------
     reasons : set[ImpurityReason]
         The reasons why the function is impure.
+    is_class : bool
+        Whether the result is for a class or not.
     """
 
     reasons: set[ImpurityReason]
+    is_class: bool = False
 
     def update(self, other: PurityResult | None) -> PurityResult:
         """Update the current result with another result.
@@ -125,24 +156,40 @@ class Impure(PurityResult):
             If the result cannot be updated with the given result.
         """
         if other is None:
-            return self
+            return self.clone()
         elif isinstance(self, Pure):
             if isinstance(other, Pure):
-                return self
+                return self.clone()
             elif isinstance(other, Impure):
-                return other
+                return other.clone()
         elif isinstance(self, Impure):
             if isinstance(other, Pure):
-                return self
+                return self.clone()
             elif isinstance(other, Impure):
-                return Impure(reasons=self.reasons | other.reasons)
+                return Impure(reasons=self.reasons | other.reasons).clone()
         raise TypeError(f"Cannot update {self} with {other}")
 
+    def clone(self) -> Impure:
+        return Impure(reasons=self.reasons.copy())
+
     def to_dict(self) -> dict[str, Any]:
+        reasons = []
+        seen = set()
+        for reason in self.reasons:
+            if str(reason) not in seen:
+                reasons.append(reason.to_dict())
+                seen.add(str(reason))
+
         return {
             "purity": self.__class__.__name__,
-            "reasons": [reason.__str__() for reason in self.reasons],
+            "reasons": reasons,
         }
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}"
 
 
 class ImpurityReason(ABC):  # this is just a base class, and it is important that it cannot be instantiated
@@ -151,16 +198,16 @@ class ImpurityReason(ABC):  # this is just a base class, and it is important tha
     If a function is impure it is because of one or more impurity reasons.
     """
 
-    # TODO:
-    # origin
-    # neighbor
-
     @abstractmethod
     def __str__(self) -> str:
         pass
 
     def __hash__(self) -> int:
         return hash(str(self))
+
+    @abstractmethod
+    def to_dict(self) -> dict[str, Any]:
+        pass
 
 
 class Read(ImpurityReason, ABC):
@@ -175,15 +222,28 @@ class NonLocalVariableRead(Read):
     ----------
     symbol : GlobalVariable | ClassVariable | InstanceVariable | Import
         The symbol that is read.
+    origin : Symbol | NodeID | None
+        The origin of the read.
     """
 
-    symbol: GlobalVariable | ClassVariable | InstanceVariable | Import
+    symbol: GlobalVariable | ClassVariable | InstanceVariable | Import | UnknownSymbol
+    origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
+
+    def to_dict(self) -> dict[str, Any]:
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
+        return {
+            "result": f"{self.__class__.__name__}",
+            "origin": f"{origin}",
+            "reason": f"{self.symbol.__class__.__name__}.{self.symbol.name}",
+        }
 
 
 @dataclass
@@ -195,9 +255,12 @@ class FileRead(Read):
     source : Expression | None
         The source of the read.
         This is None if the source is unknown.
+    origin : Symbol | NodeID | None
+        The origin of the read.
     """
 
     source: Expression | None = None  # TODO: this should never be None
+    origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -206,6 +269,16 @@ class FileRead(Read):
         if isinstance(self.source, Expression):
             return f"{self.__class__.__name__}: {self.source.__str__()}"
         return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
+
+    def to_dict(self) -> dict[str, Any]:
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
+        return {
+            "result": f"{self.__class__.__name__}",
+            "origin": f"{origin}",
+            "reason": f"{self.source.__str__()}",
+        }
 
 
 class Write(ImpurityReason, ABC):
@@ -220,15 +293,28 @@ class NonLocalVariableWrite(Write):
     ----------
     symbol : GlobalVariable | ClassVariable | InstanceVariable | Import
         The symbol that is written to.
+    origin : Symbol | NodeID | None
+        The origin of the write.
     """
 
-    symbol: GlobalVariable | ClassVariable | InstanceVariable | Import
+    symbol: GlobalVariable | ClassVariable | InstanceVariable | Import | UnknownSymbol
+    origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
+
+    def to_dict(self) -> dict[str, Any]:
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
+        return {
+            "result": f"{self.__class__.__name__}",
+            "origin": f"{origin}",
+            "reason": f"{self.symbol.__class__.__name__}.{self.symbol.name}",
+        }
 
 
 @dataclass
@@ -240,9 +326,12 @@ class FileWrite(Write):
     source : Expression | None
         The source of the write.
         This is None if the source is unknown.  # TODO: see above LARS
+    origin : Symbol | NodeID | None
+        The origin of the write.
     """
 
     source: Expression | None = None
+    origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -251,6 +340,16 @@ class FileWrite(Write):
         if isinstance(self.source, Expression):
             return f"{self.__class__.__name__}: {self.source.__str__()}"
         return f"{self.__class__.__name__}: UNKNOWN EXPRESSION"
+
+    def to_dict(self) -> dict[str, Any]:
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
+        return {
+            "result": f"{self.__class__.__name__}",
+            "origin": f"{origin}",
+            "reason": f"{self.source.__str__()}",
+        }
 
 
 class Unknown(ImpurityReason, ABC):
@@ -267,15 +366,28 @@ class UnknownCall(Unknown):
     ----------
     expression : Expression
         The expression that is called.
+    origin : Symbol | NodeID | None
+        The origin of the call.
     """
 
     expression: Expression
+    origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
+
+    def to_dict(self) -> dict[str, Any]:
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
+        return {
+            "result": f"{self.__class__.__name__}",
+            "origin": f"{origin}",
+            "reason": f"{self.expression.__str__()}",
+        }
 
 
 @dataclass
@@ -288,15 +400,28 @@ class NativeCall(Unknown):  # ExternalCall
     ----------
     expression : Expression
         The expression that is called.
+    origin : Symbol | NodeID | None
+        The origin of the call.
     """
 
     expression: Expression
+    origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
+
+    def to_dict(self) -> dict[str, Any]:
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
+        return {
+            "result": f"{self.__class__.__name__}",
+            "origin": f"{origin}",
+            "reason": f"{self.expression.__str__()}",
+        }
 
 
 @dataclass
@@ -313,15 +438,28 @@ class CallOfParameter(Unknown):  # ParameterCall
     ----------
     expression : Expression
         The expression that is called.
+    origin : Symbol | NodeID | None
+        The origin of the call.
     """
 
     expression: Expression
+    origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}: {self.expression.__str__()}"
+
+    def to_dict(self) -> dict[str, Any]:
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
+        return {
+            "result": f"{self.__class__.__name__}",
+            "origin": f"{origin}",
+            "reason": f"{self.expression.__str__()}",
+        }
 
 
 class Expression(ABC):  # this is just a base class, and it is important that it cannot be instantiated
@@ -349,7 +487,7 @@ class ParameterAccess(Expression):
 
     def __str__(self) -> str:
         if isinstance(self.parameter, str):
-            return self.parameter
+            return f"{self.__class__.__name__}.{self.parameter}"
         return f"{self.__class__.__name__}.{self.parameter.name}"
 
 
@@ -383,13 +521,17 @@ class UnknownFunctionCall(Expression):
         The name of the call.
     """
 
-    call: astroid.Call
+    call: astroid.Call | None = None
     inferred_def: astroid.FunctionDef | None = None
     name: str = field(init=False)
 
     def __post_init__(self) -> None:
         if self.inferred_def is not None:
             self.name = f"{self.inferred_def.root().name}.{self.inferred_def.name}"
+        elif self.call is None:
+            self.name = "UNKNOWN"
+        elif isinstance(self.call, MemberAccessValue):
+            self.name = self.call.name
         elif isinstance(self.call.func, astroid.Attribute):
             self.name = self.call.func.attrname
         elif isinstance(self.call.func, astroid.Name):
@@ -438,12 +580,13 @@ class APIPurity:
 
     Attributes
     ----------
-    purity_results : dict[str, dict[str, PurityResult]]
-        The purity results of the API.
-        The first key is the name of the module, and the second key is the function id.
+    purity_results : dict[NodeID, dict[NodeID, PurityResult]]
+        The purity results of all functions of the API.
+        The key is the NodeID of the module,
+        the value is a dictionary of the purity results of the functions in the module.
     """
 
-    purity_results: typing.ClassVar[dict[str, dict[str, PurityResult]]] = {}
+    purity_results: typing.ClassVar[dict[NodeID, dict[NodeID, PurityResult]]] = {}
 
     def to_json_file(self, path: Path) -> None:
         ensure_file_exists(path)
@@ -452,7 +595,11 @@ class APIPurity:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            module_name: {function_def: purity.to_dict() for function_def, purity in purity_result.items()}
+            module_name.__str__(): {
+                function_id.__str__(): purity.to_dict()
+                for function_id, purity in purity_result.items()
+                if not purity.is_class
+            }
             for module_name, purity_result in self.purity_results.items()
         }
 

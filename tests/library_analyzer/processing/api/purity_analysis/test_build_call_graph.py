@@ -81,7 +81,7 @@ def fun2():
             {
                 ".fun1.2.0": {".fun2.5.0"},
                 ".fun2.5.0": {
-                    "print",
+                    "BUILTIN.print",
                 },  # print is a builtin function and therefore has no function def to reference -> therefor it has no line
             },
         ),
@@ -133,6 +133,10 @@ double = lambda x: 2 * x
 def test_build_call_graph_basics(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = resolve_references(code).call_graph_forest
 
+    if call_graph_forest is None:
+        assert expected == {}
+        return
+
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.graphs.items():
         transformed_call_graph_forest[f"{tree_id}"] = set()
@@ -175,7 +179,7 @@ def entry():
     cycle1()
             """,  # language=none
             {
-                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": {"print"},
+                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": {"BUILTIN.print"},
                 ".entry.12.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
             },
         ),
@@ -300,17 +304,109 @@ def external_inner_cycle1():
     external_inner_cycle2()
 
 def external_inner_cycle2():
+    external_inner_cycle1()
+
+def entry():
+    cycle1()
+            """,  # language=none
+            {
+                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": {".external_inner_cycle1.12.0+.external_inner_cycle2.15.0"},
+                ".external_inner_cycle1.12.0+.external_inner_cycle2.15.0": set(),
+                ".entry.18.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
+            },
+        ),
+        (  # language=Python "function call with cycle - external recursive cycle within a cycle"
+            """
+def cycle1():
+    cycle2()
+
+def cycle2():
+    cycle3()
+
+def cycle3():
+    external_inner_cycle1()
+    cycle1()
+
+def external_inner_cycle1():
+    external_inner_cycle2()
+
+def external_inner_cycle2():
     external_inner_cycle2()
 
 def entry():
     cycle1()
             """,  # language=none
             {
-                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": {".inner_cycle1.12.0+.inner_cycle2.15.0"},
-                ".inner_cycle1.12.0+.inner_cycle2.15.0": set(),
+                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0": {".external_inner_cycle1.12.0"},
+                ".external_inner_cycle1.12.0": {".external_inner_cycle2.15.0"},
+                ".external_inner_cycle2.15.0": set(),
                 ".entry.18.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0"},
-            },  # TODO: case for super super knote, case for external cycle with call to original cycle
+            },
         ),
+        (  # language=Python "function call with cycle - inner cycle within a cycle"
+            """
+def cycle1():
+    cycle2()
+
+def cycle2():
+    cycle3()
+
+def cycle3():
+    inner_cycle1()
+    cycle1()
+
+def inner_cycle1():
+    inner_cycle2()
+
+def inner_cycle2():
+    inner_cycle1()
+    cycle2()
+
+def entry():
+    cycle1()
+            """,  # language=none
+            {
+                ".cycle1.2.0+.cycle2.5.0+.cycle3.8.0+.inner_cycle1.12.0+.inner_cycle2.15.0": set(),
+                ".entry.19.0": {".cycle1.2.0+.cycle2.5.0+.cycle3.8.0+.inner_cycle1.12.0+.inner_cycle2.15.0"},
+            },
+        ),
+        (  # language=Python "cycle in class"
+            """
+class C:
+    def fun1(self):
+        self.fun2()
+
+    def fun2(self):
+        self.fun1()
+            """,  # language=none
+            {
+                ".C.2.0": set(),
+                ".fun1.3.4+.fun2.6.4": set(),
+            },
+        ),
+        (  # language=Python "cycle with same name in class"
+            """
+from typing import Any
+
+class A:
+    def __init__(self):
+        pass
+
+class B(Any):
+    def __init__(self):
+        super().__init__()
+
+class C(Any):
+    def __init__(self):
+        Any.__init__(self)
+            """,  # language=none
+            {
+                ".A.4.0": {".__init__.5.4"},
+                ".B.8.0": {".__init__.9.4"},
+                ".C.12.0": {".__init__.13.4"},
+                ".__init__.5.4+.__init__.9.4+.__init__.13.4": {"BUILTIN.Super"},
+            },
+        ),  # TODO: fix cycle creation for functions with the same name and remove Any as cgn.
         (  # language=Python "recursive function call",
             """
 def f(a):
@@ -328,14 +424,24 @@ def f(a):
         "function call with cycle - many entry points",
         "function call with cycle - other call in cycle",
         "function call with cycle - multiple other calls in cycle",
-        "function call with cycle - cycle within a cycle",
+        "function call with cycle - inner cycle within a cycle",
         "function call with cycle - external cycle within a cycle",
+        "function call with cycle - external recursive cycle within a cycle",
+        "function call with cycle - cycle within a cycle",
+        "cycle in class",
+        "cycle with same name in class",
         "recursive function call",
-    ],  # TODO: add cyclic cases for member access
+    ],
 )
-@pytest.mark.xfail(reason="External cycles are not handled yet.")
+@pytest.mark.xfail(
+    reason="The current implementation does not handle cycles of functions with the same name correctly.",
+)
 def test_build_call_graph_cycles(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = resolve_references(code).call_graph_forest
+
+    if call_graph_forest is None:
+        assert expected == {}
+        return
 
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.graphs.items():
@@ -377,6 +483,54 @@ def fun():
                 ".A.2.0": {".__init__.3.4"},
                 ".__init__.3.4": set(),
                 ".fun.6.0": {".A.2.0"},
+            },
+        ),
+        (  # language=Python "Class call - init with super",
+            """
+class A:
+    def __init__(self):
+        pass
+
+class B(A):
+    def __init__(self):
+        super().__init__()
+
+def fun():
+    a = B()
+
+            """,  # language=none
+            {
+                ".A.2.0": {".__init__.3.4"},
+                ".__init__.3.4": set(),
+                ".B.6.0": {".__init__.7.4"},
+                ".__init__.7.4": {"BUILTIN.super", ".__init__.3.4"},
+                ".fun.10.0": {".B.6.0"},
+            },
+        ),
+        (  # language=Python "Class call - new, init and post_init",
+            """
+class A:
+    def __new__(cls):
+        return super().__new__(cls)
+
+    def __init__(self):
+        pass
+
+    def __post_init__(self):
+        pass
+
+def fun():
+    a = A()
+
+            """,  # language=none
+            {
+                ".A.2.0": {".__new__.3.4", ".__init__.6.4", ".__post_init__.9.4"},
+                ".__new__.3.4": {
+                    "BUILTIN.super",
+                },  # TODO: [LATER] the analysis should be able to resolve the super call, right noow it is lost when the combined call graph node is created, since it is detected as an recursive call.
+                ".__init__.6.4": set(),
+                ".__post_init__.9.4": set(),
+                ".fun.12.0": {".A.2.0"},
             },
         ),
         (  # language=Python "Class call - init propagation",
@@ -519,7 +673,7 @@ def fun_b():
                     ".A.2.0",
                     ".add.4.4",
                     ".add.9.4",
-                },  # TODO: [LATER] is it possible to distinguish between the two add functions?
+                },
                 ".fun_b.16.0": {".B.7.0", ".add.4.4", ".add.9.4"},
             },
         ),
@@ -548,7 +702,7 @@ class B:
                 ".B.14.0": set(),
                 ".fun1.2.0": set(),
                 ".fun2.5.0": {
-                    "print",
+                    "BUILTIN.print",
                 },  # print is a builtin function and therefore has no function def to reference -> therefor it has no line
                 ".add.10.4": {".fun1.2.0"},
                 ".add.16.4": {".fun2.5.0"},
@@ -698,6 +852,8 @@ lambda_add = lambda x, y: A().value.add(x, y)
     ids=[
         "Class call - pass",
         "Class call - init",
+        "Class call - init with super",
+        "Class call - new, init and post_init",
         "Class call - init propagation",
         "member access - class",
         "member access - class without call",
@@ -714,6 +870,10 @@ lambda_add = lambda x, y: A().value.add(x, y)
 )
 def test_build_call_graph_member_access(code: str, expected: dict[str, set]) -> None:
     call_graph_forest = resolve_references(code).call_graph_forest
+
+    if call_graph_forest is None:
+        assert expected == {}
+        return
 
     transformed_call_graph_forest: dict = {}
     for tree_id, tree in call_graph_forest.graphs.items():

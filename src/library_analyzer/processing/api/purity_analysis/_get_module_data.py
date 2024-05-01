@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 import astroid
 
 from library_analyzer.processing.api.purity_analysis.model import (
+    BUILTIN_CLASSSCOPES,
     ClassScope,
     ClassVariable,
     FunctionScope,
@@ -188,7 +189,11 @@ class ModuleDataBuilder:
                 # This deals with global variables that are used inside a lambda
                 if isinstance(node, astroid.AssignName) and node.name in self.global_variables:
                     return GlobalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name)
-                return LocalVariable(node=node, id=NodeID.calc_node_id(node), name=node.name)
+                return LocalVariable(
+                    node=node,
+                    id=NodeID.calc_node_id(node),
+                    name=node.name if hasattr(node, "name") else "None",
+                )
 
             case (
                 astroid.TryExcept() | astroid.TryFinally()
@@ -280,7 +285,11 @@ class ModuleDataBuilder:
 
         # Add class variables to the class_variables dict.
         for child in self.current_node_stack[-1].children:
-            if isinstance(child.symbol, ClassVariable) and isinstance(self.current_node_stack[-1], ClassScope):
+            if (
+                isinstance(child.symbol, ClassVariable)
+                and isinstance(self.current_node_stack[-1], ClassScope)
+                and hasattr(self.current_node_stack[-1], "class_variables")
+            ):
                 self.current_node_stack[-1].class_variables.setdefault(child.symbol.name, []).append(child.symbol)
 
     def _analyze_function(self, current_node: astroid.FunctionDef) -> None:
@@ -307,8 +316,8 @@ class ModuleDataBuilder:
             self.functions[current_node.name] = [self.current_function_def[-1]]
 
         # If the function is the constructor of a class, analyze it to find the instance variables of the class.
-        if current_node.name == "__init__":
-            self._analyze_constructor()
+        if current_node.name in ("__init__", "__new__", "__post_init__"):
+            self._analyze_constructor(current_node.name)
 
         # Add all calls that are used inside the function body to its calls' dict.
         if self.calls:
@@ -354,8 +363,10 @@ class ModuleDataBuilder:
             # Make sure there is no AttributeError because of the inconsistent names in the astroid API.
             if isinstance(current_node.parent.targets[0], astroid.AssignAttr):
                 node_name = current_node.parent.targets[0].attrname
-            else:
+            elif isinstance(current_node.parent.targets[0], astroid.AssignName):
                 node_name = current_node.parent.targets[0].name
+            else:
+                node_name = "Lambda"
             # If the Lambda function is assigned to a name, it can be called just as a normal function.
             # Since Lambdas normally do not have names, they need to be assigned manually.
             self.current_function_def[-1].symbol.name = node_name
@@ -402,7 +413,11 @@ class ModuleDataBuilder:
                 self.targets = []
 
             # Add all values that are used inside the lambda body to its parent function values' dict.
-            if self.values and isinstance(self.current_node_stack[-2], FunctionScope):
+            if (
+                self.values
+                and len(self.current_function_def) >= 2
+                and isinstance(self.current_node_stack[-2], FunctionScope)
+            ):
                 for value in self.values:
                     if value.name not in self.current_function_def[-1].parameters:
                         self.current_function_def[-2].value_references.setdefault(value.name, []).append(value)
@@ -418,7 +433,11 @@ class ModuleDataBuilder:
             self.values = []
 
             # Add all calls that are used inside the lambda body to its parent function calls' dict.
-            if self.calls and isinstance(self.current_function_def[-2], FunctionScope):
+            if (
+                self.calls
+                and len(self.current_function_def) >= 2
+                and isinstance(self.current_function_def[-2], FunctionScope)
+            ):
                 for call in self.calls:
                     if call.name not in self.current_function_def[-2].call_references:
                         self.current_function_def[-2].call_references[call.name] = [call]
@@ -441,32 +460,57 @@ class ModuleDataBuilder:
             # Add all globals that are used inside the Lambda to the parent function globals list.
             if self.current_function_def[-1].globals_used:
                 for glob_name, glob_def_list in self.current_function_def[-1].globals_used.items():
-                    if glob_name not in self.current_function_def[-2].globals_used:
+                    if (
+                        len(self.current_function_def) >= 2
+                        and glob_name not in self.current_function_def[-2].globals_used
+                    ):
                         self.current_function_def[-2].globals_used[glob_name] = glob_def_list
                     else:
                         for glob_def in glob_def_list:
-                            if glob_def not in self.current_function_def[-2].globals_used[glob_name]:
+                            if (
+                                len(self.current_function_def) >= 2
+                                and glob_def not in self.current_function_def[-2].globals_used[glob_name]
+                            ):
                                 self.current_function_def[-2].globals_used[glob_name].append(glob_def)
 
-    def _analyze_constructor(self) -> None:
+    def _analyze_constructor(self, function_name: str) -> None:
         """Analyze the constructor of a class.
 
         The constructor of a class is a special function called when an instance of the class is created.
         This function must only be called when the name of the FunctionDef node is `__init__`.
         """
-        # Add instance variables to the instance_variables list of the class.
-        for child in self.current_function_def[-1].children:
-            if isinstance(child.symbol, InstanceVariable) and isinstance(
-                self.current_function_def[-1].parent,
-                ClassScope,
-            ):
-                self.current_function_def[-1].parent.instance_variables.setdefault(child.symbol.name, []).append(
-                    child.symbol,
-                )
+        if function_name == "__init__":
+            # Add instance variables to the instance_variables list of the class.
+            for child in self.current_function_def[-1].children:
+                if (
+                    isinstance(child.symbol, InstanceVariable)
+                    and isinstance(self.current_function_def[-1].parent, ClassScope)
+                    and hasattr(self.current_function_def[-1].parent, "instance_variables")
+                ):
+                    self.current_function_def[-1].parent.instance_variables.setdefault(child.symbol.name, []).append(
+                        child.symbol,
+                    )
 
-        # Add __init__ function to ClassScope.
-        if isinstance(self.current_function_def[-1].parent, ClassScope):
-            self.current_function_def[-1].parent.init_function = self.current_function_def[-1]
+            # Add __init__ function to ClassScope.
+            if isinstance(self.current_function_def[-1].parent, ClassScope) and hasattr(
+                self.current_function_def[-1].parent,
+                "init_function",
+            ):
+                self.current_function_def[-1].parent.init_function = self.current_function_def[-1]
+        elif function_name == "__new__":
+            # Add __new__ function to ClassScope.
+            if isinstance(self.current_function_def[-1].parent, ClassScope) and hasattr(
+                self.current_function_def[-1].parent,
+                "new_function",
+            ):
+                self.current_function_def[-1].parent.new_function = self.current_function_def[-1]
+        elif function_name == "__post_init__":
+            # Add __post_init__ function to ClassScope.
+            if isinstance(self.current_function_def[-1].parent, ClassScope) and hasattr(
+                self.current_function_def[-1].parent,
+                "post_init_function",
+            ):
+                self.current_function_def[-1].parent.post_init_function = self.current_function_def[-1]
 
     def find_first_parent_function(self, node: astroid.NodeNG | MemberAccess) -> astroid.NodeNG:
         """Find the first parent of a call node that is a function.
@@ -577,7 +621,7 @@ class ModuleDataBuilder:
 
         Returns
         -------
-        astroid.AssignName | None
+        list[astroid.AssignName] | None
             The symbol of the global variable if it exists, None otherwise.
         """
         if not isinstance(node, astroid.Module):
@@ -606,34 +650,15 @@ class ModuleDataBuilder:
         list[ClassScope]
             A list of all base classes of the given class if it has any, else an empty list.
         """
-        base_classes = []
+        base_classes: list[ClassScope] = []
         for base in node.bases:
             if isinstance(base, astroid.Name):
-                base_class = self.get_class_by_name(base.name)
-                if isinstance(base_class, ClassScope):
-                    base_classes.append(base_class)
+                if base.name in self.classes:
+                    base_classes.append(self.classes[base.name])
+                elif base.name in BUILTIN_CLASSSCOPES:
+                    base_classes.append(BUILTIN_CLASSSCOPES[base.name])
 
         return base_classes
-
-    def get_class_by_name(self, name: str) -> ClassScope | None:
-        """Get the class with the given name.
-
-        Parameters
-        ----------
-        name : str
-            The name of the class to get.
-
-        Returns
-        -------
-        ClassScope | None
-            The class with the given name if it exists, None otherwise.
-            None will never be returned since this function is only called when it is certain that the class exists.
-        """
-        for klass in self.classes:
-            if klass == name:
-                return self.classes[klass]
-        # This is not possible because the class is always added to the classes dict when it is defined.
-        return None  # pragma: no cover
 
     def enter_module(self, node: astroid.Module) -> None:
         """
@@ -670,6 +695,11 @@ class ModuleDataBuilder:
         self._detect_scope(node)
 
     def enter_functiondef(self, node: astroid.FunctionDef) -> None:
+        if node.decorators:
+            for decorator in node.decorators.nodes:
+                if isinstance(decorator, astroid.Name) and decorator.name == "overload":
+                    return
+
         self.current_node_stack.append(
             FunctionScope(
                 _symbol=self.get_symbol(node, self.current_node_stack[-1].symbol.node),
@@ -681,6 +711,11 @@ class ModuleDataBuilder:
         # The current_node_stack[-1] is always of type FunctionScope here.
 
     def leave_functiondef(self, node: astroid.FunctionDef) -> None:
+        if node.decorators:
+            for decorator in node.decorators.nodes:
+                if isinstance(decorator, astroid.Name) and decorator.name == "overload":
+                    return
+
         self._detect_scope(node)
         self.current_function_def.pop()
 
@@ -923,6 +958,7 @@ class ModuleDataBuilder:
             if (
                 isinstance(self.current_node_stack[-1], FunctionScope)
                 or isinstance(self.current_node_stack[-1].symbol.node, astroid.TryExcept | astroid.TryFinally)
+                and self.current_function_def
                 and self.find_first_parent_function(node) == self.current_function_def[-1].symbol.node
             ):
                 self.targets.append(self.get_symbol(node, self.current_node_stack[-1].symbol.node))
@@ -1019,7 +1055,7 @@ class ModuleDataBuilder:
                         FunctionScope,
                     ):
                         symbol = self.get_symbol(global_node_def, self.current_node_stack[-1].symbol.node)
-                        if isinstance(symbol, GlobalVariable):
+                        if isinstance(symbol, GlobalVariable) and hasattr(self.current_node_stack[-1], "globals_used"):
                             self.current_node_stack[-1].globals_used.setdefault(name, []).append(symbol)
 
     def enter_call(self, node: astroid.Call) -> None:
@@ -1070,7 +1106,7 @@ class ModuleDataBuilder:
             if alias and isinstance(alias, str):
                 import_symbol = Import(
                     node=node,
-                    id=NodeID(node.root(), module, node.lineno, node.col_offset),
+                    id=NodeID(node.root().name, module, node.lineno, node.col_offset),
                     # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
                     name=module,
                     module=module,
@@ -1080,7 +1116,7 @@ class ModuleDataBuilder:
             else:
                 import_symbol = Import(
                     node=node,
-                    id=NodeID(node.root(), module, node.lineno, node.col_offset),
+                    id=NodeID(node.root().name, module, node.lineno, node.col_offset),
                     # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
                     name=module,
                     module=module,
@@ -1105,7 +1141,7 @@ class ModuleDataBuilder:
             if alias and isinstance(alias, str):
                 import_symbol = Import(
                     node=node,
-                    id=NodeID(node.root(), name, node.lineno, node.col_offset),
+                    id=NodeID(node.root().name, name, node.lineno, node.col_offset),
                     # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
                     name=name,
                     module=module,
@@ -1115,7 +1151,7 @@ class ModuleDataBuilder:
             else:
                 import_symbol = Import(
                     node=node,
-                    id=NodeID(node.root(), name, node.lineno, node.col_offset),
+                    id=NodeID(node.root().name, name, node.lineno, node.col_offset),
                     # Do not use NodeID.calc_node_id here because it would use the wrong name as node name.
                     name=name,
                     module=module,
@@ -1131,7 +1167,7 @@ class ModuleDataBuilder:
         self.imports.update(symbols)
 
 
-def get_module_data(code: str) -> ModuleData:
+def get_module_data(code: str, module_name: str = "", path: str | None = None) -> ModuleData:
     """Get the module data of the given code.
 
     To get the module data of the given code, the code is parsed into an AST and then walked by an ASTWalker.
@@ -1143,16 +1179,27 @@ def get_module_data(code: str) -> ModuleData:
     ----------
     code : str
         The source code of the module whose module data is to be found.
+    module_name : str, optional
+        The name of the module, by default "".
+    path : str, optional
+        The path of the module, by default None.
 
     Returns
     -------
     ModuleData
         The module data of the given module.
+
+    Raises
+    ------
+    ValueError
+        If the code has invalid syntax.
     """
     module_data_handler = ModuleDataBuilder()
     walker = ASTWalker(module_data_handler)
-    module = astroid.parse(code)
-    # print(module.repr_tree())
+    try:
+        module = astroid.parse(code, module_name, path)
+    except astroid.AstroidSyntaxError as e:
+        raise ValueError(f"Invalid syntax in code: {e}") from e
     walker.walk(module)
 
     scope = module_data_handler.children[0]  # Get the children of the root node, which are the scopes of the module

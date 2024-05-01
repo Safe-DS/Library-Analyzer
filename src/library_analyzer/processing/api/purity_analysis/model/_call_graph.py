@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from library_analyzer.processing.api.purity_analysis.model._purity import Impure, UnknownCall, UnknownFunctionCall
+
 if TYPE_CHECKING:
     from library_analyzer.processing.api.purity_analysis.model._module_data import (
         Import,
@@ -207,18 +209,8 @@ class CombinedCallGraphNode(CallGraphNode):
     def __repr__(self) -> str:
         return f"{self.symbol.name}: {id(self)}"
 
-    def combined_node_id_to_string(self) -> list[str]:
-        """Return the combined node IDs as a string.
-
-        Returns
-        -------
-        str
-            The combined node IDs as a string.
-        """
-        return [str(node_id) for node_id in self.combines]
-
-    def decombine(self) -> dict[NodeID, CallGraphNode]:
-        """Decombine the node.
+    def separate(self) -> dict[NodeID, CallGraphNode]:
+        """Separate the node.
 
         After the purity of a combined node is inferred,
         the reasons of the combined node are transferred to the original nodes.
@@ -231,7 +223,29 @@ class CombinedCallGraphNode(CallGraphNode):
         original_nodes: dict[NodeID, CallGraphNode] = {}
         for node_id, node in self.combines.items():
             original_nodes[node_id] = node
-            original_nodes[node_id].reasons = self.reasons
+            original_nodes[node_id].reasons.result = self.reasons.result
+
+            # The results need to be assigned an origin to be able to trace back the result.
+            if (
+                original_nodes[node_id].reasons is not None
+                and isinstance(original_nodes[node_id].reasons.result, Impure)
+                and hasattr(original_nodes[node_id].reasons.result, "reasons")
+            ):
+                for reason in original_nodes[node_id].reasons.result.reasons:  # type: ignore[union-attr] # it is cheked above
+                    if (
+                        isinstance(reason, UnknownCall)
+                        and isinstance(reason.expression, UnknownFunctionCall)
+                        and reason.origin is None
+                    ):
+                        for nod in self.combines.values():
+                            for unknown_call in nod.reasons.unknown_calls:
+                                if (
+                                    unknown_call.node == reason.expression.call
+                                    and nod.reasons.function_scope is not None
+                                ):
+                                    reason.origin = nod.reasons.function_scope.symbol
+                                    break
+
         return original_nodes
 
 
