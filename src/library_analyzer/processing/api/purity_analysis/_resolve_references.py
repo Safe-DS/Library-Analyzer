@@ -22,6 +22,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ModuleAnalysisResult,
     NodeID,
     PackageData,
+    ParameterKind,
     Reasons,
     Reference,
     ReferenceNode,
@@ -154,6 +155,88 @@ class ReferenceResolver:
                 d3[key] = value
         return d3
 
+    @staticmethod
+    def compare_parameters(function: FunctionScope, call: astroid.Call) -> bool:
+        """Compare the parameters of a function with the arguments of a call.
+
+        To precisely determine the referenced symbols of a call,
+        the parameters of the function are compared with the arguments of the call.
+        A parameter is the variable listed inside the parentheses in the function definition.
+        An argument is the value sent to the function when it is called.
+
+        Parameters
+        ----------
+        function : FunctionScope
+            The function to compare.
+        call : astroid.Call
+            The call to compare.
+
+        Returns
+        -------
+        bool
+            True if the parameters of the function match the arguments of the call, False otherwise.
+        """
+        if function.parameters:
+            argument_node: astroid.Arguments | None = (
+                next(iter(function.parameters.values())).node.parent
+                if (isinstance(next(iter(function.parameters.values())).node.parent, astroid.Arguments))
+                else None
+            )
+
+            # Get the parameters of the function and group them by kind.
+            star_param = [
+                f
+                for f in function.parameters.values()
+                if f.kind in (ParameterKind.VAR_POSITIONAL, ParameterKind.VAR_KEYWORD)
+            ]
+            keyword_param = [
+                f
+                for f in function.parameters.values()
+                if f.kind in (ParameterKind.KEYWORD_ONLY, ParameterKind.VAR_KEYWORD)
+            ]
+            positional_param = [
+                f
+                for f in function.parameters.values()
+                if f.kind in (ParameterKind.POSITIONAL_ONLY, ParameterKind.POSITIONAL_OR_KEYWORD)
+            ]
+
+            if isinstance(function.parent, ClassScope):
+                positional_param = [f for f in positional_param if f.name not in ("self", "cls")]
+
+            # Get the arguments of the call and group them by kind.
+            positional_or_keyword_args = call.args
+            keyword_args = call.keywords
+
+            # If no asterisk args are present, ...
+            if not star_param:
+                # ... the number of call arguments must be less or equal to the number of function parameters.
+                if len(positional_or_keyword_args + keyword_args) > len(positional_param) + len(keyword_param):
+                    return False
+                # ... and no default values are present,
+                # the number of call arguments must be equal to the number of function parameters.
+                elif argument_node and not argument_node.defaults:
+                    if len(positional_or_keyword_args + keyword_args) < len(positional_param) + len(keyword_param):
+                        return False
+
+            # If the call has keyword arguments and the function has no keyword parameters, return False.
+            if not keyword_param and keyword_args:
+                # Since it is possible to declare positional arguments as keyword arguments,
+                # it also needs to be checked if the keyword arguments are in the function parameters.
+                keyword_args_names = [keyword.arg for keyword in keyword_args]
+                keyword_args_names_matching_positional_parameter_names = [
+                    key for key in keyword_args_names if key in function.parameters
+                ]
+                if not keyword_args_names_matching_positional_parameter_names:
+                    return False
+
+                # Check if all used keyword arguments are in the functions keyword parameters.
+                if not all(key in function.parameters for key in keyword_args_names):
+                    return False
+
+            return True
+        else:
+            return True
+
     def _find_call_references(
         self,
         call_reference: Reference,
@@ -186,6 +269,7 @@ class ReferenceResolver:
         # Find functions that are called.
         if call_reference.name in self.functions:
             function_def = self.functions.get(call_reference.name)
+            function_def = [function_d for function_d in function_def if self.compare_parameters(function_d, call_reference.node)]  # type: ignore[union-attr]
             function_symbols = [func.symbol for func in function_def if function_def]  # type: ignore[union-attr]
             # "None" is not iterable, but it is checked before
             class_iterator = function.symbol.node

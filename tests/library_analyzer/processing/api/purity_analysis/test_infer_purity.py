@@ -938,11 +938,9 @@ def fun2():
             {
                 "add.line4": Pure(),
                 "add.line9": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-                "fun1.line13": SimpleImpure(
-                    {"FileWrite.StringLiteral.stdout"},
-                ),  # here we need to be conservative and assume that the call is impure
+                "fun1.line13": Pure(),
                 "fun2.line16": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
-            },  # TODO: [Later] we could also check the signature of the function and see that the call is actually pure
+            },
         ),
         (  # language=Python "Call of Impure Function"
             """

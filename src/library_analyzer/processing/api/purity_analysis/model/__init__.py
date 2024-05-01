@@ -24,6 +24,7 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
     NodeID,
     PackageData,
     Parameter,
+    ParameterKind,
     Reference,
     Scope,
     Symbol,
@@ -116,4 +117,5 @@ __all__ = [
     "UnknownSymbol",
     "BUILTIN_SPECIALS",
     "PackageData",
+    "ParameterKind",
 ]

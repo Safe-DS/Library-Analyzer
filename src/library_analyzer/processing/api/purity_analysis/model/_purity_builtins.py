@@ -17,7 +17,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     UnknownSymbol,
 )
 
-# TODO: check these for correctness and add reasons for impurity
 BUILTIN_FUNCTIONS: dict[str, PurityResult] = {  # all errors and warnings are pure
     "ArithmeticError": Pure(),
     "AssertionError": Pure(),
