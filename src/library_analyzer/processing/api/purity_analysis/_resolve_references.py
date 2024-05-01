@@ -237,33 +237,6 @@ class ReferenceResolver:
         else:
             return True
 
-    @staticmethod
-    def merge_dicts(
-        d1: dict[str, list[ReferenceNode]],
-        d2: dict[str, list[ReferenceNode]],
-    ) -> dict[str, list[ReferenceNode]]:
-        """Merge two dicts of lists of ReferenceNodes.
-
-        Parameters
-        ----------
-        d1 : dict[str, list[ReferenceNode]]
-            The first dict.
-        d2 : dict[str, list[ReferenceNode]]
-            The second dict.
-
-        Returns
-        -------
-        d3 : dict[str, list[ReferenceNode]]
-            The merged dict.
-        """
-        d3 = d1.copy()
-        for key, value in d2.items():
-            if key in d3:
-                d3[key].extend(value)
-            else:
-                d3[key] = value
-        return d3
-
     def _find_call_references(
         self,
         call_reference: Reference,
