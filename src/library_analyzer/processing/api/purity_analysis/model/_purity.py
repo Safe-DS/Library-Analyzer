@@ -207,7 +207,7 @@ class ImpurityReason(ABC):  # this is just a base class, and it is important tha
 
     @abstractmethod
     def to_dict(self) -> dict[str, Any]:
-        pass
+        pass  # TODO: combine all origins and reasons of instances with the same class in one dict
 
 
 class Read(ImpurityReason, ABC):

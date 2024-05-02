@@ -278,6 +278,8 @@ class ReferenceResolver:
                 if isinstance(class_iterator, astroid.ClassDef):
                     klass = self.classes.get(class_iterator.name)
                     break
+                if isinstance(class_iterator, astroid.Module):
+                    break
                 class_iterator = class_iterator.parent
 
             if klass and klass.super_classes:
@@ -502,17 +504,20 @@ class ReferenceResolver:
             # are resolved is much more effort and would require to change the data structure.
             # Therefore, all calls of imported functions are handled as MemberAccessValue.
             # Because of this, a check at the point where the referenced_symbols are added to the raw_reasons is needed.
-            if value_reference.node.receiver is None:
+            try:
+                if value_reference.node.receiver is None:
+                    receiver_name = "UNKNOWN"
+                elif isinstance(value_reference.node.receiver, astroid.Attribute):
+                    receiver_name = value_reference.node.receiver.attrname
+                elif isinstance(value_reference.node.receiver, astroid.Call) and hasattr(
+                    value_reference.node.receiver.func,
+                    "name",
+                ):
+                    receiver_name = value_reference.node.receiver.func.name
+                else:
+                    receiver_name = value_reference.node.receiver.name
+            except AttributeError:
                 receiver_name = "UNKNOWN"
-            elif isinstance(value_reference.node.receiver, astroid.Attribute):
-                receiver_name = value_reference.node.receiver.attrname
-            elif isinstance(value_reference.node.receiver, astroid.Call) and isinstance(
-                value_reference.node.receiver.func,
-                astroid.Name,
-            ):
-                receiver_name = value_reference.node.receiver.func.name
-            else:
-                receiver_name = value_reference.node.receiver.name
 
             # In references imported via "import" statements, the symbols of the imported module are not known yet.
             # The symbol is accessed via its name, which is of type MemberAccessValue.

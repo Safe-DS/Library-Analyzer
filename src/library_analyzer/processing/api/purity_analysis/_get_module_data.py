@@ -245,7 +245,8 @@ class ModuleDataBuilder:
                 # add all children of the try-finally node and remove the try-except node.
                 if isinstance(current_node, astroid.TryFinally) and isinstance(child.symbol.node, astroid.TryExcept):
                     inner_scope_children.extend(child.children)
-                    inner_scope_children.remove(child)
+                    if child in inner_scope_children:
+                        inner_scope_children.remove(child)
 
         self.current_node_stack[-1].children = inner_scope_children  # Set the children of the current node.
         self.children = outer_scope_children  # Keep the children that are not in the scope of the current node.

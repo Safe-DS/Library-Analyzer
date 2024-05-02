@@ -146,9 +146,9 @@ class Reasons:
 
     id: NodeID
     function_scope: FunctionScope | None = field(default=None)
-    writes_to: set[GlobalVariable | ClassVariable | InstanceVariable | Import] = field(default_factory=set)
+    writes_to: set[GlobalVariable | ClassVariable | InstanceVariable | Import] = field(default_factory=set)  # TODO: add origin here
     reads_from: set[GlobalVariable | ClassVariable | InstanceVariable | Import] = field(default_factory=set)
-    calls: set[Symbol] = field(default_factory=set)
+    calls: set[Symbol] = field(default_factory=set)  # TODO: SORTED SET oder LIST
     result: PurityResult | None = field(default=None)
     unknown_calls: set[Symbol | Reference] = field(default_factory=set)
 
