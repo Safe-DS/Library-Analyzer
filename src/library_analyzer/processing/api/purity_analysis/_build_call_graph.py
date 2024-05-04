@@ -11,6 +11,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Parameter,
     Reasons,
     Symbol,
+    UnknownProto,
 )
 
 
@@ -172,14 +173,14 @@ class CallGraphBuilder:
 
             # Check if the node was declared inside the current module.
             elif call.id not in self.raw_reasons:
-                self._handle_unknown_call(call, reason.id)
+                self._handle_unknown_call(call, reason)
 
             # Build the call graph for the child function and add it to the children of the current node.
             else:
                 self._built_call_graph(self.raw_reasons[call.id])
                 self.call_graph_forest.get_graph(reason.id).add_child(self.call_graph_forest.get_graph(call.id))
 
-    def _handle_unknown_call(self, call: Symbol, reason_id: NodeID) -> None:
+    def _handle_unknown_call(self, call: Symbol, reason: Reasons) -> None:
         """Handle unknown calls.
 
         Deal with unknown calls and add them to the forest.
@@ -190,8 +191,8 @@ class CallGraphBuilder:
         ----------
         call : Symbol
             The call that is unknown.
-        reason_id : NodeID
-            The id of the function that the call is in.
+        reason : Reasons
+            The reason of the function that contains the unknown call.
         """
         # Deal with the case that the call calls an imported function.
         if isinstance(call, Import):
@@ -200,26 +201,30 @@ class CallGraphBuilder:
                 reasons=Reasons(id=call.id),
             )
             self.call_graph_forest.add_graph(call.id, imported_cgn)
-            self.call_graph_forest.get_graph(reason_id).add_child(self.call_graph_forest.get_graph(call.id))
+            self.call_graph_forest.get_graph(reason.id).add_child(self.call_graph_forest.get_graph(call.id))
 
             # If the call was used as a member of an MemberAccessValue, it needs to be removed from the unknown_calls.
             # This is due to the improved analysis that can determine the module through the receiver of that call.
             # Hence, the call is handled as a call of an imported function and not as an unknown_call
             # when inferring the purity later.
-            for unknown_call in self.call_graph_forest.get_graph(reason_id).reasons.unknown_calls:
-                if unknown_call.node == call.call:
+            for unknown_call in self.call_graph_forest.get_graph(reason.id).reasons.unknown_calls.copy().values():
+                if unknown_call.symbol.node == call.call:
                     (
-                        self.call_graph_forest.get_graph(reason_id).reasons.remove_unknown_call(
+                        self.call_graph_forest.get_graph(reason.id).reasons.remove_unknown_call(
                             NodeID.calc_node_id(call.call),
                         )
                     )
 
         # Deal with the case that the call calls a function parameter.
         elif isinstance(call, Parameter):
-            self.call_graph_forest.get_graph(reason_id).reasons.unknown_calls.add(call)
+            self.call_graph_forest.get_graph(reason.id).reasons.unknown_calls[call.id] = UnknownProto(
+                symbol=call, origin=reason.function_scope.symbol
+            )
 
         else:
-            self.call_graph_forest.get_graph(reason_id).reasons.unknown_calls.add(call)
+            self.call_graph_forest.get_graph(reason.id).reasons.unknown_calls[call.id] = UnknownProto(
+                symbol=call, origin=reason.function_scope.symbol
+            )
 
     def _handle_cycles(self, removed_nodes: set[NodeID] | None = None) -> None:
         """Handle cycles in the call graph.

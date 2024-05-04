@@ -49,6 +49,7 @@ from library_analyzer.processing.api.purity_analysis.model._purity import (
     UnknownCall,
     UnknownClassInit,
     UnknownFunctionCall,
+    UnknownProto,
 )
 from library_analyzer.processing.api.purity_analysis.model._purity_builtins import (
     BUILTIN_CLASSSCOPES,
@@ -118,4 +119,5 @@ __all__ = [
     "BUILTIN_SPECIALS",
     "PackageData",
     "ParameterKind",
+    "UnknownProto",
 ]

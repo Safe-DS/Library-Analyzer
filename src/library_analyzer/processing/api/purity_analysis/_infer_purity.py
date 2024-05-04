@@ -228,101 +228,62 @@ class PurityAnalyzer:
 
         # Check if the function has any non-local variable writes.
         if reasons.writes_to:
-            for write in reasons.writes_to:
-                impurity_reasons.add(
-                    NonLocalVariableWrite(
-                        symbol=write,
-                        origin=(
-                            reasons.id
-                            if reasons.function_scope is None and reasons.id is not None
-                            else (reasons.function_scope.symbol if reasons.function_scope is not None else None)
-                        ),
-                    ),
-                )
+            for write in reasons.writes_to.values():
+                impurity_reasons.add(write)
 
         # Check if the function has any non-local variable reads.
         if reasons.reads_from:
-            for read in reasons.reads_from:
+            for read in reasons.reads_from.values():
                 # Check if the read reads from an imported module.
-                if isinstance(read, Import):
-                    if read.inferred_node:
+                if isinstance(read.symbol, Import):
+                    if read.symbol.inferred_node:
                         # If the inferred node is a function, it must be analyzed to determine its purity.
-                        if isinstance(read.inferred_node, astroid.FunctionDef):
+                        if isinstance(read.symbol.inferred_node, astroid.FunctionDef):
                             impurity_reasons.add(
-                                UnknownCall(UnknownFunctionCall(call=read.call, inferred_def=read.inferred_node)),
+                                UnknownCall(UnknownFunctionCall(call=read.symbol.call, inferred_def=read.symbol.inferred_node)),
                             )
-                        elif isinstance(read.inferred_node, astroid.ClassDef):
+                        elif isinstance(read.symbol.inferred_node, astroid.ClassDef):
                             impurity_reasons.add(
-                                UnknownCall(UnknownClassInit(call=read.call, inferred_def=read.inferred_node)),
+                                UnknownCall(UnknownClassInit(call=read.symbol.call, inferred_def=read.symbol.inferred_node)),
                             )
                         # If the inferred node is a module, it will not count towards the impurity of the function.
                         # If this was added, nearly anything would be impure.
                         # Also, since the imported symbols are analyzed in much more detail, this can be omitted.
-                        elif isinstance(read.inferred_node, astroid.Module):
+                        elif isinstance(read.symbol.inferred_node, astroid.Module):
                             pass
                         # Default case for symbols that could not be inferred.
                         else:  # TODO: what type of nodes are allowed here?
-                            impurity_reasons.add(
-                                NonLocalVariableRead(
-                                    symbol=read,
-                                    origin=(
-                                        reasons.id
-                                        if reasons.function_scope is None and reasons.id is not None
-                                        else (
-                                            reasons.function_scope.symbol
-                                            if reasons.function_scope is not None
-                                            else None
-                                        )
-                                    ),
-                                ),
-                            )
+                            impurity_reasons.add(read)
 
                     else:
-                        raise ValueError(f"Imported node {read.name} has no inferred node.") from None
+                        raise ValueError(f"Imported node {read.symbol.name} has no inferred node.") from None
 
                 else:
-                    impurity_reasons.add(
-                        NonLocalVariableRead(
-                            symbol=read,
-                            origin=(
-                                reasons.id
-                                if reasons.function_scope is None and reasons.id is not None
-                                else (reasons.function_scope.symbol if reasons.function_scope is not None else None)
-                            ),
-                        ),
-                    )
+                    impurity_reasons.add(read)
 
         # Check if the function has any unknown calls.
         if reasons.unknown_calls:
-            for unknown_call in reasons.unknown_calls:
+            for unknown_call in reasons.unknown_calls.values():
                 # Handle calls of code where no definition was found.
-                if isinstance(unknown_call, Reference):
+                if isinstance(unknown_call.symbol, Reference):
                     # This checks special cases of unknown calls.
                     # These are cases where a function is not a true builtin, but also not a user-defined function.
                     # Cases like dict.pop(), list.remove(), set.union(), etc.
-                    if unknown_call.name in BUILTIN_SPECIALS:
+                    if unknown_call.symbol.name in BUILTIN_SPECIALS:
                         pass
                     else:
                         impurity_reasons.add(
                             UnknownCall(
-                                expression=UnknownFunctionCall(call=unknown_call.node),
-                                origin=(
-                                    reasons.id
-                                    if reasons.function_scope is None and reasons.id is not None
-                                    else (reasons.function_scope.symbol if reasons.function_scope is not None else None)
-                                ),
+                                expression=UnknownFunctionCall(call=unknown_call.symbol.node),
+                                origin=unknown_call.origin
                             ),
                         )
                 # Handle parameter calls
-                elif isinstance(unknown_call, Parameter):
+                elif isinstance(unknown_call.symbol, Parameter):
                     impurity_reasons.add(
                         CallOfParameter(
-                            expression=ParameterAccess(unknown_call),
-                            origin=(
-                                reasons.id
-                                if reasons.function_scope is None and reasons.id is not None
-                                else (reasons.function_scope.symbol if reasons.function_scope is not None else None)
-                            ),
+                            expression=ParameterAccess(unknown_call.symbol),
+                            origin=unknown_call.origin
                         ),
                     )
                 # Do not handle imported calls here since they are handled separately.

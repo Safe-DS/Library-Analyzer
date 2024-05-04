@@ -29,6 +29,9 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Symbol,
     TargetReference,
     ValueReference,
+    NonLocalVariableWrite,
+    NonLocalVariableRead,
+    UnknownProto,
 )
 
 _BUILTINS = dir(builtins)
@@ -473,6 +476,8 @@ class ReferenceResolver:
                     import_def,
                     inferred_node=inferred_node_def,  # type: ignore[type-var] # import def is not None.
                 )
+                specified_import_def.id.name = specified_import_def.id.name + "." + specified_import_def.name
+
                 if specified_import_def:
                     result_value_reference.referenced_symbols.append(specified_import_def)
 
@@ -559,6 +564,7 @@ class ReferenceResolver:
                             name=value_reference.node.member,
                             inferred_node=inferred_node_def,
                         )
+                        specified_import_def.id.name = specified_import_def.id.name + "." + specified_import_def.name
 
                         # If the member is a call, add the call node to the specified_import_def as fallback for the case
                         # that the purity of the called function cannot be inferred.
@@ -748,7 +754,8 @@ class ReferenceResolver:
                             # If no referenced symbols are found, add the call to the list of unknown_calls
                             # of the raw_reasons dict for this function
                             elif call_references_result.node not in raw_reasons[function.symbol.id].unknown_calls:
-                                raw_reasons[function.symbol.id].unknown_calls.add(call_references_result.node)
+                                raw_reasons[function.symbol.id].unknown_calls[call_references_result.node.id] = (
+                                    UnknownProto(symbol=call_references_result.node, origin=function.symbol))
 
                 # Check if the function has value_references (References from a value node to a target node).
                 if function.value_references:
@@ -776,8 +783,9 @@ class ReferenceResolver:
                                         if isinstance(referenced_symbol.node, astroid.ClassDef | astroid.FunctionDef):
                                             continue
                                         # Add the referenced symbol to the list of symbols whom are read from.
-                                        if referenced_symbol not in raw_reasons[function.symbol.id].reads_from:
-                                            raw_reasons[function.symbol.id].reads_from.add(referenced_symbol)
+                                        if referenced_symbol.id not in raw_reasons[function.symbol.id].reads_from:
+                                            raw_reasons[function.symbol.id].reads_from[referenced_symbol.id] = (
+                                                    NonLocalVariableRead(symbol=referenced_symbol, origin=function.symbol))
                                     elif isinstance(referenced_symbol, Import):
                                         # Since calls of imported functions are treated within _find_value_references
                                         # as MemberAccessValue, they need to be added to the calls of the raw_reasons dict
@@ -789,14 +797,16 @@ class ReferenceResolver:
                                             if referenced_symbol not in raw_reasons[function.symbol.id].calls:
                                                 raw_reasons[function.symbol.id].calls.add(referenced_symbol)
                                         else:  # noqa: PLR5501
-                                            if referenced_symbol not in raw_reasons[function.symbol.id].reads_from:
-                                                raw_reasons[function.symbol.id].reads_from.add(referenced_symbol)
+                                            if referenced_symbol.id not in raw_reasons[function.symbol.id].reads_from:
+                                                raw_reasons[function.symbol.id].reads_from[referenced_symbol.id] = (
+                                                    NonLocalVariableRead(symbol=referenced_symbol, origin=function.symbol))
                             # If no referenced symbols are found, add the call to the list of unknown_calls
                             # of the raw_reasons dict for this function
                             elif value_reference_result.node not in raw_reasons[
                                 function.symbol.id
                             ].unknown_calls and isinstance(value_reference_result.node.node, astroid.Call):
-                                raw_reasons[function.symbol.id].unknown_calls.add(value_reference_result.node)
+                                raw_reasons[function.symbol.id].unknown_calls[value_reference_result.node.id] = (
+                                    UnknownProto(symbol=value_reference_result.node, origin=function.symbol))
 
                 # Check if the function has target_references (References from a target node to another target node).
                 if function.target_symbols:
@@ -829,7 +839,8 @@ class ReferenceResolver:
                                             continue
                                         # Add the referenced symbol to the list of symbols whom are written to.
                                         if referenced_symbol not in raw_reasons[function.symbol.id].writes_to:
-                                            raw_reasons[function.symbol.id].writes_to.add(referenced_symbol)
+                                            raw_reasons[function.symbol.id].writes_to[referenced_symbol.id] = (
+                                                NonLocalVariableWrite(symbol=referenced_symbol, origin=function.symbol))
 
         name_references: dict[str, list[ReferenceNode]] = self.merge_dicts(value_references, target_references)
         resolved_references: dict[str, list[ReferenceNode]] = self.merge_dicts(call_references, name_references)

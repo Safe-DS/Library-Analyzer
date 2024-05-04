@@ -24,7 +24,12 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from library_analyzer.processing.api.purity_analysis.model import CallGraphForest, PurityResult
+    from library_analyzer.processing.api.purity_analysis.model import (
+        CallGraphForest,
+        PurityResult,
+        NonLocalVariableRead,
+        NonLocalVariableWrite,
+        UnknownProto)
 
 
 @dataclass
@@ -129,28 +134,28 @@ class Reasons:
         Is None if the reasons are not for a FunctionDef node.
         This is the case when either a builtin or a combined node is created,
         or a ClassScope is used to propagate reasons.
-    writes_to : set[GlobalVariable | ClassVariable | InstanceVariable | Import]
-        A set of all nodes that are written to.
-    reads_from : set[GlobalVariable | ClassVariable | InstanceVariable | Import]
-        A set of all nodes that are read from.
+    writes_to : dict[NodeID, NonLocalVariableWrite]
+        A dict of all nodes that are written to.
+    reads_from : dict[NodeID, NonLocalVariableRead]
+        A dict of all nodes that are read from.
     calls : set[Symbol]
         A set of all nodes that are called.
     result : PurityResult | None
         The result of the purity analysis
         This also works as a flag to determine if the purity analysis has already been performed:
         If it is None, the purity analysis has not been performed
-    unknown_calls : set[Symbol | Reference]
-        A list of all unknown calls.
+    unknown_calls : dict[NodeID, UnknownProto]
+        A dict of all unknown calls.
         Unknown calls are calls to functions that are not defined in the module or are parameters.
     """
 
     id: NodeID
     function_scope: FunctionScope | None = field(default=None)
-    writes_to: set[GlobalVariable | ClassVariable | InstanceVariable | Import] = field(default_factory=set)  # TODO: add origin here
-    reads_from: set[GlobalVariable | ClassVariable | InstanceVariable | Import] = field(default_factory=set)
+    writes_to: dict[NodeID, NonLocalVariableWrite] = field(default_factory=dict)
+    reads_from: dict[NodeID, NonLocalVariableRead] = field(default_factory=dict)
     calls: set[Symbol] = field(default_factory=set)  # TODO: SORTED SET oder LIST
     result: PurityResult | None = field(default=None)
-    unknown_calls: set[Symbol | Reference] = field(default_factory=set)
+    unknown_calls: dict[NodeID, UnknownProto] = field(default_factory=dict)
 
     def join_reasons_list(self, reasons_list: list[Reasons]) -> Reasons:
         """Join a list of Reasons objects.
@@ -215,4 +220,4 @@ class Reasons:
         node_id : NodeID
             The NodeID of the unknown call to remove.
         """
-        self.unknown_calls = {call for call in self.unknown_calls if call.id != node_id}
+        del self.unknown_calls[node_id]
