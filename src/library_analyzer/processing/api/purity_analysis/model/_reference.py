@@ -8,11 +8,7 @@ import astroid
 
 from library_analyzer.processing.api.purity_analysis.model._module_data import (
     ClassScope,
-    ClassVariable,
     FunctionScope,
-    GlobalVariable,
-    Import,
-    InstanceVariable,
     MemberAccessTarget,
     MemberAccessValue,
     NodeID,
@@ -22,14 +18,14 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
 
     from library_analyzer.processing.api.purity_analysis.model import (
         CallGraphForest,
-        PurityResult,
         NonLocalVariableRead,
         NonLocalVariableWrite,
-        UnknownProto)
+        PurityResult,
+        UnknownProto,
+    )
 
 
 @dataclass

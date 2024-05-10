@@ -247,7 +247,8 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                     {
                         (
                             f"{target_reference.symbol.__class__.__name__}.{target_reference.symbol.klass.name}.{target_reference.symbol.node.name}.line{target_reference.symbol.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
-                            if isinstance(target_reference.symbol, ClassVariable) and target_reference.symbol.klass is not None
+                            if isinstance(target_reference.symbol, ClassVariable)
+                            and target_reference.symbol.klass is not None
                             else (
                                 f"{target_reference.symbol.__class__.__name__}.{target_reference.symbol.klass.name}.{target_reference.symbol.node.member}.line{target_reference.symbol.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                                 if isinstance(target_reference.symbol, InstanceVariable)

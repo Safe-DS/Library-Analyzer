@@ -26,8 +26,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ImpurityReason,
     NativeCall,
     NodeID,
-    NonLocalVariableRead,
-    NonLocalVariableWrite,
     OpenMode,
     PackageData,
     Parameter,
@@ -240,11 +238,15 @@ class PurityAnalyzer:
                         # If the inferred node is a function, it must be analyzed to determine its purity.
                         if isinstance(read.symbol.inferred_node, astroid.FunctionDef):
                             impurity_reasons.add(
-                                UnknownCall(UnknownFunctionCall(call=read.symbol.call, inferred_def=read.symbol.inferred_node)),
+                                UnknownCall(
+                                    UnknownFunctionCall(call=read.symbol.call, inferred_def=read.symbol.inferred_node),
+                                ),
                             )
                         elif isinstance(read.symbol.inferred_node, astroid.ClassDef):
                             impurity_reasons.add(
-                                UnknownCall(UnknownClassInit(call=read.symbol.call, inferred_def=read.symbol.inferred_node)),
+                                UnknownCall(
+                                    UnknownClassInit(call=read.symbol.call, inferred_def=read.symbol.inferred_node),
+                                ),
                             )
                         # If the inferred node is a module, it will not count towards the impurity of the function.
                         # If this was added, nearly anything would be impure.

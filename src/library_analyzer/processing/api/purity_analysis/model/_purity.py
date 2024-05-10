@@ -12,9 +12,9 @@ import astroid
 from library_analyzer.processing.api.purity_analysis.model._module_data import (
     MemberAccessValue,
     NodeID,
+    Reference,
     Symbol,
     UnknownSymbol,
-    Reference,
 )
 from library_analyzer.utils import ensure_file_exists
 
@@ -224,9 +224,7 @@ class Impure(PurityResult):
             }
         return {
             "purity": self.__class__.__name__,
-            "reasons": {
-                reason: value for reason, value in combined_reasons.items() if value
-            },
+            "reasons": {reason: value for reason, value in combined_reasons.items() if value},
         }
 
     def __hash__(self) -> int:

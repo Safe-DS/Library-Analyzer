@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from library_analyzer.processing.api.purity_analysis.model._purity import Impure, UnknownCall, UnknownFunctionCall
-
 if TYPE_CHECKING:
     from library_analyzer.processing.api.purity_analysis.model._module_data import (
         Import,
