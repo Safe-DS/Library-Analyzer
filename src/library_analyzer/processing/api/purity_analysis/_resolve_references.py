@@ -802,7 +802,8 @@ class ReferenceResolver:
                                             if referenced_symbol.id not in raw_reasons[function.symbol.id].reads_from:
                                                 raw_reasons[function.symbol.id].reads_from[referenced_symbol.id] = (
                                                     NonLocalVariableRead(
-                                                        symbol=referenced_symbol, origin=function.symbol,
+                                                        symbol=referenced_symbol,
+                                                        origin=function.symbol,
                                                     )
                                                 )
                             # If no referenced symbols are found, add the call to the list of unknown_calls
