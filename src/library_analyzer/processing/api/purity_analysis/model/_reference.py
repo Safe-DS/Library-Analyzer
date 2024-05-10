@@ -186,9 +186,6 @@ class Reasons:
             result.join_reasons(reason)
         return result
 
-    def __iter__(self) -> Iterator[Symbol]:
-        return iter(self.writes_to.union(self.reads_from).union(self.calls))
-
     def join_reasons(self, other: Reasons) -> Reasons:
         """Join two Reasons objects.
 

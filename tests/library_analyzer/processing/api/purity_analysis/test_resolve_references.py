@@ -251,7 +251,7 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                             else (
                                 f"{target_reference.symbol.__class__.__name__}.{target_reference.symbol.klass.name}.{target_reference.symbol.node.member}.line{target_reference.symbol.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                                 if isinstance(target_reference.symbol, InstanceVariable)
-                                else f"{target_reference.symbol.__class__.__name__}.{target_reference.symbol.node.name}.line{target_reference.symbol.node.fromlineno}"
+                                else f"{target_reference.symbol.__class__.__name__}.{target_reference.symbol.node.name}.line{target_reference.symbol.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                             )
                         )
                         for target_reference in function_references.writes_to.values()
@@ -263,7 +263,7 @@ def transform_reasons(reasons: dict[NodeID, Reasons]) -> dict[str, SimpleReasons
                             else (
                                 f"{value_reference.symbol.__class__.__name__}.{value_reference.symbol.klass.name}.{value_reference.symbol.node.member}.line{value_reference.symbol.node.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                                 if isinstance(value_reference.symbol, InstanceVariable)
-                                else f"{value_reference.symbol.__class__.__name__}.{value_reference.symbol.node.name}.line{value_reference.symbol.node.fromlineno}"
+                                else f"{value_reference.symbol.__class__.__name__}.{value_reference.symbol.node.name}.line{value_reference.symbol.node.fromlineno}"  # type: ignore[union-attr] # "None" has no attribute "name" but since we check for the type before, this is fine
                             )
                         )
                         for value_reference in function_references.reads_from.values()

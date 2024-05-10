@@ -203,7 +203,7 @@ class Impure(PurityResult):
                     case _:
                         raise TypeError(f"Unknown reason type: {reason}")
         if not shorten:
-            combined_reasons = {
+            combined_reasons: dict[str, Any] = {
                 "NonLocalVariableRead": non_local_variable_reads,
                 "NonLocalVariableWrite": non_local_variable_writes,
                 "FileRead": file_reads,

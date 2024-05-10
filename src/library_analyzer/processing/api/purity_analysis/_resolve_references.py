@@ -476,7 +476,7 @@ class ReferenceResolver:
                     import_def,
                     inferred_node=inferred_node_def,  # type: ignore[type-var] # import def is not None.
                 )
-                specified_import_def.id.name = specified_import_def.id.name + "." + specified_import_def.name
+                specified_import_def.id.name = specified_import_def.id.name + "." + specified_import_def.name  # type: ignore[union-attr] # specified_import_def is not None.
 
                 if specified_import_def:
                     result_value_reference.referenced_symbols.append(specified_import_def)
