@@ -275,7 +275,7 @@ class PurityAnalyzer:
                         impurity_reasons.add(
                             UnknownCall(
                                 expression=UnknownFunctionCall(call=unknown_call.symbol.node),
-                                origin=unknown_call.origin
+                                origin=unknown_call.origin,
                             ),
                         )
                 # Handle parameter calls
@@ -283,7 +283,7 @@ class PurityAnalyzer:
                     impurity_reasons.add(
                         CallOfParameter(
                             expression=ParameterAccess(unknown_call.symbol),
-                            origin=unknown_call.origin
+                            origin=unknown_call.origin,
                         ),
                     )
                 # Do not handle imported calls here since they are handled separately.

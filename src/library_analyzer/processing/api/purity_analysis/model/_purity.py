@@ -45,7 +45,7 @@ class PurityResult(ABC):
         return hash(str(self))
 
     @abstractmethod
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, shorten: bool = False) -> dict[str, Any]:
         pass
 
     @abstractmethod
@@ -105,7 +105,7 @@ class Pure(PurityResult):
     def clone() -> Pure:
         return Pure()
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, shorten: bool = False) -> dict[str, Any]:  # noqa: ARG002
         return {"purity": self.__class__.__name__}
 
     def __hash__(self) -> int:
@@ -173,7 +173,7 @@ class Impure(PurityResult):
     def clone(self) -> Impure:
         return Impure(reasons=self.reasons.copy())
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, shorten: bool = False) -> dict[str, Any]:
         seen = set()
         non_local_variable_reads = []
         non_local_variable_writes = []
@@ -202,16 +202,26 @@ class Impure(PurityResult):
                         parameter_calls.append(reason.to_dict())
                     case _:
                         raise TypeError(f"Unknown reason type: {reason}")
-
-        combined_reasons = {
-            "NonLocalVariableRead": non_local_variable_reads,
-            "NonLocalVariableWrite": non_local_variable_writes,
-            "FileRead": file_reads,
-            "FileWrite": file_writes,
-            "UnknownCall": unknown_calls,
-            "NativeCall": native_calls,
-            "CallOfParameter": parameter_calls,
-        }
+        if not shorten:
+            combined_reasons = {
+                "NonLocalVariableRead": non_local_variable_reads,
+                "NonLocalVariableWrite": non_local_variable_writes,
+                "FileRead": file_reads,
+                "FileWrite": file_writes,
+                "UnknownCall": unknown_calls,
+                "NativeCall": native_calls,
+                "CallOfParameter": parameter_calls,
+            }
+        else:
+            combined_reasons = {
+                "NonLocalVariableRead": len(non_local_variable_reads),
+                "NonLocalVariableWrite": len(non_local_variable_writes),
+                "FileRead": len(file_reads),
+                "FileWrite": len(file_writes),
+                "UnknownCall": len(unknown_calls),
+                "NativeCall": len(native_calls),
+                "CallOfParameter": len(parameter_calls),
+            }
         return {
             "purity": self.__class__.__name__,
             "reasons": {
@@ -395,8 +405,9 @@ class UnknownProto(Unknown):
     origin : Symbol | NodeID | None
         The origin of the unknown call.
     """
+
     symbol: Symbol | Reference
-    origin: Symbol | NodeID | None = field(default=None)
+    origin: Symbol | NodeID | None = field(default=None)  # TODO: remove NodeID
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -643,15 +654,15 @@ class APIPurity:
 
     purity_results: typing.ClassVar[dict[NodeID, dict[NodeID, PurityResult]]] = {}
 
-    def to_json_file(self, path: Path) -> None:
+    def to_json_file(self, path: Path, shorten: bool = False) -> None:
         ensure_file_exists(path)
         with path.open("w") as f:
-            json.dump(self.to_dict(), f, indent=2)
+            json.dump(self.to_dict(shorten), f, indent=2)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, shorten: bool = False) -> dict[str, Any]:
         return {
             module_name.__str__(): {
-                function_id.__str__(): purity.to_dict()
+                function_id.__str__(): purity.to_dict(shorten)
                 for function_id, purity in purity_result.items()
                 if not purity.is_class
             }

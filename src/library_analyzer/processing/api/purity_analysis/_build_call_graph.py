@@ -218,12 +218,12 @@ class CallGraphBuilder:
         # Deal with the case that the call calls a function parameter.
         elif isinstance(call, Parameter):
             self.call_graph_forest.get_graph(reason.id).reasons.unknown_calls[call.id] = UnknownProto(
-                symbol=call, origin=reason.function_scope.symbol
+                symbol=call, origin=reason.function_scope.symbol,
             )
 
         else:
             self.call_graph_forest.get_graph(reason.id).reasons.unknown_calls[call.id] = UnknownProto(
-                symbol=call, origin=reason.function_scope.symbol
+                symbol=call, origin=reason.function_scope.symbol,
             )
 
     def _handle_cycles(self, removed_nodes: set[NodeID] | None = None) -> None:
