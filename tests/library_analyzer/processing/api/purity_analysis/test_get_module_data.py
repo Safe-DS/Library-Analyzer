@@ -119,7 +119,10 @@ def transform_scope_node(
             super_classes_transformed = []
             for child in node.instance_variables.values():
                 for c1 in child:
-                    c_str = to_string_class(c1.node.node)
+                    if isinstance(c1.node, MemberAccess):
+                        c_str = to_string_class(c1.node.node)
+                    else:
+                        c_str = to_string_class(c1.node)
                     if c_str is not None:
                         instance_vars_transformed.append(c_str)  # type: ignore[misc]
                         # it is not possible that c_str is None
@@ -1884,6 +1887,60 @@ class A:
                 ),
             },
         ),
+        (  # language=Python "Assign Instance Attribute via property"
+            """
+class A:
+    def __init__(self, value):
+        self._value = value
+
+    def f(self):
+        return self.value
+
+    @property
+    def value(self):
+        return self._value
+            """,  # language=none
+            {
+                "A": SimpleClassScope(
+                    "GlobalVariable.ClassDef.A",
+                    [
+                        SimpleFunctionScope(
+                            "ClassVariable.FunctionDef.__init__",
+                            [
+                                SimpleScope("Parameter.AssignName.self", []),
+                                SimpleScope("Parameter.AssignName.value", []),
+                                SimpleScope("InstanceVariable.MemberAccess.self._value", []),
+                             ],
+                            ["AssignName.self", "Name.self", "AssignName.value", "MemberAccessTarget.self._value"],
+                            ["Name.value"],
+                            [],
+                            ["AssignName.self", "AssignName.value"],
+                        ),
+                        SimpleFunctionScope(
+                            "ClassVariable.FunctionDef.f",
+                            [SimpleScope("Parameter.AssignName.self", [])],
+                            ["AssignName.self"],
+                            ["MemberAccessValue.self.value", "Name.self"],
+                            [],
+                            ["AssignName.self"],
+                        ),
+                        SimpleFunctionScope(
+                            "ClassVariable.FunctionDef.value",
+                            [SimpleScope("Parameter.AssignName.self", [])],
+                            ["AssignName.self"],
+                            ["MemberAccessValue.self._value", "Name.self"],
+                            [],
+                            ["AssignName.self"],
+                        ),
+                    ],
+                    ["FunctionDef.__init__", "FunctionDef.f", "FunctionDef.value"],
+                    ["AssignAttr._value", "FunctionDef.value"],
+                    None,
+                    "__init__",
+                    None,
+                ),
+            },
+        ),
     ],
     ids=[
         "ClassDef",
@@ -1898,6 +1955,7 @@ class A:
         "Multiple ClassDef",
         "ClassDef with super class",
         "ClassDef with __new__, __init__ and __post_init__",
+        "Assign Instance Attribute via property",
     ],
 )
 def test_get_module_data_classes(code: str, expected: dict[str, SimpleClassScope]) -> None:
