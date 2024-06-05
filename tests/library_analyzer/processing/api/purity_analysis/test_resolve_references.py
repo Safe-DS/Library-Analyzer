@@ -2851,7 +2851,11 @@ def f():
                 ReferenceTestNode(
                     "a.state.line18",
                     "FunctionDef.f",
-                    ["ClassVariable.State.state.line13", "ClassVariable.State.state.line9", "InstanceVariable.State.state.line9"],
+                    [
+                        "ClassVariable.State.state.line13",
+                        "ClassVariable.State.state.line9",
+                        "InstanceVariable.State.state.line9",
+                    ],
                 ),
                 ReferenceTestNode("a.line18", "FunctionDef.f", ["LocalVariable.a.line17"]),
             ],

@@ -1910,7 +1910,7 @@ class A:
                                 SimpleScope("Parameter.AssignName.self", []),
                                 SimpleScope("Parameter.AssignName.value", []),
                                 SimpleScope("InstanceVariable.MemberAccess.self._value", []),
-                             ],
+                            ],
                             ["AssignName.self", "Name.self", "AssignName.value", "MemberAccessTarget.self._value"],
                             ["Name.value"],
                             [],
