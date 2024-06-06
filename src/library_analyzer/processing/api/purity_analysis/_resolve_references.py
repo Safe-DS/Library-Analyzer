@@ -785,9 +785,10 @@ class ReferenceResolver:
                                         # that are decorated with a '@property' decorator. These functions define an
                                         # instance variable as a property, which can be read from.
                                         if isinstance(referenced_symbol.node, astroid.ClassDef | astroid.FunctionDef):
-                                            if (isinstance(referenced_symbol.node, astroid.FunctionDef) and
-                                                "builtins.property" in referenced_symbol.node.decoratornames() and
-                                                isinstance(referenced_symbol, InstanceVariable)
+                                            if (
+                                                isinstance(referenced_symbol.node, astroid.FunctionDef)
+                                                and "builtins.property" in referenced_symbol.node.decoratornames()
+                                                and isinstance(referenced_symbol, InstanceVariable)
                                             ):
                                                 pass
                                             else:

@@ -707,7 +707,9 @@ class ModuleDataBuilder:
                 if isinstance(decorator, astroid.Name) and decorator.name == "overload":
                     return
                 elif isinstance(decorator, astroid.Name) and decorator.name == "property":
-                    if isinstance(self.current_node_stack[-1], ClassScope) and hasattr(self.current_node_stack[-1], "instance_variables"):
+                    if isinstance(self.current_node_stack[-1], ClassScope) and hasattr(
+                        self.current_node_stack[-1], "instance_variables",
+                    ):
                         self.current_node_stack[-1].instance_variables.setdefault(node.name, []).append(
                             InstanceVariable(
                                 node=node,
