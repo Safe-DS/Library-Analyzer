@@ -145,13 +145,16 @@ class CallGraphBuilder:
         # If the node is already inside the forest and does not have any calls left, it is considered to be finished.
         if self.call_graph_forest.has_graph(reason.id) and not reason.calls:
             return
-
+        # If the node is already inside the forest but still has calls left, it needs to be updated.
+        if self.call_graph_forest.has_graph(reason.id):
+            cgn = self.call_graph_forest.get_graph(reason.id)
         # Create a new node and add it to the forest.
-        cgn = CallGraphNode(
-            symbol=reason.function_scope.symbol,  # type: ignore[union-attr] # function_scope is never None here
-            reasons=reason,
-        )
-        self.call_graph_forest.add_graph(reason.id, cgn)
+        else:
+            cgn = CallGraphNode(
+                symbol=reason.function_scope.symbol,  # type: ignore[union-attr] # function_scope is never None here
+                reasons=reason,
+            )
+            self.call_graph_forest.add_graph(reason.id, cgn)
 
         # The node has calls, which need to be added to the forest and to the children of the current node.
         # They are sorted to ensure a deterministic order of the children (especially but not only for testing).
