@@ -20,7 +20,7 @@ class CallGraphForest:
 
     Attributes
     ----------
-    graphs : dict[str, CallGraphNode]
+    graphs
         The dictionary of call graph trees.
         The key is the name of the tree, the value is the root CallGraphNode of the tree.
     """
@@ -32,9 +32,9 @@ class CallGraphForest:
 
         Parameters
         ----------
-        graph_id : NodeID
+        graph_id
             The NodeID of the tree node.
-        graph : CallGraphNode
+        graph
             The root of the tree.
         """
         # if graph_id in self.forest:
@@ -46,7 +46,7 @@ class CallGraphForest:
 
         Parameters
         ----------
-        graph_id : NodeID
+        graph_id
             The NodeID of the tree node to get.
 
         Raises
@@ -64,7 +64,7 @@ class CallGraphForest:
 
         Parameters
         ----------
-        graph_id : NodeID
+        graph_id
             The NodeID of the tree to check for.
 
         Returns
@@ -79,7 +79,7 @@ class CallGraphForest:
 
         Parameters
         ----------
-        graph_id : NodeID
+        graph_id
             The NodeID of the tree to delete.
         """
         del self.graphs[graph_id]
@@ -93,12 +93,12 @@ class CallGraphNode:
 
     Attributes
     ----------
-    symbol : Symbol
+    symbol
         The symbol of the function that the node represents.
-    reasons : Reasons
+    reasons
         The raw Reasons for the node.
         After the call graph is built, this only contains reads_from and writes_to as well as unknown_calls.
-    children : dict[NodeID, CallGraphNode]
+    children
         The set of children of the node, (i.e., the set of nodes that this node calls)
     """
 
@@ -120,7 +120,7 @@ class CallGraphNode:
 
         Parameters
         ----------
-        child : CallGraphNode
+        child
             The child to add.
         """
         self.children[child.symbol.id] = child
@@ -130,7 +130,7 @@ class CallGraphNode:
 
         Parameters
         ----------
-        child_id : NodeID
+        child_id
             The NodeID of the child to get.
 
         Raises
@@ -148,7 +148,7 @@ class CallGraphNode:
 
         Parameters
         ----------
-        child_id : NodeID
+        child_id
             The NodeID of the child to check for.
 
         Returns
@@ -163,7 +163,7 @@ class CallGraphNode:
 
         Parameters
         ----------
-        child_id : NodeID
+        child_id
             The NodeID of the child to delete.
         """
         del self.children[child_id]
@@ -191,7 +191,7 @@ class CombinedCallGraphNode(CallGraphNode):
 
     Attributes
     ----------
-    combines : dict[NodeID, CallGraphNode]
+    combines
         A dictionary of all nodes that are combined into this node.
         This is later used for transferring the reasons of the combined node to the original nodes.
     """

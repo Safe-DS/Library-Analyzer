@@ -42,26 +42,26 @@ class ReferenceResolver:
 
     Attributes
     ----------
-    functions : dict[str, list[FunctionScope]]
+    functions
         The functions of the module.
-    classes : dict[str, ClassScope]
+    classes
         The classes of the module.
-    imports : dict[str, Import]
+    imports
         The imports of the module.
-    module_analysis_result : ModuleAnalysisResult
+    module_analysis_result
         The result of the reference resolving.
-    package_data_is_provided : bool
+    package_data_is_provided
         True if package data is given, False otherwise.
 
     Parameters
     ----------
-    code : str
+    code
         The code of the module.
-    module_name : str
+    module_name
         The name of the module if any.
-    path : str | None
+    path
         The path of the module if any.
-    package_data : PackageData | None
+    package_data
         The module data of all modules the package.
         If provided, the references are resolved with the package data, else the module data is collected first.
         It is used for the inference of the purity between modules in the package.
@@ -112,9 +112,9 @@ class ReferenceResolver:
 
         Parameters
         ----------
-        function : astroid.FunctionDef
+        function
             The function to check.
-        klass : ClassScope
+        klass
             The class to check.
 
         Returns
@@ -140,14 +140,14 @@ class ReferenceResolver:
 
         Parameters
         ----------
-        d1 : dict[str, list[ReferenceNode]]
+        d1
             The first dict.
-        d2 : dict[str, list[ReferenceNode]]
+        d2
             The second dict.
 
         Returns
         -------
-        d3 : dict[str, list[ReferenceNode]]
+        d3
             The merged dict.
         """
         d3 = d1.copy()
@@ -169,9 +169,9 @@ class ReferenceResolver:
 
         Parameters
         ----------
-        function : FunctionScope
+        function
             The function to compare.
-        call : astroid.Call
+        call
             The call to compare.
 
         Returns
@@ -253,9 +253,9 @@ class ReferenceResolver:
 
         Parameters
         ----------
-        call_reference : Reference
+        call_reference
             The call reference which should be analyzed.
-        function : FunctionScope
+        function
             The function in which the call is made.
 
         Returns
@@ -386,9 +386,9 @@ class ReferenceResolver:
 
         Parameters
         ----------
-        value_reference : Reference
+        value_reference
             The value reference which should be analyzed.
-        function : FunctionScope
+        function
             The function in which the value is used.
 
         Returns
@@ -589,9 +589,9 @@ class ReferenceResolver:
 
         Parameters
         ----------
-        target_reference : Symbol
+        target_reference
             The target reference which should be analyzed.
-        function : FunctionScope
+        function
             The function in which the value is used.
 
         Returns
@@ -876,13 +876,13 @@ def resolve_references(
 
     Parameters
     ----------
-    code : str
+    code
         The code of the module.
-    module_name : str
+    module_name
         The name of the module if any.
-    path : str | None
+    path
         The path of the module if any.
-    package_data : PackageData | None
+    package_data
         The module data of all modules the package.
         If provided, the references are resolved with the package data, else the module data is collected first.
         It is used for the inference of the purity between modules in the package.

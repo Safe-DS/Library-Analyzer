@@ -35,7 +35,7 @@ class PurityResult(ABC):
 
     Purity results are either pure, impure or unknown.
 
-    is_class : bool
+    is_class
         Whether the result is for a class or not.
     """
 
@@ -62,7 +62,7 @@ class Pure(PurityResult):
 
     Attributes
     ----------
-    is_class : bool
+    is_class
         Whether the result is for a class or not.
     """
 
@@ -73,7 +73,7 @@ class Pure(PurityResult):
 
         Parameters
         ----------
-        other : PurityResult | None
+        other
             The result to update with.
 
         Returns
@@ -129,9 +129,9 @@ class Impure(PurityResult):
 
     Attributes
     ----------
-    reasons : set[ImpurityReason]
+    reasons
         The reasons why the function is impure.
-    is_class : bool
+    is_class
         Whether the result is for a class or not.
     """
 
@@ -143,7 +143,7 @@ class Impure(PurityResult):
 
         Parameters
         ----------
-        other : PurityResult | None
+        other
             The result to update with.
 
         Returns
@@ -262,9 +262,9 @@ class NonLocalVariableRead(Read):
 
     Attributes
     ----------
-    symbol : GlobalVariable | ClassVariable | InstanceVariable | Import
+    symbol
         The symbol that is read.
-    origin : Symbol | NodeID | None
+    origin
         The origin of the read.
     """
 
@@ -293,9 +293,9 @@ class FileRead(Read):
 
     Attributes
     ----------
-    source : Expression | None
+    source
         The source of the read.
-    origin : Symbol | NodeID | None
+    origin
         The origin of the read.
     """
 
@@ -330,9 +330,9 @@ class NonLocalVariableWrite(Write):
 
     Attributes
     ----------
-    symbol : GlobalVariable | ClassVariable | InstanceVariable | Import
+    symbol
         The symbol that is written to.
-    origin : Symbol | NodeID | None
+    origin
         The origin of the write.
     """
 
@@ -361,9 +361,9 @@ class FileWrite(Write):
 
     Attributes
     ----------
-    source : Expression
+    source
         The source of the write.
-    origin : Symbol | NodeID | None
+    origin
         The origin of the write.
     """
 
@@ -398,9 +398,9 @@ class UnknownProto(Unknown):
 
     Attributes
     ----------
-    symbol : Symbol | Reference
+    symbol
         The symbol or reference object which is not fully determined.
-    origin : Symbol | NodeID | None
+    origin
         The origin of the unknown call.
     """
 
@@ -431,9 +431,9 @@ class UnknownCall(Unknown):
 
     Attributes
     ----------
-    expression : Expression
+    expression
         The expression that is called.
-    origin : Symbol | NodeID | None
+    origin
         The origin of the call.
     """
 
@@ -464,9 +464,9 @@ class NativeCall(Unknown):  # ExternalCall
 
     Attributes
     ----------
-    expression : Expression
+    expression
         The expression that is called.
-    origin : Symbol | NodeID | None
+    origin
         The origin of the call.
     """
 
@@ -501,9 +501,9 @@ class CallOfParameter(Unknown):  # ParameterCall
 
     Attributes
     ----------
-    expression : Expression
+    expression
         The expression that is called.
-    origin : Symbol | NodeID | None
+    origin
         The origin of the call.
     """
 
@@ -543,7 +543,7 @@ class ParameterAccess(Expression):
 
     Attributes
     ----------
-    parameter : Parameter
+    parameter
         The parameter that is accessed.
     """
 
@@ -561,7 +561,7 @@ class StringLiteral(Expression):
 
     Attributes
     ----------
-    value : str
+    value
         The name of the string literal.
     """
 
@@ -577,11 +577,11 @@ class UnknownFunctionCall(Expression):
 
     Attributes
     ----------
-    call : astroid.Call
+    call
         The call node.
-    inferred_def : astroid.FunctionDef | None
+    inferred_def
         The inferred function definition for the call if it is known.
-    name : str
+    name
         The name of the call.
     """
 
@@ -613,11 +613,11 @@ class UnknownClassInit(Expression):
 
     Attributes
     ----------
-    call : astroid.Call
+    call
         The call node.
-    inferred_def : astroid.ClassDef | None
+    inferred_def
         The inferred class definition for the call if it is known.
-    name : str
+    name
         The name of the call.
     """
 
