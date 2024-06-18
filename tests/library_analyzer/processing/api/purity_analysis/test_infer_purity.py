@@ -490,6 +490,34 @@ class A:
                 "value.line10": SimpleImpure({"NonLocalVariableRead.InstanceVariable.A._value"}),
             },
         ),
+        (  # language=Python "Assign Instance Attribute via property with propagation"
+            """
+from abc import ABC
+
+class A(ABC):
+    def __init__(self, value):
+        self._value = value
+        if impure():
+            pass
+
+    @property
+    def value(self):
+        return self._value
+
+class B(A):
+    def __init__(self, value):
+        super().__init__(value)
+
+def impure():
+    print("test")
+            """,  # language=none
+            {
+                "__init__.line5": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "value.line11": SimpleImpure({"NonLocalVariableRead.InstanceVariable.A._value"}),
+                "__init__.line15": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+                "impure.line18": SimpleImpure({"FileWrite.StringLiteral.stdout"}),
+            },
+        ),
     ],
     ids=[
         "Trivial function",
@@ -516,6 +544,7 @@ class A:
         "Builtins for list",
         "Builtins for set",
         "Assign Instance Attribute via property",
+        "Assign Instance Attribute via property with propagation",
     ],  # TODO: class inits in cycles
 )
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:

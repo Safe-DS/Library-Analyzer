@@ -26,8 +26,6 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ImpurityReason,
     NativeCall,
     NodeID,
-    NonLocalVariableRead,
-    NonLocalVariableWrite,
     OpenMode,
     PackageData,
     Parameter,
@@ -52,20 +50,20 @@ class PurityAnalyzer:
 
     Attributes
     ----------
-    module_id : NodeID
+    module_id :
         The ID of the module to analyze.
-    visited_nodes : set[NodeID]
+    visited_nodes :
         A set of all nodes that have been visited during the analysis.
-    call_graph_forest : CallGraphForest
+    call_graph_forest :
         The call graph forest of the module.
-    current_purity_results : dict[NodeID, dict[NodeID, PurityResult]]
+    current_purity_results :
         The purity results of the functions in the module.
-    separated_nodes : dict[NodeID, CallGraphNode]
+    separated_nodes :
         If the module has cycles, they will be found by the CallGraphBuilder and combined to a single node.
         Since these combined nodes are not part of the module but needed for the analysis,
         their purity results will be propagated to the original nodes during the analysis.
         This attribute stores the original nodes inside after the combined node was analyzed.
-    cached_module_results : dict[NodeID, dict[NodeID, PurityResult]]
+    cached_module_results :
         The results of all previously analyzed modules.
         The key is the NodeID of the module,
         the value is a dictionary of the purity results of the functions in the module.
@@ -74,18 +72,18 @@ class PurityAnalyzer:
 
     Parameters
     ----------
-    code : str | None
+    code :
         The source code of the module.
         If None is provided, the package data must be provided (or else an exception is raised).
-    module_name : str
+    module_name :
         The name of the module.
-    path : str | None
+    path :
         The path of the module.
-    results : dict[NodeID, dict[NodeID, PurityResult]] | None
+    results :
         The results of all previously analyzed modules.
         The key is the NodeID of the module,
         the value is a dictionary of the purity results of the functions in the module.
-    package_data : PackageData | None
+    package_data :
         The module data of all modules the package.
         If provided, the references are resolved with the package data, else the module data is collected first.
         It is used for the inference of the purity between modules in the package.
@@ -127,7 +125,7 @@ class PurityAnalyzer:
 
         Parameters
         ----------
-        call: astrid.Call
+        call :
             The call to check.
 
         Returns
@@ -212,7 +210,7 @@ class PurityAnalyzer:
 
         Parameters
         ----------
-        reasons : Reasons
+        reasons :
             The node to process containing the raw reasons for impurity collected.
 
         Returns
@@ -228,101 +226,66 @@ class PurityAnalyzer:
 
         # Check if the function has any non-local variable writes.
         if reasons.writes_to:
-            for write in reasons.writes_to:
-                impurity_reasons.add(
-                    NonLocalVariableWrite(
-                        symbol=write,
-                        origin=(
-                            reasons.id
-                            if reasons.function_scope is None and reasons.id is not None
-                            else (reasons.function_scope.symbol if reasons.function_scope is not None else None)
-                        ),
-                    ),
-                )
+            for write in reasons.writes_to.values():
+                impurity_reasons.add(write)
 
         # Check if the function has any non-local variable reads.
         if reasons.reads_from:
-            for read in reasons.reads_from:
+            for read in reasons.reads_from.values():
                 # Check if the read reads from an imported module.
-                if isinstance(read, Import):
-                    if read.inferred_node:
+                if isinstance(read.symbol, Import):
+                    if read.symbol.inferred_node:
                         # If the inferred node is a function, it must be analyzed to determine its purity.
-                        if isinstance(read.inferred_node, astroid.FunctionDef):
+                        if isinstance(read.symbol.inferred_node, astroid.FunctionDef):
                             impurity_reasons.add(
-                                UnknownCall(UnknownFunctionCall(call=read.call, inferred_def=read.inferred_node)),
+                                UnknownCall(
+                                    UnknownFunctionCall(call=read.symbol.call, inferred_def=read.symbol.inferred_node),
+                                ),
                             )
-                        elif isinstance(read.inferred_node, astroid.ClassDef):
+                        elif isinstance(read.symbol.inferred_node, astroid.ClassDef):
                             impurity_reasons.add(
-                                UnknownCall(UnknownClassInit(call=read.call, inferred_def=read.inferred_node)),
+                                UnknownCall(
+                                    UnknownClassInit(call=read.symbol.call, inferred_def=read.symbol.inferred_node),
+                                ),
                             )
                         # If the inferred node is a module, it will not count towards the impurity of the function.
                         # If this was added, nearly anything would be impure.
                         # Also, since the imported symbols are analyzed in much more detail, this can be omitted.
-                        elif isinstance(read.inferred_node, astroid.Module):
+                        elif isinstance(read.symbol.inferred_node, astroid.Module):
                             pass
                         # Default case for symbols that could not be inferred.
                         else:  # TODO: what type of nodes are allowed here?
-                            impurity_reasons.add(
-                                NonLocalVariableRead(
-                                    symbol=read,
-                                    origin=(
-                                        reasons.id
-                                        if reasons.function_scope is None and reasons.id is not None
-                                        else (
-                                            reasons.function_scope.symbol
-                                            if reasons.function_scope is not None
-                                            else None
-                                        )
-                                    ),
-                                ),
-                            )
+                            impurity_reasons.add(read)
 
                     else:
-                        raise ValueError(f"Imported node {read.name} has no inferred node.") from None
+                        raise ValueError(f"Imported node {read.symbol.name} has no inferred node.") from None
 
                 else:
-                    impurity_reasons.add(
-                        NonLocalVariableRead(
-                            symbol=read,
-                            origin=(
-                                reasons.id
-                                if reasons.function_scope is None and reasons.id is not None
-                                else (reasons.function_scope.symbol if reasons.function_scope is not None else None)
-                            ),
-                        ),
-                    )
+                    impurity_reasons.add(read)
 
         # Check if the function has any unknown calls.
         if reasons.unknown_calls:
-            for unknown_call in reasons.unknown_calls:
+            for unknown_call in reasons.unknown_calls.values():
                 # Handle calls of code where no definition was found.
-                if isinstance(unknown_call, Reference):
+                if isinstance(unknown_call.symbol, Reference):
                     # This checks special cases of unknown calls.
                     # These are cases where a function is not a true builtin, but also not a user-defined function.
                     # Cases like dict.pop(), list.remove(), set.union(), etc.
-                    if unknown_call.name in BUILTIN_SPECIALS:
+                    if unknown_call.symbol.name in BUILTIN_SPECIALS:
                         pass
                     else:
                         impurity_reasons.add(
                             UnknownCall(
-                                expression=UnknownFunctionCall(call=unknown_call.node),
-                                origin=(
-                                    reasons.id
-                                    if reasons.function_scope is None and reasons.id is not None
-                                    else (reasons.function_scope.symbol if reasons.function_scope is not None else None)
-                                ),
+                                expression=UnknownFunctionCall(call=unknown_call.symbol.node),
+                                origin=unknown_call.origin,
                             ),
                         )
                 # Handle parameter calls
-                elif isinstance(unknown_call, Parameter):
+                elif isinstance(unknown_call.symbol, Parameter):
                     impurity_reasons.add(
                         CallOfParameter(
-                            expression=ParameterAccess(unknown_call),
-                            origin=(
-                                reasons.id
-                                if reasons.function_scope is None and reasons.id is not None
-                                else (reasons.function_scope.symbol if reasons.function_scope is not None else None)
-                            ),
+                            expression=ParameterAccess(unknown_call.symbol),
+                            origin=unknown_call.origin,
                         ),
                     )
                 # Do not handle imported calls here since they are handled separately.
@@ -346,7 +309,7 @@ class PurityAnalyzer:
 
         Parameters
         ----------
-        imported_node : ImportedCallGraphNode
+        imported_node :
             The imported node to process.
 
         Returns
@@ -493,7 +456,7 @@ class PurityAnalyzer:
 
         Parameters
         ----------
-        node : CallGraphNode
+        node :
             The node to process.
 
         Returns
@@ -620,27 +583,27 @@ def infer_purity(
 
     Parameters
     ----------
-    code : str | None
+    code :
         The source code of the module.
         If None is provided, the package data must be provided (or else an exception is raised).
-    module_name : str, optional
+    module_name :
         The name of the module, by default "".
-    path : str, optional
+    path :
         The path of the module, by default None.
-    results : dict[NodeID, dict[NodeID, PurityResult]] | None
+    results :
         The results of all previously analyzed modules.
         The key is the NodeID of the module, the value is a dictionary of the purity results of the functions in the module.
         After the analysis of the module, the results are saved in this dictionary.
         All imported modules are saved in this dictionary too for further runtime reduction.
         Is None if no results are available.
-    package_data : PackageData | None
+    package_data :
         The module data of all modules the package.
         If provided, the references are resolved with the package data, else the module data is collected first.
         It is used for the inference of the purity between modules in the package.
 
     Returns
     -------
-    purity_results : dict[NodeID, dict[NodeID, PurityResult]]
+    purity_results :
         The purity results of the functions in the module.
         The key is the NodeID of the module, the value is a dictionary of the purity results of the functions in the module.
     """
@@ -658,7 +621,7 @@ def get_purity_results(
 
     Parameters
     ----------
-    src_dir_path : Path
+    src_dir_path :
         The path of the source directory of the package.
 
     Returns

@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from library_analyzer.processing.api.purity_analysis.model._purity import Impure, UnknownCall, UnknownFunctionCall
-
 if TYPE_CHECKING:
     from library_analyzer.processing.api.purity_analysis.model._module_data import (
         Import,
@@ -22,7 +20,7 @@ class CallGraphForest:
 
     Attributes
     ----------
-    graphs : dict[str, CallGraphNode]
+    graphs :
         The dictionary of call graph trees.
         The key is the name of the tree, the value is the root CallGraphNode of the tree.
     """
@@ -34,9 +32,9 @@ class CallGraphForest:
 
         Parameters
         ----------
-        graph_id : NodeID
+        graph_id :
             The NodeID of the tree node.
-        graph : CallGraphNode
+        graph :
             The root of the tree.
         """
         # if graph_id in self.forest:
@@ -48,7 +46,7 @@ class CallGraphForest:
 
         Parameters
         ----------
-        graph_id : NodeID
+        graph_id :
             The NodeID of the tree node to get.
 
         Raises
@@ -66,7 +64,7 @@ class CallGraphForest:
 
         Parameters
         ----------
-        graph_id : NodeID
+        graph_id :
             The NodeID of the tree to check for.
 
         Returns
@@ -81,7 +79,7 @@ class CallGraphForest:
 
         Parameters
         ----------
-        graph_id : NodeID
+        graph_id :
             The NodeID of the tree to delete.
         """
         del self.graphs[graph_id]
@@ -95,12 +93,12 @@ class CallGraphNode:
 
     Attributes
     ----------
-    symbol : Symbol
+    symbol :
         The symbol of the function that the node represents.
-    reasons : Reasons
+    reasons :
         The raw Reasons for the node.
         After the call graph is built, this only contains reads_from and writes_to as well as unknown_calls.
-    children : dict[NodeID, CallGraphNode]
+    children :
         The set of children of the node, (i.e., the set of nodes that this node calls)
     """
 
@@ -122,7 +120,7 @@ class CallGraphNode:
 
         Parameters
         ----------
-        child : CallGraphNode
+        child :
             The child to add.
         """
         self.children[child.symbol.id] = child
@@ -132,7 +130,7 @@ class CallGraphNode:
 
         Parameters
         ----------
-        child_id : NodeID
+        child_id :
             The NodeID of the child to get.
 
         Raises
@@ -150,7 +148,7 @@ class CallGraphNode:
 
         Parameters
         ----------
-        child_id : NodeID
+        child_id :
             The NodeID of the child to check for.
 
         Returns
@@ -165,7 +163,7 @@ class CallGraphNode:
 
         Parameters
         ----------
-        child_id : NodeID
+        child_id :
             The NodeID of the child to delete.
         """
         del self.children[child_id]
@@ -193,7 +191,7 @@ class CombinedCallGraphNode(CallGraphNode):
 
     Attributes
     ----------
-    combines : dict[NodeID, CallGraphNode]
+    combines :
         A dictionary of all nodes that are combined into this node.
         This is later used for transferring the reasons of the combined node to the original nodes.
     """
@@ -224,27 +222,6 @@ class CombinedCallGraphNode(CallGraphNode):
         for node_id, node in self.combines.items():
             original_nodes[node_id] = node
             original_nodes[node_id].reasons.result = self.reasons.result
-
-            # The results need to be assigned an origin to be able to trace back the result.
-            if (
-                original_nodes[node_id].reasons is not None
-                and isinstance(original_nodes[node_id].reasons.result, Impure)
-                and hasattr(original_nodes[node_id].reasons.result, "reasons")
-            ):
-                for reason in original_nodes[node_id].reasons.result.reasons:  # type: ignore[union-attr] # it is cheked above
-                    if (
-                        isinstance(reason, UnknownCall)
-                        and isinstance(reason.expression, UnknownFunctionCall)
-                        and reason.origin is None
-                    ):
-                        for nod in self.combines.values():
-                            for unknown_call in nod.reasons.unknown_calls:
-                                if (
-                                    unknown_call.node == reason.expression.call
-                                    and nod.reasons.function_scope is not None
-                                ):
-                                    reason.origin = nod.reasons.function_scope.symbol
-                                    break
 
         return original_nodes
 

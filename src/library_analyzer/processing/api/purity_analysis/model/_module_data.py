@@ -18,14 +18,14 @@ class ModuleData:
 
     Attributes
     ----------
-    scope : Scope
+    scope :
         The module's scope, this contains all child scopes.
-    classes : dict[str, ClassScope]
+    classes :
         All classes and their ClassScope.
-    functions : dict[str, list[FunctionScope]]
+    functions :
         All functions and a list of their FunctionScopes.
         The value is a list since there can be multiple functions with the same name.
-    imports : dict[str, Import]
+    imports :
         All imported symbols.
     """
 
@@ -42,9 +42,9 @@ class PackageData:
 
     Attributes
     ----------
-    package_name : str
+    package_name :
         The name of the package.
-    modules : dict[str, tuple[str, ModuleData]]
+    modules :
         All modules and their ModuleData.
         The key is the name of the module.
         The value is a tuple of the path to the module and the ModuleData.
@@ -94,18 +94,18 @@ class MemberAccess(astroid.NodeNG):
 
     Attributes
     ----------
-    node : astroid.Attribute | astroid.AssignAttr
+    node :
         The original node that represents the member access.
         Needed as fallback when determining the parent node if the receiver is None.
-    receiver : MemberAccess | astroid.NodeNG | None
+    receiver :
         The receiver is the node that is accessed, it can be nested, e.g. `a` in `a.b` or `a.b` in `a.b.c`.
         The receiver can be nested.
         Is None if the receiver is not of type Name, Call or Attribute
-    member : str
+    member :
         The member is the name of the node that accesses the receiver, e.g. `b` in `a.b`.
     parent : astroid.NodeNG | None
         The parent node of the member access.
-    name : str
+    name :
         The name of the member access, e.g. `a.b`.
         Is set in __post_init__, after the member access has been created.
         If the MemberAccess is nested, the name of the receiver will be set to "UNKNOWN" since it is hard to determine
@@ -152,7 +152,7 @@ class MemberAccessTarget(MemberAccess):
 
         Parameters
         ----------
-        node : astroid.Attribute | astroid.AssignAttr
+        node :
             The node to construct the MemberAccessTarget node from.
 
         Returns
@@ -203,7 +203,7 @@ class MemberAccessValue(MemberAccess):
 
         Parameters
         ----------
-        node : astrid.Attribute
+        node :
             The node to construct the MemberAccessValue node from.
 
         Returns
@@ -234,15 +234,15 @@ class NodeID:
 
     Attributes
     ----------
-    module : str | None
+    module :
         The module of the node.
         Is None for combined nodes.
-    name : str
+    name :
         The name of the node.
-    line : int
+    line :
         The line of the node in the source code.
         Is None for combined nodes, builtins or any other node that do not have a line.
-    col : int | None
+    col :
         The column of the node in the source code.
         Is None for combined nodes, builtins or any other node that do not have a line.
     """
@@ -326,7 +326,7 @@ class NodeID:
 
         Parameters
         ----------
-        node : astroid.NodeNG | astroid.Module | astroid.ClassDef | astroid.FunctionDef | astroid.AssignName | astroid.Name | astroid.AssignAttr | astroid.Import | astroid.ImportFrom | astroid.Call | astroid.Lambda | astroid.ListComp | MemberAccess
+        node :
 
         Returns
         -------
@@ -386,11 +386,11 @@ class Symbol(ABC):
 
     Attributes
     ----------
-    node : astroid.NodeNG | MemberAccess
+    node :
         The node that defines the symbol.
-    id : NodeID
+    id :
         The id of that node.
-    name : str
+    name :
         The name of the symbol (for easier access).
     """
 
@@ -414,7 +414,7 @@ class UnknownSymbol(Symbol):
 
     Attributes
     ----------
-    node : None
+    node :
     """
 
     node: None = None
@@ -470,7 +470,7 @@ class ClassVariable(Symbol):
 
     Attributes
     ----------
-    klass : astroid.ClassDef | None
+    klass :
         The class that defines the class variable.
     """
 
@@ -491,7 +491,7 @@ class InstanceVariable(Symbol):
 
     Attributes
     ----------
-    klass : astroid.ClassDef | None
+    klass :
         The class that defines the instance variable.
     """
 
@@ -512,22 +512,22 @@ class Import(Symbol):
 
     Attributes
     ----------
-    node : astroid.ImportFrom | astroid.Import
+    node :
         The node that defines the import.
-    name : str
+    name :
         The name of the symbol that is imported if any is given.
         Else it is equal to the module name.
-    module : str
+    module :
         The name of the module that is imported.
-    alias : str | None
+    alias :
         If the node is of type Import alias is the alias name for the module name if any is given.
         If the node is of type ImportFrom alias is the alias name for the name of the symbol if any is given.
-    inferred_node : astroid.NodeNG | None
+    inferred_node :
         When the import is used as a reference (or a symbol)
         the inferred_node is the node of the used reference (or symbol) in the original module.
         It was inferred by the reference analysis by using astroids safe_infer method.
         If the method could not infer the node, the inferred_node is None.
-    call: astroid.Call | None
+    call :
         The original call node as fallback for the case, that the purity of the inferred_node cannot be inferred.
         Only is set if the symbol represents a call.
     """
@@ -558,7 +558,7 @@ class Builtin(Symbol):
 
     Attributes
     ----------
-    call : astroid.Call
+    call :
         The call node of the function.
     """
 
@@ -579,7 +579,7 @@ class BuiltinOpen(Builtin):
 
     Attributes
     ----------
-    call : astroid.Call
+    call :
         The call node of the open-like function.
     """
 
@@ -602,7 +602,7 @@ class CombinedSymbol(Symbol):
 
     Attributes
     ----------
-    node : None
+    node :
 
     """
 
@@ -625,11 +625,11 @@ class Reference:
 
     Attributes
     ----------
-    node : astroid.Call | astroid.Name | MemberAccessValue
+    node :
         The node that defines the symbol.
-    id : NodeID
+    id :
         The id of that node.
-    name : str
+    name :
         The name of the symbol (for easier access).
     """
 
@@ -656,12 +656,12 @@ class Scope:
 
     Attributes
     ----------
-    _symbol : Symbol
+    _symbol :
         The symbol that defines the scope.
-    _children : list[Scope | ClassScope]
+    _children :
         The list of Scope or ClassScope instances that are defined in the scope of the Symbol node.
         Is None if the node is a leaf node.
-    _parent : Scope | ClassScope | None
+    _parent :
         The parent node in the scope tree, there is None if the node is the root node.
     """
 
@@ -744,16 +744,16 @@ class ClassScope(Scope):
 
     Attributes
     ----------
-    class_variables : dict[str, list[Symbol]]
+    class_variables :
         The name of the class variable and a list of its Symbols (which represent a declaration).
         There can be multiple declarations of the same class variable, e.g. `a = 1` and `a = 2`
         since we cannot determine which one is used since we do not analyze the control flow.
         Also, it is impossible to distinguish between a declaration and a reassignment.
-    instance_variables : dict[str, list[Symbol]]
+    instance_variables :
         The name of the instance variable and a list of its Symbols (which represent a declaration).
-    init_function : FunctionScope | None
+    init_function :
         The init function of the class if it exists else None.
-    super_classes : list[ClassScope]
+    super_classes :
         The list of superclasses of the class if any.
     """
 
@@ -771,18 +771,18 @@ class FunctionScope(Scope):
 
     Attributes
     ----------
-    target_symbols : dict[str, list[Symbol]]
+    target_symbols :
         The dict of all target nodes used inside the corresponding function.
         Target nodes are specified as all nodes that can be written to and which can be represented as a Symbol.
         This includes assignments, parameters,
-    value_references : dict[str, list[Reference]]
+    value_references :
         The dict of all value nodes used inside the corresponding function.
-    call_references : dict[str, list[Reference]]
+    call_references :
         The dict of all function calls inside the corresponding function.
         The key is the name of the call node, the value is a list of all References of call nodes with that name.
-    parameters : dict[str, Parameter]
+    parameters :
         The parameters of the function.
-    globals_used : dict[str, list[GlobalVariable]]
+    globals_used :
         The global variables used inside the function.
         It stores the globally assigned nodes (Assignment of the used variable).
     """
@@ -801,7 +801,7 @@ class FunctionScope(Scope):
 
         Parameters
         ----------
-        call_id  : str
+        call_id :
             The name of the call node to remove.
         """
         self.call_references.pop(call_id, None)

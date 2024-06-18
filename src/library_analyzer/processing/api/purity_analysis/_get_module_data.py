@@ -40,33 +40,33 @@ class ModuleDataBuilder:
 
     Attributes
     ----------
-    current_node_stack : list[Scope]
+    current_node_stack :
         Stack of nodes that are currently visited by the ASTWalker.
         The last node in the stack is the current node.
         It Is only used while walking the AST.
-    current_function_def : list[FunctionScope]
+    current_function_def :
         Stack of FunctionScopes that are currently visited by the ASTWalker.
         The top of the stack is the current function definition.
         It is only used while walking the AST.
-    children : list[Scope]
+    children :
         All found children nodes are stored in children until their scope is determined.
         After the AST is completely walked, the resulting "Module"- Scope is stored in children.
         (children[0])
-    targets : list[Symbol]
+    targets :
         All found targets are stored in targets until their scope is determined.
-    values : list[Reference]
+    values :
         All found names are stored in names until their scope is determined.
         It Is only used while walking the AST.
-    calls : list[Reference]
+    calls :
         All calls found on function level are stored in calls until their scope is determined.
         It Is only used while walking the AST.
-    classes : dict[str, ClassScope]
+    classes :
         Classnames in the module as key and their corresponding ClassScope instance as value.
-    functions : dict[str, list[FunctionScope]]
+    functions :
         Function names in the module as key and a list of their corresponding FunctionScope instances as value.
-    global_variables : dict[str, Scope]
+    global_variables :
         All global variables and their corresponding Scope instance.
-    imports : dict[str, Import]
+    imports :
         All imports and their corresponding Import instance.
     """
 
@@ -92,7 +92,7 @@ class ModuleDataBuilder:
 
         Parameters
         ----------
-        node : astroid.Attribute
+        node :
             The node whose parents are to be checked.
 
         Returns
@@ -116,9 +116,9 @@ class ModuleDataBuilder:
 
         Parameters
         ----------
-        node : astroid.NodeNG
+        node :
             The node whose symbol is to be determined.
-        current_scope : astroid.NodeNG | None
+        current_scope :
             The current scope of the node (is None if the node is the module node).
         """
         match current_scope:
@@ -220,7 +220,7 @@ class ModuleDataBuilder:
 
         Parameters
         ----------
-        current_node : astroid.NodeNG
+        current_node :
             The node whose scope is to be determined.
         """
         outer_scope_children: list[Scope] = []
@@ -245,7 +245,8 @@ class ModuleDataBuilder:
                 # add all children of the try-finally node and remove the try-except node.
                 if isinstance(current_node, astroid.TryFinally) and isinstance(child.symbol.node, astroid.TryExcept):
                     inner_scope_children.extend(child.children)
-                    inner_scope_children.remove(child)
+                    if child in inner_scope_children:
+                        inner_scope_children.remove(child)
 
         self.current_node_stack[-1].children = inner_scope_children  # Set the children of the current node.
         self.children = outer_scope_children  # Keep the children that are not in the scope of the current node.
@@ -275,7 +276,7 @@ class ModuleDataBuilder:
 
         Parameters
         ----------
-        current_node : astroid.ClassDef
+        current_node :
             The node to analyze.
         """
         if not isinstance(current_node, astroid.ClassDef):
@@ -303,7 +304,7 @@ class ModuleDataBuilder:
 
         Parameters
         ----------
-        current_node : astroid.FunctionDef
+        current_node :
             The node to analyze.
         """
         if not isinstance(current_node, astroid.FunctionDef):
@@ -518,7 +519,7 @@ class ModuleDataBuilder:
 
         Parameters
         ----------
-        node : astroid.NodeNG
+        node :
             The node to start the search from.
 
         Returns
@@ -542,9 +543,9 @@ class ModuleDataBuilder:
 
         Parameters
         ----------
-        node : astroid.AssignName
+        node :
             The node that is to be handled.
-        kind : ParameterKind
+        kind :
             The kind of the parameter.
         """
         scope_node = Scope(
@@ -561,9 +562,9 @@ class ModuleDataBuilder:
 
         Parameters
         ----------
-        argument : astroid.AssignName
+        argument :
             The argument node to add to the parameter dict.
-        kind : ParameterKind
+        kind :
             The kind of the parameter.
         """
         if isinstance(self.current_node_stack[-1], FunctionScope):
@@ -579,9 +580,9 @@ class ModuleDataBuilder:
 
         Parameters
         ----------
-        node : astroid.Name
+        node :
             The node to check.
-        found_annotation_node : bool
+        found_annotation_node :
             A bool that indicates if an annotation node is found.
 
         Returns
@@ -620,9 +621,9 @@ class ModuleDataBuilder:
 
         Parameters
         ----------
-        name : str
+        name :
             The variable name to check.
-        node : astroid.NodeNG
+        node :
             The node whose root is to be checked.
 
         Returns
@@ -648,7 +649,7 @@ class ModuleDataBuilder:
 
         Parameters
         ----------
-        node : astroid.ClassDef
+        node :
             The class whose base classes are to be found.
 
         Returns
@@ -675,7 +676,7 @@ class ModuleDataBuilder:
 
         Parameters
         ----------
-        node : astroid.Module
+        node :
             The module node to enter.
         """
         self.current_node_stack.append(
@@ -1217,11 +1218,11 @@ def get_module_data(code: str, module_name: str = "", path: str | None = None) -
 
     Parameters
     ----------
-    code : str
+    code :
         The source code of the module whose module data is to be found.
-    module_name : str, optional
+    module_name :
         The name of the module, by default "".
-    path : str, optional
+    path :
         The path of the module, by default None.
 
     Returns

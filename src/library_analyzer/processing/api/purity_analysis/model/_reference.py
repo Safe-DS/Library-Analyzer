@@ -8,11 +8,7 @@ import astroid
 
 from library_analyzer.processing.api.purity_analysis.model._module_data import (
     ClassScope,
-    ClassVariable,
     FunctionScope,
-    GlobalVariable,
-    Import,
-    InstanceVariable,
     MemberAccessTarget,
     MemberAccessValue,
     NodeID,
@@ -22,9 +18,14 @@ from library_analyzer.processing.api.purity_analysis.model._module_data import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
 
-    from library_analyzer.processing.api.purity_analysis.model import CallGraphForest, PurityResult
+    from library_analyzer.processing.api.purity_analysis.model import (
+        CallGraphForest,
+        NonLocalVariableRead,
+        NonLocalVariableWrite,
+        PurityResult,
+        UnknownProto,
+    )
 
 
 @dataclass
@@ -36,11 +37,11 @@ class ReferenceNode(ABC):
 
     Attributes
     ----------
-    node : astroid.Name | astroid.AssignName | astroid.Call | MemberAccessTarget | MemberAccessValue
+    node :
         The node that references the symbols.
-    scope : Scope
+    scope :
         The scope of the node.
-    referenced_symbols : list[Symbol]
+    referenced_symbols :
         The list of referenced symbols.
         These are the symbols of the nodes that node references.
     """
@@ -94,17 +95,17 @@ class ModuleAnalysisResult:
 
     Attributes
     ----------
-    resolved_references : dict[str, list[ValueReference | TargetReference]]
+    resolved_references :
         The dictionary of references.
         The key is the name of the reference node, the value is the list of ReferenceNodes.
-    raw_reasons : dict[NodeID, Reasons]
+    raw_reasons :
         The dictionary of function references.
         The key is the NodeID of the function, the value is the Reasons for the function.
-    classes : dict[str, ClassScope]
+    classes :
         All classes and their ClassScope.
     call_graph_forest : CallGraphForest
         The call graph forest of the module.
-    module_id : NodeID | None
+    module_id :
         The NodeID of the module which the analysis result belongs to.
     """
 
@@ -124,33 +125,33 @@ class Reasons:
 
     Attributes
     ----------
-    function_scope : FunctionScope | None
+    function_scope :
         The scope of the function which the reasons belong to.
         Is None if the reasons are not for a FunctionDef node.
         This is the case when either a builtin or a combined node is created,
         or a ClassScope is used to propagate reasons.
-    writes_to : set[GlobalVariable | ClassVariable | InstanceVariable | Import]
-        A set of all nodes that are written to.
-    reads_from : set[GlobalVariable | ClassVariable | InstanceVariable | Import]
-        A set of all nodes that are read from.
-    calls : set[Symbol]
+    writes_to :
+        A dict of all nodes that are written to.
+    reads_from :
+        A dict of all nodes that are read from.
+    calls :
         A set of all nodes that are called.
-    result : PurityResult | None
+    result :
         The result of the purity analysis
         This also works as a flag to determine if the purity analysis has already been performed:
         If it is None, the purity analysis has not been performed
-    unknown_calls : set[Symbol | Reference]
-        A list of all unknown calls.
+    unknown_calls :
+        A dict of all unknown calls.
         Unknown calls are calls to functions that are not defined in the module or are parameters.
     """
 
     id: NodeID
     function_scope: FunctionScope | None = field(default=None)
-    writes_to: set[GlobalVariable | ClassVariable | InstanceVariable | Import] = field(default_factory=set)
-    reads_from: set[GlobalVariable | ClassVariable | InstanceVariable | Import] = field(default_factory=set)
-    calls: set[Symbol] = field(default_factory=set)
+    writes_to: dict[NodeID, NonLocalVariableWrite] = field(default_factory=dict)
+    reads_from: dict[NodeID, NonLocalVariableRead] = field(default_factory=dict)
+    calls: set[Symbol] = field(default_factory=set)  # TODO: SORTED SET oder LIST
     result: PurityResult | None = field(default=None)
-    unknown_calls: set[Symbol | Reference] = field(default_factory=set)
+    unknown_calls: dict[NodeID, UnknownProto] = field(default_factory=dict)
 
     def join_reasons_list(self, reasons_list: list[Reasons]) -> Reasons:
         """Join a list of Reasons objects.
@@ -159,7 +160,7 @@ class Reasons:
 
         Parameters
         ----------
-        reasons_list : list[Reasons]
+        reasons_list :
             The list of Reasons objects.
 
 
@@ -181,9 +182,6 @@ class Reasons:
             result.join_reasons(reason)
         return result
 
-    def __iter__(self) -> Iterator[Symbol]:
-        return iter(self.writes_to.union(self.reads_from).union(self.calls))
-
     def join_reasons(self, other: Reasons) -> Reasons:
         """Join two Reasons objects.
 
@@ -192,7 +190,7 @@ class Reasons:
 
         Parameters
         ----------
-        other : Reasons
+        other :
             The other Reasons object.
 
         Returns
@@ -212,7 +210,7 @@ class Reasons:
 
         Parameters
         ----------
-        node_id : NodeID
+        node_id :
             The NodeID of the unknown call to remove.
         """
-        self.unknown_calls = {call for call in self.unknown_calls if call.id != node_id}
+        del self.unknown_calls[node_id]

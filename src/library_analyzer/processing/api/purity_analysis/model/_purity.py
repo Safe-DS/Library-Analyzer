@@ -12,6 +12,7 @@ import astroid
 from library_analyzer.processing.api.purity_analysis.model._module_data import (
     MemberAccessValue,
     NodeID,
+    Reference,
     Symbol,
     UnknownSymbol,
 )
@@ -34,7 +35,7 @@ class PurityResult(ABC):
 
     Purity results are either pure, impure or unknown.
 
-    is_class : bool
+    is_class :
         Whether the result is for a class or not.
     """
 
@@ -44,7 +45,7 @@ class PurityResult(ABC):
         return hash(str(self))
 
     @abstractmethod
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, shorten: bool = False) -> dict[str, Any]:
         pass
 
     @abstractmethod
@@ -61,7 +62,7 @@ class Pure(PurityResult):
 
     Attributes
     ----------
-    is_class : bool
+    is_class :
         Whether the result is for a class or not.
     """
 
@@ -72,7 +73,7 @@ class Pure(PurityResult):
 
         Parameters
         ----------
-        other : PurityResult | None
+        other :
             The result to update with.
 
         Returns
@@ -104,7 +105,7 @@ class Pure(PurityResult):
     def clone() -> Pure:
         return Pure()
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, shorten: bool = False) -> dict[str, Any]:  # noqa: ARG002
         return {"purity": self.__class__.__name__}
 
     def __hash__(self) -> int:
@@ -128,9 +129,9 @@ class Impure(PurityResult):
 
     Attributes
     ----------
-    reasons : set[ImpurityReason]
+    reasons :
         The reasons why the function is impure.
-    is_class : bool
+    is_class :
         Whether the result is for a class or not.
     """
 
@@ -142,7 +143,7 @@ class Impure(PurityResult):
 
         Parameters
         ----------
-        other : PurityResult | None
+        other :
             The result to update with.
 
         Returns
@@ -172,17 +173,58 @@ class Impure(PurityResult):
     def clone(self) -> Impure:
         return Impure(reasons=self.reasons.copy())
 
-    def to_dict(self) -> dict[str, Any]:
-        reasons = []
+    def to_dict(self, shorten: bool = False) -> dict[str, Any]:
         seen = set()
+        non_local_variable_reads = []
+        non_local_variable_writes = []
+        file_reads = []
+        file_writes = []
+        unknown_calls = []
+        native_calls = []
+        parameter_calls = []
         for reason in self.reasons:
             if str(reason) not in seen:
-                reasons.append(reason.to_dict())
                 seen.add(str(reason))
-
+                match reason:
+                    case NonLocalVariableRead():
+                        non_local_variable_reads.append(reason.to_dict())
+                    case NonLocalVariableWrite():
+                        non_local_variable_writes.append(reason.to_dict())
+                    case FileRead():
+                        file_reads.append(reason.to_dict())
+                    case FileWrite():
+                        file_writes.append(reason.to_dict())
+                    case UnknownCall():
+                        unknown_calls.append(reason.to_dict())
+                    case NativeCall():
+                        native_calls.append(reason.to_dict())
+                    case CallOfParameter():
+                        parameter_calls.append(reason.to_dict())
+                    case _:
+                        raise TypeError(f"Unknown reason type: {reason}")
+        if not shorten:
+            combined_reasons: dict[str, Any] = {
+                "NonLocalVariableRead": non_local_variable_reads,
+                "NonLocalVariableWrite": non_local_variable_writes,
+                "FileRead": file_reads,
+                "FileWrite": file_writes,
+                "UnknownCall": unknown_calls,
+                "NativeCall": native_calls,
+                "CallOfParameter": parameter_calls,
+            }
+        else:
+            combined_reasons = {
+                "NonLocalVariableRead": len(non_local_variable_reads),
+                "NonLocalVariableWrite": len(non_local_variable_writes),
+                "FileRead": len(file_reads),
+                "FileWrite": len(file_writes),
+                "UnknownCall": len(unknown_calls),
+                "NativeCall": len(native_calls),
+                "CallOfParameter": len(parameter_calls),
+            }
         return {
             "purity": self.__class__.__name__,
-            "reasons": reasons,
+            "reasons": {reason: value for reason, value in combined_reasons.items() if value},
         }
 
     def __hash__(self) -> int:
@@ -220,9 +262,9 @@ class NonLocalVariableRead(Read):
 
     Attributes
     ----------
-    symbol : GlobalVariable | ClassVariable | InstanceVariable | Import
+    symbol :
         The symbol that is read.
-    origin : Symbol | NodeID | None
+    origin :
         The origin of the read.
     """
 
@@ -240,7 +282,6 @@ class NonLocalVariableRead(Read):
             self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
         )
         return {
-            "result": f"{self.__class__.__name__}",
             "origin": f"{origin}",
             "reason": f"{self.symbol.__class__.__name__}.{self.symbol.name}",
         }
@@ -252,14 +293,13 @@ class FileRead(Read):
 
     Attributes
     ----------
-    source : Expression | None
+    source :
         The source of the read.
-        This is None if the source is unknown.
-    origin : Symbol | NodeID | None
+    origin :
         The origin of the read.
     """
 
-    source: Expression | None = None  # TODO: this should never be None
+    source: Expression
     origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
@@ -275,7 +315,6 @@ class FileRead(Read):
             self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
         )
         return {
-            "result": f"{self.__class__.__name__}",
             "origin": f"{origin}",
             "reason": f"{self.source.__str__()}",
         }
@@ -291,9 +330,9 @@ class NonLocalVariableWrite(Write):
 
     Attributes
     ----------
-    symbol : GlobalVariable | ClassVariable | InstanceVariable | Import
+    symbol :
         The symbol that is written to.
-    origin : Symbol | NodeID | None
+    origin :
         The origin of the write.
     """
 
@@ -311,7 +350,6 @@ class NonLocalVariableWrite(Write):
             self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
         )
         return {
-            "result": f"{self.__class__.__name__}",
             "origin": f"{origin}",
             "reason": f"{self.symbol.__class__.__name__}.{self.symbol.name}",
         }
@@ -323,14 +361,13 @@ class FileWrite(Write):
 
     Attributes
     ----------
-    source : Expression | None
+    source :
         The source of the write.
-        This is None if the source is unknown.  # TODO: see above LARS
-    origin : Symbol | NodeID | None
+    origin :
         The origin of the write.
     """
 
-    source: Expression | None = None
+    source: Expression
     origin: Symbol | NodeID | None = field(default=None)
 
     def __hash__(self) -> int:
@@ -346,7 +383,6 @@ class FileWrite(Write):
             self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
         )
         return {
-            "result": f"{self.__class__.__name__}",
             "origin": f"{origin}",
             "reason": f"{self.source.__str__()}",
         }
@@ -357,6 +393,37 @@ class Unknown(ImpurityReason, ABC):
 
 
 @dataclass
+class UnknownProto(Unknown):
+    """Class for UnknownCalls which are not fully determined.
+
+    Attributes
+    ----------
+    symbol :
+        The symbol or reference object which is not fully determined.
+    origin :
+        The origin of the unknown call.
+    """
+
+    symbol: Symbol | Reference
+    origin: Symbol | NodeID | None = field(default=None)  # TODO: remove NodeID
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {self.symbol.__class__.__name__}.{self.symbol.name}"
+
+    def to_dict(self) -> dict[str, Any]:
+        origin = (
+            self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
+        )
+        return {
+            "origin": f"{origin}",
+            "reason": f"{self.symbol.name}",
+        }
+
+
+@dataclass
 class UnknownCall(Unknown):
     """Class for calling unknown code.
 
@@ -364,9 +431,9 @@ class UnknownCall(Unknown):
 
     Attributes
     ----------
-    expression : Expression
+    expression :
         The expression that is called.
-    origin : Symbol | NodeID | None
+    origin :
         The origin of the call.
     """
 
@@ -384,7 +451,6 @@ class UnknownCall(Unknown):
             self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
         )
         return {
-            "result": f"{self.__class__.__name__}",
             "origin": f"{origin}",
             "reason": f"{self.expression.__str__()}",
         }
@@ -398,9 +464,9 @@ class NativeCall(Unknown):  # ExternalCall
 
     Attributes
     ----------
-    expression : Expression
+    expression :
         The expression that is called.
-    origin : Symbol | NodeID | None
+    origin :
         The origin of the call.
     """
 
@@ -418,7 +484,6 @@ class NativeCall(Unknown):  # ExternalCall
             self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
         )
         return {
-            "result": f"{self.__class__.__name__}",
             "origin": f"{origin}",
             "reason": f"{self.expression.__str__()}",
         }
@@ -436,9 +501,9 @@ class CallOfParameter(Unknown):  # ParameterCall
 
     Attributes
     ----------
-    expression : Expression
+    expression :
         The expression that is called.
-    origin : Symbol | NodeID | None
+    origin :
         The origin of the call.
     """
 
@@ -456,7 +521,6 @@ class CallOfParameter(Unknown):  # ParameterCall
             self.origin.id if isinstance(self.origin, Symbol) else (self.origin if self.origin is not None else None)
         )
         return {
-            "result": f"{self.__class__.__name__}",
             "origin": f"{origin}",
             "reason": f"{self.expression.__str__()}",
         }
@@ -479,7 +543,7 @@ class ParameterAccess(Expression):
 
     Attributes
     ----------
-    parameter : Parameter
+    parameter :
         The parameter that is accessed.
     """
 
@@ -497,7 +561,7 @@ class StringLiteral(Expression):
 
     Attributes
     ----------
-    value : str
+    value :
         The name of the string literal.
     """
 
@@ -513,11 +577,11 @@ class UnknownFunctionCall(Expression):
 
     Attributes
     ----------
-    call : astroid.Call
+    call :
         The call node.
-    inferred_def : astroid.FunctionDef | None
+    inferred_def :
         The inferred function definition for the call if it is known.
-    name : str
+    name :
         The name of the call.
     """
 
@@ -549,11 +613,11 @@ class UnknownClassInit(Expression):
 
     Attributes
     ----------
-    call : astroid.Call
+    call :
         The call node.
-    inferred_def : astroid.ClassDef | None
+    inferred_def :
         The inferred class definition for the call if it is known.
-    name : str
+    name :
         The name of the call.
     """
 
@@ -588,15 +652,15 @@ class APIPurity:
 
     purity_results: typing.ClassVar[dict[NodeID, dict[NodeID, PurityResult]]] = {}
 
-    def to_json_file(self, path: Path) -> None:
+    def to_json_file(self, path: Path, shorten: bool = True) -> None:
         ensure_file_exists(path)
         with path.open("w") as f:
-            json.dump(self.to_dict(), f, indent=2)
+            json.dump(self.to_dict(shorten), f, indent=2)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, shorten: bool = False) -> dict[str, Any]:
         return {
             module_name.__str__(): {
-                function_id.__str__(): purity.to_dict()
+                function_id.__str__(): purity.to_dict(shorten)
                 for function_id, purity in purity_result.items()
                 if not purity.is_class
             }

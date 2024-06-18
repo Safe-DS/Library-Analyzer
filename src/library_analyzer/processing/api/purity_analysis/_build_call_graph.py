@@ -11,6 +11,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     Parameter,
     Reasons,
     Symbol,
+    UnknownProto,
 )
 
 
@@ -21,21 +22,21 @@ class CallGraphBuilder:
 
     Attributes
     ----------
-    classes : dict[str, ClassScope]
+    classes :
         Classnames in the module as key and their corresponding ClassScope instance as value.
-    raw_reasons : dict[NodeID, Reasons]
+    raw_reasons :
         The raw reasons for impurity for all functions.
         Keys are the ids of the functions.
-    call_graph_forest : CallGraphForest
+    call_graph_forest :
         The call graph forest for the given functions.
-    visited : set[NodeID]
+    visited :
         A set of all visited nodes.
 
     Parameters
     ----------
-    classes : dict[str, ClassScope]
+    classes :
         Classnames in the module as key and their corresponding ClassScope instance as value.
-    raw_reasons : dict[NodeID, Reasons]
+    raw_reasons :
         The raw reasons for impurity for all functions.
         Keys are the ids of the functions.
     """
@@ -59,7 +60,7 @@ class CallGraphBuilder:
 
         Returns
         -------
-        call_graph_forest : CallGraphForest
+        call_graph_forest :
             The call graph forest for the given functions.
         """
         # Prepare the classes for the call graph.
@@ -131,7 +132,7 @@ class CallGraphBuilder:
 
         Parameters
         ----------
-        reason : Reasons
+        reason :
             The raw reasons of the function.
         """
         # If the node has already been visited, return
@@ -144,13 +145,16 @@ class CallGraphBuilder:
         # If the node is already inside the forest and does not have any calls left, it is considered to be finished.
         if self.call_graph_forest.has_graph(reason.id) and not reason.calls:
             return
-
+        # If the node is already inside the forest but still has calls left, it needs to be updated.
+        if self.call_graph_forest.has_graph(reason.id):
+            cgn = self.call_graph_forest.get_graph(reason.id)
         # Create a new node and add it to the forest.
-        cgn = CallGraphNode(
-            symbol=reason.function_scope.symbol,  # type: ignore[union-attr] # function_scope is never None here
-            reasons=reason,
-        )
-        self.call_graph_forest.add_graph(reason.id, cgn)
+        else:
+            cgn = CallGraphNode(
+                symbol=reason.function_scope.symbol,  # type: ignore[union-attr] # function_scope is never None here
+                reasons=reason,
+            )
+            self.call_graph_forest.add_graph(reason.id, cgn)
 
         # The node has calls, which need to be added to the forest and to the children of the current node.
         # They are sorted to ensure a deterministic order of the children (especially but not only for testing).
@@ -172,14 +176,14 @@ class CallGraphBuilder:
 
             # Check if the node was declared inside the current module.
             elif call.id not in self.raw_reasons:
-                self._handle_unknown_call(call, reason.id)
+                self._handle_unknown_call(call, reason)
 
             # Build the call graph for the child function and add it to the children of the current node.
             else:
                 self._built_call_graph(self.raw_reasons[call.id])
                 self.call_graph_forest.get_graph(reason.id).add_child(self.call_graph_forest.get_graph(call.id))
 
-    def _handle_unknown_call(self, call: Symbol, reason_id: NodeID) -> None:
+    def _handle_unknown_call(self, call: Symbol, reason: Reasons) -> None:
         """Handle unknown calls.
 
         Deal with unknown calls and add them to the forest.
@@ -188,10 +192,10 @@ class CallGraphBuilder:
 
         Parameters
         ----------
-        call : Symbol
+        call :
             The call that is unknown.
-        reason_id : NodeID
-            The id of the function that the call is in.
+        reason :
+            The reason of the function that contains the unknown call.
         """
         # Deal with the case that the call calls an imported function.
         if isinstance(call, Import):
@@ -200,26 +204,32 @@ class CallGraphBuilder:
                 reasons=Reasons(id=call.id),
             )
             self.call_graph_forest.add_graph(call.id, imported_cgn)
-            self.call_graph_forest.get_graph(reason_id).add_child(self.call_graph_forest.get_graph(call.id))
+            self.call_graph_forest.get_graph(reason.id).add_child(self.call_graph_forest.get_graph(call.id))
 
             # If the call was used as a member of an MemberAccessValue, it needs to be removed from the unknown_calls.
             # This is due to the improved analysis that can determine the module through the receiver of that call.
             # Hence, the call is handled as a call of an imported function and not as an unknown_call
             # when inferring the purity later.
-            for unknown_call in self.call_graph_forest.get_graph(reason_id).reasons.unknown_calls:
-                if unknown_call.node == call.call:
+            for unknown_call in self.call_graph_forest.get_graph(reason.id).reasons.unknown_calls.copy().values():
+                if unknown_call.symbol.node == call.call:
                     (
-                        self.call_graph_forest.get_graph(reason_id).reasons.remove_unknown_call(
+                        self.call_graph_forest.get_graph(reason.id).reasons.remove_unknown_call(
                             NodeID.calc_node_id(call.call),
                         )
                     )
 
         # Deal with the case that the call calls a function parameter.
         elif isinstance(call, Parameter):
-            self.call_graph_forest.get_graph(reason_id).reasons.unknown_calls.add(call)
+            self.call_graph_forest.get_graph(reason.id).reasons.unknown_calls[call.id] = UnknownProto(
+                symbol=call,
+                origin=reason.function_scope.symbol if reason.function_scope else None,
+            )
 
         else:
-            self.call_graph_forest.get_graph(reason_id).reasons.unknown_calls.add(call)
+            self.call_graph_forest.get_graph(reason.id).reasons.unknown_calls[call.id] = UnknownProto(
+                symbol=call,
+                origin=reason.function_scope.symbol if reason.function_scope else None,
+            )
 
     def _handle_cycles(self, removed_nodes: set[NodeID] | None = None) -> None:
         """Handle cycles in the call graph.
@@ -231,7 +241,7 @@ class CallGraphBuilder:
 
         Parameters
         ----------
-        removed_nodes : set[NodeID] | None
+        removed_nodes :
             A set of all removed nodes.
             If not given, a new set is created.
         """
@@ -262,16 +272,16 @@ class CallGraphBuilder:
 
         Parameters
         ----------
-        cgn : CallGraphNode
+        cgn :
             The current node in the graph that is visited.
-        visited_nodes : set[NewCallGraphNode] | None
+        visited_nodes :
             A set of all visited nodes.
-        path : list[NodeID] | None
+        path :
             A list of all nodes in the current path.
 
         Returns
         -------
-        cycle : dict[NodeID, NewCallGraphNode]
+        cycle :
            Dict of all nodes in the cycle.
            Keys are the NodeIDs of the nodes.
            Returns an empty dict if no cycle is found.
@@ -316,7 +326,7 @@ class CallGraphBuilder:
 
         Parameters
         ----------
-        cycle : dict[NodeID, CallGraphNode]
+        cycle :
             A dict of all nodes in the cycle.
             Keys are the NodeIDs of the CallGraphNodes.
         """
@@ -368,10 +378,10 @@ class CallGraphBuilder:
 
         Parameters
         ----------
-        cycle : dict[NodeID, CallGraphNode]
+        cycle :
             A dict of all nodes in the cycle.
             Keys are the NodeIDs of the nodes.
-        combined_node : CombinedCallGraphNode
+        combined_node :
             The combined node that replaces all nodes in the cycle.
         """
         for graph in self.call_graph_forest.graphs.values():
@@ -386,15 +396,15 @@ def build_call_graph(classes: dict[str, ClassScope], raw_reasons: dict[NodeID, R
 
     Parameters
     ----------
-    classes : dict[str, ClassScope]
+    classes :
         Classnames in the module as key and their corresponding ClassScope instance as value.
-    raw_reasons : dict[NodeID, Reasons]
+    raw_reasons :
         The raw reasons for impurity for all functions.
         Keys are the ids of the functions.
 
     Returns
     -------
-    call_graph_forest : CallGraphForest
+    call_graph_forest :
         The call graph forest for the given functions.
     """
     return CallGraphBuilder(classes, raw_reasons).call_graph_forest

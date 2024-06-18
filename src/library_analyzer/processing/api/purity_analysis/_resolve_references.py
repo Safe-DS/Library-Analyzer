@@ -21,6 +21,8 @@ from library_analyzer.processing.api.purity_analysis.model import (
     MemberAccessValue,
     ModuleAnalysisResult,
     NodeID,
+    NonLocalVariableRead,
+    NonLocalVariableWrite,
     PackageData,
     ParameterKind,
     Reasons,
@@ -28,6 +30,7 @@ from library_analyzer.processing.api.purity_analysis.model import (
     ReferenceNode,
     Symbol,
     TargetReference,
+    UnknownProto,
     ValueReference,
 )
 
@@ -39,26 +42,26 @@ class ReferenceResolver:
 
     Attributes
     ----------
-    functions : dict[str, list[FunctionScope]]
+    functions :
         The functions of the module.
-    classes : dict[str, ClassScope]
+    classes :
         The classes of the module.
-    imports : dict[str, Import]
+    imports :
         The imports of the module.
-    module_analysis_result : ModuleAnalysisResult
+    module_analysis_result :
         The result of the reference resolving.
-    package_data_is_provided : bool
+    package_data_is_provided :
         True if package data is given, False otherwise.
 
     Parameters
     ----------
-    code : str
+    code :
         The code of the module.
-    module_name : str
+    module_name :
         The name of the module if any.
-    path : str | None
+    path :
         The path of the module if any.
-    package_data : PackageData | None
+    package_data :
         The module data of all modules the package.
         If provided, the references are resolved with the package data, else the module data is collected first.
         It is used for the inference of the purity between modules in the package.
@@ -109,9 +112,9 @@ class ReferenceResolver:
 
         Parameters
         ----------
-        function : astroid.FunctionDef
+        function :
             The function to check.
-        klass : ClassScope
+        klass :
             The class to check.
 
         Returns
@@ -137,14 +140,14 @@ class ReferenceResolver:
 
         Parameters
         ----------
-        d1 : dict[str, list[ReferenceNode]]
+        d1 :
             The first dict.
-        d2 : dict[str, list[ReferenceNode]]
+        d2 :
             The second dict.
 
         Returns
         -------
-        d3 : dict[str, list[ReferenceNode]]
+        d3 :
             The merged dict.
         """
         d3 = d1.copy()
@@ -166,9 +169,9 @@ class ReferenceResolver:
 
         Parameters
         ----------
-        function : FunctionScope
+        function :
             The function to compare.
-        call : astroid.Call
+        call :
             The call to compare.
 
         Returns
@@ -250,9 +253,9 @@ class ReferenceResolver:
 
         Parameters
         ----------
-        call_reference : Reference
+        call_reference :
             The call reference which should be analyzed.
-        function : FunctionScope
+        function :
             The function in which the call is made.
 
         Returns
@@ -277,6 +280,8 @@ class ReferenceResolver:
             while class_iterator:
                 if isinstance(class_iterator, astroid.ClassDef):
                     klass = self.classes.get(class_iterator.name)
+                    break
+                if isinstance(class_iterator, astroid.Module):
                     break
                 class_iterator = class_iterator.parent
 
@@ -381,9 +386,9 @@ class ReferenceResolver:
 
         Parameters
         ----------
-        value_reference : Reference
+        value_reference :
             The value reference which should be analyzed.
-        function : FunctionScope
+        function :
             The function in which the value is used.
 
         Returns
@@ -471,6 +476,8 @@ class ReferenceResolver:
                     import_def,
                     inferred_node=inferred_node_def,  # type: ignore[type-var] # import def is not None.
                 )
+                specified_import_def.id.name = specified_import_def.id.name + "." + specified_import_def.name  # type: ignore[union-attr] # specified_import_def is not None.
+
                 if specified_import_def:
                     result_value_reference.referenced_symbols.append(specified_import_def)
 
@@ -502,17 +509,20 @@ class ReferenceResolver:
             # are resolved is much more effort and would require to change the data structure.
             # Therefore, all calls of imported functions are handled as MemberAccessValue.
             # Because of this, a check at the point where the referenced_symbols are added to the raw_reasons is needed.
-            if value_reference.node.receiver is None:
+            try:
+                if value_reference.node.receiver is None:
+                    receiver_name = "UNKNOWN"
+                elif isinstance(value_reference.node.receiver, astroid.Attribute):
+                    receiver_name = value_reference.node.receiver.attrname
+                elif isinstance(value_reference.node.receiver, astroid.Call) and hasattr(
+                    value_reference.node.receiver.func,
+                    "name",
+                ):
+                    receiver_name = value_reference.node.receiver.func.name
+                else:
+                    receiver_name = value_reference.node.receiver.name
+            except AttributeError:
                 receiver_name = "UNKNOWN"
-            elif isinstance(value_reference.node.receiver, astroid.Attribute):
-                receiver_name = value_reference.node.receiver.attrname
-            elif isinstance(value_reference.node.receiver, astroid.Call) and isinstance(
-                value_reference.node.receiver.func,
-                astroid.Name,
-            ):
-                receiver_name = value_reference.node.receiver.func.name
-            else:
-                receiver_name = value_reference.node.receiver.name
 
             # In references imported via "import" statements, the symbols of the imported module are not known yet.
             # The symbol is accessed via its name, which is of type MemberAccessValue.
@@ -554,6 +564,7 @@ class ReferenceResolver:
                             name=value_reference.node.member,
                             inferred_node=inferred_node_def,
                         )
+                        specified_import_def.id.name = specified_import_def.id.name + "." + specified_import_def.name
 
                         # If the member is a call, add the call node to the specified_import_def as fallback for the case
                         # that the purity of the called function cannot be inferred.
@@ -578,9 +589,9 @@ class ReferenceResolver:
 
         Parameters
         ----------
-        target_reference : Symbol
+        target_reference :
             The target reference which should be analyzed.
-        function : FunctionScope
+        function :
             The function in which the value is used.
 
         Returns
@@ -743,7 +754,9 @@ class ReferenceResolver:
                             # If no referenced symbols are found, add the call to the list of unknown_calls
                             # of the raw_reasons dict for this function
                             elif call_references_result.node not in raw_reasons[function.symbol.id].unknown_calls:
-                                raw_reasons[function.symbol.id].unknown_calls.add(call_references_result.node)
+                                raw_reasons[function.symbol.id].unknown_calls[call_references_result.node.id] = (
+                                    UnknownProto(symbol=call_references_result.node, origin=function.symbol)
+                                )
 
                 # Check if the function has value_references (References from a value node to a target node).
                 if function.value_references:
@@ -781,8 +794,10 @@ class ReferenceResolver:
                                             else:
                                                 continue
                                         # Add the referenced symbol to the list of symbols whom are read from.
-                                        if referenced_symbol not in raw_reasons[function.symbol.id].reads_from:
-                                            raw_reasons[function.symbol.id].reads_from.add(referenced_symbol)
+                                        if referenced_symbol.id not in raw_reasons[function.symbol.id].reads_from:
+                                            raw_reasons[function.symbol.id].reads_from[referenced_symbol.id] = (
+                                                NonLocalVariableRead(symbol=referenced_symbol, origin=function.symbol)
+                                            )
                                     elif isinstance(referenced_symbol, Import):
                                         # Since calls of imported functions are treated within _find_value_references
                                         # as MemberAccessValue, they need to be added to the calls of the raw_reasons dict
@@ -794,14 +809,21 @@ class ReferenceResolver:
                                             if referenced_symbol not in raw_reasons[function.symbol.id].calls:
                                                 raw_reasons[function.symbol.id].calls.add(referenced_symbol)
                                         else:  # noqa: PLR5501
-                                            if referenced_symbol not in raw_reasons[function.symbol.id].reads_from:
-                                                raw_reasons[function.symbol.id].reads_from.add(referenced_symbol)
+                                            if referenced_symbol.id not in raw_reasons[function.symbol.id].reads_from:
+                                                raw_reasons[function.symbol.id].reads_from[referenced_symbol.id] = (
+                                                    NonLocalVariableRead(
+                                                        symbol=referenced_symbol,
+                                                        origin=function.symbol,
+                                                    )
+                                                )
                             # If no referenced symbols are found, add the call to the list of unknown_calls
                             # of the raw_reasons dict for this function
                             elif value_reference_result.node not in raw_reasons[
                                 function.symbol.id
                             ].unknown_calls and isinstance(value_reference_result.node.node, astroid.Call):
-                                raw_reasons[function.symbol.id].unknown_calls.add(value_reference_result.node)
+                                raw_reasons[function.symbol.id].unknown_calls[value_reference_result.node.id] = (
+                                    UnknownProto(symbol=value_reference_result.node, origin=function.symbol)
+                                )
 
                 # Check if the function has target_references (References from a target node to another target node).
                 if function.target_symbols:
@@ -834,7 +856,9 @@ class ReferenceResolver:
                                             continue
                                         # Add the referenced symbol to the list of symbols whom are written to.
                                         if referenced_symbol not in raw_reasons[function.symbol.id].writes_to:
-                                            raw_reasons[function.symbol.id].writes_to.add(referenced_symbol)
+                                            raw_reasons[function.symbol.id].writes_to[referenced_symbol.id] = (
+                                                NonLocalVariableWrite(symbol=referenced_symbol, origin=function.symbol)
+                                            )
 
         name_references: dict[str, list[ReferenceNode]] = self.merge_dicts(value_references, target_references)
         resolved_references: dict[str, list[ReferenceNode]] = self.merge_dicts(call_references, name_references)
@@ -852,13 +876,13 @@ def resolve_references(
 
     Parameters
     ----------
-    code : str
+    code :
         The code of the module.
-    module_name : str
+    module_name :
         The name of the module if any.
-    path : str | None
+    path :
         The path of the module if any.
-    package_data : PackageData | None
+    package_data :
         The module data of all modules the package.
         If provided, the references are resolved with the package data, else the module data is collected first.
         It is used for the inference of the purity between modules in the package.
