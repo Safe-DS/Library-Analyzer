@@ -37,11 +37,11 @@ class ReferenceNode(ABC):
 
     Attributes
     ----------
-    node
+    node :
         The node that references the symbols.
-    scope
+    scope :
         The scope of the node.
-    referenced_symbols
+    referenced_symbols :
         The list of referenced symbols.
         These are the symbols of the nodes that node references.
     """
@@ -95,17 +95,17 @@ class ModuleAnalysisResult:
 
     Attributes
     ----------
-    resolved_references
+    resolved_references :
         The dictionary of references.
         The key is the name of the reference node, the value is the list of ReferenceNodes.
-    raw_reasons
+    raw_reasons :
         The dictionary of function references.
         The key is the NodeID of the function, the value is the Reasons for the function.
-    classes
+    classes :
         All classes and their ClassScope.
     call_graph_forest : CallGraphForest
         The call graph forest of the module.
-    module_id
+    module_id :
         The NodeID of the module which the analysis result belongs to.
     """
 
@@ -125,22 +125,22 @@ class Reasons:
 
     Attributes
     ----------
-    function_scope
+    function_scope :
         The scope of the function which the reasons belong to.
         Is None if the reasons are not for a FunctionDef node.
         This is the case when either a builtin or a combined node is created,
         or a ClassScope is used to propagate reasons.
-    writes_to
+    writes_to :
         A dict of all nodes that are written to.
-    reads_from
+    reads_from :
         A dict of all nodes that are read from.
-    calls
+    calls :
         A set of all nodes that are called.
-    result
+    result :
         The result of the purity analysis
         This also works as a flag to determine if the purity analysis has already been performed:
         If it is None, the purity analysis has not been performed
-    unknown_calls
+    unknown_calls :
         A dict of all unknown calls.
         Unknown calls are calls to functions that are not defined in the module or are parameters.
     """
@@ -160,7 +160,7 @@ class Reasons:
 
         Parameters
         ----------
-        reasons_list
+        reasons_list :
             The list of Reasons objects.
 
 
@@ -190,7 +190,7 @@ class Reasons:
 
         Parameters
         ----------
-        other
+        other :
             The other Reasons object.
 
         Returns
@@ -210,7 +210,7 @@ class Reasons:
 
         Parameters
         ----------
-        node_id
+        node_id :
             The NodeID of the unknown call to remove.
         """
         del self.unknown_calls[node_id]

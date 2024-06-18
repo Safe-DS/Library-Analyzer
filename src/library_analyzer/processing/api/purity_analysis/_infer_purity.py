@@ -50,20 +50,20 @@ class PurityAnalyzer:
 
     Attributes
     ----------
-    module_id
+    module_id :
         The ID of the module to analyze.
-    visited_nodes
+    visited_nodes :
         A set of all nodes that have been visited during the analysis.
-    call_graph_forest
+    call_graph_forest :
         The call graph forest of the module.
-    current_purity_results
+    current_purity_results :
         The purity results of the functions in the module.
-    separated_nodes
+    separated_nodes :
         If the module has cycles, they will be found by the CallGraphBuilder and combined to a single node.
         Since these combined nodes are not part of the module but needed for the analysis,
         their purity results will be propagated to the original nodes during the analysis.
         This attribute stores the original nodes inside after the combined node was analyzed.
-    cached_module_results
+    cached_module_results :
         The results of all previously analyzed modules.
         The key is the NodeID of the module,
         the value is a dictionary of the purity results of the functions in the module.
@@ -72,18 +72,18 @@ class PurityAnalyzer:
 
     Parameters
     ----------
-    code
+    code :
         The source code of the module.
         If None is provided, the package data must be provided (or else an exception is raised).
-    module_name
+    module_name :
         The name of the module.
-    path
+    path :
         The path of the module.
-    results
+    results :
         The results of all previously analyzed modules.
         The key is the NodeID of the module,
         the value is a dictionary of the purity results of the functions in the module.
-    package_data
+    package_data :
         The module data of all modules the package.
         If provided, the references are resolved with the package data, else the module data is collected first.
         It is used for the inference of the purity between modules in the package.
@@ -125,7 +125,7 @@ class PurityAnalyzer:
 
         Parameters
         ----------
-        call
+        call :
             The call to check.
 
         Returns
@@ -210,7 +210,7 @@ class PurityAnalyzer:
 
         Parameters
         ----------
-        reasons
+        reasons :
             The node to process containing the raw reasons for impurity collected.
 
         Returns
@@ -309,7 +309,7 @@ class PurityAnalyzer:
 
         Parameters
         ----------
-        imported_node
+        imported_node :
             The imported node to process.
 
         Returns
@@ -456,7 +456,7 @@ class PurityAnalyzer:
 
         Parameters
         ----------
-        node
+        node :
             The node to process.
 
         Returns
@@ -583,27 +583,27 @@ def infer_purity(
 
     Parameters
     ----------
-    code
+    code :
         The source code of the module.
         If None is provided, the package data must be provided (or else an exception is raised).
-    module_name
+    module_name :
         The name of the module, by default "".
-    path
+    path :
         The path of the module, by default None.
-    results
+    results :
         The results of all previously analyzed modules.
         The key is the NodeID of the module, the value is a dictionary of the purity results of the functions in the module.
         After the analysis of the module, the results are saved in this dictionary.
         All imported modules are saved in this dictionary too for further runtime reduction.
         Is None if no results are available.
-    package_data
+    package_data :
         The module data of all modules the package.
         If provided, the references are resolved with the package data, else the module data is collected first.
         It is used for the inference of the purity between modules in the package.
 
     Returns
     -------
-    purity_results
+    purity_results : dict[NodeID, dict[NodeID, PurityResult]]
         The purity results of the functions in the module.
         The key is the NodeID of the module, the value is a dictionary of the purity results of the functions in the module.
     """
@@ -621,7 +621,7 @@ def get_purity_results(
 
     Parameters
     ----------
-    src_dir_path
+    src_dir_path :
         The path of the source directory of the package.
 
     Returns

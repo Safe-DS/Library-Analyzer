@@ -18,14 +18,14 @@ class ModuleData:
 
     Attributes
     ----------
-    scope
+    scope :
         The module's scope, this contains all child scopes.
-    classes
+    classes :
         All classes and their ClassScope.
-    functions
+    functions :
         All functions and a list of their FunctionScopes.
         The value is a list since there can be multiple functions with the same name.
-    imports
+    imports :
         All imported symbols.
     """
 
@@ -42,13 +42,13 @@ class PackageData:
 
     Attributes
     ----------
-    package_name
+    package_name :
         The name of the package.
-    modules
+    modules :
         All modules and their ModuleData.
         The key is the name of the module.
         The value is a tuple of the path to the module and the ModuleData.
-    combined_module
+    combined_module : ModuleData
         The combined ModuleData of all modules in the package.
     """
 
@@ -94,18 +94,18 @@ class MemberAccess(astroid.NodeNG):
 
     Attributes
     ----------
-    node
+    node :
         The original node that represents the member access.
         Needed as fallback when determining the parent node if the receiver is None.
-    receiver
+    receiver :
         The receiver is the node that is accessed, it can be nested, e.g. `a` in `a.b` or `a.b` in `a.b.c`.
         The receiver can be nested.
         Is None if the receiver is not of type Name, Call or Attribute
-    member
+    member :
         The member is the name of the node that accesses the receiver, e.g. `b` in `a.b`.
     parent : astroid.NodeNG | None
         The parent node of the member access.
-    name
+    name :
         The name of the member access, e.g. `a.b`.
         Is set in __post_init__, after the member access has been created.
         If the MemberAccess is nested, the name of the receiver will be set to "UNKNOWN" since it is hard to determine
@@ -152,7 +152,7 @@ class MemberAccessTarget(MemberAccess):
 
         Parameters
         ----------
-        node
+        node :
             The node to construct the MemberAccessTarget node from.
 
         Returns
@@ -203,7 +203,7 @@ class MemberAccessValue(MemberAccess):
 
         Parameters
         ----------
-        node
+        node :
             The node to construct the MemberAccessValue node from.
 
         Returns
@@ -234,15 +234,15 @@ class NodeID:
 
     Attributes
     ----------
-    module
+    module :
         The module of the node.
         Is None for combined nodes.
-    name
+    name :
         The name of the node.
-    line
+    line :
         The line of the node in the source code.
         Is None for combined nodes, builtins or any other node that do not have a line.
-    col
+    col :
         The column of the node in the source code.
         Is None for combined nodes, builtins or any other node that do not have a line.
     """
@@ -326,7 +326,7 @@ class NodeID:
 
         Parameters
         ----------
-        node
+        node :
 
         Returns
         -------
@@ -386,11 +386,11 @@ class Symbol(ABC):
 
     Attributes
     ----------
-    node
+    node :
         The node that defines the symbol.
-    id
+    id :
         The id of that node.
-    name
+    name :
         The name of the symbol (for easier access).
     """
 
@@ -414,7 +414,7 @@ class UnknownSymbol(Symbol):
 
     Attributes
     ----------
-    node
+    node :
     """
 
     node: None = None
@@ -470,7 +470,7 @@ class ClassVariable(Symbol):
 
     Attributes
     ----------
-    klass
+    klass :
         The class that defines the class variable.
     """
 
@@ -491,7 +491,7 @@ class InstanceVariable(Symbol):
 
     Attributes
     ----------
-    klass
+    klass :
         The class that defines the instance variable.
     """
 
@@ -512,22 +512,22 @@ class Import(Symbol):
 
     Attributes
     ----------
-    node
+    node :
         The node that defines the import.
-    name
+    name :
         The name of the symbol that is imported if any is given.
         Else it is equal to the module name.
-    module
+    module :
         The name of the module that is imported.
-    alias
+    alias :
         If the node is of type Import alias is the alias name for the module name if any is given.
         If the node is of type ImportFrom alias is the alias name for the name of the symbol if any is given.
-    inferred_node
+    inferred_node :
         When the import is used as a reference (or a symbol)
         the inferred_node is the node of the used reference (or symbol) in the original module.
         It was inferred by the reference analysis by using astroids safe_infer method.
         If the method could not infer the node, the inferred_node is None.
-    call
+    call :
         The original call node as fallback for the case, that the purity of the inferred_node cannot be inferred.
         Only is set if the symbol represents a call.
     """
@@ -558,7 +558,7 @@ class Builtin(Symbol):
 
     Attributes
     ----------
-    call
+    call :
         The call node of the function.
     """
 
@@ -579,7 +579,7 @@ class BuiltinOpen(Builtin):
 
     Attributes
     ----------
-    call
+    call :
         The call node of the open-like function.
     """
 
@@ -602,7 +602,7 @@ class CombinedSymbol(Symbol):
 
     Attributes
     ----------
-    node
+    node :
 
     """
 
@@ -625,11 +625,11 @@ class Reference:
 
     Attributes
     ----------
-    node
+    node :
         The node that defines the symbol.
-    id
+    id :
         The id of that node.
-    name
+    name :
         The name of the symbol (for easier access).
     """
 
@@ -656,12 +656,12 @@ class Scope:
 
     Attributes
     ----------
-    _symbol
+    _symbol :
         The symbol that defines the scope.
-    _children
+    _children :
         The list of Scope or ClassScope instances that are defined in the scope of the Symbol node.
         Is None if the node is a leaf node.
-    _parent
+    _parent :
         The parent node in the scope tree, there is None if the node is the root node.
     """
 
@@ -744,16 +744,16 @@ class ClassScope(Scope):
 
     Attributes
     ----------
-    class_variables
+    class_variables :
         The name of the class variable and a list of its Symbols (which represent a declaration).
         There can be multiple declarations of the same class variable, e.g. `a = 1` and `a = 2`
         since we cannot determine which one is used since we do not analyze the control flow.
         Also, it is impossible to distinguish between a declaration and a reassignment.
-    instance_variables
+    instance_variables :
         The name of the instance variable and a list of its Symbols (which represent a declaration).
-    init_function
+    init_function :
         The init function of the class if it exists else None.
-    super_classes
+    super_classes :
         The list of superclasses of the class if any.
     """
 
@@ -771,18 +771,18 @@ class FunctionScope(Scope):
 
     Attributes
     ----------
-    target_symbols
+    target_symbols :
         The dict of all target nodes used inside the corresponding function.
         Target nodes are specified as all nodes that can be written to and which can be represented as a Symbol.
         This includes assignments, parameters,
-    value_references
+    value_references :
         The dict of all value nodes used inside the corresponding function.
-    call_references
+    call_references :
         The dict of all function calls inside the corresponding function.
         The key is the name of the call node, the value is a list of all References of call nodes with that name.
-    parameters
+    parameters :
         The parameters of the function.
-    globals_used
+    globals_used :
         The global variables used inside the function.
         It stores the globally assigned nodes (Assignment of the used variable).
     """
@@ -801,7 +801,7 @@ class FunctionScope(Scope):
 
         Parameters
         ----------
-        call_id
+        call_id :
             The name of the call node to remove.
         """
         self.call_references.pop(call_id, None)

@@ -22,21 +22,21 @@ class CallGraphBuilder:
 
     Attributes
     ----------
-    classes
+    classes :
         Classnames in the module as key and their corresponding ClassScope instance as value.
-    raw_reasons
+    raw_reasons :
         The raw reasons for impurity for all functions.
         Keys are the ids of the functions.
-    call_graph_forest
+    call_graph_forest :
         The call graph forest for the given functions.
-    visited
+    visited :
         A set of all visited nodes.
 
     Parameters
     ----------
-    classes
+    classes :
         Classnames in the module as key and their corresponding ClassScope instance as value.
-    raw_reasons
+    raw_reasons :
         The raw reasons for impurity for all functions.
         Keys are the ids of the functions.
     """
@@ -60,7 +60,7 @@ class CallGraphBuilder:
 
         Returns
         -------
-        call_graph_forest
+        call_graph_forest : CallGraphForest
             The call graph forest for the given functions.
         """
         # Prepare the classes for the call graph.
@@ -132,7 +132,7 @@ class CallGraphBuilder:
 
         Parameters
         ----------
-        reason
+        reason :
             The raw reasons of the function.
         """
         # If the node has already been visited, return
@@ -192,9 +192,9 @@ class CallGraphBuilder:
 
         Parameters
         ----------
-        call
+        call :
             The call that is unknown.
-        reason
+        reason :
             The reason of the function that contains the unknown call.
         """
         # Deal with the case that the call calls an imported function.
@@ -241,7 +241,7 @@ class CallGraphBuilder:
 
         Parameters
         ----------
-        removed_nodes
+        removed_nodes :
             A set of all removed nodes.
             If not given, a new set is created.
         """
@@ -272,16 +272,16 @@ class CallGraphBuilder:
 
         Parameters
         ----------
-        cgn
+        cgn :
             The current node in the graph that is visited.
-        visited_nodes
+        visited_nodes :
             A set of all visited nodes.
-        path
+        path :
             A list of all nodes in the current path.
 
         Returns
         -------
-        cycle
+        cycle : dict[NodeID, NewCallGraphNode]
            Dict of all nodes in the cycle.
            Keys are the NodeIDs of the nodes.
            Returns an empty dict if no cycle is found.
@@ -326,7 +326,7 @@ class CallGraphBuilder:
 
         Parameters
         ----------
-        cycle
+        cycle :
             A dict of all nodes in the cycle.
             Keys are the NodeIDs of the CallGraphNodes.
         """
@@ -378,10 +378,10 @@ class CallGraphBuilder:
 
         Parameters
         ----------
-        cycle
+        cycle :
             A dict of all nodes in the cycle.
             Keys are the NodeIDs of the nodes.
-        combined_node
+        combined_node :
             The combined node that replaces all nodes in the cycle.
         """
         for graph in self.call_graph_forest.graphs.values():
@@ -396,15 +396,15 @@ def build_call_graph(classes: dict[str, ClassScope], raw_reasons: dict[NodeID, R
 
     Parameters
     ----------
-    classes
+    classes :
         Classnames in the module as key and their corresponding ClassScope instance as value.
-    raw_reasons
+    raw_reasons :
         The raw reasons for impurity for all functions.
         Keys are the ids of the functions.
 
     Returns
     -------
-    call_graph_forest
+    call_graph_forest : CallGraphForest
         The call graph forest for the given functions.
     """
     return CallGraphBuilder(classes, raw_reasons).call_graph_forest
