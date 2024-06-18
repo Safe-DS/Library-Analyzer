@@ -768,8 +768,18 @@ class ReferenceResolver:
                                     if isinstance(referenced_symbol, GlobalVariable | ClassVariable | InstanceVariable):
                                         # Since classes and functions are defined as immutable
                                         # reading from them is not a reason for impurity.
+                                        # There is an exception to this rule for functions
+                                        # that are decorated with a '@property' decorator. These functions define an
+                                        # instance variable as a property, which can be read from.
                                         if isinstance(referenced_symbol.node, astroid.ClassDef | astroid.FunctionDef):
-                                            continue
+                                            if (
+                                                isinstance(referenced_symbol.node, astroid.FunctionDef)
+                                                and "builtins.property" in referenced_symbol.node.decoratornames()
+                                                and isinstance(referenced_symbol, InstanceVariable)
+                                            ):
+                                                pass
+                                            else:
+                                                continue
                                         # Add the referenced symbol to the list of symbols whom are read from.
                                         if referenced_symbol not in raw_reasons[function.symbol.id].reads_from:
                                             raw_reasons[function.symbol.id].reads_from.add(referenced_symbol)

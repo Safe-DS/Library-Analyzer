@@ -471,6 +471,25 @@ def f():
                 "f.line2": Pure(),
             },
         ),
+        (  # language=Python "Assign Instance Attribute via property"
+            """
+class A:
+    def __init__(self, value):
+        self._value = value
+
+    def f(self):
+        return self.value
+
+    @property
+    def value(self):
+        return self._value
+            """,  # language=none
+            {
+                "__init__.line3": Pure(),
+                "f.line6": SimpleImpure({"NonLocalVariableRead.InstanceVariable.A.value"}),
+                "value.line10": SimpleImpure({"NonLocalVariableRead.InstanceVariable.A._value"}),
+            },
+        ),
     ],
     ids=[
         "Trivial function",
@@ -496,6 +515,7 @@ def f():
         "Builtins for dict",
         "Builtins for list",
         "Builtins for set",
+        "Assign Instance Attribute via property",
     ],  # TODO: class inits in cycles
 )
 def test_infer_purity_pure(code: str, expected: list[ImpurityReason]) -> None:
