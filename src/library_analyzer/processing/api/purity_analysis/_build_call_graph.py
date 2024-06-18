@@ -60,7 +60,7 @@ class CallGraphBuilder:
 
         Returns
         -------
-        call_graph_forest : CallGraphForest
+        call_graph_forest :
             The call graph forest for the given functions.
         """
         # Prepare the classes for the call graph.
@@ -281,7 +281,7 @@ class CallGraphBuilder:
 
         Returns
         -------
-        cycle : dict[NodeID, NewCallGraphNode]
+        cycle :
            Dict of all nodes in the cycle.
            Keys are the NodeIDs of the nodes.
            Returns an empty dict if no cycle is found.
@@ -404,7 +404,7 @@ def build_call_graph(classes: dict[str, ClassScope], raw_reasons: dict[NodeID, R
 
     Returns
     -------
-    call_graph_forest : CallGraphForest
+    call_graph_forest :
         The call graph forest for the given functions.
     """
     return CallGraphBuilder(classes, raw_reasons).call_graph_forest

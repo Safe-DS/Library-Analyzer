@@ -147,7 +147,7 @@ class ReferenceResolver:
 
         Returns
         -------
-        d3 : dict[str, list[ReferenceNode]]
+        d3 :
             The merged dict.
         """
         d3 = d1.copy()

@@ -603,7 +603,7 @@ def infer_purity(
 
     Returns
     -------
-    purity_results : dict[NodeID, dict[NodeID, PurityResult]]
+    purity_results :
         The purity results of the functions in the module.
         The key is the NodeID of the module, the value is a dictionary of the purity results of the functions in the module.
     """
