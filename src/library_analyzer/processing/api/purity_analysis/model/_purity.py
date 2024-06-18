@@ -652,7 +652,7 @@ class APIPurity:
 
     purity_results: typing.ClassVar[dict[NodeID, dict[NodeID, PurityResult]]] = {}
 
-    def to_json_file(self, path: Path, shorten: bool = False) -> None:
+    def to_json_file(self, path: Path, shorten: bool = True) -> None:
         ensure_file_exists(path)
         with path.open("w") as f:
             json.dump(self.to_dict(shorten), f, indent=2)
