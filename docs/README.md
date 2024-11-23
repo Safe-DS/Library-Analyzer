@@ -1,5 +1,7 @@
 # Library Analyzer
 
+**Project status:** The development of a proof-of-concept implementation is done. We are currently focussing our attention on other projects.
+
 [![PyPI](https://img.shields.io/pypi/v/library-analyzer)](https://pypi.org/project/library-analyzer)
 [![Main](https://github.com/Safe-DS/Library-Analyzer/actions/workflows/main.yml/badge.svg)](https://github.com/Safe-DS/Library-Analyzer/actions/workflows/main.yml)
 [![codecov](https://codecov.io/gh/Safe-DS/Library-Analyzer/branch/main/graph/badge.svg?token=UyCUY59HKM)](https://codecov.io/gh/Safe-DS/Library-Analyzer)
